@@ -1,0 +1,10 @@
+name = "CppFormalization"
+version = "0.1.0"
+defaultTargets = ["cppformalization"]
+
+[[lean_lib]]
+name = "CppFormalization"
+
+[[lean_exe]]
+name = "cppformalization"
+root = "Main"
