@@ -2,6 +2,7 @@ import CppFormalization.Cpp2.Semantics.Expr
 import CppFormalization.Cpp2.Core.RuntimeState
 import CppFormalization.Cpp2.Core.Syntax
 import CppFormalization.Cpp2.Core.Types
+import CppFormalization.Cpp2.Core.Outcome
 
 /-!
 Concrete statement and block semantics.

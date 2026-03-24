@@ -2,6 +2,7 @@ import CppFormalization.Cpp2.Core.Types
 import CppFormalization.Cpp2.Core.TypeEnv
 import CppFormalization.Cpp2.Core.Syntax
 import CppFormalization.Cpp2.Core.RuntimeState
+import CppFormalization.Cpp2.Core.Outcome
 import CppFormalization.Cpp2.Typing.Expr
 import CppFormalization.Cpp2.Typing.Stmt
 import CppFormalization.Cpp2.Static.WellFormed
