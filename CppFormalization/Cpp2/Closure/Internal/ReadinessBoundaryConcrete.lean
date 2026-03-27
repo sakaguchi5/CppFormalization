@@ -74,7 +74,7 @@ theorem while_body_normal_preserves_body_ready_concrete_typed
     ScopedTypedStateConcrete Γ σ →
     ScopedTypedStateConcrete Γ σ' ∧ StmtReadyConcrete Γ σ' (.whileStmt c body) := by
   intro htyWhile hreadyWhile hstepBody hσ
-  rcases while_normal_typing_data htyWhile with ⟨_, hN, hB, hC⟩
+  rcases while_normal_typing_data htyWhile with ⟨_, _, hN, hB, hC⟩
   have hreadyBody : StmtReadyConcrete Γ σ body :=
     while_ready_body_data hreadyWhile
   have hσ' : ScopedTypedStateConcrete Γ σ' :=
@@ -99,7 +99,7 @@ theorem while_body_continue_preserves_body_ready_concrete_typed
     ScopedTypedStateConcrete Γ σ →
     ScopedTypedStateConcrete Γ σ' ∧ StmtReadyConcrete Γ σ' (.whileStmt c body) := by
   intro htyWhile hreadyWhile hstepBody hσ
-  rcases while_normal_typing_data htyWhile with ⟨_, hN, hB, hC⟩
+  rcases while_normal_typing_data htyWhile with ⟨_, _, hN, hB, hC⟩
   have hreadyBody : StmtReadyConcrete Γ σ body :=
     while_ready_body_data hreadyWhile
   have hcompBody : StmtControlCompatible hC hstepBody :=

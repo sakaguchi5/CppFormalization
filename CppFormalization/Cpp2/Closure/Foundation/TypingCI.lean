@@ -227,13 +227,14 @@ theorem while_normal_typing_data
     {Γ Δ : TypeEnv} {c : ValExpr} {body : CppStmt} :
     HasTypeStmtCI .normalK Γ (.whileStmt c body) Δ →
     Δ = Γ ∧
+    HasValueType Γ c (.base .bool) ∧
     HasTypeStmtCI .normalK Γ body Γ ∧
     HasTypeStmtCI .breakK Γ body Γ ∧
     HasTypeStmtCI .continueK Γ body Γ := by
   intro h
   cases h with
-  | while_normal _ hN hB hC =>
-      exact ⟨rfl, hN, hB, hC⟩
+  | while_normal hc hN hB hC =>
+      exact ⟨rfl, hc, hN, hB, hC⟩
 
 theorem while_return_typing_data
     {Γ Δ : TypeEnv} {c : ValExpr} {body : CppStmt} :
