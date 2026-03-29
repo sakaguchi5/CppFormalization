@@ -1,7 +1,7 @@
-
 import CppFormalization.Cpp2.Closure.Foundation.StateBoundary
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
+import CppFormalization.Cpp2.Closure.Internal.ReadinessReplayPrimitive
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureCI
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureCI
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapCI
@@ -9,3 +9,4 @@ import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmap
 import CppFormalization.Cpp2.Closure.Internal.StmtControlPreservation
 import CppFormalization.Cpp2.Closure.External.Interface
 import CppFormalization.Cpp2.Closure.External.ReflectiveStdClosure
+import CppFormalization.Cpp2.Closure.Internal.ConditionReplayKernel
