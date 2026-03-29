@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.All
+import CppFormalization.Cpp2.Static.Assumptions
 
 namespace Cpp
 

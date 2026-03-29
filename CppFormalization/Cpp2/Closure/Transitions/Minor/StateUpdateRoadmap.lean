@@ -1,5 +1,7 @@
 import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
+import CppFormalization.Cpp2.Boundary.FunctionBody
+import CppFormalization.Cpp2.Semantics.Divergence
 
 namespace Cpp
 
