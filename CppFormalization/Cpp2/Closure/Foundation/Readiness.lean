@@ -29,10 +29,30 @@ def CellReadableTyped (σ : State) (a : Nat) (τ : CppType) : Prop :=
     ValueCompat v τ
 
 /--
-`e` は pointer-to-`τ` value として安全であり、実際に address `a` を指す準備ができている。
-ここではまだ big-step 評価可能性を axiomatize し、後で theorem 化する。
+`e` は `τ` へのポインタとして型付いており、実際に address `a` へ評価される。
+heap/live 条件は `CellLiveTyped` 側で別に要求する。
 -/
-axiom PtrValueReadyAt : TypeEnv → State → ValExpr → CppType → Nat → Prop
+def PtrValueReadyAt
+    (Γ : TypeEnv) (σ : State) (e : ValExpr) (τ : CppType) (a : Nat) : Prop :=
+  HasValueType Γ e (.ptr τ) ∧
+  BigStepValue σ e (.addr a)
+
+@[simp] theorem ptrValueReadyAt_hasType
+    {Γ : TypeEnv} {σ : State} {e : ValExpr} {τ : CppType} {a : Nat}
+    (h : PtrValueReadyAt Γ σ e τ a) :
+    HasValueType Γ e (.ptr τ) := h.1
+
+@[simp] theorem ptrValueReadyAt_bigStepValue
+    {Γ : TypeEnv} {σ : State} {e : ValExpr} {τ : CppType} {a : Nat}
+    (h : PtrValueReadyAt Γ σ e τ a) :
+    BigStepValue σ e (.addr a) := h.2
+
+@[simp] theorem ptrValueReadyAt_addrOf
+    {Γ : TypeEnv} {σ : State} {p : PlaceExpr} {τ : CppType} {a : Nat}
+    (hp : HasPlaceType Γ p τ)
+    (hplace : BigStepPlace σ p a) :
+    PtrValueReadyAt Γ σ (.addrOf p) τ a := by
+  exact ⟨HasValueType.addrOf hp, BigStepValue.addrOf hplace⟩
 
 mutual
 
@@ -155,6 +175,305 @@ inductive BlockReadyConcrete : TypeEnv → State → StmtBlock → Prop where
 
 end
 
+theorem validPlace_of_readablePlace
+    {σ : State} {p : PlaceExpr} :
+    ReadablePlace σ p → ValidPlace σ p := by
+  intro h
+  rcases h with ⟨a, c, v, hplace, hheap, halive, hval⟩
+  exact ⟨a, c, hplace, hheap, halive⟩
+
+theorem validPlace_of_placeReadyConcrete
+    {Γ : TypeEnv} {σ : State} {p : PlaceExpr} {τ : CppType} :
+    PlaceReadyConcrete Γ σ p τ → ValidPlace σ p := by
+  intro h
+  cases h with
+  | varObject hdecl hbind hlive =>
+      rcases hlive with ⟨c, hheap, hty, halive⟩
+      exact ⟨_, c, BigStepPlace.varObject hbind, hheap, halive⟩
+  | varRef hdecl hbind hlive =>
+      rcases hlive with ⟨c, hheap, hty, halive⟩
+      exact ⟨_, c, BigStepPlace.varRef hbind, hheap, halive⟩
+  | deref hptr hlive =>
+      rcases hptr with ⟨htyPtr, hval⟩
+      rcases hlive with ⟨c, hheap, hty, halive⟩
+      exact ⟨_, c, BigStepPlace.deref hval hheap halive, hheap, halive⟩
+
+theorem readablePlace_of_exprReadyConcrete_load
+    {Γ : TypeEnv} {σ : State} {p : PlaceExpr} {τ : CppType} :
+    ExprReadyConcrete Γ σ (.load p) τ → ReadablePlace σ p := by
+  intro h
+  cases h with
+  | load hp hread =>
+      rcases hread with ⟨a, hplace, hcell⟩
+      rcases hcell with ⟨c, v, hheap, hty, halive, hval, hcompat⟩
+      exact ⟨a, c, v, hplace, hheap, halive, hval⟩
+
+theorem noUninit_of_exprReadyConcrete
+    {Γ : TypeEnv} {σ : State} {e : ValExpr} {τ : CppType}
+    (h : ExprReadyConcrete Γ σ e τ) : NoUninitValue σ e :=
+  match h with
+  | .litBool => trivial
+  | .litInt => trivial
+  | .load hp hread =>
+      let ⟨a, hplace, c, v, hheap, _hty, halive, hval, _hcompat⟩ := hread
+      ⟨a, c, v, hplace, hheap, halive, hval⟩
+  | .addrOf hp =>
+      validPlace_of_placeReadyConcrete hp
+  | .add h1 h2 =>
+      ⟨noUninit_of_exprReadyConcrete h1, noUninit_of_exprReadyConcrete h2⟩
+  | .sub h1 h2 =>
+      ⟨noUninit_of_exprReadyConcrete h1, noUninit_of_exprReadyConcrete h2⟩
+  | .mul h1 h2 =>
+      ⟨noUninit_of_exprReadyConcrete h1, noUninit_of_exprReadyConcrete h2⟩
+  | .eq h1 h2 =>
+      ⟨noUninit_of_exprReadyConcrete h1, noUninit_of_exprReadyConcrete h2⟩
+  | .lt h1 h2 =>
+      ⟨noUninit_of_exprReadyConcrete h1, noUninit_of_exprReadyConcrete h2⟩
+  | .not h =>
+    let ih := noUninit_of_exprReadyConcrete h
+    ih
+
+theorem noInvalidRef_of_exprReadyConcrete
+    {Γ : TypeEnv} {σ : State} {e : ValExpr} {τ : CppType}
+    (h : ExprReadyConcrete Γ σ e τ) : NoInvalidRefValue σ e :=
+  match h with
+  | .litBool => trivial
+  | .litInt => trivial
+  | .load hp hread =>
+      validPlace_of_readablePlace (readablePlace_of_exprReadyConcrete_load (.load hp hread))
+  | .addrOf hp =>
+      validPlace_of_placeReadyConcrete hp
+  | .add h1 h2 =>
+      ⟨noInvalidRef_of_exprReadyConcrete h1, noInvalidRef_of_exprReadyConcrete h2⟩
+  | .sub h1 h2 =>
+      ⟨noInvalidRef_of_exprReadyConcrete h1, noInvalidRef_of_exprReadyConcrete h2⟩
+  | .mul h1 h2 =>
+      ⟨noInvalidRef_of_exprReadyConcrete h1, noInvalidRef_of_exprReadyConcrete h2⟩
+  | .eq h1 h2 =>
+      ⟨noInvalidRef_of_exprReadyConcrete h1, noInvalidRef_of_exprReadyConcrete h2⟩
+  | .lt h1 h2 =>
+      ⟨noInvalidRef_of_exprReadyConcrete h1, noInvalidRef_of_exprReadyConcrete h2⟩
+  | .not h =>
+    let ih := noInvalidRef_of_exprReadyConcrete h
+    ih
+
+@[simp] theorem lookupBinding_pushScope
+    (σ : State) (x : Ident) :
+    lookupBinding (pushScope σ) x = lookupBinding σ x := by
+  simp [lookupBinding, lookupBindingFrames, pushScope, emptyScopeFrame]
+
+mutual
+
+theorem bigStepPlace_of_pushScope
+    {σ : State} {p : PlaceExpr} {a : Nat} :
+    BigStepPlace (pushScope σ) p a →
+    BigStepPlace σ p a := by
+  intro h
+  cases h with
+  | varObject hbind =>
+      exact BigStepPlace.varObject (by simpa using hbind)
+  | varRef hbind =>
+      exact BigStepPlace.varRef (by simpa using hbind)
+  | deref hval hheap halive =>
+      exact BigStepPlace.deref
+        (bigStepValue_of_pushScope hval)
+        (by simpa [pushScope] using hheap)
+        (by simpa [pushScope] using halive)
+
+theorem bigStepValue_of_pushScope
+    {σ : State} {e : ValExpr} {v : Value} :
+    BigStepValue (pushScope σ) e v →
+    BigStepValue σ e v := by
+  intro h
+  cases h with
+  | litBool =>
+      exact BigStepValue.litBool
+  | litInt =>
+      exact BigStepValue.litInt
+  | load hplace hheap halive hval =>
+      exact BigStepValue.load
+        (bigStepPlace_of_pushScope hplace)
+        (by simpa [pushScope] using hheap)
+        (by simpa [pushScope] using halive)
+        (by simpa using hval)
+  | addrOf hplace =>
+      exact BigStepValue.addrOf (bigStepPlace_of_pushScope hplace)
+  | add h1 h2 =>
+      exact BigStepValue.add
+        (bigStepValue_of_pushScope h1)
+        (bigStepValue_of_pushScope h2)
+  | sub h1 h2 =>
+      exact BigStepValue.sub
+        (bigStepValue_of_pushScope h1)
+        (bigStepValue_of_pushScope h2)
+  | mul h1 h2 =>
+      exact BigStepValue.mul
+        (bigStepValue_of_pushScope h1)
+        (bigStepValue_of_pushScope h2)
+  | eq h1 h2 =>
+      exact BigStepValue.eq
+        (bigStepValue_of_pushScope h1)
+        (bigStepValue_of_pushScope h2)
+  | lt h1 h2 =>
+      exact BigStepValue.lt
+        (bigStepValue_of_pushScope h1)
+        (bigStepValue_of_pushScope h2)
+  | not h =>
+      exact BigStepValue.not (bigStepValue_of_pushScope h)
+
+end
+
+theorem validPlace_of_pushScope
+    {σ : State} {p : PlaceExpr} :
+    ValidPlace (pushScope σ) p →
+    ValidPlace σ p := by
+  intro h
+  rcases h with ⟨a, c, hplace, hheap, halive⟩
+  exact ⟨a, c, bigStepPlace_of_pushScope hplace,
+    by simpa [pushScope] using hheap,
+    by simpa [pushScope] using halive⟩
+
+theorem readablePlace_of_pushScope
+    {σ : State} {p : PlaceExpr} :
+    ReadablePlace (pushScope σ) p →
+    ReadablePlace σ p := by
+  intro h
+  rcases h with ⟨a, c, v, hplace, hheap, halive, hval⟩
+  exact ⟨a, c, v, bigStepPlace_of_pushScope hplace,
+    by simpa [pushScope] using hheap,
+    by simpa [pushScope] using halive,
+    by simpa using hval⟩
+
+theorem noUninitValue_of_pushScope {σ : State} {e : ValExpr} :
+    NoUninitValue (pushScope σ) e → NoUninitValue σ e :=
+  match e with
+  | .litBool _ => fun h => h
+  | .litInt _ => fun h => h
+  | .load _ => fun h => readablePlace_of_pushScope h
+  | .addrOf _ => fun h => validPlace_of_pushScope h
+  -- h.1 が NoUninitValue (pushScope σ) e1 であることを利用
+  | .add e1 e2 => fun h =>
+      ⟨noUninitValue_of_pushScope (e := e1) h.1, noUninitValue_of_pushScope (e := e2) h.2⟩
+  | .sub e1 e2 => fun h =>
+      ⟨noUninitValue_of_pushScope (e := e1) h.1, noUninitValue_of_pushScope (e := e2) h.2⟩
+  | .mul e1 e2 => fun h =>
+      ⟨noUninitValue_of_pushScope (e := e1) h.1, noUninitValue_of_pushScope (e := e2) h.2⟩
+  | .eq e1 e2 => fun h =>
+      ⟨noUninitValue_of_pushScope (e := e1) h.1, noUninitValue_of_pushScope (e := e2) h.2⟩
+  | .lt e1 e2 => fun h =>
+      ⟨noUninitValue_of_pushScope (e := e1) h.1, noUninitValue_of_pushScope (e := e2) h.2⟩
+  | .not e_inner => fun h =>
+      noUninitValue_of_pushScope (e := e_inner) h
+
+
+theorem noInvalidRefValue_of_pushScope
+    {σ : State} {e : ValExpr} :
+    NoInvalidRefValue (pushScope σ) e →
+    NoInvalidRefValue σ e :=
+  match e with
+  | .litBool _ => fun h => h
+  | .litInt _ => fun h => h
+  | .load _ => fun h => validPlace_of_pushScope h
+  | .addrOf _ => fun h => validPlace_of_pushScope h
+  | .add e1 e2 => fun h =>
+      ⟨noInvalidRefValue_of_pushScope (e := e1) h.1, noInvalidRefValue_of_pushScope (e := e2) h.2⟩
+  | .sub e1 e2 => fun h =>
+      ⟨noInvalidRefValue_of_pushScope (e := e1) h.1, noInvalidRefValue_of_pushScope (e := e2) h.2⟩
+  | .mul e1 e2 => fun h =>
+      ⟨noInvalidRefValue_of_pushScope (e := e1) h.1, noInvalidRefValue_of_pushScope (e := e2) h.2⟩
+  | .eq e1 e2 => fun h =>
+      ⟨noInvalidRefValue_of_pushScope (e := e1) h.1, noInvalidRefValue_of_pushScope (e := e2) h.2⟩
+  | .lt e1 e2 => fun h =>
+      ⟨noInvalidRefValue_of_pushScope (e := e1) h.1, noInvalidRefValue_of_pushScope (e := e2) h.2⟩
+  | .not e_inner => fun h =>
+      noInvalidRefValue_of_pushScope (e := e_inner) h
+
+mutual
+
+theorem noUninitStmt_of_pushScope
+    {σ : State} {st : CppStmt} :
+    NoUninitStmt (pushScope σ) st →
+    NoUninitStmt σ st :=
+  match st with
+  | .skip => fun h => h
+  | .exprStmt _ => fun h =>
+      noUninitValue_of_pushScope h
+  | .assign _ _ => fun h =>
+      ⟨validPlace_of_pushScope h.1, noUninitValue_of_pushScope h.2⟩
+  | .declareObj _ _ none => fun h => h
+  | .declareObj _ _ (some _) => fun h =>
+      noUninitValue_of_pushScope h
+  | .declareRef _ _ _ => fun h =>
+      validPlace_of_pushScope h
+  | .seq _ _ => fun h =>
+      ⟨noUninitStmt_of_pushScope h.1, noUninitStmt_of_pushScope h.2⟩
+  | .ite _ _ _ => fun h =>
+      ⟨noUninitValue_of_pushScope h.1, noUninitStmt_of_pushScope h.2.1, noUninitStmt_of_pushScope h.2.2⟩
+  | .whileStmt _ _ => fun h =>
+      ⟨noUninitValue_of_pushScope h.1, noUninitStmt_of_pushScope h.2⟩
+  | .block _ => fun h =>
+      noUninitBlock_of_pushScope h
+  | .breakStmt => fun h => h
+  | .continueStmt => fun h => h
+  | .returnStmt none => fun h => h
+  | .returnStmt (some _) => fun h =>
+      noUninitValue_of_pushScope h
+
+theorem noUninitBlock_of_pushScope
+    {σ : State} {ss : StmtBlock} :
+    NoUninitBlock (pushScope σ) ss →
+    NoUninitBlock σ ss :=
+  match ss with
+  | .nil => fun h => h
+  | .cons _ _ => fun h =>
+      ⟨noUninitStmt_of_pushScope h.1, noUninitBlock_of_pushScope h.2⟩
+
+end
+
+mutual
+
+theorem noInvalidRefStmt_of_pushScope
+    {σ : State} {st : CppStmt} :
+    NoInvalidRefStmt (pushScope σ) st →
+    NoInvalidRefStmt σ st :=
+  match st with
+  | .skip => fun h => h
+  | .exprStmt _ => fun h =>
+      noInvalidRefValue_of_pushScope h
+  | .assign _ _ => fun h =>
+      ⟨validPlace_of_pushScope h.1, noInvalidRefValue_of_pushScope h.2⟩
+  | .declareObj _ _ none => fun h => h
+  | .declareObj _ _ (some _) => fun h =>
+      noInvalidRefValue_of_pushScope h
+  | .declareRef _ _ _ => fun h =>
+      validPlace_of_pushScope h
+  | .seq _ _ => fun h =>
+      ⟨noInvalidRefStmt_of_pushScope h.1, noInvalidRefStmt_of_pushScope h.2⟩
+  | .ite _ _ _ => fun h =>
+      ⟨noInvalidRefValue_of_pushScope h.1, noInvalidRefStmt_of_pushScope h.2.1, noInvalidRefStmt_of_pushScope h.2.2⟩
+  | .whileStmt _ _ => fun h =>
+      ⟨noInvalidRefValue_of_pushScope h.1, noInvalidRefStmt_of_pushScope h.2⟩
+  | .block _ => fun h =>
+      noInvalidRefBlock_of_pushScope h
+  | .breakStmt => fun h => h
+  | .continueStmt => fun h => h
+  | .returnStmt none => fun h => h
+  | .returnStmt (some _) => fun h =>
+      noInvalidRefValue_of_pushScope h
+
+theorem noInvalidRefBlock_of_pushScope
+    {σ : State} {ss : StmtBlock} :
+    NoInvalidRefBlock (pushScope σ) ss →
+    NoInvalidRefBlock σ ss :=
+  match ss with
+  | .nil => fun h => h
+  | .cons _ _ => fun h =>
+      ⟨noInvalidRefStmt_of_pushScope h.1, noInvalidRefBlock_of_pushScope h.2⟩
+
+end
+
+
+
 /-- concrete readiness は abstract readiness に落とせるべきである。 -/
 axiom placeReady_of_concrete
     {Γ : TypeEnv} {σ : State} {p : PlaceExpr} {τ : CppType} :
@@ -176,25 +495,114 @@ axiom blockReady_of_concrete
     BlockReadyConcrete Γ σ ss →
     BlockReady Γ σ ss
 
+
+mutual
 /-- concrete 版から old `IdealAssumptions` 相当の安全条件へ戻すならこの方向でやる。 -/
-axiom noUninit_of_exprReadyConcrete
-    {Γ : TypeEnv} {σ : State} {e : ValExpr} {τ : CppType} :
-    ExprReadyConcrete Γ σ e τ →
-    NoUninitValue σ e
 
-axiom noInvalidRef_of_exprReadyConcrete
-    {Γ : TypeEnv} {σ : State} {e : ValExpr} {τ : CppType} :
-    ExprReadyConcrete Γ σ e τ →
-    NoInvalidRefValue σ e
-
-axiom noUninit_of_stmtReadyConcrete
+theorem noUninit_of_stmtReadyConcrete
     {Γ : TypeEnv} {σ : State} {st : CppStmt} :
     StmtReadyConcrete Γ σ st →
-    NoUninitStmt σ st
+    NoUninitStmt σ st := by
+  intro h
+  cases h with
+  | skip =>
+      trivial
+  | exprStmt _ hE =>
+      exact noUninit_of_exprReadyConcrete hE
+  | assign _ hP _ hE =>
+      exact ⟨validPlace_of_placeReadyConcrete hP, noUninit_of_exprReadyConcrete hE⟩
+  | declareObjNone _ _ =>
+      trivial
+  | declareObjSome _ _ _ hE =>
+      exact noUninit_of_exprReadyConcrete hE
+  | declareRef _ _ hP =>
+      exact validPlace_of_placeReadyConcrete hP
+  | seq hS hT =>
+      exact ⟨noUninit_of_stmtReadyConcrete hS, noUninit_of_stmtReadyConcrete hT⟩
+  | ite _ hC hS hT =>
+      exact ⟨noUninit_of_exprReadyConcrete hC,
+        noUninit_of_stmtReadyConcrete hS,
+        noUninit_of_stmtReadyConcrete hT⟩
+  | whileStmt _ hC hB =>
+      exact ⟨noUninit_of_exprReadyConcrete hC,
+        noUninit_of_stmtReadyConcrete hB⟩
+  | block hSS =>
+      exact noUninitBlock_of_pushScope
+        (noUninit_of_blockReadyConcrete hSS)
+  | breakStmt =>
+      trivial
+  | continueStmt =>
+      trivial
+  | returnNone =>
+      trivial
+  | returnSome _ hE =>
+      exact noUninit_of_exprReadyConcrete hE
 
-axiom noInvalidRef_of_stmtReadyConcrete
+theorem noUninit_of_blockReadyConcrete
+    {Γ : TypeEnv} {σ : State} {ss : StmtBlock} :
+    BlockReadyConcrete Γ σ ss →
+    NoUninitBlock σ ss := by
+  intro h
+  cases h with
+  | nil =>
+      trivial
+  | cons hS hSS =>
+      exact ⟨noUninit_of_stmtReadyConcrete hS,
+        noUninit_of_blockReadyConcrete hSS⟩
+
+end
+
+mutual
+
+theorem noInvalidRef_of_stmtReadyConcrete
     {Γ : TypeEnv} {σ : State} {st : CppStmt} :
     StmtReadyConcrete Γ σ st →
-    NoInvalidRefStmt σ st
+    NoInvalidRefStmt σ st := by
+  intro h
+  cases h with
+  | skip =>
+      trivial
+  | exprStmt _ hE =>
+      exact noInvalidRef_of_exprReadyConcrete hE
+  | assign _ hP _ hE =>
+      exact ⟨validPlace_of_placeReadyConcrete hP, noInvalidRef_of_exprReadyConcrete hE⟩
+  | declareObjNone _ _ =>
+      trivial
+  | declareObjSome _ _ _ hE =>
+      exact noInvalidRef_of_exprReadyConcrete hE
+  | declareRef _ _ hP =>
+      exact validPlace_of_placeReadyConcrete hP
+  | seq hS hT =>
+      exact ⟨noInvalidRef_of_stmtReadyConcrete hS, noInvalidRef_of_stmtReadyConcrete hT⟩
+  | ite _ hC hS hT =>
+      exact ⟨noInvalidRef_of_exprReadyConcrete hC,
+        noInvalidRef_of_stmtReadyConcrete hS,
+        noInvalidRef_of_stmtReadyConcrete hT⟩
+  | whileStmt _ hC hB =>
+      exact ⟨noInvalidRef_of_exprReadyConcrete hC,
+        noInvalidRef_of_stmtReadyConcrete hB⟩
+  | block hSS =>
+      exact noInvalidRefBlock_of_pushScope
+        (noInvalidRef_of_blockReadyConcrete hSS)
+  | breakStmt =>
+      trivial
+  | continueStmt =>
+      trivial
+  | returnNone =>
+      trivial
+  | returnSome _ hE =>
+      exact noInvalidRef_of_exprReadyConcrete hE
 
-end Cpp
+theorem noInvalidRef_of_blockReadyConcrete
+    {Γ : TypeEnv} {σ : State} {ss : StmtBlock} :
+    BlockReadyConcrete Γ σ ss →
+    NoInvalidRefBlock σ ss := by
+  intro h
+  cases h with
+  | nil =>
+      trivial
+  | cons hS hSS =>
+      exact ⟨noInvalidRef_of_stmtReadyConcrete hS,
+        noInvalidRef_of_blockReadyConcrete hSS⟩
+
+end
