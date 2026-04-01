@@ -136,9 +136,9 @@ private theorem stmt_normal_break_excl
           exact stmt_normal_break_excl hs hs'
   | .while_normal _ _ _ _ =>
       cases hB
-  | .block _ hss =>
+  | .block hss =>
       cases hB with
-      | block _ hss' =>
+      | block hss' =>
           exact block_normal_break_excl hss hss'
 
 private theorem block_normal_break_excl
@@ -194,9 +194,9 @@ private theorem stmt_normal_continue_excl
           exact stmt_normal_continue_excl hs hs'
   | .while_normal _ _ _ _ =>
       cases hC
-  | .block _ hss =>
+  | .block  hss =>
       cases hC with
-      | block _ hss' =>
+      | block  hss' =>
           exact block_normal_continue_excl hss hss'
 
 private theorem block_normal_continue_excl
@@ -246,9 +246,9 @@ private theorem stmt_break_continue_excl
       cases hC with
       | ite _ hs' ht' =>
           exact stmt_break_continue_excl hs hs'
-  | .block _ hss =>
+  | .block  hss =>
       cases hC with
-      | block _ hss' =>
+      | block  hss' =>
           exact block_break_continue_excl hss hss'
 
 private theorem block_break_continue_excl

@@ -399,16 +399,16 @@ theorem stmt_compat_bundle
       (whileTrueReturn := by
         intro σ σ₁ c body rv hcond hbody ihBody
         exact ⟨trivial, trivial, trivial⟩)
-      (block := by
+            (block := by
         intro σ σ₀ σ₁ σ₂ ss ctrl hopen hbody hclose ihBody
         cases ctrl with
         | normal =>
             refine ⟨?_, ?_, ?_⟩
             · intro Γ Δ hty
               cases hty with
-              | block hExt htyB =>
+              | block htyB =>
                   exact .block
-                    (hExt := hExt) (htyB := htyB)
+                    (htyB := htyB)
                     (hopen := hopen) (hbody := hbody) (hclose := hclose)
                     (ihBody.normalPart htyB)
             · trivial
@@ -418,9 +418,9 @@ theorem stmt_compat_bundle
             · trivial
             · intro Γ Δ hty
               cases hty with
-              | block hExt htyB =>
+              | block htyB =>
                   exact .block
-                    (hExt := hExt) (htyB := htyB)
+                    (htyB := htyB)
                     (hopen := hopen) (hbody := hbody) (hclose := hclose)
                     (ihBody.breakPart htyB)
             · trivial
@@ -430,9 +430,9 @@ theorem stmt_compat_bundle
             · trivial
             · intro Γ Δ hty
               cases hty with
-              | block hExt htyB =>
+              | block htyB =>
                   exact .block
-                    (hExt := hExt) (htyB := htyB)
+                    (htyB := htyB)
                     (hopen := hopen) (hbody := hbody) (hclose := hclose)
                     (ihBody.continuePart htyB)
         | returnResult rv =>

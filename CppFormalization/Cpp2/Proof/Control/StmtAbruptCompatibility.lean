@@ -50,7 +50,7 @@ theorem stmt_break_no_normal_step
           exact stmt_break_no_normal_step htyS hstepS
       | iteFalse _ hstepT =>
           exact stmt_break_no_normal_step htyT hstepT
-  | block hExt htyB =>
+  | block htyB =>
       cases hstep with
       | block _ hbody _ =>
           exact block_break_no_normal_step htyB hbody
@@ -96,7 +96,7 @@ theorem stmt_continue_no_normal_step
           exact stmt_continue_no_normal_step htyS hstepS
       | iteFalse _ hstepT =>
           exact stmt_continue_no_normal_step htyT hstepT
-  | block hExt htyB =>
+  | block htyB =>
       cases hstep with
       | block _ hbody _ =>
           exact block_continue_no_normal_step htyB hbody
@@ -158,11 +158,11 @@ theorem stmt_break_control_compatible_of_normal
           rename_i c s t
           exact .ite_false (hc := hc) (htyS := htyS) (htyT := htyT) (hcond := hcond) (hstepT := hstepT)
             (stmt_break_control_compatible_of_normal stmtNormal htyT hstepT)
-  | block hExt htyB =>
+  | block htyB =>
       cases hstep with
       | block hopen hbody hclose =>
           rename_i Θ ss σ₁ σ₂
-          exact .block (hExt := hExt) (hopen := hopen) (hclose := hclose)
+          exact .block  (hopen := hopen) (hclose := hclose)
             (block_break_control_compatible_of_normal stmtNormal htyB hbody)
 
 theorem block_break_control_compatible_of_normal
@@ -236,11 +236,11 @@ theorem stmt_continue_control_compatible_of_normal
           exact .ite_false (hc := hc) (htyS := htyS) (htyT := htyT) (hcond := hcond) (hstepT := hstepT)
             (stmt_continue_control_compatible_of_normal stmtNormal htyT hstepT)
       | _ => exfalso
-  | block hExt htyB =>
+  | block  htyB =>
       cases hstep with
       | block hopen hbody hclose =>
           rename_i Θ ss σ₁ σ₂
-          exact .block (hExt := hExt) (hopen := hopen) (hclose := hclose)
+          exact .block  (hopen := hopen) (hclose := hclose)
             (block_continue_control_compatible_of_normal stmtNormal htyB hbody)
       | _ => exfalso
 

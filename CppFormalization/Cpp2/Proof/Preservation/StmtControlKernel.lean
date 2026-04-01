@@ -217,15 +217,17 @@ private theorem stmt_control_goal
           while_ready_body_data hready
         exact stmt_control_goal hcompBody hσ hreadyBody
 
-  | .block hcompBody =>
+    | .block hcompBody =>
       fun hσ hready => by
-        rename_i k Γ Θ ss σ σ₀ σ₁ σ₂ ctrl hExt htyB hopen hbody hclose
+        rename_i k Γ Θ ss σ σ₀ σ₁ σ₂ ctrl htyB hopen hbody hclose
         have hσ₀ :=
           openScope_preserves_scoped_typed_state_concrete hσ hopen
         have hreadyBody :=
           block_ready_opened_body hready hopen
         have hσ₁ :=
           block_control_goal hcompBody hσ₀ hreadyBody
+        have hExt : TopFrameExtensionOf Γ σ₁ :=
+          block_ci_topFrameExtension htyB
         exact
           closeScope_preserves_outer_from_topFrameExtension hExt hσ₁ hclose
 

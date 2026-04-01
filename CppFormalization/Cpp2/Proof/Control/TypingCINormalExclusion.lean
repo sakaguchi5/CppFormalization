@@ -82,7 +82,7 @@ private theorem stmt_normal_break_scoped
   | while_normal _ hN _ _ =>
       simpa [BreakWellScoped, BreakWellScopedAt] using
         stmt_break_scope_lift (stmt_normal_break_scoped hN)
-  | block _ hss =>
+  | block hss =>
       simpa [BreakWellScoped, BreakWellScopedAt] using
         block_normal_break_scoped hss
 
@@ -117,7 +117,7 @@ private theorem stmt_normal_continue_scoped
   | while_normal _ hN _ _ =>
       simpa [ContinueWellScoped, ContinueWellScopedAt] using
         stmt_continue_scope_lift (stmt_normal_continue_scoped hN)
-  | block _ hss =>
+  | block hss =>
       simpa [ContinueWellScoped, ContinueWellScopedAt] using
         block_normal_continue_scoped hss
 

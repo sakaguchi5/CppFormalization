@@ -233,16 +233,15 @@ inductive StmtControlCompatible :
       StmtControlCompatible (HasTypeStmtCI.while_return hc hN hB hC hR)
         (BigStepStmt.whileTrueReturn hcond hbody)
 
-  | block
+    | block
       {k : ControlKind} {Γ Θ : TypeEnv} {ss : StmtBlock}
       {σ σ₀ σ₁ σ₂ : State} {ctrl : CtrlResult}
-      {hExt : TopFrameExtensionOf Γ Θ}
       {htyB : HasTypeBlockCI k (pushTypeScope Γ) ss Θ}
       {hopen : OpenScope σ σ₀}
       {hbody : BigStepBlock σ₀ ss ctrl σ₁}
       {hclose : CloseScope σ₁ σ₂} :
       BlockControlCompatible htyB hbody →
-      StmtControlCompatible (HasTypeStmtCI.block hExt htyB)
+      StmtControlCompatible (HasTypeStmtCI.block htyB)
         (BigStepStmt.block hopen hbody hclose)
 
 inductive BlockControlCompatible :

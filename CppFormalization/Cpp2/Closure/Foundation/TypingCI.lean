@@ -172,9 +172,8 @@ inductive HasTypeStmtCI : ControlKind → TypeEnv → CppStmt → TypeEnv → Pr
       HasTypeStmtCI .returnK Γ body Δ →
       HasTypeStmtCI .returnK Γ (.whileStmt c body) Δ
 
-  | block
+    | block
       {k : ControlKind} {Γ Θ : TypeEnv} {ss : StmtBlock} :
-      TopFrameExtensionOf Γ Θ →
       HasTypeBlockCI k (pushTypeScope Γ) ss Θ →
       HasTypeStmtCI k Γ (.block ss) Γ
 
@@ -240,7 +239,7 @@ theorem normalCI_to_old_stmt
       exact HasTypeStmt.whileStmt
         hc
         (normalCI_to_old_stmt hN)
-  | block hExt hB =>
+  | block hB =>
       exact HasTypeStmt.block
         (normalCI_to_old_block hB)
 
@@ -303,7 +302,7 @@ theorem stmt_ci_preserves_topFrameExtension
       simpa using hExt
   | while_return _ _ _ _ hR =>
       exact stmt_ci_preserves_topFrameExtension hExt hR
-  | block _ _ =>
+  | block _  =>
       simpa using hExt
 
 -- ブロックの型付けが TopFrameExtensionOf を保存することを示す
@@ -363,11 +362,11 @@ theorem while_return_typing_data
 theorem block_typing_data_ci
     {k : ControlKind} {Γ : TypeEnv} {ss : StmtBlock} :
     HasTypeStmtCI k Γ (.block ss) Γ →
-    ∃ Θ, TopFrameExtensionOf Γ Θ ∧ HasTypeBlockCI k (pushTypeScope Γ) ss Θ := by
+    ∃ Θ, HasTypeBlockCI k (pushTypeScope Γ) ss Θ := by
   intro h
   cases h with
-  | block hExt hB =>
-      exact ⟨_, hExt, hB⟩
+  | block hB =>
+      exact ⟨_, hB⟩
 
 theorem seq_normal_typing_data_ci
     {k : ControlKind} {Γ Θ : TypeEnv} {s t : CppStmt} :
