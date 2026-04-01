@@ -256,10 +256,6 @@ theorem noInvalidRef_of_exprReadyConcrete
     let ih := noInvalidRef_of_exprReadyConcrete h
     ih
 
-@[simp] theorem lookupBinding_pushScope
-    (σ : State) (x : Ident) :
-    lookupBinding (pushScope σ) x = lookupBinding σ x := by
-  simp [lookupBinding, lookupBindingFrames, pushScope, emptyScopeFrame]
 
 mutual
 

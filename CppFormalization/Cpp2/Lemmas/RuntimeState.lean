@@ -12,9 +12,35 @@ namespace Cpp
     lookupBinding (pushScope σ) x = lookupBinding σ x := by
   rfl
 
+@[simp] theorem currentScopeFresh_pushScope
+    (σ : State) (x : Ident) :
+    currentScopeFresh (pushScope σ) x := by
+  unfold currentScopeFresh pushScope emptyScopeFrame
+  simp
+
+@[simp] theorem heap_pushScope
+    (σ : State) :
+    (pushScope σ).heap = σ.heap := by
+  rfl
+
+@[simp] theorem next_pushScope
+    (σ : State) :
+    (pushScope σ).next = σ.next := by
+  rfl
+
 @[simp] theorem lookupBinding_setNext
     (σ : State) (n : Nat) (x : Ident) :
     lookupBinding ({ σ with next := n }) x = lookupBinding σ x := by
+  rfl
+
+@[simp] theorem scopes_writeHeap
+    (σ : State) (a : Nat) (c : Cell) :
+    (writeHeap σ a c).scopes = σ.scopes := by
+  rfl
+
+@[simp] theorem next_writeHeap
+    (σ : State) (a : Nat) (c : Cell) :
+    (writeHeap σ a c).next = σ.next := by
   rfl
 
 @[simp] theorem lookupBinding_writeHeap
@@ -44,10 +70,47 @@ namespace Cpp
   | cons fr frs =>
       simp [hxy]
 
+@[simp] theorem scopes_bindTopBinding
+    (σ : State) (x : Ident) (b : Binding) :
+    (bindTopBinding σ x b).scopes =
+      match σ.scopes with
+      | [] => [{ binds := fun y => if y = x then some b else none, locals := [] }]
+      | fr :: frs =>
+          { fr with binds := fun y => if y = x then some b else fr.binds y } :: frs := by
+  unfold bindTopBinding
+  cases σ.scopes <;> rfl
+
+@[simp] theorem next_bindTopBinding
+    (σ : State) (x : Ident) (b : Binding) :
+    (bindTopBinding σ x b).next = σ.next := by
+  unfold bindTopBinding
+  split <;> rfl
+
 @[simp] theorem heap_bindTopBinding
     (σ : State) (x : Ident) (bnd : Binding) :
     (bindTopBinding σ x bnd).heap = σ.heap := by
   unfold bindTopBinding
+  split <;> rfl
+
+@[simp] theorem scopes_recordLocal
+    (σ : State) (a : Nat) :
+    (recordLocal σ a).scopes =
+      match σ.scopes with
+      | [] => []
+      | fr :: frs => { fr with locals := a :: fr.locals } :: frs := by
+  unfold recordLocal
+  cases h : σ.scopes <;> simp [h]
+
+@[simp] theorem heap_recordLocal
+    (σ : State) (a : Nat) :
+    (recordLocal σ a).heap = σ.heap := by
+  unfold recordLocal
+  split <;> rfl
+
+@[simp] theorem next_recordLocal
+    (σ : State) (a : Nat) :
+    (recordLocal σ a).next = σ.next := by
+  unfold recordLocal
   split <;> rfl
 
 @[simp] theorem lookupBinding_recordLocal
@@ -59,6 +122,42 @@ namespace Cpp
   · rename_i fr frs h_scopes
     unfold lookupBindingFrames
     simp [h_scopes]
+
+@[simp] theorem scopes_killAddr
+    (σ : State) (a : Nat) :
+    (killAddr σ a).scopes = σ.scopes := by
+  unfold killAddr
+  split
+  · rfl
+  · unfold writeHeap
+    rfl
+
+@[simp] theorem next_killAddr
+    (σ : State) (a : Nat) :
+    (killAddr σ a).next = σ.next := by
+  unfold killAddr
+  split
+  · rfl
+  · unfold writeHeap
+    rfl
+
+@[simp] theorem scopes_killLocals
+    (σ : State) (ls : List Nat) :
+    (killLocals σ ls).scopes = σ.scopes := by
+  induction ls generalizing σ with
+  | nil =>
+      rfl
+  | cons a ls ih =>
+      simp [killLocals, ih]
+
+@[simp] theorem next_killLocals
+    (σ : State) (ls : List Nat) :
+    (killLocals σ ls).next = σ.next := by
+  induction ls generalizing σ with
+  | nil =>
+      rfl
+  | cons a ls ih =>
+      simp [killLocals, ih]
 
 @[simp] theorem heap_writeHeap_self
     (σ : State) (a : Nat) (c : Cell) :
@@ -106,6 +205,16 @@ namespace Cpp
     (declareRefState σ τ x a).next = σ.next := by
   simp
 
+@[simp] theorem scopes_declareRefState
+    (σ : State) (τ : CppType) (x : Ident) (a : Nat) :
+    (declareRefState σ τ x a).scopes =
+      match σ.scopes with
+      | [] => [{ binds := fun y => if y = x then some (.ref τ a) else none, locals := [] }]
+      | fr :: frs =>
+          { fr with binds := fun y => if y = x then some (.ref τ a) else fr.binds y } :: frs := by
+  unfold declareRefState
+  simp only [scopes_bindTopBinding σ x (.ref τ a)]
+
 @[simp] theorem heap_declareRefState
     (σ : State) (τ : CppType) (x : Ident) (a : Nat) :
     (declareRefState σ τ x a).heap = σ.heap := by
@@ -116,6 +225,12 @@ namespace Cpp
     (σ : State) (τ : CppType) (x : Ident) (a : Nat) :
     (declareRefState σ τ x a).heap = σ.heap := by
   simp
+
+@[simp] theorem declareRefState_scopes_ne_nil
+    (σ : State) (τ : CppType) (x : Ident) (a : Nat) :
+    (declareRefState σ τ x a).scopes ≠ [] := by
+  unfold declareRefState bindTopBinding
+  split <;> simp
 
 @[simp] theorem heap_declareObjectState_self
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
@@ -145,13 +260,42 @@ namespace Cpp
     (declareObjectState σ τ x ov).heap a = σ.heap a := by
   simpa using heap_declareObjectState_other σ τ x ov a ha
 
-theorem lookupBinding_eq_of_scopes_eq
+@[simp] theorem declareObjectState_scopes_ne_nil
+    (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
+    (declareObjectState σ τ x ov).scopes ≠ [] := by
+  unfold declareObjectState recordLocal bindTopBinding
+  split <;> simp
+
+@[simp] theorem declareObjectState_top_local_mem
+    (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
+    match (declareObjectState σ τ x ov).scopes with
+    | [] => False
+    | fr :: _ => σ.next ∈ fr.locals := by
+  -- 1. 本体の定義だけを開く
+  unfold declareObjectState
+  -- 2. recordLocal や writeHeap の定義を直接開かず、
+  --    既に証明した「性質（定理）」を simp に与えて簡約させる
+  simp [scopes_recordLocal, scopes_writeHeap, scopes_bindTopBinding]
+  -- 3. この時点で match σ.scopes with ... が外側に来るので、cases で分解する
+  cases h : σ.scopes <;> simp
+
+@[simp] theorem lookupBinding_eq_of_scopes_eq
     {σ₁ σ₂ : State} (h : σ₁.scopes = σ₂.scopes) (x : Ident) :
     lookupBinding σ₁ x = lookupBinding σ₂ x := by
   cases σ₁
   cases σ₂
   cases h
   rfl
+
+@[simp] theorem lookupBinding_killAddr
+    (σ : State) (a : Nat) (x : Ident) :
+    lookupBinding (killAddr σ a) x = lookupBinding σ x := by
+  exact lookupBinding_eq_of_scopes_eq (scopes_killAddr σ a) x
+
+@[simp] theorem lookupBinding_killLocals
+    (σ : State) (ls : List Nat) (x : Ident) :
+    lookupBinding (killLocals σ ls) x = lookupBinding σ x := by
+  exact lookupBinding_eq_of_scopes_eq (scopes_killLocals σ ls) x
 
 @[simp] theorem lookupBinding_declareObjectState_self
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
