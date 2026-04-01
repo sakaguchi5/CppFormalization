@@ -1,4 +1,3 @@
-
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 
 namespace Cpp
@@ -31,9 +30,47 @@ inductive ControlKind where
 /--
 `TopFrameExtensionOf Γ Θ` は、
 block body を open scope の内側で実行したあとに得られる環境 `Θ` が、
-外側 `Γ` に対する top-frame extension であることを表す抽象境界語彙。
+外側 `Γ` に対する top-frame extension であることを表す concrete 境界語彙。
+
+差分は top frame のみで、tail scopes は `Γ.scopes` と一致する。
 -/
-axiom TopFrameExtensionOf : TypeEnv → TypeEnv → Prop
+def TopFrameExtensionOf (Γ Θ : TypeEnv) : Prop :=
+  ∃ top : TypeFrame, Θ.scopes = top :: Γ.scopes
+
+@[simp] theorem topFrameExtensionOf_pushTypeScope
+    (Γ : TypeEnv) :
+    TopFrameExtensionOf Γ (pushTypeScope Γ) := by
+  refine ⟨emptyTypeFrame, rfl⟩
+
+@[simp] theorem topFrameExtensionOf_declareTypeObject
+    {Γ Θ : TypeEnv} {x : Ident} {τ : CppType} :
+    TopFrameExtensionOf Γ Θ →
+    TopFrameExtensionOf Γ (declareTypeObject Θ x τ) := by
+  intro h
+  rcases h with ⟨top, hΘ⟩
+  cases Γ with
+  | mk scopes =>
+      cases Θ with
+      | mk scopes' =>
+          simp [TopFrameExtensionOf] at hΘ ⊢
+          subst hΘ
+          refine ⟨{ top with decls := fun y => if y = x then some (.object τ) else top.decls y }, ?_⟩
+          simp [declareTypeObject, insertTopDecl]
+
+@[simp] theorem topFrameExtensionOf_declareTypeRef
+    {Γ Θ : TypeEnv} {x : Ident} {τ : CppType} :
+    TopFrameExtensionOf Γ Θ →
+    TopFrameExtensionOf Γ (declareTypeRef Θ x τ) := by
+  intro h
+  rcases h with ⟨top, hΘ⟩
+  cases Γ with
+  | mk scopes =>
+      cases Θ with
+      | mk scopes' =>
+          simp [TopFrameExtensionOf] at hΘ ⊢
+          subst hΘ
+          refine ⟨{ top with decls := fun y => if y = x then some (.ref τ) else top.decls y }, ?_⟩
+          simp [declareTypeRef, insertTopDecl]
 
 mutual
 
@@ -220,6 +257,81 @@ theorem normalCI_to_old_block
         (normalCI_to_old_block hss)
 
 end
+
+/-! ## top-frame extension preservation -/
+
+mutual
+
+theorem stmt_ci_preserves_topFrameExtension
+    {Γ₀ Γ Δ : TypeEnv} {st : CppStmt} {k : ControlKind}
+    (hExt : TopFrameExtensionOf Γ₀ Γ)
+    (h : HasTypeStmtCI k Γ st Δ) :
+    TopFrameExtensionOf Γ₀ Δ := by
+  cases h with
+  | skip =>
+      simpa using hExt
+  | exprStmt _ =>
+      simpa using hExt
+  | assign _ _ =>
+      simpa using hExt
+  | declareObjNone _ _ =>
+      exact topFrameExtensionOf_declareTypeObject hExt
+  | declareObjSome _ _ _ =>
+      exact topFrameExtensionOf_declareTypeObject hExt
+  | declareRef _ _ =>
+      exact topFrameExtensionOf_declareTypeRef hExt
+  | breakStmt =>
+      simpa using hExt
+  | continueStmt =>
+      simpa using hExt
+  | returnNone =>
+      simpa using hExt
+  | returnSome _ =>
+      simpa using hExt
+  | seq_normal hs ht =>
+      exact stmt_ci_preserves_topFrameExtension
+        (stmt_ci_preserves_topFrameExtension hExt hs) ht
+  | seq_break hs =>
+      exact stmt_ci_preserves_topFrameExtension hExt hs
+  | seq_continue hs =>
+      exact stmt_ci_preserves_topFrameExtension hExt hs
+  | seq_return hs =>
+      exact stmt_ci_preserves_topFrameExtension hExt hs
+  | ite _ hs ht =>
+      exact stmt_ci_preserves_topFrameExtension hExt hs
+  | while_normal _ _ _ _ =>
+      simpa using hExt
+  | while_return _ _ _ _ hR =>
+      exact stmt_ci_preserves_topFrameExtension hExt hR
+  | block _ _ =>
+      simpa using hExt
+
+-- ブロックの型付けが TopFrameExtensionOf を保存することを示す
+  theorem block_ci_preserves_topFrameExtension
+      {Γ₀ Γ Δ : TypeEnv} {k : ControlKind} {ss : StmtBlock}
+      (hExt : TopFrameExtensionOf Γ₀ Γ) :
+      HasTypeBlockCI k Γ ss Δ → TopFrameExtensionOf Γ₀ Δ
+    | .nil =>
+        hExt
+    | .cons_normal hs hss =>
+        -- hs で Γ から中間環境 Θ へ、hss で Θ から最終環境 Δ へ
+        let hExt' := stmt_ci_preserves_topFrameExtension hExt hs
+        block_ci_preserves_topFrameExtension hExt' hss
+    | .cons_break hs =>
+        stmt_ci_preserves_topFrameExtension hExt hs
+    | .cons_continue hs =>
+        stmt_ci_preserves_topFrameExtension hExt hs
+    | .cons_return hs =>
+        stmt_ci_preserves_topFrameExtension hExt hs
+
+end
+
+@[simp] theorem block_ci_topFrameExtension
+    {Γ Θ : TypeEnv} {ss : StmtBlock} {k : ControlKind}
+    (h : HasTypeBlockCI k (pushTypeScope Γ) ss Θ) :
+    TopFrameExtensionOf Γ Θ := by
+  exact block_ci_preserves_topFrameExtension
+    (topFrameExtensionOf_pushTypeScope Γ) h
 
 /-! ## inversion / data theorems -/
 
