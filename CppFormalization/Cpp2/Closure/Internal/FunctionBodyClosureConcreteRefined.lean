@@ -40,8 +40,13 @@ theorem bodyReady_of_bodyReadyConcrete
     breakScoped := h.breakScoped
     continueScoped := h.continueScoped
     state := scopedTypedState_of_concrete h.state
-    safe := stmtReady_of_concrete h.safe
+    safe := ?_
   }
+  exact ⟨
+    h.typed,
+    noUninit_of_stmtReadyConcrete h.safe,
+    noInvalidRef_of_stmtReadyConcrete h.safe
+  ⟩
 
 /-- Concrete top-level abrupt exclusion is just the abstract one, via the bridge. -/
 theorem top_level_abrupt_excluded_from_bodyReadyConcrete

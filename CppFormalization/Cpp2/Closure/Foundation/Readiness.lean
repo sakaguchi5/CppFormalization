@@ -172,7 +172,6 @@ inductive BlockReadyConcrete : TypeEnv → State → StmtBlock → Prop where
       StmtReadyConcrete Γ σ s →
       BlockReadyConcrete Γ σ ss →
       BlockReadyConcrete Γ σ (.cons s ss)
-
 end
 
 theorem validPlace_of_readablePlace
@@ -365,7 +364,6 @@ theorem noUninitValue_of_pushScope {σ : State} {e : ValExpr} :
   | .not e_inner => fun h =>
       noUninitValue_of_pushScope (e := e_inner) h
 
-
 theorem noInvalidRefValue_of_pushScope
     {σ : State} {e : ValExpr} :
     NoInvalidRefValue (pushScope σ) e →
@@ -427,7 +425,6 @@ theorem noUninitBlock_of_pushScope
   | .nil => fun h => h
   | .cons _ _ => fun h =>
       ⟨noUninitStmt_of_pushScope h.1, noUninitBlock_of_pushScope h.2⟩
-
 end
 
 mutual
@@ -469,35 +466,76 @@ theorem noInvalidRefBlock_of_pushScope
   | .nil => fun h => h
   | .cons _ _ => fun h =>
       ⟨noInvalidRefStmt_of_pushScope h.1, noInvalidRefBlock_of_pushScope h.2⟩
-
 end
 
-
-
-/-- concrete readiness は abstract readiness に落とせるべきである。 -/
-axiom placeReady_of_concrete
+theorem hasPlaceType_of_placeReadyConcrete
     {Γ : TypeEnv} {σ : State} {p : PlaceExpr} {τ : CppType} :
     PlaceReadyConcrete Γ σ p τ →
-    PlaceReady Γ σ p τ
+    HasPlaceType Γ p τ := by
+  intro h
+  cases h with
+  | varObject hdecl _ _ =>
+      exact HasPlaceType.var hdecl
+  | varRef hdecl _ _ =>
+      exact HasPlaceType.var hdecl
+  | deref hptr _ =>
+      exact HasPlaceType.deref hptr.1
 
-axiom exprReady_of_concrete
+theorem placeReady_of_concrete
+    {Γ : TypeEnv} {σ : State} {p : PlaceExpr} {τ : CppType} :
+    PlaceReadyConcrete Γ σ p τ →
+    PlaceReady Γ σ p τ := by
+  intro h
+  exact ⟨hasPlaceType_of_placeReadyConcrete h, validPlace_of_placeReadyConcrete h⟩
+
+theorem hasValueType_of_exprReadyConcrete
     {Γ : TypeEnv} {σ : State} {e : ValExpr} {τ : CppType} :
     ExprReadyConcrete Γ σ e τ →
-    ExprReady Γ σ e τ
+    HasValueType Γ e τ := fun h =>
+  match h with
+  | .litBool =>
+      HasValueType.litBool
+  | .litInt =>
+      HasValueType.litInt
+  | .load hp _ =>
+      HasValueType.load (hasPlaceType_of_placeReadyConcrete hp)
+  | .addrOf hp =>
+      HasValueType.addrOf (hasPlaceType_of_placeReadyConcrete hp)
+  | .add h1 h2 =>
+      HasValueType.add
+        (hasValueType_of_exprReadyConcrete h1)
+        (hasValueType_of_exprReadyConcrete h2)
+  | .sub h1 h2 =>
+      HasValueType.sub
+        (hasValueType_of_exprReadyConcrete h1)
+        (hasValueType_of_exprReadyConcrete h2)
+  | .mul h1 h2 =>
+      HasValueType.mul
+        (hasValueType_of_exprReadyConcrete h1)
+        (hasValueType_of_exprReadyConcrete h2)
+  | .eq h1 h2 =>
+      HasValueType.eq
+        (hasValueType_of_exprReadyConcrete h1)
+        (hasValueType_of_exprReadyConcrete h2)
+  | .lt h1 h2 =>
+      HasValueType.lt
+        (hasValueType_of_exprReadyConcrete h1)
+        (hasValueType_of_exprReadyConcrete h2)
+  | .not h =>
+      HasValueType.not (hasValueType_of_exprReadyConcrete h)
 
-axiom stmtReady_of_concrete
-    {Γ : TypeEnv} {σ : State} {st : CppStmt} :
-    StmtReadyConcrete Γ σ st →
-    StmtReady Γ σ st
-
-axiom blockReady_of_concrete
-    {Γ : TypeEnv} {σ : State} {ss : StmtBlock} :
-    BlockReadyConcrete Γ σ ss →
-    BlockReady Γ σ ss
-
+theorem exprReady_of_concrete
+    {Γ : TypeEnv} {σ : State} {e : ValExpr} {τ : CppType} :
+    ExprReadyConcrete Γ σ e τ →
+    ExprReady Γ σ e τ := by
+  intro h
+  exact ⟨
+    hasValueType_of_exprReadyConcrete h,
+    noUninit_of_exprReadyConcrete h,
+    noInvalidRef_of_exprReadyConcrete h
+  ⟩
 
 mutual
-/-- concrete 版から old `IdealAssumptions` 相当の安全条件へ戻すならこの方向でやる。 -/
 
 theorem noUninit_of_stmtReadyConcrete
     {Γ : TypeEnv} {σ : State} {st : CppStmt} :
@@ -549,7 +587,6 @@ theorem noUninit_of_blockReadyConcrete
   | cons hS hSS =>
       exact ⟨noUninit_of_stmtReadyConcrete hS,
         noUninit_of_blockReadyConcrete hSS⟩
-
 end
 
 mutual
@@ -604,5 +641,4 @@ theorem noInvalidRef_of_blockReadyConcrete
   | cons hS hSS =>
       exact ⟨noInvalidRef_of_stmtReadyConcrete hS,
         noInvalidRef_of_blockReadyConcrete hSS⟩
-
 end

@@ -36,24 +36,25 @@ structure ScopedTypedState (Γ : TypeEnv) (σ : State) : Prop where
   initializedValuesTyped : heapInitializedValuesTyped σ
   nextFresh : nextIsFreshForOwnedHeap σ
 
-/--
-`PlaceReady Γ σ p τ` は、`p` が現在の状態で安全に使える `τ`-place であること。
-定義の中に `∃ a, BigStepPlace σ p a` を直接埋め込まない。
--/
-axiom PlaceReady : TypeEnv → State → PlaceExpr → CppType → Prop
 
-/--
-`ExprReady Γ σ e τ` は、`e` が現在の状態で安全に評価できる `τ`-expr であること。
-こちらも進行定理を空虚にしないため、評価可能性そのものは定義に埋め込まない。
--/
-axiom ExprReady : TypeEnv → State → ValExpr → CppType → Prop
+def PlaceReady (Γ : TypeEnv) (σ : State) (p : PlaceExpr) (τ : CppType) : Prop :=
+  HasPlaceType Γ p τ ∧
+  NoInvalidRefPlace σ p
 
-/--
-statement / block 開始時の安全準備条件。
-`ScopedTypedState` が状態側、`StmtReady` / `BlockReady` が文局所側を受け持つ。
--/
-axiom StmtReady : TypeEnv → State → CppStmt → Prop
-axiom BlockReady : TypeEnv → State → StmtBlock → Prop
+def ExprReady (Γ : TypeEnv) (σ : State) (e : ValExpr) (τ : CppType) : Prop :=
+  HasValueType Γ e τ ∧
+  NoUninitValue σ e ∧
+  NoInvalidRefValue σ e
+
+def StmtReady (Γ : TypeEnv) (σ : State) (st : CppStmt) : Prop :=
+  WellTypedFrom Γ st ∧
+  NoUninitStmt σ st ∧
+  NoInvalidRefStmt σ st
+
+def BlockReady (Γ : TypeEnv) (σ : State) (ss : StmtBlock) : Prop :=
+  (∃ Δ, HasTypeBlock Γ ss Δ) ∧
+  NoUninitBlock σ ss ∧
+  NoInvalidRefBlock σ ss
 
 /--
 closure theorem の本当の前提。
@@ -67,13 +68,18 @@ structure BodyReady (Γ : TypeEnv) (σ : State) (st : CppStmt) : Prop where
   state : ScopedTypedState Γ σ
   safe : StmtReady Γ σ st
 
-/--
-旧 `IdealAssumptions` から新しい `BodyReady` へ移るための橋。
-これは最終的には theorem にすべきだが、最初は interface として切り出す。
--/
-axiom bodyReady_of_idealAssumptions
-    {Γ : TypeEnv} {σ : State} {st : CppStmt} :
-    IdealAssumptions Γ σ st →
-    BodyReady Γ σ st
+theorem bodyReady_of_idealAssumptions
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (h : IdealAssumptions Γ σ st)
+    (hstate : ScopedTypedState Γ σ) :
+    BodyReady Γ σ st := by
+  rcases h with ⟨hwf, htyped, htypedState, hnu, hnir, hbreak, hcont⟩
+  exact
+    { wf := hwf
+      typed := htyped
+      breakScoped := hbreak
+      continueScoped := hcont
+      state := hstate
+      safe := ⟨htyped, hnu, hnir⟩ }
 
 end Cpp
