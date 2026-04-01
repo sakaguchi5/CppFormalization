@@ -119,15 +119,6 @@ structure ScopedTypedStateConcrete (Γ : TypeEnv) (σ : State) : Prop where
     ¬ runtimeFrameOwnsAddress σ j a
 
 /--
-この concrete 版が成り立てば、抽象版 `ScopedTypedState` に落とせるべきである。
-ここは将来 theorem 化する。
--/
-axiom scopedTypedState_of_concrete
-    {Γ : TypeEnv} {σ : State} :
-    ScopedTypedStateConcrete Γ σ →
-    ScopedTypedState Γ σ
-
-/--
 `declareObject` が top ownership を増やすだけで、
 下位 frame の witness を壊さないことを言う補題目標。
 -/
@@ -141,6 +132,8 @@ axiom declareObject_extends_top_ownership_only
       typeFrameDeclObject Γ k y υ →
       ∃ a, runtimeFrameBindsObject σ' (k+1) y υ a)
 
+
+/-未使用なのでコメントアウト
 /--
 `declareRef` は ownership を増やさず alias binding だけを増やす。
 これが object と ref を同一視してはいけない理由。
@@ -152,5 +145,5 @@ axiom declareRef_adds_alias_without_ownership
     DeclaresRef σ τ x a σ' →
     runtimeFrameBindsRef σ' 0 x τ a ∧
     (∀ {k b}, runtimeFrameOwnsAddress σ k b ↔ runtimeFrameOwnsAddress σ' k b)
-
+-/
 end Cpp

@@ -29,32 +29,17 @@ structure BodyReadyConcrete (Γ : TypeEnv) (σ : State) (st : CppStmt) : Prop wh
   state : ScopedTypedStateConcrete Γ σ
   safe : StmtReadyConcrete Γ σ st
 
-/-- Concrete body readiness drops to the abstract body boundary. -/
-theorem bodyReady_of_bodyReadyConcrete
-    {Γ : TypeEnv} {σ : State} {st : CppStmt} :
-    BodyReadyConcrete Γ σ st → BodyReady Γ σ st := by
-  intro h
-  refine {
-    wf := h.wf
-    typed := h.typed
-    breakScoped := h.breakScoped
-    continueScoped := h.continueScoped
-    state := scopedTypedState_of_concrete h.state
-    safe := ?_
-  }
-  exact ⟨
-    h.typed,
-    noUninit_of_stmtReadyConcrete h.safe,
-    noInvalidRef_of_stmtReadyConcrete h.safe
-  ⟩
-
 /-- Concrete top-level abrupt exclusion is just the abstract one, via the bridge. -/
 theorem top_level_abrupt_excluded_from_bodyReadyConcrete
     {Γ : TypeEnv} {σ σ' : State} {st : CppStmt} :
     BodyReadyConcrete Γ σ st →
     ¬ BigStepStmt σ st .breakResult σ' ∧ ¬ BigStepStmt σ st .continueResult σ' := by
   intro hready
-  exact top_level_abrupt_excluded_from_bodyReady_concrete (bodyReady_of_bodyReadyConcrete hready)
+  constructor
+  · intro hbreak
+    exact stmt_break_not_scoped hbreak hready.breakScoped
+  · intro hcont
+    exact stmt_continue_not_scoped hcont hready.continueScoped
 
 /-- Primitive case, now phrased with the honest function-body boundary premise. -/
 axiom primitive_stmt_function_body_step_or_diverges_concrete_refined

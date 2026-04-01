@@ -68,6 +68,7 @@ structure BodyReady (Γ : TypeEnv) (σ : State) (st : CppStmt) : Prop where
   state : ScopedTypedState Γ σ
   safe : StmtReady Γ σ st
 
+/-未使用なのでコメントアウト
 theorem bodyReady_of_idealAssumptions
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (h : IdealAssumptions Γ σ st)
@@ -81,5 +82,5 @@ theorem bodyReady_of_idealAssumptions
       continueScoped := hcont
       state := hstate
       safe := ⟨htyped, hnu, hnir⟩ }
-
+-/
 end Cpp

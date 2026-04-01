@@ -70,6 +70,16 @@ axiom bodyReady_of_concrete
     StmtReadyConcrete Γ σ st →
     BodyReady Γ σ st
 
+/--
+この concrete 版が成り立てば、抽象版 `ScopedTypedState` に落とせるべきである。
+ここは将来 theorem 化するかも。
+-/
+axiom scopedTypedState_of_concrete
+    {Γ : TypeEnv} {σ : State} :
+    ScopedTypedStateConcrete Γ σ →
+    ScopedTypedState Γ σ
+
+
 theorem assigns_preserves_scoped_typed_state_via_concrete
     {Γ : TypeEnv} {σ σ' : State} {p : PlaceExpr} {v : Value} {τ : CppType} :
     ScopedTypedStateConcrete Γ σ →
