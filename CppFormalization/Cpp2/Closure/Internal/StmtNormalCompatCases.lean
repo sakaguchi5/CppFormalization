@@ -159,17 +159,15 @@ theorem stmt_normal_while_body_break_case
 theorem stmt_normal_block_case
     (blockNormal : BlockNormalCompatOracle)
     {Γ Θ : TypeEnv} {σ σ₀ σ_body_end σ_final : State} {ss : StmtBlock} -- 引数を追加・変更
-    (hExt : TopFrameExtensionOf Γ Θ)
     (htyBody : HasTypeBlockCI ControlKind.normalK (pushTypeScope Γ) ss Θ)
     (hopen : OpenScope σ σ₀)
     (hbody : BigStepBlock σ₀ ss CtrlResult.normal σ_body_end)
     (hclose : CloseScope σ_body_end σ_final) : -- σ' σ' から変更
     StmtControlCompatible
-      (HasTypeStmtCI.block hExt htyBody)
+      (HasTypeStmtCI.block htyBody)
       (BigStepStmt.block hopen hbody hclose) := by
   -- StmtControlCompatible.block コンストラクタを適用
   exact StmtControlCompatible.block
-    (hExt := hExt)
     (htyB := htyBody)
     (hopen := hopen)
     (hbody := hbody)

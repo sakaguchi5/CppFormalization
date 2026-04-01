@@ -217,19 +217,21 @@ private theorem stmt_control_goal
           while_ready_body_data hready
         exact stmt_control_goal hcompBody hσ hreadyBody
 
-    | .block hcompBody =>
-      fun hσ hready => by
-        rename_i k Γ Θ ss σ σ₀ σ₁ σ₂ ctrl htyB hopen hbody hclose
-        have hσ₀ :=
-          openScope_preserves_scoped_typed_state_concrete hσ hopen
-        have hreadyBody :=
-          block_ready_opened_body hready hopen
-        have hσ₁ :=
-          block_control_goal hcompBody hσ₀ hreadyBody
-        have hExt : TopFrameExtensionOf Γ σ₁ :=
-          block_ci_topFrameExtension htyB
-        exact
-          closeScope_preserves_outer_from_topFrameExtension hExt hσ₁ hclose
+  | .block (Γ := Γ) (Θ := Θ) (ss := ss)
+    (σ := σ) (σ₀ := σ₀) (σ₁ := σ₁) (σ₂ := σ₂) (ctrl := ctrl)
+    (htyB := htyB) (hopen := hopen) (hbody := hbody) (hclose := hclose)
+    hcompBody =>
+    fun hσ hready => by
+      have hσ₀_typed :=
+        openScope_preserves_scoped_typed_state_concrete hσ hopen
+      have hreadyBody :=
+        block_ready_opened_body hready hopen
+      have hσ₁_typed :=
+        block_control_goal hcompBody hσ₀_typed hreadyBody
+      have hExt : TopFrameExtensionOf Γ Θ :=
+        block_ci_topFrameExtension htyB
+      exact
+        closeScope_preserves_outer_from_topFrameExtension hExt hσ₁_typed hclose
 
 private theorem block_control_goal
     {k : ControlKind} {Γ Δ : TypeEnv} {ss : StmtBlock}
