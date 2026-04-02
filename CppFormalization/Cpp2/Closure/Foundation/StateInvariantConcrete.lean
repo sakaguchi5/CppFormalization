@@ -19,32 +19,49 @@ namespace Cpp
 - その代わり、depth-indexed な frame 対応と ownership witness を表す補助述語を切り出す。
 -/
 
+
 /-- 型環境の深さ `k` に object 宣言 `x : τ` が存在する。 -/
-axiom typeFrameDeclObject : TypeEnv → Nat → Ident → CppType → Prop
+def typeFrameDeclObject (Γ : TypeEnv) (k : Nat) (x : Ident) (τ : CppType) : Prop :=
+  ∃ fr, Γ.scopes[k]? = some fr ∧ fr.decls x = some (.object τ)
 
 /-- 型環境の深さ `k` に ref 宣言 `x : τ` が存在する。 -/
-axiom typeFrameDeclRef : TypeEnv → Nat → Ident → CppType → Prop
+def typeFrameDeclRef (Γ : TypeEnv) (k : Nat) (x : Ident) (τ : CppType) : Prop :=
+  ∃ fr, Γ.scopes[k]? = some fr ∧ fr.decls x = some (.ref τ)
 
 /-- runtime state の深さ `k` の frame に object binding `x ↦ (.object τ a)` がある。 -/
-axiom runtimeFrameBindsObject : State → Nat → Ident → CppType → Nat → Prop
+def runtimeFrameBindsObject (σ : State) (k : Nat) (x : Ident) (τ : CppType) (a : Nat) : Prop :=
+  ∃ fr, σ.scopes[k]? = some fr ∧ fr.binds x = some (.object τ a)
 
 /-- runtime state の深さ `k` の frame に ref binding `x ↦ (.ref τ a)` がある。 -/
-axiom runtimeFrameBindsRef : State → Nat → Ident → CppType → Nat → Prop
+def runtimeFrameBindsRef (σ : State) (k : Nat) (x : Ident) (τ : CppType) (a : Nat) : Prop :=
+  ∃ fr, σ.scopes[k]? = some fr ∧ fr.binds x = some (.ref τ a)
 
 /-- address `a` は runtime state の深さ `k` の frame が所有する object local である。 -/
-axiom runtimeFrameOwnsAddress : State → Nat → Nat → Prop
+def runtimeFrameOwnsAddress (σ : State) (k : Nat) (a : Nat) : Prop :=
+  ∃ fr, σ.scopes[k]? = some fr ∧ a ∈ fr.locals
 
 /-- address `a` には live な `τ`-cell がある。 -/
-axiom heapLiveTypedAt : State → Nat → CppType → Prop
+def heapLiveTypedAt (σ : State) (a : Nat) (τ : CppType) : Prop :=
+  ∃ c, σ.heap a = some c ∧ c.ty = τ ∧ c.alive = true
 
 /-- address `a` の cell には型整合する初期化済み値が入っている。 -/
-axiom heapInitializedTypedAt : State → Nat → CppType → Prop
+def heapInitializedTypedAt (σ : State) (a : Nat) (τ : CppType) : Prop :=
+  ∃ c v,
+    σ.heap a = some c ∧
+    c.ty = τ ∧
+    c.alive = true ∧
+    c.value = some v ∧
+    ValueCompat v τ
+
+/-- frame 内での shadowing が lookup 規則と整合している。 -/
+def shadowingCompatible (Γ : TypeEnv) (σ : State) : Prop :=
+  ∀ x d,
+    lookupDecl Γ x = some d →
+    ∃ b, lookupBinding σ x = some b ∧ DeclMatchesBinding d b
 
 /-- type-env の frame 数と runtime scope の frame 数が一致する。 -/
 axiom frameDepthAgreement : TypeEnv → State → Prop
 
-/-- frame 内での shadowing が lookup 規則と整合している。 -/
-axiom shadowingCompatible : TypeEnv → State → Prop
 
 /-- runtime frame の owned object address には重複がない。 -/
 axiom ownedAddressesNoDupPerFrame : State → Prop
@@ -63,6 +80,11 @@ axiom allOwnedAddressesNamed : State → Prop
 
 /-- fresh allocation に使う `next` は未使用で、既存所有 address と衝突しない。 -/
 axiom nextFreshAgainstOwned : State → Prop
+
+
+
+
+
 
 /--
 `ScopedTypedStateConcrete` は、`ScopedTypedState` の「どこを具体化するか」を明示した強い青写真。

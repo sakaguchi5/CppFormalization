@@ -233,7 +233,7 @@ theorem body_ready_stmt_terminates_or_diverges
    `std` 側は BodyReady を立てる責任、
    `reflection` 側は core fragment に入る責任を持つ。
    ========================================= -/
-
+/-
 structure VerifiedStdFragment where
   Name : Type
   uses : Name → Prop
@@ -286,5 +286,5 @@ theorem reflective_std_closure_theorem
   have hfrag : CoreBigStepFragment st :=
     reflection_fragment_generates_core hgen
   exact body_ready_stmt_terminates_or_diverges hfrag hready
-
+-/
 end Cpp
