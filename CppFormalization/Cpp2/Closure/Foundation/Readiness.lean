@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Foundation.StateBoundary
+import CppFormalization.Cpp2.Closure.Legacy.ReadinessFacade
 import CppFormalization.Cpp2.Semantics.Stmt
 
 namespace Cpp
@@ -256,7 +256,6 @@ theorem noInvalidRef_of_exprReadyConcrete
     let ih := noInvalidRef_of_exprReadyConcrete h
     ih
 
-
 mutual
 
 theorem bigStepPlace_of_pushScope
@@ -346,7 +345,6 @@ theorem noUninitValue_of_pushScope {σ : State} {e : ValExpr} :
   | .litInt _ => fun h => h
   | .load _ => fun h => readablePlace_of_pushScope h
   | .addrOf _ => fun h => validPlace_of_pushScope h
-  -- h.1 が NoUninitValue (pushScope σ) e1 であることを利用
   | .add e1 e2 => fun h =>
       ⟨noUninitValue_of_pushScope (e := e1) h.1, noUninitValue_of_pushScope (e := e2) h.2⟩
   | .sub e1 e2 => fun h =>
@@ -552,7 +550,8 @@ theorem noUninit_of_stmtReadyConcrete
   | declareRef _ _ hP =>
       exact validPlace_of_placeReadyConcrete hP
   | seq hS hT =>
-      exact ⟨noUninit_of_stmtReadyConcrete hS, noUninit_of_stmtReadyConcrete hT⟩
+      exact ⟨noUninit_of_stmtReadyConcrete hS,
+        noUninit_of_stmtReadyConcrete hT⟩
   | ite _ hC hS hT =>
       exact ⟨noUninit_of_exprReadyConcrete hC,
         noUninit_of_stmtReadyConcrete hS,
@@ -606,7 +605,8 @@ theorem noInvalidRef_of_stmtReadyConcrete
   | declareRef _ _ hP =>
       exact validPlace_of_placeReadyConcrete hP
   | seq hS hT =>
-      exact ⟨noInvalidRef_of_stmtReadyConcrete hS, noInvalidRef_of_stmtReadyConcrete hT⟩
+      exact ⟨noInvalidRef_of_stmtReadyConcrete hS,
+        noInvalidRef_of_stmtReadyConcrete hT⟩
   | ite _ hC hS hT =>
       exact ⟨noInvalidRef_of_exprReadyConcrete hC,
         noInvalidRef_of_stmtReadyConcrete hS,
@@ -638,3 +638,5 @@ theorem noInvalidRef_of_blockReadyConcrete
       exact ⟨noInvalidRef_of_stmtReadyConcrete hS,
         noInvalidRef_of_blockReadyConcrete hSS⟩
 end
+
+end Cpp

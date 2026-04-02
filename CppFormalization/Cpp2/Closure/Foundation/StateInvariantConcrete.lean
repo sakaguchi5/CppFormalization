@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Foundation.StateBoundary
+import CppFormalization.Cpp2.Static.Assumptions
 import CppFormalization.Cpp2.Semantics.Stmt
 
 namespace Cpp
@@ -131,7 +131,6 @@ axiom declareObject_extends_top_ownership_only
     (∀ {k y υ},
       typeFrameDeclObject Γ k y υ →
       ∃ a, runtimeFrameBindsObject σ' (k+1) y υ a)
-
 
 /-未使用なのでコメントアウト
 /--

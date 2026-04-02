@@ -1,8 +1,8 @@
+import CppFormalization.Cpp2.Closure.Legacy.ReadinessFacade
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
 
 namespace Cpp
-
 
 namespace ClosureV2
 
@@ -20,8 +20,8 @@ axiom legacyScopedTypedState_of_concrete
     ScopedTypedStateConcrete Γ σ →
     ScopedTypedState Γ σ
 
-
 end ClosureV2
+
 /-!
 # Closure.Foundation.BodyBoundaryCompatibility
 
@@ -180,7 +180,6 @@ def legacyStmtReady_of_structural_dynamicV2
     noUninit_of_stmtReadyConcrete hd.safe,
     noInvalidRef_of_stmtReadyConcrete hd.safe
   ⟩
-
 
 def mkLegacyBodyReadyOfStructuralDynamicV2
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
