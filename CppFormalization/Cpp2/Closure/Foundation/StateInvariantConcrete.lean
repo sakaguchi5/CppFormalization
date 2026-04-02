@@ -97,18 +97,89 @@ def nextFreshAgainstOwned (σ : State) : Prop :=
     σ.scopes[k]? = some fr →
     σ.next ∉ fr.locals
 
+/--
+ref binding は ownership witness ではない。
 
+重要:
+- ref が owned address を「指す」こと自体は禁止しない。
+- 禁止したいのは、「その frame の locals に address が載っている理由が ref である」
+  という状況である。
+- したがって、same-frame の owned local を ref が alias していてもよい。
+  ただしその ownership source は object binding でなければならない。
+-/
+def refBindingsNeverOwned (σ : State) : Prop :=
+  ∀ (k : Nat) (fr : ScopeFrame) (x : Ident) (τ : CppType) (a : Nat),
+    σ.scopes[k]? = some fr →
+    fr.binds x = some (.ref τ a) →
+    a ∈ fr.locals →
+    ∃ y υ, fr.binds y = some (.object υ a)
 
-/-- ref binding は ownership を主張しない。 -/
-axiom refBindingsNeverOwned : State → Prop
+/--
+弱い placeholder invariant.
 
+これは「initialized object であってほしい」という将来目標の仮置きであり、
+現在の形では `∨ True` により本質的には自明である。
+したがって core invariant の本体ではなく、明示的に弱い成分として隔離して扱う。
+-/
+def ObjectBindingsInitializedTypedWeak (σ : State) : Prop :=
+  ∀ {k x τ a},
+    runtimeFrameBindsObject σ k x τ a →
+    heapInitializedTypedAt σ a τ ∨ True
 
+@[simp] theorem objectBindingsInitializedTypedWeak_trivial
+    (σ : State) :
+    ObjectBindingsInitializedTypedWeak σ := by
+  intro k x τ a hbind
+  exact Or.inr trivial
 
+/--
+decl/binding/live 実現の核。
+-/
+structure ScopedTypedStateConcreteKernel (Γ : TypeEnv) (σ : State) : Prop where
+  frameDepth : frameDepthAgreement Γ σ
+  shadowing : shadowingCompatible Γ σ
+  objectDeclRealized :
+    ∀ {k x τ},
+      typeFrameDeclObject Γ k x τ →
+      ∃ a,
+        runtimeFrameBindsObject σ k x τ a ∧
+        runtimeFrameOwnsAddress σ k a ∧
+        heapLiveTypedAt σ a τ
+  refDeclRealized :
+    ∀ {k x τ},
+      typeFrameDeclRef Γ k x τ →
+      ∃ a,
+        runtimeFrameBindsRef σ k x τ a ∧
+        heapLiveTypedAt σ a τ
+
+/--
+ownership / alias / freshness discipline.
+-/
+structure ScopedTypedStateConcreteOwnership (σ : State) : Prop where
+  ownedAddressNamed :
+    ∀ {k a},
+      runtimeFrameOwnsAddress σ k a →
+      ∃ x τ, runtimeFrameBindsObject σ k x τ a
+  refsNotOwned : refBindingsNeverOwned σ
+  objectsOwned : allObjectBindingsOwned σ
+  ownedNoDupPerFrame : ownedAddressesNoDupPerFrame σ
+  ownedDisjoint : ownedAddressesDisjointAcrossFrames σ
+  ownedNamed : allOwnedAddressesNamed σ
+  nextFresh : nextFreshAgainstOwned σ
+  refTargetsAvoidInnerOwned :
+    ∀ {k x τ a j},
+      runtimeFrameBindsRef σ k x τ a →
+      j < k →
+      ¬ runtimeFrameOwnsAddress σ j a
 
 /--
 `ScopedTypedStateConcrete` は、`ScopedTypedState` の「どこを具体化するか」を明示した強い青写真。
-これ自体を最終的な invariant にしてもよいし、
-これを分解して既存 `ScopedTypedState` の theorem 群へ落としてもよい。
+
+設計上の注意:
+- `kernel` は decl → binding → live 実現の核。
+- `ownership` は owner / alias / freshness discipline。
+- `initializedValuesTyped` は現段階では `∨ True` を含む弱い placeholder であり、
+  本質 invariant とは切り分けて読むべきである。
 -/
 structure ScopedTypedStateConcrete (Γ : TypeEnv) (σ : State) : Prop where
   /- stack 全体の対応 -/
@@ -146,19 +217,54 @@ structure ScopedTypedStateConcrete (Γ : TypeEnv) (σ : State) : Prop where
   ownedDisjoint : ownedAddressesDisjointAcrossFrames σ
   ownedNamed : allOwnedAddressesNamed σ
 
-  /- 値整合と fresh allocation -/
-  initializedValuesTyped :
-    ∀ {k x τ a},
-      runtimeFrameBindsObject σ k x τ a →
-      heapInitializedTypedAt σ a τ ∨ True
-  nextFresh : nextFreshAgainstOwned σ
-  /- ref target の非所有性 ref target は自分より内側の frame が owned する address であってはならない -/
-  refTargetsAvoidInnerOwned :
-  ∀ {k x τ a j},
-    runtimeFrameBindsRef σ k x τ a →
-    j < k →
-    ¬ runtimeFrameOwnsAddress σ j a
+  /- 弱い placeholder invariant: 現時点では `∨ True` で逃げている。 -/
+  initializedValuesTyped : ObjectBindingsInitializedTypedWeak σ
 
+  /- freshness -/
+  nextFresh : nextFreshAgainstOwned σ
+
+  /- ref target の非所有性
+     ref target は自分より内側の frame が owned する address であってはならない。 -/
+  refTargetsAvoidInnerOwned :
+    ∀ {k x τ a j},
+      runtimeFrameBindsRef σ k x τ a →
+      j < k →
+      ¬ runtimeFrameOwnsAddress σ j a
+
+namespace ScopedTypedStateConcrete
+
+def kernel
+    {Γ : TypeEnv} {σ : State}
+    (h : ScopedTypedStateConcrete Γ σ) :
+    ScopedTypedStateConcreteKernel Γ σ :=
+  { frameDepth := h.frameDepth
+    shadowing := h.shadowing
+    objectDeclRealized := h.objectDeclRealized
+    refDeclRealized := h.refDeclRealized }
+
+def ownership
+    {Γ : TypeEnv} {σ : State}
+    (h : ScopedTypedStateConcrete Γ σ) :
+    ScopedTypedStateConcreteOwnership σ :=
+  { ownedAddressNamed := h.ownedAddressNamed
+    refsNotOwned := h.refsNotOwned
+    objectsOwned := h.objectsOwned
+    ownedNoDupPerFrame := h.ownedNoDupPerFrame
+    ownedDisjoint := h.ownedDisjoint
+    ownedNamed := h.ownedNamed
+    nextFresh := h.nextFresh
+    refTargetsAvoidInnerOwned := h.refTargetsAvoidInnerOwned }
+
+def initWeak
+    {Γ : TypeEnv} {σ : State}
+    (h : ScopedTypedStateConcrete Γ σ) :
+    ObjectBindingsInitializedTypedWeak σ :=
+  h.initializedValuesTyped
+
+end ScopedTypedStateConcrete
+
+
+/-未使用なのでコメントアウト
 /--
 `declareObject` が top ownership を増やすだけで、
 下位 frame の witness を壊さないことを言う補題目標。
@@ -172,7 +278,7 @@ axiom declareObject_extends_top_ownership_only
     (∀ {k y υ},
       typeFrameDeclObject Γ k y υ →
       ∃ a, runtimeFrameBindsObject σ' (k+1) y υ a)
-
+-/
 /-未使用なのでコメントアウト
 /--
 `declareRef` は ownership を増やさず alias binding だけを増やす。

@@ -3,10 +3,101 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
 
 namespace Cpp
 
+axiom heapInitializedValuesTyped_of_concrete
+    {Γ : TypeEnv} {σ : State} :
+    ScopedTypedStateConcrete Γ σ →
+    heapInitializedValuesTyped σ
+--補題
+private theorem frame_eq_of_scope_lookup
+    {σ : State} {k : Nat} {fr₁ fr₂ : ScopeFrame}
+    (h₁ : σ.scopes[k]? = some fr₁)
+    (h₂ : σ.scopes[k]? = some fr₂) :
+    fr₁ = fr₂ := by
+  apply Option.some.inj
+  exact h₁.symm.trans h₂
+--最終的にはlegacyを外してScopedTypedState_of_concreteにする
+theorem legacyScopedTypedState_of_concrete
+    {Γ : TypeEnv} {σ : State} :
+    ScopedTypedStateConcrete Γ σ →
+    ScopedTypedState Γ σ := by
+  intro h
+  refine
+    { stackAligned := ?_
+      frameDeclBinding := ?_
+      objectBindingsSound := ?_
+      refBindingsSound := ?_
+      localsExact := ?_
+      ownedDisjoint := ?_
+      initializedValuesTyped := ?_
+      nextFresh := ?_ }
+  ·
+    exact h.frameDepth
+  ·
+    intro k Γfr σfr hΓ hσ x d hd
+    cases d with
+    | object τ =>
+        rcases h.objectDeclRealized ⟨Γfr, hΓ, hd⟩ with ⟨a, hbind, hown, hlive⟩
+        rcases hbind with ⟨fr', hσ', hbind'⟩
+        have hfr : fr' = σfr := frame_eq_of_scope_lookup hσ' hσ
+        subst hfr
+        exact ⟨.object τ a, hbind', rfl⟩
+    | ref τ =>
+        rcases h.refDeclRealized ⟨Γfr, hΓ, hd⟩ with ⟨a, hbind, hlive⟩
+        rcases hbind with ⟨fr', hσ', hbind'⟩
+        have hfr : fr' = σfr := frame_eq_of_scope_lookup hσ' hσ
+        subst hfr
+        exact ⟨.ref τ a, hbind', rfl⟩
+  ·
+    intro k Γfr σfr hΓ hσ x τ hd
+    rcases h.objectDeclRealized ⟨Γfr, hΓ, hd⟩ with ⟨a, hbind, hown, hlive⟩
+    rcases hbind with ⟨fr1, hσ1, hbind1⟩
+    rcases hown with ⟨fr2, hσ2, hown2⟩
+    rcases hlive with ⟨c, hheap, hty, halive⟩
+    have hfr1 : fr1 = σfr := frame_eq_of_scope_lookup hσ1 hσ
+    have hfr2 : fr2 = σfr := frame_eq_of_scope_lookup hσ2 hσ
+    subst hfr1
+    subst hfr2
+    exact ⟨a, c, hbind1, hheap, hty, halive, hown2⟩
+  ·
+    intro k Γfr σfr hΓ hσ x τ hd
+    rcases h.refDeclRealized ⟨Γfr, hΓ, hd⟩ with ⟨a, hbind, hlive⟩
+    rcases hbind with ⟨fr1, hσ1, hbind1⟩
+    rcases hlive with ⟨c, hheap, hty, halive⟩
+    have hfr1 : fr1 = σfr := frame_eq_of_scope_lookup hσ1 hσ
+    subst hfr1
+    exact ⟨a, c, hbind1, hheap, hty, halive⟩
+  ·
+    intro k fr hσk a
+    constructor
+    ·
+      intro ha
+      have hown : runtimeFrameOwnsAddress σ k a := ⟨fr, hσk, ha⟩
+      rcases h.ownedAddressNamed hown with ⟨x, τ, hbind⟩
+      rcases hbind with ⟨fr', hσ', hbind'⟩
+      have hfr : fr' = fr := frame_eq_of_scope_lookup hσ' hσk
+      subst hfr
+      exact ⟨x, τ, hbind'⟩
+    ·
+      intro hobj
+      rcases hobj with ⟨x, τ, hbind⟩
+      have hbindObj : runtimeFrameBindsObject σ k x τ a := ⟨fr, hσk, hbind⟩
+      have hown : runtimeFrameOwnsAddress σ k a := by
+        exact h.objectsOwned k x τ a hbindObj
+      rcases hown with ⟨fr', hσ', ha⟩
+      have hfr : fr' = fr := frame_eq_of_scope_lookup hσ' hσk
+      subst hfr
+      exact ha
+  ·
+    exact h.ownedDisjoint
+  ·
+    exact heapInitializedValuesTyped_of_concrete h
+  ·
+    exact h.nextFresh
+/-
 axiom legacyScopedTypedState_of_concrete
     {Γ : TypeEnv} {σ : State} :
     ScopedTypedStateConcrete Γ σ →
-    ScopedTypedState Γ σ
+    ScopedTypedState Γ σ-/
 
 def BodyReadyCI.toStructural
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
