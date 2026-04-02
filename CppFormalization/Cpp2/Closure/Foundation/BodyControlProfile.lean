@@ -1,47 +1,40 @@
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
 
-namespace Cpp
+namespace Cpp.ClosureV2
 
 /-!
 # Closure.Foundation.BodyControlProfile
 
-四層分離の第2層。
+四層分離の第2層: control-sensitive static profile.
 
-ここでは statement / block の control-sensitive summary だけを持つ。
-これは well-formedness でも readiness でもなく、
-CI typing payload を伴う static profile である。
+役割:
+- statement / opened block body の exit channel 要約を保持する。
+- `Δ` は mere existence ではなく payload として保持する。
+
+注意:
+- 既存 `Cpp.BodyExitKind` / `StmtBodySummary` / `BlockBodySummary` との衝突を避けるため、
+  移行中は `Cpp.ClosureV2` namespace に隔離する。
 -/
 
-/-- function-body top level で観測したい出口 channel. -/
 inductive BodyExitKind where
   | normal
   | returned
   deriving DecidableEq, Repr
 
-/--
-statement 用の internal control summary.
-`Δ` は mere existence ではなく channel payload の一部として保持する。
--/
 structure StmtBodySummary (Γ : TypeEnv) (st : CppStmt) : Type where
   normalOut : Option {Δ : TypeEnv // HasTypeStmtCI .normalK Γ st Δ}
   returnOut : Option {Δ : TypeEnv // HasTypeStmtCI .returnK Γ st Δ}
 
-/--
-opened block body 用の internal control summary.
-block-body は `pushTypeScope Γ` 下で見る。
--/
 structure BlockBodySummary (Γ : TypeEnv) (ss : StmtBlock) : Type where
   normalOut :
     Option {Δ : TypeEnv // HasTypeBlockCI .normalK (pushTypeScope Γ) ss Δ}
   returnOut :
     Option {Δ : TypeEnv // HasTypeBlockCI .returnK (pushTypeScope Γ) ss Δ}
 
-/-- State-free control profile for a statement body. -/
 structure BodyControlProfile (Γ : TypeEnv) (st : CppStmt) : Type where
   summary : StmtBodySummary Γ st
 
-/-- State-free control profile for an opened block body. -/
 structure BlockBodyControlProfile (Γ : TypeEnv) (ss : StmtBlock) : Type where
   summary : BlockBodySummary Γ ss
 
-end Cpp
+end Cpp.ClosureV2
