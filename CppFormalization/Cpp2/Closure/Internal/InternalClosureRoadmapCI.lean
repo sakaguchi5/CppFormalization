@@ -5,23 +5,7 @@ import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureCI
 
 namespace Cpp
 
-/-!
-# Closure.Internal.InternalClosureRoadmapCI
-
-CI-centric internal closure roadmap.
-
-目的:
-- theorem-backed concrete kernel をそのまま流用しつつ、
-  function-body closure の入口を old `BodyReady` から `BodyReadyCI` へ移す。
-- old abstract roadmap は coarse external facade として残し、
-  internal closure 主線はこちらを使う。
-- 第4段階では、新 assembled boundary (`ClosureV2.BodyClosureBoundaryCI`) を
-  受け取る V2 surface を追加し、old surface は compatibility として残す。
--/
-
 namespace InternalClosureRoadmapCI
-
-/-! ## theorem-backed concrete normal kernel re-exported through the CI roadmap -/
 
 theorem stmt_normal_preserves_scoped_typed_state
     {Γ Δ : TypeEnv} {σ σ' : State} {st : CppStmt}
@@ -77,8 +61,6 @@ theorem while_body_continue_preserves_stmt_ready_typed
     StmtReadyConcrete Γ σ' (.whileStmt c body) :=
   InternalClosureRoadmapConcrete.while_body_continue_preserves_body_ready_typed htyWhile hready hstepBody hσ
 
-/-! ## CI-boundary function-body closure -/
-
 theorem body_ready_ci_function_body_progress_or_diverges
     {Γ : TypeEnv} {σ : State} {st : CppStmt} :
     CoreBigStepFragment st →
@@ -97,40 +79,30 @@ theorem body_ready_ci_stmt_terminates_or_diverges
   · left
     rcases hbody with ⟨ex, σ', hfb⟩
     cases ex with
-    | fellThrough =>
-        refine ⟨.normal, σ', ?_⟩
-        simpa using (BigStepFunctionBody.to_stmt hfb)
-    | returned rv =>
-        refine ⟨.returnResult rv, σ', ?_⟩
-        simpa using (BigStepFunctionBody.to_stmt hfb)
+    | fellThrough => refine ⟨.normal, σ', by simpa using (BigStepFunctionBody.to_stmt hfb)⟩
+    | returned rv => refine ⟨.returnResult rv, σ', by simpa using (BigStepFunctionBody.to_stmt hfb)⟩
   · exact Or.inr hdiv
 
-/-! ## Stage 4 V2 entry surface -/
-
-theorem body_ready_ci_function_body_progress_or_diverges_v2
+theorem body_closure_function_body_progress_or_diverges
     {Γ : TypeEnv} {σ : State} {st : CppStmt} :
     CoreBigStepFragment st →
-    ClosureV2.BodyClosureBoundaryCI Γ σ st →
+    BodyClosureBoundaryCI Γ σ st →
     (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
-  intro hfrag hready
-  exact Cpp.body_ready_ci_function_body_progress_or_diverges_v2 hfrag hready
+  intro hfrag hboundary
+  exact Cpp.body_closure_ci_function_body_progress_or_diverges hfrag hboundary
 
-theorem body_ready_ci_stmt_terminates_or_diverges_v2
+theorem body_closure_stmt_terminates_or_diverges
     {Γ : TypeEnv} {σ : State} {st : CppStmt} :
     CoreBigStepFragment st →
-    ClosureV2.BodyClosureBoundaryCI Γ σ st →
+    BodyClosureBoundaryCI Γ σ st →
     BigStepStmtTerminates σ st ∨ BigStepStmtDiv σ st := by
-  intro hfrag hready
-  rcases body_ready_ci_function_body_progress_or_diverges_v2 hfrag hready with hbody | hdiv
+  intro hfrag hboundary
+  rcases body_closure_function_body_progress_or_diverges hfrag hboundary with hbody | hdiv
   · left
     rcases hbody with ⟨ex, σ', hfb⟩
     cases ex with
-    | fellThrough =>
-        refine ⟨.normal, σ', ?_⟩
-        simpa using (BigStepFunctionBody.to_stmt hfb)
-    | returned rv =>
-        refine ⟨.returnResult rv, σ', ?_⟩
-        simpa using (BigStepFunctionBody.to_stmt hfb)
+    | fellThrough => refine ⟨.normal, σ', by simpa using (BigStepFunctionBody.to_stmt hfb)⟩
+    | returned rv => refine ⟨.returnResult rv, σ', by simpa using (BigStepFunctionBody.to_stmt hfb)⟩
   · exact Or.inr hdiv
 
 end InternalClosureRoadmapCI

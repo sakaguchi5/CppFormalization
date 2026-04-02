@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Legacy.ReadinessFacade
+import CppFormalization.Cpp2.Closure.Foundation.StateBoundary
 import CppFormalization.Cpp2.Semantics.Stmt
 
 namespace Cpp
