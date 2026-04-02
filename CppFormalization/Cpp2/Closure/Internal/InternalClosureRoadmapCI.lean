@@ -1,4 +1,5 @@
-import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
+
+import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapConcrete
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureCI
 
@@ -14,6 +15,8 @@ CI-centric internal closure roadmap.
   function-body closure の入口を old `BodyReady` から `BodyReadyCI` へ移す。
 - old abstract roadmap は coarse external facade として残し、
   internal closure 主線はこちらを使う。
+- 第4段階では、新 assembled boundary (`ClosureV2.BodyClosureBoundaryCI`) を
+  受け取る V2 surface を追加し、old surface は compatibility として残す。
 -/
 
 namespace InternalClosureRoadmapCI
@@ -91,6 +94,34 @@ theorem body_ready_ci_stmt_terminates_or_diverges
     BigStepStmtTerminates σ st ∨ BigStepStmtDiv σ st := by
   intro hfrag hready
   rcases body_ready_ci_function_body_progress_or_diverges hfrag hready with hbody | hdiv
+  · left
+    rcases hbody with ⟨ex, σ', hfb⟩
+    cases ex with
+    | fellThrough =>
+        refine ⟨.normal, σ', ?_⟩
+        simpa using (BigStepFunctionBody.to_stmt hfb)
+    | returned rv =>
+        refine ⟨.returnResult rv, σ', ?_⟩
+        simpa using (BigStepFunctionBody.to_stmt hfb)
+  · exact Or.inr hdiv
+
+/-! ## Stage 4 V2 entry surface -/
+
+theorem body_ready_ci_function_body_progress_or_diverges_v2
+    {Γ : TypeEnv} {σ : State} {st : CppStmt} :
+    CoreBigStepFragment st →
+    ClosureV2.BodyClosureBoundaryCI Γ σ st →
+    (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
+  intro hfrag hready
+  exact Cpp.body_ready_ci_function_body_progress_or_diverges_v2 hfrag hready
+
+theorem body_ready_ci_stmt_terminates_or_diverges_v2
+    {Γ : TypeEnv} {σ : State} {st : CppStmt} :
+    CoreBigStepFragment st →
+    ClosureV2.BodyClosureBoundaryCI Γ σ st →
+    BigStepStmtTerminates σ st ∨ BigStepStmtDiv σ st := by
+  intro hfrag hready
+  rcases body_ready_ci_function_body_progress_or_diverges_v2 hfrag hready with hbody | hdiv
   · left
     rcases hbody with ⟨ex, σ', hfb⟩
     cases ex with
