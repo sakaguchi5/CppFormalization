@@ -1,5 +1,4 @@
---import CppFormalization.Cpp2.Closure.Foundation.StateBoundary
-import CppFormalization.Cpp2.Closure.Foundation.StateBoundaryNoAxioms
+import CppFormalization.Cpp2.Closure.Foundation.StateBoundary
 import CppFormalization.Cpp2.Semantics.Stmt
 
 namespace Cpp
