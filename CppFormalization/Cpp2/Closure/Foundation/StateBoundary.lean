@@ -16,13 +16,14 @@ Compatibility substrate for coarse runtime-side boundary vocabulary.
   `Legacy` 名前空間依存を除去する。
 -/
 
-/-- 型環境と runtime state の frame 数が一致する。第一近似として長さ一致だけを採用する。 -/
-def scopesCompatible (Γ : TypeEnv) (σ : State) : Prop :=
-  Γ.scopes.length = σ.scopes.length
-
 axiom framewiseDeclBindingCompatible : TypeEnv → State → Prop
 axiom objectBindingsLiveTypedOwned : TypeEnv → State → Prop
 axiom refBindingsLiveTyped : TypeEnv → State → Prop
+
+
+/-- 型環境と runtime state の frame 数が一致する。第一近似として長さ一致だけを採用する。 -/
+def scopesCompatible (Γ : TypeEnv) (σ : State) : Prop :=
+  Γ.scopes.length = σ.scopes.length
 
 /-- runtime frame 内で object binding が使っている address。 -/
 def frameBindsObjectAddr (fr : ScopeFrame) (a : Nat) : Prop :=
@@ -236,16 +237,6 @@ theorem nextIsFreshForOwnedHeap_bindTopBinding
           simpa [pushScope] using hk
         exact hfresh k fr hk_old
 
-/-- `TypedState` より強い runtime invariant. -/
-structure ScopedTypedState (Γ : TypeEnv) (σ : State) : Prop where
-  stackAligned : scopesCompatible Γ σ
-  frameDeclBinding : framewiseDeclBindingCompatible Γ σ
-  objectBindingsSound : objectBindingsLiveTypedOwned Γ σ
-  refBindingsSound : refBindingsLiveTyped Γ σ
-  localsExact : frameLocalsExact Γ σ
-  ownedDisjoint : ownedAddressesDisjoint σ
-  initializedValuesTyped : heapInitializedValuesTyped σ
-  nextFresh : nextIsFreshForOwnedHeap σ
 
 /-- `PlaceReady Γ σ p τ` は、`p` が現在の状態で安全に使える `τ`-place であること。 -/
 def PlaceReady (Γ : TypeEnv) (σ : State) (p : PlaceExpr) (τ : CppType) : Prop :=
@@ -269,6 +260,16 @@ def BlockReady (Γ : TypeEnv) (σ : State) (ss : StmtBlock) : Prop :=
   NoUninitBlock σ ss ∧
   NoInvalidRefBlock σ ss
 
+/-- `TypedState` より強い runtime invariant. -/
+structure ScopedTypedState (Γ : TypeEnv) (σ : State) : Prop where
+  stackAligned : scopesCompatible Γ σ
+  frameDeclBinding : framewiseDeclBindingCompatible Γ σ
+  objectBindingsSound : objectBindingsLiveTypedOwned Γ σ
+  refBindingsSound : refBindingsLiveTyped Γ σ
+  localsExact : frameLocalsExact Γ σ
+  ownedDisjoint : ownedAddressesDisjoint σ
+  initializedValuesTyped : heapInitializedValuesTyped σ
+  nextFresh : nextIsFreshForOwnedHeap σ
 /-- coarse compatibility façade retained for old-to-new bridges. -/
 structure BodyReady (Γ : TypeEnv) (σ : State) (st : CppStmt) : Prop where
   wf : WellFormedStmt st

@@ -1,8 +1,0 @@
-import CppFormalization.Cpp2.Closure.External.ReflectiveStdClosure
-
-namespace Cpp
-
-abbrev reflective_std_function_body_closure_v2 := reflective_std_function_body_closure
-abbrev reflective_std_closure_theorem_v2 := reflective_std_closure_theorem
-
-end Cpp
