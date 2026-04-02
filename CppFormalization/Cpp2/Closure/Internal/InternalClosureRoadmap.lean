@@ -5,33 +5,31 @@ namespace Cpp
 /-!
 # Closure.Internal.InternalClosureRoadmap
 
-第7段階の mainline internal roadmap.
+Mainline internal roadmap after the Stage 7 switch.
 
 方針:
-- mainline は assembled boundary (`ClosureV2.BodyClosureBoundaryCI`) を入口にする。
-- old coarse `BodyReady` ベースの roadmap は legacy へ退避する。
-- 実装本体は `InternalClosureRoadmapCI` の V2 surface を再利用する。
+- canonical input boundary は assembled boundary `ClosureV2.BodyClosureBoundaryCI`.
+- implementation は `InternalClosureRoadmapCI` の V2 surface を thin wrapper として再利用する。
+- old coarse `BodyReady` ベース roadmap は `Closure.Legacy.InternalClosureRoadmapLegacy` へ退避済み。
 -/
 
 namespace InternalClosureRoadmap
 
 abbrev BodyBoundary := ClosureV2.BodyClosureBoundaryCI
 
-theorem function_body_progress_or_diverges
+abbrev function_body_progress_or_diverges
     {Γ : TypeEnv} {σ : State} {st : CppStmt} :
     CoreBigStepFragment st →
     BodyBoundary Γ σ st →
-    (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
-  intro hfrag hboundary
-  exact InternalClosureRoadmapCI.body_ready_ci_function_body_progress_or_diverges_v2 hfrag hboundary
+    (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st :=
+  InternalClosureRoadmapCI.body_ready_ci_function_body_progress_or_diverges_v2
 
-theorem stmt_terminates_or_diverges
+abbrev stmt_terminates_or_diverges
     {Γ : TypeEnv} {σ : State} {st : CppStmt} :
     CoreBigStepFragment st →
     BodyBoundary Γ σ st →
-    BigStepStmtTerminates σ st ∨ BigStepStmtDiv σ st := by
-  intro hfrag hboundary
-  exact InternalClosureRoadmapCI.body_ready_ci_stmt_terminates_or_diverges_v2 hfrag hboundary
+    BigStepStmtTerminates σ st ∨ BigStepStmtDiv σ st :=
+  InternalClosureRoadmapCI.body_ready_ci_stmt_terminates_or_diverges_v2
 
 end InternalClosureRoadmap
 

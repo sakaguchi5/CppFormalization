@@ -6,14 +6,14 @@ namespace Cpp
 /-!
 # Closure.External.ReflectiveStdClosure
 
-第7段階の mainline external closure surface.
+Mainline external closure surface after the Stage 7 switch.
 
 方針:
-- canonical external theorem surface は assembled boundary へ接続する V2 側に切り替える。
-- old coarse `BodyReady` ベース theorem は legacy へ退避する。
+- canonical theorem surface は assembled boundary mainline (`Interface` + `InternalClosureRoadmap`) に接続する。
+- old coarse `BodyReady` ベース theorem は `Closure.Legacy.ReflectiveStdClosureLegacy` へ退避済み。
 -/
 
-theorem reflective_std_function_body_closure
+abbrev reflective_std_function_body_closure
     {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}
     {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt} :
     F.uses n →
@@ -23,13 +23,11 @@ theorem reflective_std_function_body_closure
     R.establishesProfile m Γ st →
     (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
   intro huse hdyn hgen hstruct hprof
-  have hboundary : ClosureV2.BodyClosureBoundaryCI Γ σ st :=
-    fragments_establish_body_closure_boundary huse hdyn hgen hstruct hprof
-  have hfrag : CoreBigStepFragment st :=
-    reflection_fragment_generates_core hgen
-  exact InternalClosureRoadmap.function_body_progress_or_diverges hfrag hboundary
+  exact InternalClosureRoadmap.function_body_progress_or_diverges
+    (reflection_fragment_generates_core hgen)
+    (fragments_establish_body_closure_boundary huse hdyn hgen hstruct hprof)
 
-theorem reflective_std_closure_theorem
+abbrev reflective_std_closure_theorem
     {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}
     {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt} :
     F.uses n →
@@ -39,10 +37,8 @@ theorem reflective_std_closure_theorem
     R.establishesProfile m Γ st →
     BigStepStmtTerminates σ st ∨ BigStepStmtDiv σ st := by
   intro huse hdyn hgen hstruct hprof
-  have hboundary : ClosureV2.BodyClosureBoundaryCI Γ σ st :=
-    fragments_establish_body_closure_boundary huse hdyn hgen hstruct hprof
-  have hfrag : CoreBigStepFragment st :=
-    reflection_fragment_generates_core hgen
-  exact InternalClosureRoadmap.stmt_terminates_or_diverges hfrag hboundary
+  exact InternalClosureRoadmap.stmt_terminates_or_diverges
+    (reflection_fragment_generates_core hgen)
+    (fragments_establish_body_closure_boundary huse hdyn hgen hstruct hprof)
 
 end Cpp
