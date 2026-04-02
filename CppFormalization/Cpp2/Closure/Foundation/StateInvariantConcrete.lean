@@ -60,28 +60,47 @@ def shadowingCompatible (Γ : TypeEnv) (σ : State) : Prop :=
     ∃ b, lookupBinding σ x = some b ∧ DeclMatchesBinding d b
 
 /-- type-env の frame 数と runtime scope の frame 数が一致する。 -/
-axiom frameDepthAgreement : TypeEnv → State → Prop
-
+def frameDepthAgreement (Γ : TypeEnv) (σ : State) : Prop :=
+  Γ.scopes.length = σ.scopes.length
 
 /-- runtime frame の owned object address には重複がない。 -/
-axiom ownedAddressesNoDupPerFrame : State → Prop
+def ownedAddressesNoDupPerFrame (σ : State) : Prop :=
+  ∀ (k : Nat) (fr : ScopeFrame),
+    σ.scopes[k]? = some fr →
+    fr.locals.Nodup
 
 /-- object ownership は frame 間で交わらない。 -/
-axiom ownedAddressesDisjointAcrossFrames : State → Prop
+def ownedAddressesDisjointAcrossFrames (σ : State) : Prop :=
+  ∀ (i j : Nat) fi fj a,
+    i ≠ j →
+    σ.scopes[i]? = some fi →
+    σ.scopes[j]? = some fj →
+    a ∈ fi.locals →
+    a ∉ fj.locals
+
+/-- すべての object binding は対応する ownership witness を持つ。 -/
+def allObjectBindingsOwned (σ : State) : Prop :=
+  ∀ k x τ a,
+    runtimeFrameBindsObject σ k x τ a →
+    runtimeFrameOwnsAddress σ k a
+
+/-- 所有されている address は必ず object binding から来る。 -/
+def allOwnedAddressesNamed (σ : State) : Prop :=
+  ∀ k a,
+    runtimeFrameOwnsAddress σ k a →
+    ∃ x τ, runtimeFrameBindsObject σ k x τ a
+
+/-- fresh allocation に使う `next` は未使用で、既存所有 address と衝突しない。 -/
+def nextFreshAgainstOwned (σ : State) : Prop :=
+  σ.heap σ.next = none ∧
+  ∀ (k : Nat) (fr : ScopeFrame),
+    σ.scopes[k]? = some fr →
+    σ.next ∉ fr.locals
+
+
 
 /-- ref binding は ownership を主張しない。 -/
 axiom refBindingsNeverOwned : State → Prop
-
-/-- すべての object binding は対応する ownership witness を持つ。 -/
-axiom allObjectBindingsOwned : State → Prop
-
-/-- 所有されている address は必ず object binding から来る。 -/
-axiom allOwnedAddressesNamed : State → Prop
-
-/-- fresh allocation に使う `next` は未使用で、既存所有 address と衝突しない。 -/
-axiom nextFreshAgainstOwned : State → Prop
-
-
 
 
 
