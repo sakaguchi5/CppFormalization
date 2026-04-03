@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Foundation.BodyStructuralBoundary
+import CppFormalization.Cpp2.Closure.Foundation.BodyStructuralBoundaryLite
 import CppFormalization.Cpp2.Closure.Foundation.BodyDynamicBoundary
 import CppFormalization.Cpp2.Closure.Foundation.BodyControlProfileLite
 import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyLite
@@ -9,28 +9,26 @@ namespace Cpp
 /-!
 # Closure.Foundation.BodyClosureBoundaryLite
 
-E-lite 第一段階の assembled boundary.
+E-lite 補正後の assembled boundary.
 
 方針:
-- 既存の四層分離は維持する。
-- ただし profile / adequacy だけを lite recursive 版に差し替える。
-- structural / dynamic は既存 mainline のものをそのまま使う。
+- 四層分離は維持する。
+- ただし lite line の structural layer は `typed0` を持たない。
+- typing burden は profile 側へ、state/safe は dynamic 側へ、adequacy は adequacy 側へ置く。
 
-これにより、
-- seq の tail transport は profile projection と adequacy family application に還元される。
-- block も opened block-body profile を honest に組み込める。
+これにより、lite transport は old coarse typing へ降りずに書ける。
 -/
 
 /-- Assembled lite boundary for a top-level function body. -/
 structure BodyClosureBoundaryLite (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
-  structural : BodyStructuralBoundary Γ st
+  structural : BodyStructuralBoundaryLite st
   profile : StmtBodyProfileLite Γ st
   dynamic : BodyDynamicBoundary Γ σ st
   adequacy : StmtBodyAdequacyLite Γ σ profile
 
 /-- Assembled lite boundary for an opened block body. -/
 structure BlockBodyClosureBoundaryLite (Γ : TypeEnv) (σ : State) (ss : StmtBlock) : Type where
-  structural : BlockBodyStructuralBoundary Γ ss
+  structural : BlockBodyStructuralBoundaryLite ss
   profile : BlockBodyProfileLite (pushTypeScope Γ) ss
   dynamic : BlockBodyDynamicBoundary Γ σ ss
   adequacy : BlockBodyAdequacyLite (pushTypeScope Γ) σ profile
@@ -38,7 +36,7 @@ structure BlockBodyClosureBoundaryLite (Γ : TypeEnv) (σ : State) (ss : StmtBlo
 /-- Constructor-style helper for readability at use sites. -/
 def mkBodyClosureBoundaryLite
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (hs : BodyStructuralBoundary Γ st)
+    (hs : BodyStructuralBoundaryLite st)
     (hp : StmtBodyProfileLite Γ st)
     (hd : BodyDynamicBoundary Γ σ st)
     (ha : StmtBodyAdequacyLite Γ σ hp) :
@@ -51,7 +49,7 @@ def mkBodyClosureBoundaryLite
 /-- Constructor-style helper for opened block bodies. -/
 def mkBlockBodyClosureBoundaryLite
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
-    (hs : BlockBodyStructuralBoundary Γ ss)
+    (hs : BlockBodyStructuralBoundaryLite ss)
     (hp : BlockBodyProfileLite (pushTypeScope Γ) ss)
     (hd : BlockBodyDynamicBoundary Γ σ ss)
     (ha : BlockBodyAdequacyLite (pushTypeScope Γ) σ hp) :
