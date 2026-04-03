@@ -1,4 +1,5 @@
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
+import CppFormalization.Cpp2.Typing.Stmt
 
 namespace Cpp
 
@@ -7,37 +8,25 @@ namespace Cpp
 
 E-lite 第一段階の control profile.
 
-方針:
-- flat な `normalOut / returnOut` のみを持つ summary を、そのまま主線には使わない。
-- ただし一気に while まで full recursive にせず、seq / block body だけを syntax-mirroring にする。
-- primitive / ite / while / return / break / continue などは、当面 `leaf` として残す。
-
-目的:
-- seq の tail transport を「whole-statement return witness の分解問題」ではなく、
-  profile の projection 問題へ変える。
-- block についても statement-level `.block` と opened block body を
-  profile 上で honest に分ける。
+修正点:
+- `StmtReadyConcrete -> WellTypedFrom` は一般には偽である。
+  特に `seq` readiness は tail を同じ Γ で見ているだけで、
+  typing のように post-environment を thread しない。
+- したがって lite -> CI 互換で必要な `typed0` は `safe` からではなく
+  `profile` から回復する。
+- そのため leaf 側に coarse typing payload `typed0` を追加する。
 -/
 
-/--
-Leaf statement 用の最小 summary.
 
-ここでは既存の flat channel 形式を leaf に閉じ込める。
-E-lite の主眼は seq / block の recursive node 化であり、
-全 statement を一気に full recursive にしない。
--/
+/-- Leaf statement 用の最小 summary. -/
 structure StmtLeafSummary (Γ : TypeEnv) (st : CppStmt) : Type where
+  typed0 : WellTypedFrom Γ st
   normalOut : Option {Δ : TypeEnv // HasTypeStmtCI .normalK Γ st Δ}
   returnOut : Option {Δ : TypeEnv // HasTypeStmtCI .returnK Γ st Δ}
 
 mutual
 
-/--
-Top-level function body 用 lite control profile.
-
-`seq` と `block` だけを syntax-mirroring にし、他は leaf に落とす。
-`seq` node は left normal post-environment を明示的に保持する。
--/
+/-- Top-level function body 用 lite control profile. -/
 inductive StmtBodyProfileLite : TypeEnv → CppStmt → Type where
   | leaf
       {Γ : TypeEnv} {st : CppStmt} :
@@ -56,11 +45,7 @@ inductive StmtBodyProfileLite : TypeEnv → CppStmt → Type where
       BlockBodyProfileLite (pushTypeScope Γ) ss →
       StmtBodyProfileLite Γ (.block ss)
 
-/--
-Opened block body 用 lite control profile.
-
-block body は `pushTypeScope Γ` 下で読み、`cons` ごとに left normal post-env を保持する。
--/
+/-- Opened block body 用 lite control profile. -/
 inductive BlockBodyProfileLite : TypeEnv → StmtBlock → Type where
   | nil
       {Γ : TypeEnv} :
@@ -73,6 +58,40 @@ inductive BlockBodyProfileLite : TypeEnv → StmtBlock → Type where
       BlockBodyProfileLite Δ ss →
       BlockBodyProfileLite Γ (.cons s ss)
 
+end
+
+/-! ## old coarse typing recovery from lite profiles -/
+
+mutual
+theorem wellTypedFrom_of_profileLite
+    {Γ : TypeEnv} {st : CppStmt} :
+    StmtBodyProfileLite Γ st → WellTypedFrom Γ st := by
+  intro h
+  cases h with
+  | leaf S =>
+      exact S.typed0
+  | seq hN _ P₂ =>
+      -- hN の型から Δ と s を取得。hN : HasTypeStmtCI ... Γ s Δ
+      -- ここで自動生成された s✝ や Δ✝ を使う代わりに、
+      -- 既存の定理から型推論に任せるのがスムーズです。
+      have htS := normalCI_to_old_stmt hN
+      rcases wellTypedFrom_of_profileLite P₂ with ⟨Θ, htT⟩
+      exact ⟨Θ, HasTypeStmt.seq htS htT⟩
+  | block P =>
+      rcases typedBlock_of_profileLite P with ⟨Δ, hΔ⟩
+      exact ⟨Γ, HasTypeStmt.block hΔ⟩
+
+theorem typedBlock_of_profileLite
+    {Γ : TypeEnv} {ss : StmtBlock} :
+    BlockBodyProfileLite Γ ss → ∃ Δ, HasTypeBlock Γ ss Δ := by
+  intro h
+  cases h with
+  | nil =>
+      exact ⟨Γ, HasTypeBlock.nil⟩
+  | cons hN _ P₂ =>
+      have htS := normalCI_to_old_stmt hN
+      rcases typedBlock_of_profileLite P₂ with ⟨Θ, htSS⟩
+      exact ⟨Θ, HasTypeBlock.cons htS htSS⟩
 end
 
 end Cpp
