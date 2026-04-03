@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Transitions.Minor.StateUpdateRoadmap
+import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 
 namespace Cpp
 
@@ -14,7 +14,6 @@ namespace Cpp
 - 特に `closeScope` は「top frame の owned object だけを kill する」ことと
   「外側 frame の binding / live witness を壊さない」ことに分ける。
 -/
-
 /-- top frame より下の object binding lookup は `declareObject` で壊れない。 -/
 axiom declareObject_preserves_lower_object_bindings
     {Γ : TypeEnv} {σ σ' : State} {τ : CppType} {x : Ident} {ov : Option Value} :
@@ -183,11 +182,10 @@ theorem closeScope_preserves_outer_ref_realizers
   have hbind' : runtimeFrameBindsRef σ' k x τ a :=
     closeScope_preserves_lower_ref_bindings hσ hclose hbind
   have hnotTop : ¬ runtimeFrameOwnsAddress σ 0 a :=
-    hσ.refTargetsAvoidInnerOwned hbind (by omega)
+    hσ.refTargetsAvoidInnerOwned hbind (Nat.zero_lt_succ _)
   have hlive' : heapLiveTypedAt σ' a τ :=
     closeScope_kills_only_top_owned hσ hclose hnotTop hlive
   exact ⟨a, hbind', hlive'⟩
-
 
 axiom closeScope_preserves_frameDepthAgreement
     {Γ : TypeEnv} {σ σ' : State} :
@@ -261,23 +259,19 @@ theorem killAddr_preserves_heapInitializedValuesTyped
     heapInitializedValuesTyped (killAddr σ a) := by
   intro hinit b c v hheap hval
   by_cases hba : b = a
-  · -- ケース 1: 書き換え対象の時
-    subst b
+  · subst b
     unfold killAddr at hheap
-    -- σ.heap a の結果で分岐
     match hσa : σ.heap a with
     | none =>
-      simp [hσa] at hheap
+        simp [hσa] at hheap
     | some c0 =>
-      have hc : { c0 with alive := false } = c := by
-        simpa [hσa] using hheap
-      subst c
-      have hval0 : c0.value = some v := by
-        simpa using hval
-      -- 元の状態 σ における型の一貫性を利用
-      exact hinit a c0 v hσa hval0
-  · -- ケース 2: 別の番地の時
-    rw [heap_killAddr_other σ a b hba] at hheap
+        have hc : { c0 with alive := false } = c := by
+          simpa [hσa] using hheap
+        subst c
+        have hval0 : c0.value = some v := by
+          simpa using hval
+        exact hinit a c0 v hσa hval0
+  · rw [heap_killAddr_other σ a b hba] at hheap
     exact hinit b c v hheap hval
 
 theorem killLocals_preserves_heapInitializedValuesTyped
@@ -394,7 +388,6 @@ theorem closeScope_concrete_state_of_decomposition
   · exact closeScope_preserves_nextFreshAgainstOwned hσ hclose
   · intro k x τ a j hbind hjk
     exact closeScope_preserves_refTargetsAvoidInnerOwned hσ hclose hbind hjk
-
 
 theorem closeScope_preserves_concrete_state_via_decomposition
     {Γ : TypeEnv} {σ σ' : State} :

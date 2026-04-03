@@ -1,5 +1,6 @@
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapConcrete
 import CppFormalization.Cpp2.Boundary.FunctionBody
+import CppFormalization.Cpp2.Semantics.Divergence
 
 namespace Cpp
 

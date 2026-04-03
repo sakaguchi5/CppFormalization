@@ -1,6 +1,6 @@
-import CppFormalization.Cpp2.Closure.Transitions.Minor.StateUpdateRoadmap
-namespace Cpp
+import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 
+namespace Cpp
 
 /-! =========================================================
     1. 環境側の分解
@@ -18,7 +18,6 @@ axiom typeFrameDeclRef_declareTypeRef_cases
     currentTypeScopeFresh Γ x →
     typeFrameDeclRef (declareTypeRef Γ x τ) k y υ →
     (k = 0 ∧ y = x ∧ υ = τ) ∨ typeFrameDeclRef Γ k y υ
-
 
 /-! =========================================================
     2. 実現子の分解
@@ -58,7 +57,6 @@ axiom declareRef_realizes_new_top_ref
     runtimeFrameBindsRef σ' 0 x τ a ∧
     heapLiveTypedAt σ' a τ
 
-
 theorem declareRef_objectDeclRealized_of_decomposition
     {Γ : TypeEnv} {σ σ' : State}
     {x : Ident} {τ : CppType} {a : Nat} :
@@ -92,7 +90,6 @@ theorem declareRef_refDeclRealized_of_decomposition
     rcases declareRef_realizes_new_top_ref hσ hfresh hdecl with ⟨hbind, hlive⟩
     exact ⟨a, hbind, hlive⟩
   · exact declareRef_preserves_old_ref_realizers hσ hdecl hold
-
 
 /-! =========================================================
     3. 構造 field の preservation
@@ -168,9 +165,8 @@ axiom declareRef_preserves_initializedValuesTyped
       runtimeFrameBindsObject σ' k y υ a →
       heapInitializedTypedAt σ' a υ ∨ True
 
--- declareRefState はヒープを変更しないことを示す補題
---再配置が必要
-theorem declareRefState_heap_eq (σ : State) (τ : CppType) (x : Ident) (a0 : Nat) :
+theorem declareRefState_heap_eq
+    (σ : State) (τ : CppType) (x : Ident) (a0 : Nat) :
     (declareRefState σ τ x a0).heap = σ.heap := by
   unfold declareRefState bindTopBinding
   split <;> rfl
@@ -204,7 +200,6 @@ axiom declareRef_preserves_refTargetsAvoidInnerOwned
       runtimeFrameBindsRef σ' k y υ a →
       j < k →
       ¬ runtimeFrameOwnsAddress σ' j a
-
 
 /-! =========================================================
     4. 最終組み立て

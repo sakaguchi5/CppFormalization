@@ -2,6 +2,12 @@ import CppFormalization.Cpp2.Closure.Foundation.StateBoundary
 import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
+import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
+import CppFormalization.Cpp2.Closure.Transitions.Minor.AssignDecomposition
+import CppFormalization.Cpp2.Closure.Transitions.Minor.OpenScopeDecomposition
+import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareRefDecomposition
+import CppFormalization.Cpp2.Closure.Transitions.Major.CloseScopeDecomposition
+import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectDecomposition
 import CppFormalization.Cpp2.Boundary.FunctionBody
 import CppFormalization.Cpp2.Semantics.Divergence
 
@@ -22,46 +28,56 @@ namespace Cpp
    1. concrete invariant 上の primitive preservation
    ========================================= -/
 
-axiom assigns_preserves_concrete_state
+theorem assigns_preserves_concrete_state
     {Γ : TypeEnv} {σ σ' : State} {p : PlaceExpr} {v : Value} {τ : CppType} :
     ScopedTypedStateConcrete Γ σ →
     HasPlaceType Γ p τ →
     PlaceReadyConcrete Γ σ p τ →
     ValueCompat v τ →
     Assigns σ p v σ' →
-    ScopedTypedStateConcrete Γ σ'
+    ScopedTypedStateConcrete Γ σ' := by
+  intro hσ hp hready hv hass
+  exact assigns_preserves_scoped_typed_state_concrete hσ hp hready hv hass
 
-axiom declares_object_preserves_concrete_state
+theorem declares_object_preserves_concrete_state
     {Γ : TypeEnv} {σ σ' : State} {τ : CppType} {x : Ident} {ov : Option Value} :
     ScopedTypedStateConcrete Γ σ →
     currentTypeScopeFresh Γ x →
     DeclaresObject σ τ x ov σ' →
-    ScopedTypedStateConcrete (declareTypeObject Γ x τ) σ'
+    ScopedTypedStateConcrete (declareTypeObject Γ x τ) σ' := by
+  intro hσ hfresh hdecl
+  exact declares_object_preserves_scoped_typed_state_concrete hfresh hσ hdecl
 
-axiom declares_ref_preserves_concrete_state
+theorem declares_ref_preserves_concrete_state
     {Γ : TypeEnv} {σ σ' : State} {τ : CppType} {x : Ident} {a : Nat} :
     ScopedTypedStateConcrete Γ σ →
     currentTypeScopeFresh Γ x →
     DeclaresRef σ τ x a σ' →
-    ScopedTypedStateConcrete (declareTypeRef Γ x τ) σ'
+    ScopedTypedStateConcrete (declareTypeRef Γ x τ) σ' := by
+  intro hσ hfresh hdecl
+  exact declares_ref_preserves_scoped_typed_state_concrete hfresh hσ hdecl
 
-axiom open_scope_preserves_concrete_state
+theorem open_scope_preserves_concrete_state
     {Γ : TypeEnv} {σ σ' : State} :
     ScopedTypedStateConcrete Γ σ →
     OpenScope σ σ' →
-    ScopedTypedStateConcrete (pushTypeScope Γ) σ'
+    ScopedTypedStateConcrete (pushTypeScope Γ) σ' := by
+  intro hσ hopen
+  exact openScope_preserves_scoped_typed_state_concrete hσ hopen
 
-axiom close_scope_preserves_concrete_state
+theorem close_scope_preserves_concrete_state
     {Γ : TypeEnv} {σ σ' : State} :
     ScopedTypedStateConcrete (pushTypeScope Γ) σ →
     CloseScope σ σ' →
-    ScopedTypedStateConcrete Γ σ'
+    ScopedTypedStateConcrete Γ σ' := by
+  intro hσ hclose
+  exact closeScope_preserves_concrete_state_via_decomposition hσ hclose
 
 /- =========================================
    2. concrete から abstract theorem への橋
    ========================================= -/
 
-axiom bodyReady_of_concrete
+theorem bodyReady_of_concrete
     {Γ : TypeEnv} {σ : State} {st : CppStmt} :
     WellFormedStmt st →
     WellTypedFrom Γ st →
@@ -69,17 +85,16 @@ axiom bodyReady_of_concrete
     ContinueWellScoped st →
     ScopedTypedStateConcrete Γ σ →
     StmtReadyConcrete Γ σ st →
-    BodyReady Γ σ st
-
-/--
-この concrete 版が成り立てば、抽象版 `ScopedTypedState` に落とせるべきである。
-ここは将来 theorem 化するかも。
--/
-axiom scopedTypedState_of_concrete
-    {Γ : TypeEnv} {σ : State} :
-    ScopedTypedStateConcrete Γ σ →
-    ScopedTypedState Γ σ
-
+    BodyReady Γ σ st := by
+  intro hwf htyped hbreak hcont hstate hsafe
+  exact
+    mkLegacyBodyReadyOfStructuralDynamic
+      { wf := hwf
+        typed0 := htyped
+        breakScoped := hbreak
+        continueScoped := hcont }
+      { state := hstate
+        safe := hsafe }
 
 theorem assigns_preserves_scoped_typed_state_via_concrete
     {Γ : TypeEnv} {σ σ' : State} {p : PlaceExpr} {v : Value} {τ : CppType} :
@@ -116,24 +131,7 @@ theorem declares_ref_preserves_scoped_typed_state_via_concrete
 /- =========================================
    3. residual readiness
    ========================================= -/
-/-
-axiom seq_left_normal_preserves_body_ready_concrete
-    {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
-    HasTypeStmtCI .normalK Γ s Δ →
-    StmtReadyConcrete Γ σ (.seq s t) →
-    BigStepStmt σ s .normal σ' →
-    ScopedTypedStateConcrete Γ σ →
-    ScopedTypedStateConcrete Δ σ' ∧ StmtReadyConcrete Δ σ' t
--/
-/-
-axiom block_head_normal_preserves_block_ready_concrete
-    {Γ Δ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock} :
-    HasTypeStmtCI .normalK Γ s Δ →
-    BlockReadyConcrete Γ σ (.cons s ss) →
-    BigStepStmt σ s .normal σ' →
-    ScopedTypedStateConcrete Γ σ →
-    ScopedTypedStateConcrete Δ σ' ∧ BlockReadyConcrete Δ σ' ss
--/
+
 axiom while_body_normal_preserves_body_ready_concrete
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
     StmtReadyConcrete Γ σ (.whileStmt c body) →
