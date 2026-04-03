@@ -8,15 +8,13 @@ namespace BlockBodyBoundaryTransportLite
 /-!
 # Closure.Internal.Transport.BlockBodyBoundaryTransportLite
 
-E-lite 第4段階の前半:
-top-level `.block ss` の lite boundary から、opened scope の下の
-`BlockBodyClosureBoundaryLite Γ σ' ss` を honest に再構成する。
+E-lite block clause の opened-body bridge.
 
-方針:
-- block statement と opened block body を混ぜない。
-- `OpenScope` をまたぐ部分だけを先に theorem/def 化する。
-- statement-level wrapper (`BigStepFunctionBody σ (.block ss) ...`) は
-  後段で `CloseScope` 側の honest assembly と接続する。
+役割:
+- top-level `.block ss` の lite boundary から、
+  opened scope の下の `BlockBodyClosureBoundaryLite (pushTypeScope Γ) σ' ss`
+  を honest に再構成する。
+- ここではまだ `CloseScope` をまたぐ statement-level wrapper は扱わない。
 -/
 
 
@@ -24,7 +22,7 @@ top-level `.block ss` の lite boundary から、opened scope の下の
 
 /-- Parent block structural boundary から opened block-body lite structural boundary を再構成する。 -/
 theorem blockBodyStructuralLite_of_parent
-    {ss : StmtBlock}
+     {ss : StmtBlock}
     (hs : BodyStructuralBoundaryLite (.block ss)) :
     BlockBodyStructuralBoundaryLite ss := by
   have hwf : WellFormedBlock ss := by
@@ -45,7 +43,7 @@ theorem blockBodyDynamicLite_of_parent_opened
     {Γ : TypeEnv} {σ σ' : State} {ss : StmtBlock}
     (hd : BodyDynamicBoundary Γ σ (.block ss))
     (hopen : OpenScope σ σ') :
-    BlockBodyDynamicBoundary Γ σ' ss := by
+    BlockBodyDynamicBoundaryLite (pushTypeScope Γ) σ' ss := by
   refine
     { state := ?_
       safe := ?_ }
@@ -76,7 +74,7 @@ def blockBodyBoundaryLite_of_parent_opened_mk
     (hd : BodyDynamicBoundary Γ σ (.block ss))
     (ha : StmtBodyAdequacyLite Γ σ (.block P))
     (hopen : OpenScope σ σ') :
-    BlockBodyClosureBoundaryLite Γ σ' ss := by
+    BlockBodyClosureBoundaryLite (pushTypeScope Γ) σ' ss := by
   exact
     mkBlockBodyClosureBoundaryLite
       (blockBodyStructuralLite_of_parent hs)
@@ -91,7 +89,7 @@ def blockBodyBoundaryLite_of_bodyClosureBoundaryLite_opened
     (h : BodyClosureBoundaryLite Γ σ (.block ss))
     (hprof : h.profile = .block P)
     (hopen : OpenScope σ σ') :
-    BlockBodyClosureBoundaryLite Γ σ' ss := by
+    BlockBodyClosureBoundaryLite (pushTypeScope Γ) σ' ss := by
   cases h with
   | mk hs hp hd ha =>
       cases hprof
