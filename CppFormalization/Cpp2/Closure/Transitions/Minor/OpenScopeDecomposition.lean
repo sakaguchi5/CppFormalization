@@ -148,11 +148,15 @@ axiom openScope_preserves_initializedValuesTyped
       runtimeFrameBindsObject σ' k x τ a →
       heapInitializedTypedAt σ' a τ ∨ True
 
-axiom openScope_preserves_heapStoredValuesTyped
+theorem openScope_preserves_heapStoredValuesTyped
     {Γ : TypeEnv} {σ σ' : State} :
     ScopedTypedStateConcrete Γ σ →
     OpenScope σ σ' →
-    heapInitializedValuesTyped σ'
+    heapInitializedValuesTyped σ' := by
+  intro hσ hopen
+  rcases hopen with rfl
+  intro a c v hheap hval
+  simpa using hσ.heapStoredValuesTyped a c v hheap hval
 
 axiom openScope_preserves_nextFreshAgainstOwned
     {Γ : TypeEnv} {σ σ' : State} :
@@ -191,8 +195,8 @@ theorem openScope_concrete_state_of_decomposition
       ownedNoDupPerFrame := ?_
       ownedDisjoint := ?_
       ownedNamed := ?_
-      initializedValuesTyped := ?_
       heapStoredValuesTyped := ?_
+      initializedValuesTyped := ?_
       nextFresh := ?_
       refTargetsAvoidInnerOwned := ?_ }
 

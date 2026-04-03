@@ -168,12 +168,24 @@ axiom declareRef_preserves_initializedValuesTyped
       runtimeFrameBindsObject σ' k y υ a →
       heapInitializedTypedAt σ' a υ ∨ True
 
-axiom declareRef_preserves_heapStoredValuesTyped
+-- declareRefState はヒープを変更しないことを示す補題
+--再配置が必要
+theorem declareRefState_heap_eq (σ : State) (τ : CppType) (x : Ident) (a0 : Nat) :
+    (declareRefState σ τ x a0).heap = σ.heap := by
+  unfold declareRefState bindTopBinding
+  split <;> rfl
+
+theorem declareRef_preserves_heapStoredValuesTyped
     {Γ : TypeEnv} {σ σ' : State}
     {x : Ident} {τ : CppType} {a0 : Nat} :
     ScopedTypedStateConcrete Γ σ →
     DeclaresRef σ τ x a0 σ' →
-    heapInitializedValuesTyped σ'
+    heapInitializedValuesTyped σ' := by
+  intro hσ hdecl
+  rcases hdecl with ⟨_, c, hheap, hty, halive, rfl⟩
+  intro a c' v hheap' hval
+  rw [declareRefState_heap_eq] at hheap'
+  exact hσ.heapStoredValuesTyped a c' v hheap' hval
 
 axiom declareRef_preserves_nextFreshAgainstOwned
     {Γ : TypeEnv} {σ σ' : State}
@@ -192,6 +204,7 @@ axiom declareRef_preserves_refTargetsAvoidInnerOwned
       runtimeFrameBindsRef σ' k y υ a →
       j < k →
       ¬ runtimeFrameOwnsAddress σ' j a
+
 
 /-! =========================================================
     4. 最終組み立て
@@ -216,8 +229,8 @@ theorem declareRef_concrete_state_of_decomposition
       ownedNoDupPerFrame := ?_
       ownedDisjoint := ?_
       ownedNamed := ?_
-      initializedValuesTyped := ?_
       heapStoredValuesTyped := ?_
+      initializedValuesTyped := ?_
       nextFresh := ?_
       refTargetsAvoidInnerOwned := ?_ }
 
