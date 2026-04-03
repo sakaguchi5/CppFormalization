@@ -144,7 +144,7 @@ axiom assigns_preserves_initializedValuesTyped
       runtimeFrameBindsObject σ' k x υ a →
       heapInitializedTypedAt σ' a υ ∨ True
 
-axiom assigns_preserves_heapStoredValuesTyped
+theorem assigns_preserves_heapStoredValuesTyped
     {Γ : TypeEnv} {σ σ' : State}
     {p : PlaceExpr} {τ : CppType} {v : Value} :
     ScopedTypedStateConcrete Γ σ →
@@ -152,7 +152,24 @@ axiom assigns_preserves_heapStoredValuesTyped
     PlaceReadyConcrete Γ σ p τ →
     ValueCompat v τ →
     Assigns σ p v σ' →
-    heapInitializedValuesTyped σ'
+    heapInitializedValuesTyped σ' := by
+  intro hσ _ _ _ hassign
+  rcases hassign with ⟨a0, c0, hplace, hheap0, halive0, hvcompat0, rfl⟩
+  intro a c v' hheap hval
+  by_cases ha : a = a0
+  · subst a
+    rw [heap_writeHeap_self] at hheap
+    injection hheap with hc
+    subst hc
+    have hsome : some v = some v' := by
+      simpa using hval
+    have hvEq : v = v' := by
+      injection hsome with h
+    subst hvEq
+    simpa using hvcompat0
+  · rw [heap_writeHeap_other (σ := σ) (a := a0) (b := a)
+        (c := { c0 with value := some v }) ha] at hheap
+    exact hσ.heapStoredValuesTyped a c v' hheap hval
 
 axiom assigns_preserves_nextFreshAgainstOwned
     {Γ : TypeEnv} {σ σ' : State}

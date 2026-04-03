@@ -210,17 +210,34 @@ axiom declareObject_preserves_refTargetsAvoidInnerOwned
       j < k →
       ¬ runtimeFrameOwnsAddress σ' j a
 
-/-- オブジェクト宣言はヒープ全体の型整合性を保存する -/
-axiom declareObject_preserves_heapInitializedValuesTyped
+/-- オブジェクト宣言はヒープ全体の型整合性を保存する。 -/
+theorem declareObject_preserves_heapInitializedValuesTyped
     {Γ : TypeEnv} {σ σ' : State} {x : Ident} {τ : CppType} {ov : Option Value} :
     ScopedTypedStateConcrete Γ σ →
     currentTypeScopeFresh Γ x →
     DeclaresObject σ τ x ov σ' →
-    heapInitializedValuesTyped σ'
+    heapInitializedValuesTyped σ' := by
+  intro hσ _ hdecl
+  rcases hdecl with ⟨_, _, hnextnone, hovcompat, rfl⟩
+  intro a c v hheap hval
+  by_cases ha : a = σ.next
+  · subst ha
+    rw [declareObjectState_heap_self] at hheap
+    injection hheap with hc
+    subst hc
+    cases hov : ov with
+    | none =>
+        simp [hov] at hval
+    | some w =>
+        simp [hov] at hval
+        subst hval
+        simpa [hov] using hovcompat
+  · rw [declareObjectState_heap_other (σ := σ) (τ := τ) (x := x) (ov := ov) (a := a) ha] at hheap
+    exact hσ.heapStoredValuesTyped a c v hheap hval
+
 /-! =========================================================
     4. 最終組み立て
     ========================================================= -/
-
 
 theorem declareObject_concrete_state_of_decomposition
     {Γ : TypeEnv} {σ σ' : State}
@@ -241,8 +258,8 @@ theorem declareObject_concrete_state_of_decomposition
       ownedNoDupPerFrame := ?_
       ownedDisjoint := ?_
       ownedNamed := ?_
-      initializedValuesTyped := ?_
       heapStoredValuesTyped := ?_
+      initializedValuesTyped := ?_
       nextFresh := ?_
       refTargetsAvoidInnerOwned := ?_ }
 

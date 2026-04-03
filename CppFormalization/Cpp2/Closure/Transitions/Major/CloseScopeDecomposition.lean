@@ -153,7 +153,7 @@ theorem closeScope_preserves_outer_object_realizers
       ∃ a, runtimeFrameBindsObject σ' k x τ a ∧ heapLiveTypedAt σ' a τ := by
   intro hσ hclose k x τ hdecl
   have hdecl' : typeFrameDeclObject (pushTypeScope Γ) (k + 1) x τ :=
-  typeFrameDeclObject_pushTypeScope_succ hdecl
+    typeFrameDeclObject_pushTypeScope_succ hdecl
   rcases hσ.objectDeclRealized hdecl' with ⟨a, hbind, hown, hlive⟩
   have hbind' : runtimeFrameBindsObject σ' k x τ a :=
     closeScope_preserves_outer_runtimeFrameBindsObject hσ hclose hbind
@@ -247,11 +247,69 @@ axiom closeScope_preserves_initializedValuesTyped
       runtimeFrameBindsObject σ' k x τ a →
       heapInitializedTypedAt σ' a τ ∨ True
 
-axiom closeScope_preserves_heapStoredValuesTyped
+theorem scopes_update_preserves_heapInitializedValuesTyped
+    {σ : State} {scs : List ScopeFrame} :
+    heapInitializedValuesTyped σ →
+    heapInitializedValuesTyped { σ with scopes := scs } := by
+  intro hinit
+  intro a c v hheap hval
+  exact hinit a c v hheap hval
+
+theorem killAddr_preserves_heapInitializedValuesTyped
+    {σ : State} {a : Nat} :
+    heapInitializedValuesTyped σ →
+    heapInitializedValuesTyped (killAddr σ a) := by
+  intro hinit b c v hheap hval
+  by_cases hba : b = a
+  · -- ケース 1: 書き換え対象の時
+    subst b
+    unfold killAddr at hheap
+    -- σ.heap a の結果で分岐
+    match hσa : σ.heap a with
+    | none =>
+      simp [hσa] at hheap
+    | some c0 =>
+      have hc : { c0 with alive := false } = c := by
+        simpa [hσa] using hheap
+      subst c
+      have hval0 : c0.value = some v := by
+        simpa using hval
+      -- 元の状態 σ における型の一貫性を利用
+      exact hinit a c0 v hσa hval0
+  · -- ケース 2: 別の番地の時
+    rw [heap_killAddr_other σ a b hba] at hheap
+    exact hinit b c v hheap hval
+
+theorem killLocals_preserves_heapInitializedValuesTyped
+    {σ : State} {ls : List Nat} :
+    heapInitializedValuesTyped σ →
+    heapInitializedValuesTyped (killLocals σ ls) := by
+  intro hinit
+  induction ls generalizing σ with
+  | nil =>
+      simpa [killLocals] using hinit
+  | cons a ls ih =>
+      simp [killLocals]
+      exact ih (killAddr_preserves_heapInitializedValuesTyped (σ := σ) (a := a) hinit)
+
+theorem closeScope_preserves_heapStoredValuesTyped
     {Γ : TypeEnv} {σ σ' : State} :
     ScopedTypedStateConcrete (pushTypeScope Γ) σ →
     CloseScope σ σ' →
-    heapInitializedValuesTyped σ'
+    heapInitializedValuesTyped σ' := by
+  intro hσ hclose
+  unfold CloseScope at hclose
+  cases hsc : σ.scopes with
+  | nil =>
+      simp [popScope?, hsc] at hclose
+  | cons fr frs =>
+      simp [popScope?, hsc] at hclose
+      subst σ'
+      have hbase : heapInitializedValuesTyped { σ with scopes := frs } := by
+        exact scopes_update_preserves_heapInitializedValuesTyped
+          (σ := σ) (scs := frs) hσ.heapStoredValuesTyped
+      exact killLocals_preserves_heapInitializedValuesTyped
+        (σ := { σ with scopes := frs }) (ls := fr.locals) hbase
 
 axiom closeScope_preserves_nextFreshAgainstOwned
     {Γ : TypeEnv} {σ σ' : State} :
@@ -310,8 +368,8 @@ theorem closeScope_concrete_state_of_decomposition
       ownedNoDupPerFrame := ?_
       ownedDisjoint := ?_
       ownedNamed := ?_
-      initializedValuesTyped := ?_
       heapStoredValuesTyped := ?_
+      initializedValuesTyped := ?_
       nextFresh := ?_
       refTargetsAvoidInnerOwned := ?_ }
 
@@ -336,7 +394,6 @@ theorem closeScope_concrete_state_of_decomposition
   · exact closeScope_preserves_nextFreshAgainstOwned hσ hclose
   · intro k x τ a j hbind hjk
     exact closeScope_preserves_refTargetsAvoidInnerOwned hσ hclose hbind hjk
-
 
 
 theorem closeScope_preserves_concrete_state_via_decomposition
