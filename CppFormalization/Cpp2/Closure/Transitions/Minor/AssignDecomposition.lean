@@ -144,6 +144,16 @@ axiom assigns_preserves_initializedValuesTyped
       runtimeFrameBindsObject σ' k x υ a →
       heapInitializedTypedAt σ' a υ ∨ True
 
+axiom assigns_preserves_heapStoredValuesTyped
+    {Γ : TypeEnv} {σ σ' : State}
+    {p : PlaceExpr} {τ : CppType} {v : Value} :
+    ScopedTypedStateConcrete Γ σ →
+    HasPlaceType Γ p τ →
+    PlaceReadyConcrete Γ σ p τ →
+    ValueCompat v τ →
+    Assigns σ p v σ' →
+    heapInitializedValuesTyped σ'
+
 axiom assigns_preserves_nextFreshAgainstOwned
     {Γ : TypeEnv} {σ σ' : State}
     {p : PlaceExpr} {τ : CppType} {v : Value} :
@@ -194,6 +204,7 @@ theorem assigns_concrete_state_of_decomposition
       ownedDisjoint := ?_
       ownedNamed := ?_
       initializedValuesTyped := ?_
+      heapStoredValuesTyped := ?_
       nextFresh := ?_
       refTargetsAvoidInnerOwned := ?_ }
 
@@ -210,6 +221,7 @@ theorem assigns_concrete_state_of_decomposition
   · exact assigns_preserves_ownedNoDupPerFrame hσ hty hready hvcompat hassign
   · exact assigns_preserves_ownedDisjointAcrossFrames hσ hty hready hvcompat hassign
   · exact assigns_preserves_allOwnedAddressesNamed hσ hty hready hvcompat hassign
+  · exact assigns_preserves_heapStoredValuesTyped hσ hty hready hvcompat hassign
   · intro k x υ a hbind
     exact assigns_preserves_initializedValuesTyped hσ hty hready hvcompat hassign hbind
   · exact assigns_preserves_nextFreshAgainstOwned hσ hty hready hvcompat hassign

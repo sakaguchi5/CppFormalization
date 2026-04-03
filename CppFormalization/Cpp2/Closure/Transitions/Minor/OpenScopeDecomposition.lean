@@ -148,6 +148,12 @@ axiom openScope_preserves_initializedValuesTyped
       runtimeFrameBindsObject σ' k x τ a →
       heapInitializedTypedAt σ' a τ ∨ True
 
+axiom openScope_preserves_heapStoredValuesTyped
+    {Γ : TypeEnv} {σ σ' : State} :
+    ScopedTypedStateConcrete Γ σ →
+    OpenScope σ σ' →
+    heapInitializedValuesTyped σ'
+
 axiom openScope_preserves_nextFreshAgainstOwned
     {Γ : TypeEnv} {σ σ' : State} :
     ScopedTypedStateConcrete Γ σ →
@@ -186,6 +192,7 @@ theorem openScope_concrete_state_of_decomposition
       ownedDisjoint := ?_
       ownedNamed := ?_
       initializedValuesTyped := ?_
+      heapStoredValuesTyped := ?_
       nextFresh := ?_
       refTargetsAvoidInnerOwned := ?_ }
 
@@ -202,6 +209,7 @@ theorem openScope_concrete_state_of_decomposition
   · exact openScope_preserves_ownedNoDupPerFrame hσ hopen
   · exact openScope_preserves_ownedDisjointAcrossFrames hσ hopen
   · exact openScope_preserves_allOwnedAddressesNamed hσ hopen
+  · exact openScope_preserves_heapStoredValuesTyped hσ hopen
   · intro k x τ a hbind
     exact openScope_preserves_initializedValuesTyped hσ hopen hbind
   · exact openScope_preserves_nextFreshAgainstOwned hσ hopen

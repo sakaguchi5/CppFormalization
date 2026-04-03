@@ -3,11 +3,6 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
 
 namespace Cpp
 
-axiom heapInitializedValuesTyped_of_concrete
-    {Γ : TypeEnv} {σ : State} :
-    ScopedTypedStateConcrete Γ σ →
-    heapInitializedValuesTyped σ
---補題
 private theorem frame_eq_of_scope_lookup
     {σ : State} {k : Nat} {fr₁ fr₂ : ScopeFrame}
     (h₁ : σ.scopes[k]? = some fr₁)
@@ -15,7 +10,8 @@ private theorem frame_eq_of_scope_lookup
     fr₁ = fr₂ := by
   apply Option.some.inj
   exact h₁.symm.trans h₂
---最終的にはlegacyを外してScopedTypedState_of_concreteにする
+
+-- 最終的には legacy を外して `scopedTypedState_of_concrete` を mainline にする。
 theorem legacyScopedTypedState_of_concrete
     {Γ : TypeEnv} {σ : State} :
     ScopedTypedStateConcrete Γ σ →
@@ -90,14 +86,20 @@ theorem legacyScopedTypedState_of_concrete
   ·
     exact h.ownedDisjoint
   ·
-    exact heapInitializedValuesTyped_of_concrete h
+    exact h.heapStoredValuesTyped
   ·
     exact h.nextFresh
-/-
-axiom legacyScopedTypedState_of_concrete
+
+/--
+Backward-compatible alias kept for callers that still use the old name.
+新規コードは `legacyScopedTypedState_of_concrete` ではなく、
+最終的に non-legacy 名へ寄せる想定。
+-/
+theorem scopedTypedState_of_concrete
     {Γ : TypeEnv} {σ : State} :
     ScopedTypedStateConcrete Γ σ →
-    ScopedTypedState Γ σ-/
+    ScopedTypedState Γ σ :=
+  legacyScopedTypedState_of_concrete
 
 def BodyReadyCI.toStructural
     {Γ : TypeEnv} {σ : State} {st : CppStmt}

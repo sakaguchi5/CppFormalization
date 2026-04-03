@@ -1,5 +1,6 @@
 import CppFormalization.Cpp2.Static.Assumptions
 import CppFormalization.Cpp2.Semantics.Stmt
+import CppFormalization.Cpp2.Closure.Foundation.StateBoundary
 
 namespace Cpp
 
@@ -18,7 +19,6 @@ namespace Cpp
 - ここではまだ既存 `State` / `TypeEnv` の内部表現に深入りしない。
 - その代わり、depth-indexed な frame 対応と ownership witness を表す補助述語を切り出す。
 -/
-
 
 /-- 型環境の深さ `k` に object 宣言 `x : τ` が存在する。 -/
 def typeFrameDeclObject (Γ : TypeEnv) (k : Nat) (x : Ident) (τ : CppType) : Prop :=
@@ -115,11 +115,12 @@ def refBindingsNeverOwned (σ : State) : Prop :=
     ∃ y υ, fr.binds y = some (.object υ a)
 
 /--
-弱い placeholder invariant.
+DEPRECATED weak placeholder invariant.
 
 これは「initialized object であってほしい」という将来目標の仮置きであり、
 現在の形では `∨ True` により本質的には自明である。
-したがって core invariant の本体ではなく、明示的に弱い成分として隔離して扱う。
+したがって core invariant の本体としては使わず、legacy/transition 用にのみ残す。
+新規コードは `ScopedTypedStateConcrete.heapStoredValuesTyped` を使うこと。
 -/
 def ObjectBindingsInitializedTypedWeak (σ : State) : Prop :=
   ∀ {k x τ a},
@@ -178,8 +179,8 @@ structure ScopedTypedStateConcreteOwnership (σ : State) : Prop where
 設計上の注意:
 - `kernel` は decl → binding → live 実現の核。
 - `ownership` は owner / alias / freshness discipline。
-- `initializedValuesTyped` は現段階では `∨ True` を含む弱い placeholder であり、
-  本質 invariant とは切り分けて読むべきである。
+- `heapStoredValuesTyped` が mainline の initialized invariant。
+- `initializedValuesTyped` は legacy placeholder であり、新規コードの根拠には使わない。
 -/
 structure ScopedTypedStateConcrete (Γ : TypeEnv) (σ : State) : Prop where
   /- stack 全体の対応 -/
@@ -217,7 +218,10 @@ structure ScopedTypedStateConcrete (Γ : TypeEnv) (σ : State) : Prop where
   ownedDisjoint : ownedAddressesDisjointAcrossFrames σ
   ownedNamed : allOwnedAddressesNamed σ
 
-  /- 弱い placeholder invariant: 現時点では `∨ True` で逃げている。 -/
+  /- mainline initialized-value invariant. -/
+  heapStoredValuesTyped : heapInitializedValuesTyped σ
+
+  /- legacy placeholder invariant: `∨ True` を含む旧補助成分。 -/
   initializedValuesTyped : ObjectBindingsInitializedTypedWeak σ
 
   /- freshness -/
@@ -255,6 +259,12 @@ def ownership
     nextFresh := h.nextFresh
     refTargetsAvoidInnerOwned := h.refTargetsAvoidInnerOwned }
 
+def initStrong
+    {Γ : TypeEnv} {σ : State}
+    (h : ScopedTypedStateConcrete Γ σ) :
+    heapInitializedValuesTyped σ :=
+  h.heapStoredValuesTyped
+
 def initWeak
     {Γ : TypeEnv} {σ : State}
     (h : ScopedTypedStateConcrete Γ σ) :
@@ -262,7 +272,6 @@ def initWeak
   h.initializedValuesTyped
 
 end ScopedTypedStateConcrete
-
 
 /-未使用なのでコメントアウト
 /--
@@ -292,4 +301,5 @@ axiom declareRef_adds_alias_without_ownership
     runtimeFrameBindsRef σ' 0 x τ a ∧
     (∀ {k b}, runtimeFrameOwnsAddress σ k b ↔ runtimeFrameOwnsAddress σ' k b)
 -/
+
 end Cpp

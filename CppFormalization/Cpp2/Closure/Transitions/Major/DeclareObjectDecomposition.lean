@@ -210,10 +210,17 @@ axiom declareObject_preserves_refTargetsAvoidInnerOwned
       j < k →
       ¬ runtimeFrameOwnsAddress σ' j a
 
-
+/-- オブジェクト宣言はヒープ全体の型整合性を保存する -/
+axiom declareObject_preserves_heapInitializedValuesTyped
+    {Γ : TypeEnv} {σ σ' : State} {x : Ident} {τ : CppType} {ov : Option Value} :
+    ScopedTypedStateConcrete Γ σ →
+    currentTypeScopeFresh Γ x →
+    DeclaresObject σ τ x ov σ' →
+    heapInitializedValuesTyped σ'
 /-! =========================================================
     4. 最終組み立て
     ========================================================= -/
+
 
 theorem declareObject_concrete_state_of_decomposition
     {Γ : TypeEnv} {σ σ' : State}
@@ -235,6 +242,7 @@ theorem declareObject_concrete_state_of_decomposition
       ownedDisjoint := ?_
       ownedNamed := ?_
       initializedValuesTyped := ?_
+      heapStoredValuesTyped := ?_
       nextFresh := ?_
       refTargetsAvoidInnerOwned := ?_ }
 
@@ -251,7 +259,8 @@ theorem declareObject_concrete_state_of_decomposition
   · exact declareObject_preserves_ownedNoDupPerFrame hσ hfresh hdecl
   · exact declareObject_preserves_ownedDisjointAcrossFrames hσ hfresh hdecl
   · exact declareObject_preserves_allOwnedAddressesNamed hσ hfresh hdecl
-  · intro k y υ a hbind
+  · exact declareObject_preserves_heapInitializedValuesTyped hσ hfresh hdecl
+  · intro k y τ_obj addr hbind
     exact declareObject_preserves_initializedValuesTyped hσ hfresh hdecl hbind
   · exact declareObject_preserves_nextFreshAgainstOwned hσ hfresh hdecl
   · intro k y υ a j hbind hjk
