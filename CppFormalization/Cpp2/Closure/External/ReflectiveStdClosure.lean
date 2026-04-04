@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmap
-import CppFormalization.Cpp2.Closure.External.Interface
+import CppFormalization.Cpp2.Closure.External.LegacyBridgeV2
 
 namespace Cpp
 
@@ -13,10 +13,13 @@ theorem reflective_std_function_body_closure
     R.establishesProfile m Γ st →
     (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
   intro huse hdyn hgen hstruct hprof
-  have hboundary : BodyClosureBoundaryCI Γ σ st :=
-    fragments_establish_body_closure_boundary huse hdyn hgen hstruct hprof
-  have hfrag : CoreBigStepFragment st := reflection_fragment_generates_core hgen
-  exact InternalClosureRoadmap.function_body_progress_or_diverges hfrag hboundary
+  let p : ExternalPieces Γ σ st :=
+    externalPieces_of_legacy_external_assumptions huse hdyn hgen hstruct hprof
+  exact
+    InternalClosureRoadmap.function_body_progress_or_diverges
+      p.core
+      p.toBodyBoundary
+
 
 theorem reflective_std_closure_theorem
     {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}
@@ -28,9 +31,11 @@ theorem reflective_std_closure_theorem
     R.establishesProfile m Γ st →
     BigStepStmtTerminates σ st ∨ BigStepStmtDiv σ st := by
   intro huse hdyn hgen hstruct hprof
-  have hboundary : BodyClosureBoundaryCI Γ σ st :=
-    fragments_establish_body_closure_boundary huse hdyn hgen hstruct hprof
-  have hfrag : CoreBigStepFragment st := reflection_fragment_generates_core hgen
-  exact InternalClosureRoadmap.stmt_terminates_or_diverges hfrag hboundary
+  let p : ExternalPieces Γ σ st :=
+    externalPieces_of_legacy_external_assumptions huse hdyn hgen hstruct hprof
+  exact
+    InternalClosureRoadmap.stmt_terminates_or_diverges
+      p.core
+      p.toBodyBoundary
 
 end Cpp

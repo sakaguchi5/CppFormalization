@@ -10,6 +10,8 @@ V2 final wrapper: external artifacts explicitly assemble the official mainline
 entry object, then the internal roadmap theorem is applied unchanged.
 -/
 
+
+
 theorem reflective_std_function_body_closure_v2
     {F : VerifiedStdFragmentV2} {R : VerifiedReflectionFragmentV2}
     (G : VerifiedExternalGlueV2 F R)
