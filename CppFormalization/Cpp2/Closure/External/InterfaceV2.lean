@@ -2,6 +2,9 @@ import CppFormalization.Cpp2.Closure.External.StdFragmentV2
 import CppFormalization.Cpp2.Closure.External.ReflectionFragmentV2
 import CppFormalization.Cpp2.Closure.External.GlueV2
 import CppFormalization.Cpp2.Closure.External.AssembleV2
+import CppFormalization.Cpp2.Closure.External.ReadyAssemblyV2
+import CppFormalization.Cpp2.Closure.External.ReadyFromGlueV2
+import CppFormalization.Cpp2.Closure.External.ReadyAssemblyV2
 
 /-!
 # Closure.External.InterfaceV2
