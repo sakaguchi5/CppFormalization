@@ -5,33 +5,26 @@ namespace Cpp
 /-!
 # Closure.External.ReflectionFragmentV3
 
-V3 external interface for the reflection/generation-side fragment.
-
-Compared with V2, this restores explicit target-indexed applicability relations
-for structural/profile certification, while keeping witness-producing outputs.
+Stage 2A redesign:
+- the reflection side returns one target-indexed package,
+- structural boundary, control profile, and core membership are chosen together,
+- this removes the old split between `supportsStructural` and `supportsProfile`
+  that caused coherence to be lost in the glue route.
 -/
+
+structure ReflectionPiecesV3 (Γ : TypeEnv) (st : CppStmt) : Type where
+  structural : BodyStructuralBoundary Γ st
+  profile : BodyControlProfile Γ st
+  core : CoreBigStepFragment st
 
 structure VerifiedReflectionFragmentV3 where
   Meta : Type
   generates : Meta → CppStmt → Prop
-  supportsStructural : Meta → TypeEnv → CppStmt → Prop
-  supportsProfile : Meta → TypeEnv → CppStmt → Prop
-
-  mkStructural :
+  supportsReflection : Meta → TypeEnv → CppStmt → Prop
+  mkReflection :
     ∀ {m : Meta} {Γ : TypeEnv} {st : CppStmt},
       generates m st →
-      supportsStructural m Γ st →
-      BodyStructuralBoundary Γ st
-
-  mkProfile :
-    ∀ {m : Meta} {Γ : TypeEnv} {st : CppStmt},
-      generates m st →
-      supportsProfile m Γ st →
-      BodyControlProfile Γ st
-
-  mkCore :
-    ∀ {m : Meta} {st : CppStmt},
-      generates m st →
-      CoreBigStepFragment st
+      supportsReflection m Γ st →
+      ReflectionPiecesV3 Γ st
 
 end Cpp

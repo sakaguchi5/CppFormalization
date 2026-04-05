@@ -6,10 +6,12 @@ namespace Cpp
 /-!
 # Closure.External.GlueV3
 
-V3 external glue layer.
-
-This keeps the V2 insight that adequacy must be an explicit responsibility,
-while restoring target-indexed applicability assumptions for concrete artifacts.
+Stage 2A redesign:
+- low-level glue no longer quantifies over an arbitrary profile,
+- adequacy is required only over the canonical profile chosen by the
+  reflection package,
+- this matches both the mathematics and the intended C++ reading:
+  control summary is certified output, not user-supplied input.
 -/
 
 structure VerifiedExternalGlueV3
@@ -19,16 +21,11 @@ structure VerifiedExternalGlueV3
 
   mkAdequacy :
     ∀ {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt},
-      F.uses n →
-      F.supportsDynamic n Γ σ st →
-      R.generates m st →
-      R.supportsStructural m Γ st →
-      R.supportsProfile m Γ st →
+      (h_uses : F.uses n) →
+      (h_runtime : F.supportsRuntime n Γ σ st) →
+      (h_gen : R.generates m st) → -- 名前を付ける
+      (h_refl : R.supportsReflection m Γ st) → -- 名前を付ける
       compatible n m Γ σ st →
-      BodyDynamicBoundary Γ σ st →
-      BodyStructuralBoundary Γ st →
-      (hp : BodyControlProfile Γ st) →
-      CoreBigStepFragment st →
-      BodyAdequacyCI Γ σ st hp
-
+      BodyAdequacyCI Γ σ st
+        ((R.mkReflection (m := m) (Γ := Γ) (st := st) h_gen h_refl).profile)
 end Cpp

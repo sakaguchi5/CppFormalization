@@ -7,18 +7,11 @@ namespace Cpp
 /-!
 # Closure.External.ReadyAssemblyV3
 
-A stronger target-indexed external assembly route.
-
-Compared with V2:
-- the fragment-side applicability conditions are made explicit again,
-- integrated assembly is still exposed via a single `BodyReadyCI`,
-- the final target remains the same official mainline object
-  `BodyClosureBoundaryCI`.
-
-New in this file:
-- adequacy transport is generalized here rather than left inside toy instances,
-- generic comparison lemmas explain how `externalPieces_of_ready_v3` relates to
-  the underlying `mkReady` witness.
+Stage 2A redesign:
+- the official high-level route still produces `BodyReadyCI`,
+- but coherence with runtime/reflection packages is made explicit,
+- this lets the visible external pieces be reconstructed from the chosen
+  package side, while adequacy is transported from the integrated ready proof.
 -/
 
 structure VerifiedExternalReadyAssemblyV3
@@ -29,12 +22,41 @@ structure VerifiedExternalReadyAssemblyV3
   mkReady :
     ∀ {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt},
       F.uses n →
-      F.supportsDynamic n Γ σ st →
+      F.supportsRuntime n Γ σ st →
       R.generates m st →
-      R.supportsStructural m Γ st →
-      R.supportsProfile m Γ st →
+      R.supportsReflection m Γ st →
       compatible n m Γ σ st →
       BodyReadyCI Γ σ st
+
+  dynamic_eq :
+    ∀ {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
+      (huse : F.uses n)
+      (hsuppRun : F.supportsRuntime n Γ σ st)
+      (hgen : R.generates m st)
+      (hsuppRefl : R.supportsReflection m Γ st)
+      (hcompat : compatible n m Γ σ st),
+      (mkReady huse hsuppRun hgen hsuppRefl hcompat).toDynamic =
+        (F.mkRuntime huse hsuppRun).dynamic
+
+  structural_eq :
+    ∀ {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
+      (huse : F.uses n)
+      (hsuppRun : F.supportsRuntime n Γ σ st)
+      (hgen : R.generates m st)
+      (hsuppRefl : R.supportsReflection m Γ st)
+      (hcompat : compatible n m Γ σ st),
+      (mkReady huse hsuppRun hgen hsuppRefl hcompat).toStructural =
+        (R.mkReflection hgen hsuppRefl).structural
+
+  profile_eq :
+    ∀ {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
+      (huse : F.uses n)
+      (hsuppRun : F.supportsRuntime n Γ σ st)
+      (hgen : R.generates m st)
+      (hsuppRefl : R.supportsReflection m Γ st)
+      (hcompat : compatible n m Γ σ st),
+      (mkReady huse hsuppRun hgen hsuppRefl hcompat).toProfile =
+        (R.mkReflection hgen hsuppRefl).profile
 
 /-- Transport adequacy across propositional equality of control profiles. -/
 def transportAdequacy
@@ -53,132 +75,162 @@ def transportAdequacy
     transportAdequacy rfl ha = ha := by
   rfl
 
+
 def externalPieces_of_ready_v3
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (A : VerifiedExternalReadyAssemblyV3 F R)
     {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (huse : F.uses n)
-    (hsuppDyn : F.supportsDynamic n Γ σ st)
+    (hsuppRun : F.supportsRuntime n Γ σ st)
     (hgen : R.generates m st)
-    (hsuppStruct : R.supportsStructural m Γ st)
-    (hsuppProf : R.supportsProfile m Γ st)
+    (hsuppRefl : R.supportsReflection m Γ st)
     (hcompat : A.compatible n m Γ σ st) :
     ExternalPiecesV3 Γ σ st := by
-  let hr : BodyReadyCI Γ σ st :=
-    A.mkReady huse hsuppDyn hgen hsuppStruct hsuppProf hcompat
-  let hc : CoreBigStepFragment st := R.mkCore hgen
+  let hr : BodyReadyCI Γ σ st := A.mkReady huse hsuppRun hgen hsuppRefl hcompat
+  let hrun : RuntimePiecesV3 Γ σ st := F.mkRuntime huse hsuppRun
+  let hrefl : ReflectionPiecesV3 Γ st := R.mkReflection hgen hsuppRefl
   exact
-    { structural := hr.toStructural
-      profile := hr.toProfile
-      dynamic := hr.toDynamic
-      core := hc
-      adequacy := hr.toAdequacy }
+    { structural := hrefl.structural
+      profile := hrefl.profile
+      dynamic := hrun.dynamic
+      core := hrefl.core
+      adequacy := transportAdequacy (A.profile_eq huse hsuppRun hgen hsuppRefl hcompat) hr.toAdequacy }
 
-/-- Generic profile comparison for the ready-route reconstruction. -/
+
+theorem externalPieces_of_ready_v3_structural
+    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
+    (A : VerifiedExternalReadyAssemblyV3 F R)
+    {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : F.uses n)
+    (hsuppRun : F.supportsRuntime n Γ σ st)
+    (hgen : R.generates m st)
+    (hsuppRefl : R.supportsReflection m Γ st)
+    (hcompat : A.compatible n m Γ σ st) :
+    (externalPieces_of_ready_v3 A huse hsuppRun hgen hsuppRefl hcompat).structural =
+      (R.mkReflection hgen hsuppRefl).structural := by
+  rfl
+
+
 theorem externalPieces_of_ready_v3_profile
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (A : VerifiedExternalReadyAssemblyV3 F R)
     {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (huse : F.uses n)
-    (hsuppDyn : F.supportsDynamic n Γ σ st)
+    (hsuppRun : F.supportsRuntime n Γ σ st)
     (hgen : R.generates m st)
-    (hsuppStruct : R.supportsStructural m Γ st)
-    (hsuppProf : R.supportsProfile m Γ st)
+    (hsuppRefl : R.supportsReflection m Γ st)
     (hcompat : A.compatible n m Γ σ st) :
-    (externalPieces_of_ready_v3 A huse hsuppDyn hgen hsuppStruct hsuppProf hcompat).profile
-      =
-    (A.mkReady huse hsuppDyn hgen hsuppStruct hsuppProf hcompat).toProfile := by
+    (externalPieces_of_ready_v3 A huse hsuppRun hgen hsuppRefl hcompat).profile =
+      (R.mkReflection hgen hsuppRefl).profile := by
   rfl
 
-/--
-Generic adequacy comparison for the ready-route reconstruction.
 
-This is the abstract version of the issue first discovered in the toy instance:
-`adequacy` is dependent on `profile`, so one generally needs transport along the
-profile equality when comparing the reconstructed pieces with the original
-integrated witness.
--/
+theorem externalPieces_of_ready_v3_dynamic
+    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
+    (A : VerifiedExternalReadyAssemblyV3 F R)
+    {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : F.uses n)
+    (hsuppRun : F.supportsRuntime n Γ σ st)
+    (hgen : R.generates m st)
+    (hsuppRefl : R.supportsReflection m Γ st)
+    (hcompat : A.compatible n m Γ σ st) :
+    (externalPieces_of_ready_v3 A huse hsuppRun hgen hsuppRefl hcompat).dynamic =
+      (F.mkRuntime huse hsuppRun).dynamic := by
+  rfl
+
+
 theorem externalPieces_of_ready_v3_adequacy
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (A : VerifiedExternalReadyAssemblyV3 F R)
     {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (huse : F.uses n)
-    (hsuppDyn : F.supportsDynamic n Γ σ st)
+    (hsuppRun : F.supportsRuntime n Γ σ st)
     (hgen : R.generates m st)
-    (hsuppStruct : R.supportsStructural m Γ st)
-    (hsuppProf : R.supportsProfile m Γ st)
+    (hsuppRefl : R.supportsReflection m Γ st)
     (hcompat : A.compatible n m Γ σ st) :
-    transportAdequacy
-      (externalPieces_of_ready_v3_profile A huse hsuppDyn hgen hsuppStruct hsuppProf hcompat).symm
-      (A.mkReady huse hsuppDyn hgen hsuppStruct hsuppProf hcompat).toAdequacy
-      =
-    (externalPieces_of_ready_v3 A huse hsuppDyn hgen hsuppStruct hsuppProf hcompat).adequacy := by
-  unfold externalPieces_of_ready_v3 externalPieces_of_ready_v3_profile transportAdequacy
+    (externalPieces_of_ready_v3 A huse hsuppRun hgen hsuppRefl hcompat).adequacy =
+      transportAdequacy (A.profile_eq huse hsuppRun hgen hsuppRefl hcompat)
+        (A.mkReady huse hsuppRun hgen hsuppRefl hcompat).toAdequacy := by
   rfl
 
-/-- The assembled boundary reconstructed from a ready witness is the expected one. -/
+
+--おそらく大事な補題
+private theorem mkBodyClosureBoundaryCI_profile_transport
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {hs : BodyStructuralBoundary Γ st}
+    {hd : BodyDynamicBoundary Γ σ st}
+    {p q : BodyControlProfile Γ st}
+    (h : p = q)
+    (ha : BodyAdequacyCI Γ σ st p) :
+    mkBodyClosureBoundaryCI hs q hd (transportAdequacy h ha) =
+      mkBodyClosureBoundaryCI hs p hd ha := by
+  cases h
+  rfl
+
 theorem externalPieces_of_ready_v3_boundary
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (A : VerifiedExternalReadyAssemblyV3 F R)
     {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (huse : F.uses n)
-    (hsuppDyn : F.supportsDynamic n Γ σ st)
+    (hsuppRun : F.supportsRuntime n Γ σ st)
     (hgen : R.generates m st)
-    (hsuppStruct : R.supportsStructural m Γ st)
-    (hsuppProf : R.supportsProfile m Γ st)
+    (hsuppRefl : R.supportsReflection m Γ st)
     (hcompat : A.compatible n m Γ σ st) :
-    (externalPieces_of_ready_v3 A huse hsuppDyn hgen hsuppStruct hsuppProf hcompat).toBodyBoundary
-      =
-    (A.mkReady huse hsuppDyn hgen hsuppStruct hsuppProf hcompat).toClosureBoundary := by
-  rfl
+    (externalPieces_of_ready_v3 A huse hsuppRun hgen hsuppRefl hcompat).toBodyBoundary =
+      (A.mkReady huse hsuppRun hgen hsuppRefl hcompat).toClosureBoundary := by
+  unfold externalPieces_of_ready_v3
+  unfold ExternalPiecesV3.toBodyBoundary
+  unfold BodyReadyCI.toClosureBoundary
+
+  have hdyn := A.dynamic_eq huse hsuppRun hgen hsuppRefl hcompat
+  have hstruct := A.structural_eq huse hsuppRun hgen hsuppRefl hcompat
+  have hprof := A.profile_eq huse hsuppRun hgen hsuppRefl hcompat
+
+  cases hdyn
+  cases hstruct
+  exact mkBodyClosureBoundaryCI_profile_transport hprof _
+
 
 def assembleBodyBoundary_of_ready_v3
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (A : VerifiedExternalReadyAssemblyV3 F R)
     {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (huse : F.uses n)
-    (hsuppDyn : F.supportsDynamic n Γ σ st)
+    (hsuppRun : F.supportsRuntime n Γ σ st)
     (hgen : R.generates m st)
-    (hsuppStruct : R.supportsStructural m Γ st)
-    (hsuppProf : R.supportsProfile m Γ st)
+    (hsuppRefl : R.supportsReflection m Γ st)
     (hcompat : A.compatible n m Γ σ st) :
     BodyClosureBoundaryCI Γ σ st :=
-  (externalPieces_of_ready_v3 A huse hsuppDyn hgen hsuppStruct hsuppProf hcompat).toBodyBoundary
+  (externalPieces_of_ready_v3 A huse hsuppRun hgen hsuppRefl hcompat).toBodyBoundary
+
 
 theorem reflective_std_function_body_closure_from_ready_v3
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (A : VerifiedExternalReadyAssemblyV3 F R)
     {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt} :
     F.uses n →
-    F.supportsDynamic n Γ σ st →
+    F.supportsRuntime n Γ σ st →
     R.generates m st →
-    R.supportsStructural m Γ st →
-    R.supportsProfile m Γ st →
+    R.supportsReflection m Γ st →
     A.compatible n m Γ σ st →
     (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
-  intro huse hsuppDyn hgen hsuppStruct hsuppProf hcompat
-  let p := externalPieces_of_ready_v3 A huse hsuppDyn hgen hsuppStruct hsuppProf hcompat
-  exact
-    InternalClosureRoadmap.function_body_progress_or_diverges
-      p.core
-      p.toBodyBoundary
+  intro huse hsuppRun hgen hsuppRefl hcompat
+  let p := externalPieces_of_ready_v3 A huse hsuppRun hgen hsuppRefl hcompat
+  exact InternalClosureRoadmap.function_body_progress_or_diverges p.core p.toBodyBoundary
+
 
 theorem reflective_std_closure_theorem_from_ready_v3
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (A : VerifiedExternalReadyAssemblyV3 F R)
     {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt} :
     F.uses n →
-    F.supportsDynamic n Γ σ st →
+    F.supportsRuntime n Γ σ st →
     R.generates m st →
-    R.supportsStructural m Γ st →
-    R.supportsProfile m Γ st →
+    R.supportsReflection m Γ st →
     A.compatible n m Γ σ st →
     BigStepStmtTerminates σ st ∨ BigStepStmtDiv σ st := by
-  intro huse hsuppDyn hgen hsuppStruct hsuppProf hcompat
-  let p := externalPieces_of_ready_v3 A huse hsuppDyn hgen hsuppStruct hsuppProf hcompat
-  exact
-    InternalClosureRoadmap.stmt_terminates_or_diverges
-      p.core
-      p.toBodyBoundary
+  intro huse hsuppRun hgen hsuppRefl hcompat
+  let p := externalPieces_of_ready_v3 A huse hsuppRun hgen hsuppRefl hcompat
+  exact InternalClosureRoadmap.stmt_terminates_or_diverges p.core p.toBodyBoundary
 
 end Cpp
