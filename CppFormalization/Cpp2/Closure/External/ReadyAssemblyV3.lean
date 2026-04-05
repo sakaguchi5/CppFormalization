@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.External.AssembleV3
+import CppFormalization.Cpp2.Closure.External.CoherenceV3
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmap
 
@@ -12,6 +12,10 @@ Stage 2A redesign:
 - but coherence with runtime/reflection packages is made explicit,
 - this lets the visible external pieces be reconstructed from the chosen
   package side, while adequacy is transported from the integrated ready proof.
+
+Stage 2B clarification:
+- `PackageCoherentV3` is the strong visible-package comparison notion,
+- `BoundaryCoherentV3` remains the official quotient used by the closure theorems.
 -/
 
 structure VerifiedExternalReadyAssemblyV3
@@ -86,7 +90,8 @@ def externalPieces_of_ready_v3
     (hsuppRefl : R.supportsReflection m Γ st)
     (hcompat : A.compatible n m Γ σ st) :
     ExternalPiecesV3 Γ σ st := by
-  let hr : BodyReadyCI Γ σ st := A.mkReady huse hsuppRun hgen hsuppRefl hcompat
+  let hr : BodyReadyCI Γ σ st :=
+    A.mkReady huse hsuppRun hgen hsuppRefl hcompat
   let hrun : RuntimePiecesV3 Γ σ st := F.mkRuntime huse hsuppRun
   let hrefl : ReflectionPiecesV3 Γ st := R.mkReflection hgen hsuppRefl
   exact
@@ -94,7 +99,10 @@ def externalPieces_of_ready_v3
       profile := hrefl.profile
       dynamic := hrun.dynamic
       core := hrefl.core
-      adequacy := transportAdequacy (A.profile_eq huse hsuppRun hgen hsuppRefl hcompat) hr.toAdequacy }
+      adequacy :=
+        transportAdequacy
+          (A.profile_eq huse hsuppRun hgen hsuppRefl hcompat)
+          hr.toAdequacy }
 
 
 theorem externalPieces_of_ready_v3_structural
@@ -149,12 +157,27 @@ theorem externalPieces_of_ready_v3_adequacy
     (hsuppRefl : R.supportsReflection m Γ st)
     (hcompat : A.compatible n m Γ σ st) :
     (externalPieces_of_ready_v3 A huse hsuppRun hgen hsuppRefl hcompat).adequacy =
-      transportAdequacy (A.profile_eq huse hsuppRun hgen hsuppRefl hcompat)
+      transportAdequacy
+        (A.profile_eq huse hsuppRun hgen hsuppRefl hcompat)
         (A.mkReady huse hsuppRun hgen hsuppRefl hcompat).toAdequacy := by
   rfl
 
 
---おそらく大事な補題
+theorem externalPieces_of_ready_v3_packageCoherent
+    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
+    (A : VerifiedExternalReadyAssemblyV3 F R)
+    {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : F.uses n)
+    (hsuppRun : F.supportsRuntime n Γ σ st)
+    (hgen : R.generates m st)
+    (hsuppRefl : R.supportsReflection m Γ st)
+    (hcompat : A.compatible n m Γ σ st) :
+    PackageCoherentV3
+      (externalPieces_of_ready_v3 A huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces
+      (canonicalVisiblePiecesV3 huse hsuppRun hgen hsuppRefl) := by
+  rfl
+
+-- おそらく大事な補題
 private theorem mkBodyClosureBoundaryCI_profile_transport
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     {hs : BodyStructuralBoundary Γ st}
@@ -166,6 +189,7 @@ private theorem mkBodyClosureBoundaryCI_profile_transport
       mkBodyClosureBoundaryCI hs p hd ha := by
   cases h
   rfl
+
 
 theorem externalPieces_of_ready_v3_boundary
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
@@ -181,11 +205,9 @@ theorem externalPieces_of_ready_v3_boundary
   unfold externalPieces_of_ready_v3
   unfold ExternalPiecesV3.toBodyBoundary
   unfold BodyReadyCI.toClosureBoundary
-
   have hdyn := A.dynamic_eq huse hsuppRun hgen hsuppRefl hcompat
   have hstruct := A.structural_eq huse hsuppRun hgen hsuppRefl hcompat
   have hprof := A.profile_eq huse hsuppRun hgen hsuppRefl hcompat
-
   cases hdyn
   cases hstruct
   exact mkBodyClosureBoundaryCI_profile_transport hprof _
@@ -216,7 +238,9 @@ theorem reflective_std_function_body_closure_from_ready_v3
     (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
   intro huse hsuppRun hgen hsuppRefl hcompat
   let p := externalPieces_of_ready_v3 A huse hsuppRun hgen hsuppRefl hcompat
-  exact InternalClosureRoadmap.function_body_progress_or_diverges p.core p.toBodyBoundary
+  exact
+    InternalClosureRoadmap.function_body_progress_or_diverges
+      p.core p.toBodyBoundary
 
 
 theorem reflective_std_closure_theorem_from_ready_v3
