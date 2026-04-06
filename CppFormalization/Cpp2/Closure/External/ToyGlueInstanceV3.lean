@@ -1,0 +1,563 @@
+import CppFormalization.Cpp2.Closure.External.ReadyFromGlueV3
+import CppFormalization.Cpp2.Closure.External.CanonicityV3
+import CppFormalization.Cpp2.Closure.External.ToyReadyInstanceV3
+
+namespace Cpp
+
+/-!
+# Closure.External.ToyGlueInstanceV3
+
+First concrete inhabited low-level glue instance for the redesigned V3.
+
+Role in the roadmap:
+- show that the low-level glue route is inhabited on the same toy family,
+- show that the direct ready route and the direct glue route agree at the
+  visible-package level and at the official boundary quotient,
+- show that the toy family also satisfies the Stage 2C canonicity vocabulary.
+-/
+
+/-- Toy low-level glue: compatibility is the same canonical certificate identity. -/
+def toyGlueV3 :
+    VerifiedExternalGlueV3 toyStdFragmentV3 toyReflectionFragmentV3 where
+  compatible := toyReadyAssemblyV3.compatible
+  mkAdequacy := by
+    intro n m Γ σ st _ _ hgen hsuppRefl hcompat
+    rcases hcompat with ⟨rfl, rfl, rfl, rfl⟩
+    rcases hsuppRefl with ⟨_, _⟩
+    simpa [toyReflectionFragmentV3] using n.ready.toAdequacy
+
+
+theorem toyGlue_compatible (c : ToyReadyCertificate) :
+    toyGlueV3.compatible c c c.Γ c.σ c.st := by
+  exact toy_compatible c
+
+/-- Canonical explicit V3 pieces assembled from the toy low-level glue route. -/
+def toyGlueExternalPiecesV3
+    (c : ToyReadyCertificate) :
+    ExternalPiecesV3 c.Γ c.σ c.st :=
+  assembleExternalPiecesV3 toyGlueV3
+    (toy_uses c)
+    (toy_supportsRuntime c)
+    (toy_generates c)
+    (toy_supportsReflection c)
+    (toyGlue_compatible c)
+
+theorem assembleExternalPiecesV3_structural
+    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
+    (G : VerifiedExternalGlueV3 F R)
+    {n : F.Name} {m : R.Meta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : F.uses n)
+    (hsuppRun : F.supportsRuntime n Γ σ st)
+    (hgen : R.generates m st)
+    (hsuppRefl : R.supportsReflection m Γ st)
+    (hcompat : G.compatible n m Γ σ st) :
+    (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).structural =
+      (R.mkReflection hgen hsuppRefl).structural := by
+  unfold assembleExternalPiecesV3
+  rfl
+
+theorem assembleExternalPiecesV3_profile
+    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
+    (G : VerifiedExternalGlueV3 F R)
+    {n : F.Name} {m : R.Meta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : F.uses n)
+    (hsuppRun : F.supportsRuntime n Γ σ st)
+    (hgen : R.generates m st)
+    (hsuppRefl : R.supportsReflection m Γ st)
+    (hcompat : G.compatible n m Γ σ st) :
+    (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).profile =
+      (R.mkReflection hgen hsuppRefl).profile := by
+  unfold assembleExternalPiecesV3
+  rfl
+
+theorem assembleExternalPiecesV3_dynamic
+    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
+    (G : VerifiedExternalGlueV3 F R)
+    {n : F.Name} {m : R.Meta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : F.uses n)
+    (hsuppRun : F.supportsRuntime n Γ σ st)
+    (hgen : R.generates m st)
+    (hsuppRefl : R.supportsReflection m Γ st)
+    (hcompat : G.compatible n m Γ σ st) :
+    (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).dynamic =
+      (F.mkRuntime huse hsuppRun).dynamic := by
+  unfold assembleExternalPiecesV3
+  rfl
+
+theorem assembleExternalPiecesV3_core
+    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
+    (G : VerifiedExternalGlueV3 F R)
+    {n : F.Name} {m : R.Meta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : F.uses n)
+    (hsuppRun : F.supportsRuntime n Γ σ st)
+    (hgen : R.generates m st)
+    (hsuppRefl : R.supportsReflection m Γ st)
+    (hcompat : G.compatible n m Γ σ st) :
+    (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).core =
+      (R.mkReflection hgen hsuppRefl).core := by
+  unfold assembleExternalPiecesV3
+  rfl
+
+
+theorem toyGlueExternalPiecesV3_profile
+    (c : ToyReadyCertificate) :
+    (toyGlueExternalPiecesV3 c).profile = c.ready.toProfile := by
+  have h :=
+    assembleExternalPiecesV3_profile
+      (G := toyGlueV3)
+      (huse := toy_uses c)
+      (hsuppRun := toy_supportsRuntime c)
+      (hgen := toy_generates c)
+      (hsuppRefl := toy_supportsReflection c)
+      (hcompat := toyGlue_compatible c)
+  simpa [toyGlueExternalPiecesV3, toyReflectionFragmentV3_profile c] using h
+
+theorem toyGlueExternalPiecesV3_structural
+    (c : ToyReadyCertificate) :
+    (toyGlueExternalPiecesV3 c).structural = c.ready.toStructural := by
+  have h :=
+    assembleExternalPiecesV3_structural
+      (G := toyGlueV3)
+      (huse := toy_uses c)
+      (hsuppRun := toy_supportsRuntime c)
+      (hgen := toy_generates c)
+      (hsuppRefl := toy_supportsReflection c)
+      (hcompat := toyGlue_compatible c)
+  simp
+
+
+theorem toyGlueExternalPiecesV3_dynamic
+    (c : ToyReadyCertificate) :
+    (toyGlueExternalPiecesV3 c).dynamic = c.ready.toDynamic := by
+  have h :=
+    assembleExternalPiecesV3_dynamic
+      (G := toyGlueV3)
+      (huse := toy_uses c)
+      (hsuppRun := toy_supportsRuntime c)
+      (hgen := toy_generates c)
+      (hsuppRefl := toy_supportsReflection c)
+      (hcompat := toyGlue_compatible c)
+  cases c
+  simp
+
+theorem toyGlueExternalPiecesV3_core
+    (c : ToyReadyCertificate) :
+    (toyGlueExternalPiecesV3 c).core = c.core := by
+  have h :=
+    assembleExternalPiecesV3_core
+      (G := toyGlueV3)
+      (huse := toy_uses c)
+      (hsuppRun := toy_supportsRuntime c)
+      (hgen := toy_generates c)
+      (hsuppRefl := toy_supportsReflection c)
+      (hcompat := toyGlue_compatible c)
+  simp
+
+
+
+theorem assembleExternalPiecesV3_adequacy
+    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
+    (G : VerifiedExternalGlueV3 F R)
+    {n : F.Name} {m : R.Meta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : F.uses n)
+    (hsuppRun : F.supportsRuntime n Γ σ st)
+    (hgen : R.generates m st)
+    (hsuppRefl : R.supportsReflection m Γ st)
+    (hcompat : G.compatible n m Γ σ st) :
+    (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).adequacy =
+      G.mkAdequacy huse hsuppRun hgen hsuppRefl hcompat := by
+  unfold assembleExternalPiecesV3
+  rfl
+
+def castBodyAdequacy
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {p q : BodyControlProfile Γ st}
+    (h : p = q) :
+    BodyAdequacyCI Γ σ st p → BodyAdequacyCI Γ σ st q :=
+  fun hp => Eq.ndrec hp h
+
+theorem assembleExternalPiecesV3_toBodyBoundary
+    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
+    (G : VerifiedExternalGlueV3 F R)
+    {n : F.Name} {m : R.Meta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : F.uses n)
+    (hsuppRun : F.supportsRuntime n Γ σ st)
+    (hgen : R.generates m st)
+    (hsuppRefl : R.supportsReflection m Γ st)
+    (hcompat : G.compatible n m Γ σ st) :
+    (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).toBodyBoundary =
+      {
+        structural := (R.mkReflection hgen hsuppRefl).structural
+        profile := (R.mkReflection hgen hsuppRefl).profile
+        dynamic := (F.mkRuntime huse hsuppRun).dynamic
+        adequacy := G.mkAdequacy huse hsuppRun hgen hsuppRefl hcompat
+      } := by
+  rfl
+
+--「round-trip が恒等になる」系の補題
+@[simp] theorem castBodyAdequacy_symm_cast
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {p q : BodyControlProfile Γ st}
+    (h : p = q)
+    (hp : BodyAdequacyCI Γ σ st p) :
+    castBodyAdequacy h.symm (castBodyAdequacy h hp) = hp := by
+  cases h
+  rfl
+
+@[simp] theorem castBodyAdequacy_cast_symm
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {p q : BodyControlProfile Γ st}
+    (h : p = q)
+    (hp : BodyAdequacyCI Γ σ st q) :
+    castBodyAdequacy h (castBodyAdequacy h.symm hp) = hp := by
+  cases h
+  rfl
+--
+
+
+theorem toyGlueExternalPiecesV3_boundary_adequacy
+    (c : ToyReadyCertificate) :
+    castBodyAdequacy (toyGlueExternalPiecesV3_profile c)
+      ((toyGlueExternalPiecesV3 c).toBodyBoundary.adequacy) =
+      (c.ready.toClosureBoundary).adequacy := by
+  cases c
+  rfl
+
+@[ext (iff := false)] theorem BodyClosureBoundaryCI.ext
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {b₁ b₂ : BodyClosureBoundaryCI Γ σ st}
+    (hstruct : b₁.structural = b₂.structural)
+    (hprof : b₁.profile = b₂.profile)
+    (hdyn : b₁.dynamic = b₂.dynamic)
+    (hadequ :
+      castBodyAdequacy hprof b₁.adequacy = b₂.adequacy) :
+    b₁ = b₂ := by
+  cases b₁
+  cases b₂
+  cases hstruct
+  cases hprof
+  cases hdyn
+  simp at hadequ
+  cases hadequ
+  rfl
+
+theorem toyGlueExternalPiecesV3_boundary
+    (c : ToyReadyCertificate) :
+    (toyGlueExternalPiecesV3 c).toBodyBoundary = c.ready.toClosureBoundary := by
+  ext
+  · exact toyGlueExternalPiecesV3_structural c
+  · exact toyGlueExternalPiecesV3_profile c
+  · exact toyGlueExternalPiecesV3_dynamic c
+  · exact toyGlueExternalPiecesV3_boundary_adequacy c
+
+/-- The glue-side visible package is exactly the canonical package of the toy target. -/
+theorem toyGlueExternalPiecesV3_packageCoherent
+    (c : ToyReadyCertificate) :
+    PackageCoherentV3
+      (toyGlueExternalPiecesV3 c).toVisiblePieces
+      (canonicalVisiblePiecesV3
+        (toy_uses c) (toy_supportsRuntime c)
+        (toy_generates c) (toy_supportsReflection c)) := by
+  rfl
+
+
+theorem toyReady_dynamic_unique
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (r₁ r₂ : BodyReadyCI Γ σ st) :
+    r₁.toDynamic = r₂.toDynamic := by
+  exact Subsingleton.elim _ _
+
+/-- The toy runtime family is target-canonical. -/
+theorem toyRuntimePackageUniqueV3 :
+    RuntimePackageUniqueV3 toyStdFragmentV3 := by
+  intro n₁ n₂ Γ σ st huse₁ hsupp₁ huse₂ hsupp₂
+  cases n₁ with
+  | mk Γ₁ σ₁ st₁ ready₁ core₁ =>
+    cases n₂ with
+    | mk Γ₂ σ₂ st₂ ready₂ core₂ =>
+      simp [toyStdFragmentV3] at hsupp₁ hsupp₂ ⊢
+      rcases hsupp₁ with ⟨rfl, rfl, rfl⟩
+      rcases hsupp₂ with ⟨rfl, rfl, rfl⟩
+      have hd : ready₁.toDynamic = ready₂.toDynamic :=
+        toyReady_dynamic_unique ready₁ ready₂
+      cases hd
+      rfl
+
+theorem toyReady_structural_unique
+    {Γ : TypeEnv} {σ₁ σ₂ : State} {st : CppStmt}
+    (r₁ : BodyReadyCI Γ σ₁ st) (r₂ : BodyReadyCI Γ σ₂ st) :
+    r₁.toStructural = r₂.toStructural := by
+  exact Subsingleton.elim _ _
+
+
+theorem toyCore_unique
+    {st : CppStmt} (c₁ c₂ : CoreBigStepFragment st) :
+    c₁ = c₂ := by
+  exact Subsingleton.elim _ _
+
+def castExternalPiecesV3
+    {Γ₁ Γ₂ : TypeEnv} {σ₁ σ₂ : State} {st₁ st₂ : CppStmt}
+    (hΓ : Γ₁ = Γ₂) (hσ : σ₁ = σ₂) (hst : st₁ = st₂) :
+    ExternalPiecesV3 Γ₁ σ₁ st₁ → ExternalPiecesV3 Γ₂ σ₂ st₂ := by
+  intro p
+  cases hΓ
+  cases hσ
+  cases hst
+  exact p
+
+def castVisiblePiecesV3
+    {Γ₁ Γ₂ : TypeEnv} {σ₁ σ₂ : State} {st₁ st₂ : CppStmt}
+    (hΓ : Γ₁ = Γ₂) (hσ : σ₁ = σ₂) (hst : st₁ = st₂) :
+    VisiblePiecesV3 Γ₁ σ₁ st₁ → VisiblePiecesV3 Γ₂ σ₂ st₂ := by
+  intro p
+  cases hΓ
+  cases hσ
+  cases hst
+  exact p
+
+def toyGlueVisiblePiecesAt
+    {n : toyStdFragmentV3.Name}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (hsuppRun : toyStdFragmentV3.supportsRuntime n Γ σ st) :
+    VisiblePiecesV3 Γ σ st := by
+  rcases hsuppRun with ⟨hΓ, hσ, hst⟩
+  -- hΓ, hσ, hst のそれぞれに .symm を適用して向きを合わせる
+  exact castVisiblePiecesV3 hΓ.symm hσ.symm hst.symm ((toyGlueExternalPiecesV3 n).toVisiblePieces)
+
+def toyGlueExternalPiecesAt
+    {n : toyStdFragmentV3.Name}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (hsuppRun : toyStdFragmentV3.supportsRuntime n Γ σ st) :
+    ExternalPiecesV3 Γ σ st := by
+  rcases hsuppRun with ⟨hΓ, hσ, hst⟩
+  exact castExternalPiecesV3 hΓ.symm hσ.symm hst.symm (toyGlueExternalPiecesV3 n)
+
+theorem toyGlueExternalPiecesAt_toVisiblePieces
+    {n : toyStdFragmentV3.Name}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (hsuppRun : toyStdFragmentV3.supportsRuntime n Γ σ st) :
+    (toyGlueExternalPiecesAt hsuppRun).toVisiblePieces =
+      castVisiblePiecesV3
+        (by
+          rcases hsuppRun with ⟨hΓ, _, _⟩
+          exact hΓ.symm)
+        (by
+          rcases hsuppRun with ⟨_, hσ, _⟩
+          exact hσ.symm)
+        (by
+          rcases hsuppRun with ⟨_, _, hst⟩
+          exact hst.symm)
+        ((toyGlueExternalPiecesV3 n).toVisiblePieces) := by
+  rcases hsuppRun with ⟨rfl, rfl, rfl⟩
+  rfl
+
+theorem toyCanonicalVisiblePiecesV3_packageCoherent_compatible
+    {n : toyStdFragmentV3.Name} {m : toyReflectionFragmentV3.Meta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : toyStdFragmentV3.uses n)
+    (hsuppRun : toyStdFragmentV3.supportsRuntime n Γ σ st)
+    (hgen : toyReflectionFragmentV3.generates m st)
+    (hsuppRefl : toyReflectionFragmentV3.supportsReflection m Γ st)
+    (hcompat : toyReadyAssemblyV3.compatible n m Γ σ st) :
+    PackageCoherentV3
+      (canonicalVisiblePiecesV3 huse hsuppRun hgen hsuppRefl)
+      (toyGlueExternalPiecesAt hsuppRun).toVisiblePieces := by
+  cases n with
+  | mk Γn σn stn ready_n core_n =>
+    cases m with
+    | mk Γm σm stm ready_m core_m =>
+      simp [toyGlueExternalPiecesAt, castExternalPiecesV3,
+            toyStdFragmentV3, toyReflectionFragmentV3] at hsuppRun hgen hsuppRefl hcompat ⊢
+      rcases hsuppRun with ⟨rfl, rfl, rfl⟩
+      rcases hgen with rfl
+      rcases hsuppRefl with ⟨rfl, _⟩
+      simp [toyReadyAssemblyV3] at hcompat
+      rcases hcompat with ⟨rfl, rfl, rfl, rfl⟩
+      simpa using
+        (toyGlueExternalPiecesV3_packageCoherent
+          { Γ := Γ, σ := σ, st := st, ready := ready_n, core := core_n }).symm
+
+
+theorem toyCanonicalVisiblePiecesV3_wellDefined_compatible_fixed_runtime
+    {n : toyStdFragmentV3.Name} {m₁ m₂ : toyReflectionFragmentV3.Meta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : toyStdFragmentV3.uses n)
+    (hsuppRun : toyStdFragmentV3.supportsRuntime n Γ σ st)
+    (hgen₁ : toyReflectionFragmentV3.generates m₁ st)
+    (hsuppRefl₁ : toyReflectionFragmentV3.supportsReflection m₁ Γ st)
+    (hcompat₁ : toyReadyAssemblyV3.compatible n m₁ Γ σ st)
+    (hgen₂ : toyReflectionFragmentV3.generates m₂ st)
+    (hsuppRefl₂ : toyReflectionFragmentV3.supportsReflection m₂ Γ st)
+    (hcompat₂ : toyReadyAssemblyV3.compatible n m₂ Γ σ st) :
+    canonicalVisiblePiecesV3 huse hsuppRun hgen₁ hsuppRefl₁ =
+      canonicalVisiblePiecesV3 huse hsuppRun hgen₂ hsuppRefl₂ := by
+  have hcoh₁ :
+      canonicalVisiblePiecesV3 huse hsuppRun hgen₁ hsuppRefl₁ =
+        (toyGlueExternalPiecesAt hsuppRun).toVisiblePieces := by
+    simpa [PackageCoherentV3] using
+      (toyCanonicalVisiblePiecesV3_packageCoherent_compatible
+        huse hsuppRun hgen₁ hsuppRefl₁ hcompat₁)
+  have hcoh₂ :
+      canonicalVisiblePiecesV3 huse hsuppRun hgen₂ hsuppRefl₂ =
+        (toyGlueExternalPiecesAt hsuppRun).toVisiblePieces := by
+    simpa [PackageCoherentV3] using
+      (toyCanonicalVisiblePiecesV3_packageCoherent_compatible
+        huse hsuppRun hgen₂ hsuppRefl₂ hcompat₂)
+  exact hcoh₁.trans hcoh₂.symm
+
+theorem toyCanonicalVisiblePiecesV3_wellDefined_compatible
+    {n₁ n₂ : toyStdFragmentV3.Name} {m₁ m₂ : toyReflectionFragmentV3.Meta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (hn : n₁ = n₂)
+    (huse₁ : toyStdFragmentV3.uses n₁)
+    (hsuppRun₁ : toyStdFragmentV3.supportsRuntime n₁ Γ σ st)
+    (hgen₁ : toyReflectionFragmentV3.generates m₁ st)
+    (hsuppRefl₁ : toyReflectionFragmentV3.supportsReflection m₁ Γ st)
+    (hcompat₁ : toyReadyAssemblyV3.compatible n₁ m₁ Γ σ st)
+    (huse₂ : toyStdFragmentV3.uses n₂)
+    (hsuppRun₂ : toyStdFragmentV3.supportsRuntime n₂ Γ σ st)
+    (hgen₂ : toyReflectionFragmentV3.generates m₂ st)
+    (hsuppRefl₂ : toyReflectionFragmentV3.supportsReflection m₂ Γ st)
+    (hcompat₂ : toyReadyAssemblyV3.compatible n₂ m₂ Γ σ st) :
+    canonicalVisiblePiecesV3 huse₁ hsuppRun₁ hgen₁ hsuppRefl₁ =
+      canonicalVisiblePiecesV3 huse₂ hsuppRun₂ hgen₂ hsuppRefl₂ := by
+  cases hn
+  exact toyCanonicalVisiblePiecesV3_wellDefined_compatible_fixed_runtime
+    huse₁ hsuppRun₁ hgen₁ hsuppRefl₁ hcompat₁ hgen₂ hsuppRefl₂ hcompat₂
+
+theorem toyCanonicalVisiblePiecesV3_packageCoherent_under_same_runtime
+    {n₁ n₂ : toyStdFragmentV3.Name} {m₁ m₂ : toyReflectionFragmentV3.Meta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (hn : n₁ = n₂)
+    (huse₁ : toyStdFragmentV3.uses n₁)
+    (hsuppRun₁ : toyStdFragmentV3.supportsRuntime n₁ Γ σ st)
+    (hgen₁ : toyReflectionFragmentV3.generates m₁ st)
+    (hsuppRefl₁ : toyReflectionFragmentV3.supportsReflection m₁ Γ st)
+    (hcompat₁ : toyReadyAssemblyV3.compatible n₁ m₁ Γ σ st)
+    (huse₂ : toyStdFragmentV3.uses n₂)
+    (hsuppRun₂ : toyStdFragmentV3.supportsRuntime n₂ Γ σ st)
+    (hgen₂ : toyReflectionFragmentV3.generates m₂ st)
+    (hsuppRefl₂ : toyReflectionFragmentV3.supportsReflection m₂ Γ st)
+    (hcompat₂ : toyReadyAssemblyV3.compatible n₂ m₂ Γ σ st) :
+    PackageCoherentV3
+      (canonicalVisiblePiecesV3 huse₁ hsuppRun₁ hgen₁ hsuppRefl₁)
+      (canonicalVisiblePiecesV3 huse₂ hsuppRun₂ hgen₂ hsuppRefl₂) := by
+  have h :=
+    toyCanonicalVisiblePiecesV3_wellDefined_compatible
+      hn
+      huse₁ hsuppRun₁ hgen₁ hsuppRefl₁ hcompat₁
+      huse₂ hsuppRun₂ hgen₂ hsuppRefl₂ hcompat₂
+  simpa [PackageCoherentV3] using h
+
+theorem toyCanonicalVisiblePiecesV3_packageCoherent_compatible_fixed_runtime
+    {n : toyStdFragmentV3.Name} {m₁ m₂ : toyReflectionFragmentV3.Meta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : toyStdFragmentV3.uses n)
+    (hsuppRun : toyStdFragmentV3.supportsRuntime n Γ σ st)
+    (hgen₁ : toyReflectionFragmentV3.generates m₁ st)
+    (hsuppRefl₁ : toyReflectionFragmentV3.supportsReflection m₁ Γ st)
+    (hcompat₁ : toyReadyAssemblyV3.compatible n m₁ Γ σ st)
+    (hgen₂ : toyReflectionFragmentV3.generates m₂ st)
+    (hsuppRefl₂ : toyReflectionFragmentV3.supportsReflection m₂ Γ st)
+    (hcompat₂ : toyReadyAssemblyV3.compatible n m₂ Γ σ st) :
+    PackageCoherentV3
+      (canonicalVisiblePiecesV3 huse hsuppRun hgen₁ hsuppRefl₁)
+      (canonicalVisiblePiecesV3 huse hsuppRun hgen₂ hsuppRefl₂) := by
+  simpa [PackageCoherentV3] using
+    toyCanonicalVisiblePiecesV3_wellDefined_compatible_fixed_runtime
+      huse hsuppRun hgen₁ hsuppRefl₁ hcompat₁
+      hgen₂ hsuppRefl₂ hcompat₂
+
+/-- Concrete package-level route coherence on the first inhabited family. -/
+theorem toy_ready_vs_glue_packageCoherent
+    (c : ToyReadyCertificate) :
+    PackageCoherentV3
+      (toyExternalPiecesV3 c).toVisiblePieces
+      (toyGlueExternalPiecesV3 c).toVisiblePieces := by
+  calc
+    (toyExternalPiecesV3 c).toVisiblePieces =
+        canonicalVisiblePiecesV3
+          (toy_uses c) (toy_supportsRuntime c)
+          (toy_generates c) (toy_supportsReflection c) := by
+            exact externalPieces_of_ready_v3_packageCoherent
+              (A := toyReadyAssemblyV3)
+              (huse := toy_uses c)
+              (hsuppRun := toy_supportsRuntime c)
+              (hgen := toy_generates c)
+              (hsuppRefl := toy_supportsReflection c)
+              (hcompat := toy_compatible c)
+    _ = (toyGlueExternalPiecesV3 c).toVisiblePieces := by
+          symm
+          exact toyGlueExternalPiecesV3_packageCoherent c
+
+/-- Concrete boundary-level route coherence on the first inhabited family. -/
+theorem toy_ready_vs_glue_boundaryCoherent
+    (c : ToyReadyCertificate) :
+    BoundaryCoherentV3 (toyExternalPiecesV3 c) (toyGlueExternalPiecesV3 c) := by
+  change (toyExternalPiecesV3 c).toBodyBoundary = (toyGlueExternalPiecesV3 c).toBodyBoundary
+  calc
+    (toyExternalPiecesV3 c).toBodyBoundary = c.ready.toClosureBoundary := by
+      exact toyExternalPiecesV3_boundary c
+    _ = (toyGlueExternalPiecesV3 c).toBodyBoundary := by
+      symm
+      exact toyGlueExternalPiecesV3_boundary c
+
+/-- The induced ready route from the toy glue is package-coherent with the direct glue route. -/
+theorem toy_glue_readyInduced_packageCoherent
+    (c : ToyReadyCertificate) :
+    PackageCoherentV3
+      (externalPieces_of_ready_v3
+        (readyAssembly_of_glue_v3 toyGlueV3)
+        (toy_uses c) (toy_supportsRuntime c)
+        (toy_generates c) (toy_supportsReflection c) (toyGlue_compatible c)).toVisiblePieces
+      (toyGlueExternalPiecesV3 c).toVisiblePieces := by
+  exact externalPieces_of_ready_from_glue_v3_packageCoherent
+    toyGlueV3 (toy_uses c) (toy_supportsRuntime c)
+    (toy_generates c) (toy_supportsReflection c) (toyGlue_compatible c)
+
+/-- The induced ready route from the toy glue is boundary-coherent with the direct glue route. -/
+theorem toy_glue_readyInduced_boundaryCoherent
+    (c : ToyReadyCertificate) :
+    BoundaryCoherentV3
+      (externalPieces_of_ready_v3
+        (readyAssembly_of_glue_v3 toyGlueV3)
+        (toy_uses c) (toy_supportsRuntime c)
+        (toy_generates c) (toy_supportsReflection c) (toyGlue_compatible c))
+      (toyGlueExternalPiecesV3 c) := by
+  exact externalPieces_of_ready_from_glue_v3_boundaryCoherent
+    toyGlueV3 (toy_uses c) (toy_supportsRuntime c)
+    (toy_generates c) (toy_supportsReflection c) (toyGlue_compatible c)
+
+/-- First concrete inhabited statement-level closure instance for the low-level V3 route. -/
+theorem toy_glue_certificate_closure
+    (c : ToyReadyCertificate) :
+    BigStepStmtTerminates c.σ c.st ∨ BigStepStmtDiv c.σ c.st := by
+  exact
+    reflective_std_closure_theorem_v3_via_ready
+      toyGlueV3
+      (toy_uses c)
+      (toy_supportsRuntime c)
+      (toy_generates c)
+      (toy_supportsReflection c)
+      (toyGlue_compatible c)
+
+/-- Function-body variant of the first concrete inhabited low-level V3 instance. -/
+theorem toy_glue_certificate_function_body_closure
+    (c : ToyReadyCertificate) :
+    (∃ ex σ', BigStepFunctionBody c.σ c.st ex σ') ∨ BigStepStmtDiv c.σ c.st := by
+  exact
+    reflective_std_function_body_closure_v3_via_ready
+      toyGlueV3
+      (toy_uses c)
+      (toy_supportsRuntime c)
+      (toy_generates c)
+      (toy_supportsReflection c)
+      (toyGlue_compatible c)
+
+end Cpp
