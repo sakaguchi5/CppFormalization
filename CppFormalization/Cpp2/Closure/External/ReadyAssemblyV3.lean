@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.External.CoherenceV3
+import CppFormalization.Cpp2.Closure.External.TransportV3
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmap
 
@@ -61,23 +61,6 @@ structure VerifiedExternalReadyAssemblyV3
       (hcompat : compatible n m Γ σ st),
       (mkReady huse hsuppRun hgen hsuppRefl hcompat).toProfile =
         (R.mkReflection hgen hsuppRefl).profile
-
-/-- Transport adequacy across propositional equality of control profiles. -/
-def transportAdequacy
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    {p q : BodyControlProfile Γ st}
-    (h : p = q) :
-    BodyAdequacyCI Γ σ st p → BodyAdequacyCI Γ σ st q := by
-  intro ha
-  cases h
-  exact ha
-
-@[simp] theorem transportAdequacy_rfl
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    {p : BodyControlProfile Γ st}
-    (ha : BodyAdequacyCI Γ σ st p) :
-    transportAdequacy rfl ha = ha := by
-  rfl
 
 
 def externalPieces_of_ready_v3
@@ -175,19 +158,6 @@ theorem externalPieces_of_ready_v3_packageCoherent
     PackageCoherentV3
       (externalPieces_of_ready_v3 A huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces
       (canonicalVisiblePiecesV3 huse hsuppRun hgen hsuppRefl) := by
-  rfl
-
--- おそらく大事な補題
-private theorem mkBodyClosureBoundaryCI_profile_transport
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    {hs : BodyStructuralBoundary Γ st}
-    {hd : BodyDynamicBoundary Γ σ st}
-    {p q : BodyControlProfile Γ st}
-    (h : p = q)
-    (ha : BodyAdequacyCI Γ σ st p) :
-    mkBodyClosureBoundaryCI hs q hd (transportAdequacy h ha) =
-      mkBodyClosureBoundaryCI hs p hd ha := by
-  cases h
   rfl
 
 

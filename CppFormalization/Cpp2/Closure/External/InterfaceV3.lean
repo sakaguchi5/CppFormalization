@@ -3,6 +3,8 @@ import CppFormalization.Cpp2.Closure.External.ReflectionFragmentV3
 import CppFormalization.Cpp2.Closure.External.GlueV3
 import CppFormalization.Cpp2.Closure.External.AssembleV3
 import CppFormalization.Cpp2.Closure.External.CoherenceV3
+import CppFormalization.Cpp2.Closure.External.TransportV3
+import CppFormalization.Cpp2.Closure.External.AssembleLemmasV3
 import CppFormalization.Cpp2.Closure.External.CanonicityV3
 import CppFormalization.Cpp2.Closure.External.ReadyAssemblyV3
 import CppFormalization.Cpp2.Closure.External.ReadyFromGlueV3
@@ -29,6 +31,10 @@ Stage 2B comparison vocabulary:
 Stage 2C family canonicity vocabulary:
 - `RuntimePackageUniqueV3` says runtime artifacts are target-canonical,
 - `ReflectionPackageUniqueV3` says reflection artifacts are target-canonical,
-- `canonicalVisiblePiecesV3_wellDefined` records that visible package choice
-  no longer depends on which supporting artifact was used.
+- `canonicalVisiblePiecesV3_wellDefined` records that visible package choice no
+  longer depends on which supporting artifact was used.
+
+Refactoring support vocabulary:
+- `TransportV3` isolates profile-index transport / cast lemmas,
+- `AssembleLemmasV3` isolates generic low-level assembly projections.
 -/
