@@ -1,4 +1,5 @@
 import CppFormalization.Cpp2.Closure.External.ReadyFromGlueV3
+import CppFormalization.Cpp2.Closure.External.AssembleLemmasV3
 import CppFormalization.Cpp2.Closure.External.CanonicityV3
 import CppFormalization.Cpp2.Closure.External.ToyReadyInstanceV3
 
@@ -40,66 +41,6 @@ def toyGlueExternalPiecesV3
     (toy_generates c)
     (toy_supportsReflection c)
     (toyGlue_compatible c)
-
-theorem assembleExternalPiecesV3_structural
-    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
-    (G : VerifiedExternalGlueV3 F R)
-    {n : F.Name} {m : R.Meta}
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (huse : F.uses n)
-    (hsuppRun : F.supportsRuntime n Γ σ st)
-    (hgen : R.generates m st)
-    (hsuppRefl : R.supportsReflection m Γ st)
-    (hcompat : G.compatible n m Γ σ st) :
-    (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).structural =
-      (R.mkReflection hgen hsuppRefl).structural := by
-  unfold assembleExternalPiecesV3
-  rfl
-
-theorem assembleExternalPiecesV3_profile
-    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
-    (G : VerifiedExternalGlueV3 F R)
-    {n : F.Name} {m : R.Meta}
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (huse : F.uses n)
-    (hsuppRun : F.supportsRuntime n Γ σ st)
-    (hgen : R.generates m st)
-    (hsuppRefl : R.supportsReflection m Γ st)
-    (hcompat : G.compatible n m Γ σ st) :
-    (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).profile =
-      (R.mkReflection hgen hsuppRefl).profile := by
-  unfold assembleExternalPiecesV3
-  rfl
-
-theorem assembleExternalPiecesV3_dynamic
-    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
-    (G : VerifiedExternalGlueV3 F R)
-    {n : F.Name} {m : R.Meta}
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (huse : F.uses n)
-    (hsuppRun : F.supportsRuntime n Γ σ st)
-    (hgen : R.generates m st)
-    (hsuppRefl : R.supportsReflection m Γ st)
-    (hcompat : G.compatible n m Γ σ st) :
-    (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).dynamic =
-      (F.mkRuntime huse hsuppRun).dynamic := by
-  unfold assembleExternalPiecesV3
-  rfl
-
-theorem assembleExternalPiecesV3_core
-    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
-    (G : VerifiedExternalGlueV3 F R)
-    {n : F.Name} {m : R.Meta}
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (huse : F.uses n)
-    (hsuppRun : F.supportsRuntime n Γ σ st)
-    (hgen : R.generates m st)
-    (hsuppRefl : R.supportsReflection m Γ st)
-    (hcompat : G.compatible n m Γ σ st) :
-    (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).core =
-      (R.mkReflection hgen hsuppRefl).core := by
-  unfold assembleExternalPiecesV3
-  rfl
 
 theorem toyGlueExternalPiecesV3_profile
     (c : ToyReadyCertificate) :
@@ -154,38 +95,6 @@ theorem toyGlueExternalPiecesV3_core
       (hcompat := toyGlue_compatible c)
   simp
 
-theorem assembleExternalPiecesV3_adequacy
-    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
-    (G : VerifiedExternalGlueV3 F R)
-    {n : F.Name} {m : R.Meta}
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (huse : F.uses n)
-    (hsuppRun : F.supportsRuntime n Γ σ st)
-    (hgen : R.generates m st)
-    (hsuppRefl : R.supportsReflection m Γ st)
-    (hcompat : G.compatible n m Γ σ st) :
-    (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).adequacy =
-      G.mkAdequacy huse hsuppRun hgen hsuppRefl hcompat := by
-  unfold assembleExternalPiecesV3
-  rfl
-
-theorem assembleExternalPiecesV3_toBodyBoundary
-    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
-    (G : VerifiedExternalGlueV3 F R)
-    {n : F.Name} {m : R.Meta}
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (huse : F.uses n)
-    (hsuppRun : F.supportsRuntime n Γ σ st)
-    (hgen : R.generates m st)
-    (hsuppRefl : R.supportsReflection m Γ st)
-    (hcompat : G.compatible n m Γ σ st) :
-    (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).toBodyBoundary =
-      { structural := (R.mkReflection hgen hsuppRefl).structural
-        profile := (R.mkReflection hgen hsuppRefl).profile
-        dynamic := (F.mkRuntime huse hsuppRun).dynamic
-        adequacy := G.mkAdequacy huse hsuppRun hgen hsuppRefl hcompat } := by
-  rfl
-
 theorem toyGlueExternalPiecesV3_boundary_adequacy
     (c : ToyReadyCertificate) :
     castBodyAdequacy (toyGlueExternalPiecesV3_profile c)
@@ -211,45 +120,14 @@ theorem toyGlueExternalPiecesV3_packageCoherent
       (canonicalVisiblePiecesV3
         (toy_uses c) (toy_supportsRuntime c)
         (toy_generates c) (toy_supportsReflection c)) := by
-  rfl
-
-theorem toyReady_dynamic_unique
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (r₁ r₂ : BodyReadyCI Γ σ st) :
-    r₁.toDynamic = r₂.toDynamic := by
-  cases r₁
-  cases r₂
-  dsimp [BodyReadyCI.toDynamic]
-
-/-- The toy runtime family is target-canonical. -/
-theorem toyRuntimePackageUniqueV3 :
-    RuntimePackageUniqueV3 toyStdFragmentV3 := by
-  intro n₁ n₂ Γ σ st huse₁ hsupp₁ huse₂ hsupp₂
-  cases n₁ with
-  | mk Γ₁ σ₁ st₁ ready₁ core₁ =>
-    cases n₂ with
-    | mk Γ₂ σ₂ st₂ ready₂ core₂ =>
-      simp [toyStdFragmentV3] at hsupp₁ hsupp₂ ⊢
-      rcases hsupp₁ with ⟨rfl, rfl, rfl⟩
-      rcases hsupp₂ with ⟨rfl, rfl, rfl⟩
-      have hd : ready₁.toDynamic = ready₂.toDynamic :=
-        toyReady_dynamic_unique ready₁ ready₂
-      cases hd
-      rfl
-
-theorem toyReady_structural_unique
-    {Γ : TypeEnv} {σ₁ σ₂ : State} {st : CppStmt}
-    (r₁ : BodyReadyCI Γ σ₁ st)
-    (r₂ : BodyReadyCI Γ σ₂ st) :
-    r₁.toStructural = r₂.toStructural := by
-  cases r₁
-  cases r₂
-  dsimp [BodyReadyCI.toStructural]
-
-theorem toyCore_unique
-    {st : CppStmt}
-    (c₁ c₂ : CoreBigStepFragment st) :
-    c₁ = c₂ := rfl
+  simpa [toyGlueExternalPiecesV3] using
+    (assembleExternalPiecesV3_packageCoherent
+      (G := toyGlueV3)
+      (huse := toy_uses c)
+      (hsuppRun := toy_supportsRuntime c)
+      (hgen := toy_generates c)
+      (hsuppRefl := toy_supportsReflection c)
+      (hcompat := toyGlue_compatible c))
 
 def toyGlueVisiblePiecesAt
     {n : toyStdFragmentV3.Name}
