@@ -217,7 +217,9 @@ theorem toyReady_dynamic_unique
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (r₁ r₂ : BodyReadyCI Γ σ st) :
     r₁.toDynamic = r₂.toDynamic := by
-  exact Subsingleton.elim _ _
+  cases r₁
+  cases r₂
+  dsimp [BodyReadyCI.toDynamic]
 
 /-- The toy runtime family is target-canonical. -/
 theorem toyRuntimePackageUniqueV3 :
@@ -240,13 +242,14 @@ theorem toyReady_structural_unique
     (r₁ : BodyReadyCI Γ σ₁ st)
     (r₂ : BodyReadyCI Γ σ₂ st) :
     r₁.toStructural = r₂.toStructural := by
-  exact Subsingleton.elim _ _
+  cases r₁
+  cases r₂
+  dsimp [BodyReadyCI.toStructural]
 
 theorem toyCore_unique
     {st : CppStmt}
     (c₁ c₂ : CoreBigStepFragment st) :
-    c₁ = c₂ := by
-  exact Subsingleton.elim _ _
+    c₁ = c₂ := rfl
 
 def toyGlueVisiblePiecesAt
     {n : toyStdFragmentV3.Name}
