@@ -84,7 +84,6 @@ noncomputable def legacyGlueExternalPiecesV3
     ExternalPiecesV3 c.Γ c.σ c.st :=
   (legacyCertificateFamilyV3 F R).glueExternalPieces c
 
-
 theorem legacyReadyExternalPiecesV3_eq_readyExternalPieces
     {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}
     (c : LegacyCertificateV3 F R) :
@@ -99,23 +98,6 @@ theorem legacyReadyExternalPiecesV3_toBodyBoundary_eq_readyExternalPieces
       ((legacyCertificateFamilyV3 F R).readyExternalPieces c).toBodyBoundary := by
   rw [legacyReadyExternalPiecesV3_eq_readyExternalPieces]
 
-
-
-theorem readyExternalPieces_boundary
-    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
-    (B.readyExternalPieces c).toBodyBoundary =
-      (B.readyOf c).toClosureBoundary := by
-  unfold ReadyCertificateFamilyV3.readyExternalPieces
-  rw [externalPieces_of_ready_v3_boundary
-        B.toReadyAssembly
-        (B.uses_self c)
-        (B.supportsRuntime_self c)
-        (B.generates_self c)
-        (B.supportsReflection_self c)
-        (B.compatible_self c)]
-  rw [ReadyCertificateFamilyV3.readyAssembly_mkReady_self B c]
-
-
 theorem legacyReadyExternalPiecesV3_boundary_eq_ready
     {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}
     (c : LegacyCertificateV3 F R) :
@@ -123,8 +105,7 @@ theorem legacyReadyExternalPiecesV3_boundary_eq_ready
       ((legacyCertificateFamilyV3 F R).readyOf c).toClosureBoundary := by
   let B : ReadyCertificateFamilyV3 := legacyCertificateFamilyV3 F R
   rw [legacyReadyExternalPiecesV3_toBodyBoundary_eq_readyExternalPieces]
-  simpa [B] using readyExternalPieces_boundary B c
-
+  simpa [B] using (B.readyExternalPieces_boundary c)
 
 /-- The builder-generated ready route lands on the same official closure boundary
 as the original legacy bridge. -/

@@ -1,5 +1,6 @@
 import CppFormalization.Cpp2.Closure.External.ReadyFromGlueV3
 import CppFormalization.Cpp2.Closure.External.AssembleLemmasV3
+import CppFormalization.Cpp2.Closure.External.TransportPropsV3
 
 namespace Cpp
 
@@ -60,7 +61,6 @@ def toReflectionFragment (B : ReadyCertificateFamilyV3) : VerifiedReflectionFrag
         profile := (B.readyOf c).toProfile
         core := B.coreOf c }
 
-
 def mkReady_from_compatible
     (B : ReadyCertificateFamilyV3)
     {n : B.toStdFragment.Name} {m : B.toReflectionFragment.Meta}
@@ -85,12 +85,12 @@ theorem compat_dynamic_eq
   rcases hsuppRun with ⟨_, _, _⟩
   rfl
 
- theorem compat_structural_eq
+theorem compat_structural_eq
     (B : ReadyCertificateFamilyV3)
     {n : B.toStdFragment.Name} {m : B.toReflectionFragment.Meta}
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (_ : B.toStdFragment.uses n)
-    (hsuppRun : B.toStdFragment.supportsRuntime n Γ σ st)
+    (_ : B.toStdFragment.supportsRuntime n Γ σ st)
     (hgen : B.toReflectionFragment.generates m st)
     (hsuppRefl : B.toReflectionFragment.supportsReflection m Γ st)
     (hcompat : n = m ∧ Γ = B.targetΓ n ∧ σ = B.targetσ n ∧ st = B.targetSt n) :
@@ -105,7 +105,7 @@ theorem compat_profile_eq
     {n : B.toStdFragment.Name} {m : B.toReflectionFragment.Meta}
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (_ : B.toStdFragment.uses n)
-    (hsuppRun : B.toStdFragment.supportsRuntime n Γ σ st)
+    (_ : B.toStdFragment.supportsRuntime n Γ σ st)
     (hgen : B.toReflectionFragment.generates m st)
     (hsuppRefl : B.toReflectionFragment.supportsReflection m Γ st)
     (hcompat : n = m ∧ Γ = B.targetΓ n ∧ σ = B.targetσ n ∧ st = B.targetSt n) :
@@ -145,8 +145,6 @@ def mkAdequacy_from_compatible
     BodyAdequacyCI Γ σ st ((R.mkReflection hgen hsuppRefl).profile) :=
   let hready := A.mkReady huse hsuppRun hgen hsuppRefl hcompat
   let hprof := A.profile_eq huse hsuppRun hgen hsuppRefl hcompat
-  -- hprof : hready.toProfile = (R.mkReflection ...).profile
-
   match (R.mkReflection hgen hsuppRefl).profile, hprof with
   | _, rfl => hready.toAdequacy
 
@@ -270,7 +268,6 @@ theorem ready_vs_glue_packageCoherent
       symm
       exact B.glueExternalPieces_packageCoherent c
 
---mkReady_from_compatible
 theorem readyAssembly_mkReady_self
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
     B.toReadyAssembly.mkReady
@@ -282,11 +279,8 @@ theorem readyAssembly_mkReady_self
       = B.readyOf c := by
   unfold ReadyCertificateFamilyV3.toReadyAssembly
   unfold mkReady_from_compatible
-  -- `compatible_self` is definitionally a conjunction of reflexive equalities.
   rcases B.compatible_self c with ⟨_, _, _, _⟩
   rfl
-
-
 
 /-- The ready-route boundary is exactly the certificate boundary. -/
 theorem readyExternalPieces_boundary
@@ -304,7 +298,8 @@ theorem readyExternalPieces_boundary
   simpa [ReadyCertificateFamilyV3.readyExternalPieces,
     B.readyAssembly_mkReady_self c] using h
 
---後から再考察するべき大事な補題
+/-- Canonical self-profile equality between the certificate ready witness and the
+reflection package selected by the builder-generated assembly. -/
 theorem readyAssembly_profile_self
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
     (B.readyOf c).toProfile =
@@ -340,7 +335,6 @@ theorem readyAssembly_profile_self
 
   simpa [hmk] using hprof
 
-
 def readySelf
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
     BodyReadyCI (B.targetΓ c) (B.targetσ c) (B.targetSt c) :=
@@ -350,7 +344,6 @@ def readySelf
     (B.generates_self c)
     (B.supportsReflection_self c)
     (B.compatible_self c)
-
 
 theorem readySelf_eq
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
@@ -366,23 +359,6 @@ theorem readySelf_toAdequacy_heq_readyOf
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
     HEq (readySelf B c).toAdequacy (B.readyOf c).toAdequacy := by
   rw [readySelf_eq]
-
-theorem bodyAdequacy_eq
-    {Γ : TypeEnv} {σ : State} {st : CppStmt} {p}
-    (A B : BodyAdequacyCI Γ σ st p) :
-    A = B := by
-  cases A
-  cases B
-  simp
-/-
-instance bodyAdequacy_subsingleton
-    {Γ : TypeEnv} {σ : State} {st : CppStmt} {p} :
-    Subsingleton (BodyAdequacyCI Γ σ st p) := by
-  refine ⟨?_⟩
-  intro A B
-  cases A
-  cases B
-  simp-/
 
 theorem mkAdequacy_from_compatible_self
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
@@ -411,7 +387,6 @@ theorem glue_mkAdequacy_self
       (readyAssembly_profile_self B c) ▸ (B.readyOf c).toAdequacy := by
   unfold ReadyCertificateFamilyV3.toGlue
   simpa using mkAdequacy_from_compatible_self B c
-
 
 theorem readyAssembly_dynamic_self
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
@@ -466,6 +441,7 @@ theorem glueExternalPieces_eq_assemble
         (B.supportsReflection_self c)
         (B.glue_compatible_self c) := by
   rfl
+
 theorem glueExternalPieces_toBodyBoundary_eq_assemble
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
     (B.glueExternalPieces c).toBodyBoundary =
@@ -522,20 +498,12 @@ theorem glueExternalPieces_boundary
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
     (B.glueExternalPieces c).toBodyBoundary =
       (B.readyOf c).toClosureBoundary := by
-  -- Glue ルート側の body boundary を、reflection/profile/adequacy の明示形へ展開する。
   rw [glueExternalPieces_toBodyBoundary_expand]
-  -- 証明書側の closure boundary を展開する。
   unfold BodyReadyCI.toClosureBoundary
-  -- 境界レコードの各成分の一致に分解する。
   congr
-  -- profile 成分は、readySelf の profile と readyOf の profile の一致へ帰着する。
   · rw [← readySelf_profile_self, readySelf_eq]
-  -- adequacy 成分は、Glue 側の mkAdequacy を readyOf 側へ移し、
-  -- その後、依存型 transport によって生じる HEq を `eqRec_heq` で解消する。
   · rw [glue_mkAdequacy_self]
     exact eqRec_heq _ _
-
-
 
 /-- For a builder-generated family, the direct ready route and the direct glue route
 also agree at the official boundary quotient. -/
