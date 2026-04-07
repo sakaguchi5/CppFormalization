@@ -1,7 +1,6 @@
 import CppFormalization.Cpp2.Closure.External.SplitBuilderV3
 import CppFormalization.Cpp2.Closure.External.ToyReadyInstanceV3
 import CppFormalization.Cpp2.Closure.External.ToyGlueInstanceV3
-import CppFormalization.Cpp2.Closure.External.BuilderV3
 
 
 namespace Cpp
