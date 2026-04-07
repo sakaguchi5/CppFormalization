@@ -10,19 +10,25 @@ import CppFormalization.Cpp2.Closure.External.CanonicityV3
 import CppFormalization.Cpp2.Closure.External.ReadyAssemblyV3
 import CppFormalization.Cpp2.Closure.External.ReadyFromGlueV3
 import CppFormalization.Cpp2.Closure.External.BuilderV3
+import CppFormalization.Cpp2.Closure.External.ToyBuilderV3
 import CppFormalization.Cpp2.Closure.External.LegacyBuilderV3
+import CppFormalization.Cpp2.Closure.External.AlignmentV3
 
 /-!
 # Closure.External.InterfaceV3
 
-Canonical Stage 2A/2B/2C/4/5 V3 re-export.
+Canonical Stage 2A/2B/2C/4/5/6 V3 re-export.
 
 Provided routes:
 - low-level explicit target-indexed pieces route via `GlueV3`,
 - higher-level integrated target-indexed route via `ReadyAssemblyV3`,
 - canonical adapter from low-level glue to the integrated ready route,
 - certificate-family builder route via `BuilderV3`,
-- legacy non-toy lift into the same V3 world via `LegacyBuilderV3`.
+- first concrete builder consumer via `ToyBuilderV3`,
+- legacy non-toy lift into the same V3 world via `LegacyBuilderV3`,
+- Stage 6 alignment lemmas showing that the builder-generated canonical routes
+  land on the same official quotient as the earlier hand-written toy routes and
+  the earlier direct legacy bridge.
 
 Main redesign point:
 - reflection chooses one package `(structural, profile, core)` together,
