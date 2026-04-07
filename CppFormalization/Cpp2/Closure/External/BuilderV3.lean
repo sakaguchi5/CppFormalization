@@ -19,9 +19,9 @@ construct automatically
 - the low-level glue assembly,
 - and the basic route-level corollaries for the concrete family.
 
-This builder is intentionally *not* a canonicity builder.  It packages one
+This builder is intentionally *not* a canonicity builder. It packages one
 certificate family into the V3 interfaces, but it does not claim that two
-different certificates with the same target are identical.  Family-level
+different certificates with the same target are identical. Family-level
 canonicity remains a separate Stage 2C notion.
 -/
 
@@ -60,42 +60,107 @@ def toReflectionFragment (B : ReadyCertificateFamilyV3) : VerifiedReflectionFrag
         profile := (B.readyOf c).toProfile
         core := B.coreOf c }
 
+
+def mkReady_from_compatible
+    (B : ReadyCertificateFamilyV3)
+    {n : B.toStdFragment.Name} {m : B.toReflectionFragment.Meta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (hcompat : n = m ∧ Γ = B.targetΓ n ∧ σ = B.targetσ n ∧ st = B.targetSt n) :
+    BodyReadyCI Γ σ st := by
+  rcases hcompat with ⟨rfl, rfl, rfl, rfl⟩
+  exact B.readyOf n
+
+theorem compat_dynamic_eq
+    (B : ReadyCertificateFamilyV3)
+    {n : B.toStdFragment.Name} {m : B.toReflectionFragment.Meta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : B.toStdFragment.uses n)
+    (hsuppRun : B.toStdFragment.supportsRuntime n Γ σ st)
+    (hgen : B.toReflectionFragment.generates m st)
+    (hsuppRefl : B.toReflectionFragment.supportsReflection m Γ st)
+    (hcompat : n = m ∧ Γ = B.targetΓ n ∧ σ = B.targetσ n ∧ st = B.targetSt n) :
+    (mkReady_from_compatible B hcompat).toDynamic =
+      (B.toStdFragment.mkRuntime huse hsuppRun).dynamic := by
+  rcases hcompat with ⟨rfl, rfl, rfl, rfl⟩
+  rcases hsuppRun with ⟨_, _, _⟩
+  rfl
+
+ theorem compat_structural_eq
+    (B : ReadyCertificateFamilyV3)
+    {n : B.toStdFragment.Name} {m : B.toReflectionFragment.Meta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (_ : B.toStdFragment.uses n)
+    (hsuppRun : B.toStdFragment.supportsRuntime n Γ σ st)
+    (hgen : B.toReflectionFragment.generates m st)
+    (hsuppRefl : B.toReflectionFragment.supportsReflection m Γ st)
+    (hcompat : n = m ∧ Γ = B.targetΓ n ∧ σ = B.targetσ n ∧ st = B.targetSt n) :
+    (mkReady_from_compatible B hcompat).toStructural =
+      (B.toReflectionFragment.mkReflection hgen hsuppRefl).structural := by
+  rcases hcompat with ⟨rfl, rfl, rfl, rfl⟩
+  rcases hsuppRefl with ⟨_, _⟩
+  rfl
+
+theorem compat_profile_eq
+    (B : ReadyCertificateFamilyV3)
+    {n : B.toStdFragment.Name} {m : B.toReflectionFragment.Meta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (_ : B.toStdFragment.uses n)
+    (hsuppRun : B.toStdFragment.supportsRuntime n Γ σ st)
+    (hgen : B.toReflectionFragment.generates m st)
+    (hsuppRefl : B.toReflectionFragment.supportsReflection m Γ st)
+    (hcompat : n = m ∧ Γ = B.targetΓ n ∧ σ = B.targetσ n ∧ st = B.targetSt n) :
+    (mkReady_from_compatible B hcompat).toProfile =
+      (B.toReflectionFragment.mkReflection hgen hsuppRefl).profile := by
+  rcases hcompat with ⟨rfl, rfl, rfl, rfl⟩
+  rcases hsuppRefl with ⟨_, _⟩
+  rfl
+
 /-- The canonical high-level ready assembly generated from the family. -/
-def toReadyAssembly
-    (B : ReadyCertificateFamilyV3) :
+def toReadyAssembly (B : ReadyCertificateFamilyV3) :
     VerifiedExternalReadyAssemblyV3 B.toStdFragment B.toReflectionFragment where
   compatible := fun n m Γ σ st =>
     n = m ∧ Γ = B.targetΓ n ∧ σ = B.targetσ n ∧ st = B.targetSt n
-  mkReady := by
-    intro n m Γ σ st _ _ _ _ hcompat
-    rcases hcompat with ⟨rfl, rfl, rfl, rfl⟩
-    exact B.readyOf n
-  dynamic_eq := by
-    intro n m Γ σ st huse hsuppRun hgen hsuppRefl hcompat
-    rcases hcompat with ⟨rfl, rfl, rfl, rfl⟩
-    rcases hsuppRun with ⟨_, _, _⟩
-    rfl
-  structural_eq := by
-    intro n m Γ σ st huse hsuppRun hgen hsuppRefl hcompat
-    rcases hcompat with ⟨rfl, rfl, rfl, rfl⟩
-    rcases hsuppRefl with ⟨_, _⟩
-    rfl
-  profile_eq := by
-    intro n m Γ σ st huse hsuppRun hgen hsuppRefl hcompat
-    rcases hcompat with ⟨rfl, rfl, rfl, rfl⟩
-    rcases hsuppRefl with ⟨_, _⟩
-    rfl
+
+  mkReady := fun {_} {_} {_} {_} {_} _ _ _ _ hcompat =>
+    mkReady_from_compatible B hcompat
+
+  dynamic_eq := fun huse hsuppRun hgen hsuppRefl hcompat =>
+    compat_dynamic_eq B huse hsuppRun hgen hsuppRefl hcompat
+
+  structural_eq := fun huse hsuppRun hgen hsuppRefl hcompat =>
+    compat_structural_eq B huse hsuppRun hgen hsuppRefl hcompat
+
+  profile_eq := fun huse hsuppRun hgen hsuppRefl hcompat =>
+    compat_profile_eq B huse hsuppRun hgen hsuppRefl hcompat
+
+def mkAdequacy_from_compatible
+    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
+    (A : VerifiedExternalReadyAssemblyV3 F R)
+    {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : F.uses n)
+    (hsuppRun : F.supportsRuntime n Γ σ st)
+    (hgen : R.generates m st)
+    (hsuppRefl : R.supportsReflection m Γ st)
+    (hcompat : A.compatible n m Γ σ st) :
+    BodyAdequacyCI Γ σ st ((R.mkReflection hgen hsuppRefl).profile) :=
+  let hready := A.mkReady huse hsuppRun hgen hsuppRefl hcompat
+  let hprof := A.profile_eq huse hsuppRun hgen hsuppRefl hcompat
+  -- hprof : hready.toProfile = (R.mkReflection ...).profile
+
+  match (R.mkReflection hgen hsuppRefl).profile, hprof with
+  | _, rfl => hready.toAdequacy
 
 /-- The canonical low-level glue generated from the family. -/
 def toGlue
     (B : ReadyCertificateFamilyV3) :
     VerifiedExternalGlueV3 B.toStdFragment B.toReflectionFragment where
-  compatible := (B.toReadyAssembly).compatible
-  mkAdequacy := by
-    intro n m Γ σ st _ _ hgen hsuppRefl hcompat
-    rcases hcompat with ⟨rfl, rfl, rfl, rfl⟩
-    rcases hsuppRefl with ⟨_, _⟩
-    simpa [toReflectionFragment] using (B.readyOf n).toAdequacy
+  compatible := B.toReadyAssembly.compatible
+  mkAdequacy := fun
+    {_} {_} {_} {_} {_}
+    huse hsuppRun hgen hsuppRefl hcompat =>
+      mkAdequacy_from_compatible
+        B.toReadyAssembly
+        huse hsuppRun hgen hsuppRefl hcompat
 
 /-- Canonical self-use witness for a family certificate. -/
 theorem uses_self (B : ReadyCertificateFamilyV3) (c : B.Cert) :
@@ -205,6 +270,290 @@ theorem ready_vs_glue_packageCoherent
       symm
       exact B.glueExternalPieces_packageCoherent c
 
+--mkReady_from_compatible
+theorem readyAssembly_mkReady_self
+    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+    B.toReadyAssembly.mkReady
+      (B.uses_self c)
+      (B.supportsRuntime_self c)
+      (B.generates_self c)
+      (B.supportsReflection_self c)
+      (B.compatible_self c)
+      = B.readyOf c := by
+  unfold ReadyCertificateFamilyV3.toReadyAssembly
+  unfold mkReady_from_compatible
+  -- `compatible_self` is definitionally a conjunction of reflexive equalities.
+  rcases B.compatible_self c with ⟨_, _, _, _⟩
+  rfl
+
+
+
+/-- The ready-route boundary is exactly the certificate boundary. -/
+theorem readyExternalPieces_boundary
+    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+    (B.readyExternalPieces c).toBodyBoundary =
+      (B.readyOf c).toClosureBoundary := by
+  have h :=
+    externalPieces_of_ready_v3_boundary
+      (A := B.toReadyAssembly)
+      (huse := B.uses_self c)
+      (hsuppRun := B.supportsRuntime_self c)
+      (hgen := B.generates_self c)
+      (hsuppRefl := B.supportsReflection_self c)
+      (hcompat := B.compatible_self c)
+  simpa [ReadyCertificateFamilyV3.readyExternalPieces,
+    B.readyAssembly_mkReady_self c] using h
+
+--後から再考察するべき大事な補題
+theorem readyAssembly_profile_self
+    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+    (B.readyOf c).toProfile =
+      (B.toReflectionFragment.mkReflection
+        (B.generates_self c)
+        (B.supportsReflection_self c)).profile := by
+  have hmk :
+      B.toReadyAssembly.mkReady
+        (B.uses_self c)
+        (B.supportsRuntime_self c)
+        (B.generates_self c)
+        (B.supportsReflection_self c)
+        (B.compatible_self c)
+      = B.readyOf c :=
+    readyAssembly_mkReady_self B c
+
+  have hprof :
+      (B.toReadyAssembly.mkReady
+        (B.uses_self c)
+        (B.supportsRuntime_self c)
+        (B.generates_self c)
+        (B.supportsReflection_self c)
+        (B.compatible_self c)).toProfile =
+      (B.toReflectionFragment.mkReflection
+        (B.generates_self c)
+        (B.supportsReflection_self c)).profile :=
+    B.toReadyAssembly.profile_eq
+      (B.uses_self c)
+      (B.supportsRuntime_self c)
+      (B.generates_self c)
+      (B.supportsReflection_self c)
+      (B.compatible_self c)
+
+  simpa [hmk] using hprof
+
+
+def readySelf
+    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+    BodyReadyCI (B.targetΓ c) (B.targetσ c) (B.targetSt c) :=
+  B.toReadyAssembly.mkReady
+    (B.uses_self c)
+    (B.supportsRuntime_self c)
+    (B.generates_self c)
+    (B.supportsReflection_self c)
+    (B.compatible_self c)
+
+
+theorem readySelf_eq
+    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+    readySelf B c = B.readyOf c := by
+  exact readyAssembly_mkReady_self B c
+
+theorem readySelf_profile_eq_readyOf
+    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+    (B.readyOf c).toProfile = (readySelf B c).toProfile := by
+  rw [readySelf_eq]
+
+theorem readySelf_toAdequacy_heq_readyOf
+    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+    HEq (readySelf B c).toAdequacy (B.readyOf c).toAdequacy := by
+  rw [readySelf_eq]
+
+theorem bodyAdequacy_eq
+    {Γ : TypeEnv} {σ : State} {st : CppStmt} {p}
+    (A B : BodyAdequacyCI Γ σ st p) :
+    A = B := by
+  cases A
+  cases B
+  simp
+/-
+instance bodyAdequacy_subsingleton
+    {Γ : TypeEnv} {σ : State} {st : CppStmt} {p} :
+    Subsingleton (BodyAdequacyCI Γ σ st p) := by
+  refine ⟨?_⟩
+  intro A B
+  cases A
+  cases B
+  simp-/
+
+theorem mkAdequacy_from_compatible_self
+    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+    mkAdequacy_from_compatible
+      B.toReadyAssembly
+      (B.uses_self c)
+      (B.supportsRuntime_self c)
+      (B.generates_self c)
+      (B.supportsReflection_self c)
+      (B.compatible_self c)
+      =
+      (readyAssembly_profile_self B c) ▸ (B.readyOf c).toAdequacy := by
+  apply bodyAdequacy_eq
+
+/-- On the canonical self-input, the family glue adequacy is the certificate adequacy
+transported along the canonical self profile equality. -/
+theorem glue_mkAdequacy_self
+    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+    B.toGlue.mkAdequacy
+      (B.uses_self c)
+      (B.supportsRuntime_self c)
+      (B.generates_self c)
+      (B.supportsReflection_self c)
+      (B.glue_compatible_self c)
+      =
+      (readyAssembly_profile_self B c) ▸ (B.readyOf c).toAdequacy := by
+  unfold ReadyCertificateFamilyV3.toGlue
+  simpa using mkAdequacy_from_compatible_self B c
+
+
+theorem readyAssembly_dynamic_self
+    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+    (B.readySelf c).toDynamic =
+      (B.toStdFragment.mkRuntime
+        (B.uses_self c)
+        (B.supportsRuntime_self c)).dynamic := by
+  exact
+    B.toReadyAssembly.dynamic_eq
+      (B.uses_self c)
+      (B.supportsRuntime_self c)
+      (B.generates_self c)
+      (B.supportsReflection_self c)
+      (B.compatible_self c)
+
+theorem readyAssembly_structural_self
+    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+    (B.readySelf c).toStructural =
+      (B.toReflectionFragment.mkReflection
+        (B.generates_self c)
+        (B.supportsReflection_self c)).structural := by
+  exact
+    B.toReadyAssembly.structural_eq
+      (B.uses_self c)
+      (B.supportsRuntime_self c)
+      (B.generates_self c)
+      (B.supportsReflection_self c)
+      (B.compatible_self c)
+
+theorem readySelf_profile_self
+    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+    (B.readySelf c).toProfile =
+      (B.toReflectionFragment.mkReflection
+        (B.generates_self c)
+        (B.supportsReflection_self c)).profile := by
+  exact
+    B.toReadyAssembly.profile_eq
+      (B.uses_self c)
+      (B.supportsRuntime_self c)
+      (B.generates_self c)
+      (B.supportsReflection_self c)
+      (B.compatible_self c)
+
+theorem glueExternalPieces_eq_assemble
+    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+    B.glueExternalPieces c =
+      assembleExternalPiecesV3
+        B.toGlue
+        (B.uses_self c)
+        (B.supportsRuntime_self c)
+        (B.generates_self c)
+        (B.supportsReflection_self c)
+        (B.glue_compatible_self c) := by
+  rfl
+theorem glueExternalPieces_toBodyBoundary_eq_assemble
+    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+    (B.glueExternalPieces c).toBodyBoundary =
+      (assembleExternalPiecesV3
+        B.toGlue
+        (B.uses_self c)
+        (B.supportsRuntime_self c)
+        (B.generates_self c)
+        (B.supportsReflection_self c)
+        (B.glue_compatible_self c)).toBodyBoundary := by
+  rw [glueExternalPieces_eq_assemble B c]
+
+theorem glueExternalPieces_toBodyBoundary_expand
+    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+    (B.glueExternalPieces c).toBodyBoundary =
+      { structural :=
+          (B.toReflectionFragment.mkReflection
+            (B.generates_self c)
+            (B.supportsReflection_self c)).structural
+        profile :=
+          (B.toReflectionFragment.mkReflection
+            (B.generates_self c)
+            (B.supportsReflection_self c)).profile
+        dynamic :=
+          (B.toStdFragment.mkRuntime
+            (B.uses_self c)
+            (B.supportsRuntime_self c)).dynamic
+        adequacy :=
+          B.toGlue.mkAdequacy
+            (B.uses_self c)
+            (B.supportsRuntime_self c)
+            (B.generates_self c)
+            (B.supportsReflection_self c)
+            (B.glue_compatible_self c) } := by
+  rw [glueExternalPieces_toBodyBoundary_eq_assemble B c]
+  exact
+    assembleExternalPiecesV3_toBodyBoundary
+      (G := B.toGlue)
+      (huse := B.uses_self c)
+      (hsuppRun := B.supportsRuntime_self c)
+      (hgen := B.generates_self c)
+      (hsuppRefl := B.supportsReflection_self c)
+      (hcompat := B.glue_compatible_self c)
+
+/--
+Glue ルートで組み立てた外部境界が、証明書 `c` から得られる closure 境界と一致することを示す。
+
+ここでの一致は、
+- profile 成分については通常の等式
+- adequacy 成分については profile 等式に沿った依存型の transport を含む一致
+として示される。
+-/
+theorem glueExternalPieces_boundary
+    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+    (B.glueExternalPieces c).toBodyBoundary =
+      (B.readyOf c).toClosureBoundary := by
+  -- Glue ルート側の body boundary を、reflection/profile/adequacy の明示形へ展開する。
+  rw [glueExternalPieces_toBodyBoundary_expand]
+  -- 証明書側の closure boundary を展開する。
+  unfold BodyReadyCI.toClosureBoundary
+  -- 境界レコードの各成分の一致に分解する。
+  congr
+  -- profile 成分は、readySelf の profile と readyOf の profile の一致へ帰着する。
+  · rw [← readySelf_profile_self, readySelf_eq]
+  -- adequacy 成分は、Glue 側の mkAdequacy を readyOf 側へ移し、
+  -- その後、依存型 transport によって生じる HEq を `eqRec_heq` で解消する。
+  · rw [glue_mkAdequacy_self]
+    exact eqRec_heq _ _
+
+
+
+/-- For a builder-generated family, the direct ready route and the direct glue route
+also agree at the official boundary quotient. -/
+theorem ready_vs_glue_boundaryCoherent
+    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+    BoundaryCoherentV3
+      (B.readyExternalPieces c)
+      (B.glueExternalPieces c) := by
+  change (B.readyExternalPieces c).toBodyBoundary =
+    (B.glueExternalPieces c).toBodyBoundary
+  calc
+    (B.readyExternalPieces c).toBodyBoundary =
+        (B.readyOf c).toClosureBoundary := by
+      exact B.readyExternalPieces_boundary c
+    _ = (B.glueExternalPieces c).toBodyBoundary := by
+      symm
+      exact B.glueExternalPieces_boundary c
+
 /-- The ready route generated from the low-level glue is package-coherent with the
 family's direct glue route. -/
 theorem glue_readyInduced_packageCoherent
@@ -228,7 +577,7 @@ theorem glue_readyInduced_packageCoherent
       (hcompat := B.glue_compatible_self c))
 
 /-- The ready route generated from the low-level glue is boundary-coherent with the
-family's direct glue route.  This is the official comparison notion used by the
+family's direct glue route. This is the official comparison notion used by the
 closure theorems. -/
 theorem glue_readyInduced_boundaryCoherent
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
