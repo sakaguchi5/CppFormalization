@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteStrengthening
+import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteRecomputedCursor
 
 namespace Cpp
 
@@ -95,7 +95,7 @@ theorem ownedNoDup_after_declareObjectState
     ownedAddressesNoDupPerFrame (declareObjectState σ τ x ov) := by
   exact ownedAddressesNoDupPerFrame_declareObjectState_of_nextFresh
     (σ := σ) (τ := τ) (x := x) (ov := ov)
-    h.concrete.ownedNoDupPerFrame
+    h.concrete.ownedNoDupPerFrame -- もともとの σ が NoDup であること
     h.concrete.nextFresh
 
 end DeclareObjectReadyStrong
@@ -186,22 +186,16 @@ theorem nextFresh_after_declareRefState
     | cons fr0 frs =>
         cases k with
         | zero =>
-            -- 1. fr = fr0 であることを導出（localsが不変であることを示すため）
             rcases declareRefState_lookup_zero_frame_of_cons
               (σ := σ) (τ := τ) (x := x) (a := a)
               (fr0 := fr0) (frs := frs) hsc hk with rfl
-            -- 2. ゴールは ¬(declareRefState σ τ x a).next ∈ fr0.locals
-            -- declareRefState は next を変えないので、simp で整理
             simp [declareRefState]
-            -- 3. 元の freshness 前提を使用
             exact hlocals 0 fr0 (by simp [hsc])
         | succ k =>
-            -- 1. k.succ 番目のフレームは元の scopes の k.succ 番目と同じ
-            have hk_old : σ.scopes[k.succ]? = some fr := by
-              simpa [declareRefState, hsc] using hk
-            -- 2. simp で next を整理してから適用
+            -- 定義を展開して (declareRefState σ ...).next を σ.next に書き換える
             simp [declareRefState]
-            exact hlocals k.succ fr hk_old
+            -- これでゴールが ¬σ.next ∈ fr.locals になるので、hlocals が使えます
+            exact hlocals (k + 1) fr ((declareRefState_lookup_succ_iff (σ := σ) (τ := τ) (x := x) (a := a) (k := k) (fr := fr)).1 hk)
 
 /-- ref 宣言後も per-frame no-dup は保存される。 -/
 theorem ownedNoDup_after_declareRefState
@@ -223,4 +217,110 @@ theorem ownedDisjoint_after_declareRefState
 
 end DeclareRefReadyStrong
 
+end Cpp
+
+namespace Cpp
+
+namespace DeclareObjectReadyRecomputed
+
+/-- recomputed-cursor policy 下でも object binding の ownership は保存される。 -/
+theorem objectsOwned_after_declareObjectStateWithNext
+    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {ov : Option Value}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ ov) :
+    allObjectBindingsOwned
+      (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
+  intro k y υ a hbind
+  have hbindOld : runtimeFrameBindsObject (declareObjectState σ τ x ov) k y υ a := by
+    simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_old] using hbind
+  have hownOld :=
+    DeclareObjectReadyStrong.objectsOwned_after_declareObjectState
+      h.ready k y υ a hbindOld
+  simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_old] using hownOld
+
+/-- recomputed-cursor policy 下の owned-address naming。 -/
+theorem ownedNamed_after_declareObjectStateWithNext
+    {Γ : TypeEnv} {σ : State} {x : Ident} {Γfr : TypeFrame}
+    {τ : CppType} {ov : Option Value}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ ov)
+    (hΓ0 : Γ.scopes[0]? = some Γfr) :
+    allOwnedAddressesNamed
+      (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
+  intro k a hown
+  have hownOld : runtimeFrameOwnsAddress (declareObjectState σ τ x ov) k a := by
+    simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_old] using hown
+  rcases
+    (DeclareObjectReadyStrong.ownedNamed_after_declareObjectState
+      (h := h.ready) (hΓ0 := hΓ0) (τ := τ) (ov := ov)) k a hownOld
+    with ⟨y, υ, hobjOld⟩
+  exact ⟨y, υ, by
+    simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_old] using hobjOld⟩
+
+/-- recomputed-cursor policy 下でも ref-not-owned は保存される。 -/
+theorem refsNotOwned_after_declareObjectStateWithNext
+    {Γ : TypeEnv} {σ : State} {x : Ident} {Γfr : TypeFrame}
+    {τ : CppType} {ov : Option Value}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ ov)
+    (hΓ0 : Γ.scopes[0]? = some Γfr) :
+    refBindingsNeverOwned
+      (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
+  intro k fr y υ a hk hbind hmem
+  have hkOld : (declareObjectState σ τ x ov).scopes[k]? = some fr := by
+    simpa [scopes_declareObjectStateWithNext_eq_old] using hk
+  have hbindOld : fr.binds y = some (.ref υ a) := by
+    simpa using hbind
+  have hmemOld : a ∈ fr.locals := by
+    simpa using hmem
+  rcases
+    (DeclareObjectReadyStrong.refsNotOwned_after_declareObjectState
+      (h := h.ready) (hΓ0 := hΓ0) (τ := τ) (ov := ov))
+      k fr y υ a hkOld hbindOld hmemOld
+    with ⟨z, ρ, hzOld⟩
+  exact ⟨z, ρ, by simpa using hzOld⟩
+
+/-- recomputed-cursor policy 下でも inner-owned 回避は保存される。 -/
+theorem refTargetsAvoidInnerOwned_after_declareObjectStateWithNext
+    {Γ : TypeEnv} {σ : State} {x : Ident}
+    {τ : CppType} {ov : Option Value}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ ov) :
+    ∀ {k : Nat} {y : Ident} {υ : CppType} {a : Nat} {j : Nat},
+      runtimeFrameBindsRef
+        (declareObjectStateWithNext σ τ x ov h.cursor.addr) k y υ a →
+      j < k →
+      ¬ runtimeFrameOwnsAddress
+        (declareObjectStateWithNext σ τ x ov h.cursor.addr) j a := by
+  intro k y υ a j href hj
+  have hrefOld : runtimeFrameBindsRef (declareObjectState σ τ x ov) k y υ a := by
+    simpa [runtimeFrameBindsRef, scopes_declareObjectStateWithNext_eq_old] using href
+  have hnotOld :=
+    (DeclareObjectReadyStrong.refTargetsAvoidInnerOwned_after_declareObjectState
+      (h := h.ready) (τ := τ) (ov := ov)) hrefOld hj
+  intro hown
+  have hownOld : runtimeFrameOwnsAddress (declareObjectState σ τ x ov) j a := by
+    simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_old] using hown
+  exact hnotOld hownOld
+
+/-- recomputed witness から post-state next-freshness を供給する。 -/
+theorem nextFresh_after_declareObjectStateWithNext
+    {Γ : TypeEnv} {σ : State} {x : Ident}
+    {τ : CppType} {ov : Option Value}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ ov) :
+    nextFreshAgainstOwned
+      (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
+  exact h.nextFresh_after
+
+/-- recomputed-cursor policy 下でも per-frame no-dup は保存される。 -/
+theorem ownedNoDup_after_declareObjectStateWithNext
+    {Γ : TypeEnv} {σ : State} {x : Ident}
+    {τ : CppType} {ov : Option Value}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ ov) :
+    ownedAddressesNoDupPerFrame
+      (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
+  intro k fr hk
+  have hkOld : (declareObjectState σ τ x ov).scopes[k]? = some fr := by
+    simpa [scopes_declareObjectStateWithNext_eq_old] using hk
+  exact
+    (DeclareObjectReadyStrong.ownedNoDup_after_declareObjectState
+      (h := h.ready) (τ := τ) (ov := ov)) k fr hkOld
+
+end DeclareObjectReadyRecomputed
 end Cpp

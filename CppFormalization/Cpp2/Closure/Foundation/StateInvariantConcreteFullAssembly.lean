@@ -14,13 +14,9 @@ full `ScopedTypedStateConcrete` を再構成する層。
 - `frameDepth` / `shadowing` / `declRealized` は declaration ごとに transport する。
 - object 宣言では新しい owner / heap cell をその場で作る。
 - ref 宣言では ownership は変えず、new ref decl の live target だけを外部仮定で受ける。
--
-- type-env lookup 系と decl transport 系を分離する。
-- `k = 0` の nonempty / top-frame 同定 / old-decl 引き戻しを局所 API に吸う。
-- `k = succ` の引き戻しは `*_succ_iff` で統一する。
 -/
 
-section TypeEnvLookupLocalLemmas
+section TypeEnvLocalLemmas
 
 @[simp] theorem lookupDecl_insertTopDecl_self
     (Γ : TypeEnv) (x : Ident) (d : DeclInfo) :
@@ -58,20 +54,6 @@ section TypeEnvLookupLocalLemmas
     lookupDecl (declareTypeRef Γ x τ) y = lookupDecl Γ y := by
   simp [declareTypeRef, hxy]
 
-end TypeEnvLookupLocalLemmas
-
-section TypeEnvDeclTransportLocalLemmas
-
- theorem typeEnv_scopes_cons_of_zero_lookup
-    {Γ : TypeEnv} {Γfr : TypeFrame}
-    (hΓ0 : Γ.scopes[0]? = some Γfr) :
-    ∃ fr0 frs, Γ.scopes = fr0 :: frs := by
-  cases hsc : Γ.scopes with
-  | nil =>
-      simp [hsc] at hΓ0
-  | cons fr0 frs =>
-      exact ⟨fr0, frs, rfl⟩
-
 @[simp] theorem declareTypeObject_scopes_succ
     {Γ : TypeEnv} {x : Ident} {τ : CppType} {k : Nat} :
     (declareTypeObject Γ x τ).scopes[k.succ]? = Γ.scopes[k.succ]? := by
@@ -81,142 +63,6 @@ section TypeEnvDeclTransportLocalLemmas
     {Γ : TypeEnv} {x : Ident} {τ : CppType} {k : Nat} :
     (declareTypeRef Γ x τ).scopes[k.succ]? = Γ.scopes[k.succ]? := by
   cases hsc : Γ.scopes <;> simp [declareTypeRef, insertTopDecl, hsc]
-
- theorem declareTypeObject_lookup_zero_frame_of_cons
-    {Γ : TypeEnv} {x : Ident} {τ : CppType}
-    {fr0 : TypeFrame} {frs : List TypeFrame}
-    (hsc : Γ.scopes = fr0 :: frs)
-    {Γfr' : TypeFrame}
-    (hk : (declareTypeObject Γ x τ).scopes[0]? = some Γfr') :
-    Γfr' =
-      { fr0 with
-        decls := fun y => if y = x then some (.object τ) else fr0.decls y } := by
-  have htop :
-      (declareTypeObject Γ x τ).scopes[0]? =
-        some
-          { fr0 with
-            decls := fun y => if y = x then some (.object τ) else fr0.decls y } := by
-    simp [declareTypeObject, insertTopDecl, hsc]
-  exact Option.some.inj (hk.symm.trans htop)
-
- theorem declareTypeRef_lookup_zero_frame_of_cons
-    {Γ : TypeEnv} {x : Ident} {τ : CppType}
-    {fr0 : TypeFrame} {frs : List TypeFrame}
-    (hsc : Γ.scopes = fr0 :: frs)
-    {Γfr' : TypeFrame}
-    (hk : (declareTypeRef Γ x τ).scopes[0]? = some Γfr') :
-    Γfr' =
-      { fr0 with
-        decls := fun y => if y = x then some (.ref τ) else fr0.decls y } := by
-  have htop :
-      (declareTypeRef Γ x τ).scopes[0]? =
-        some
-          { fr0 with
-            decls := fun y => if y = x then some (.ref τ) else fr0.decls y } := by
-    simp [declareTypeRef, insertTopDecl, hsc]
-  exact Option.some.inj (hk.symm.trans htop)
-
-@[simp] theorem typeFrameDeclObject_declareTypeObject_succ_iff
-    {Γ : TypeEnv} {x y : Ident} {τ υ : CppType} {k : Nat} :
-    typeFrameDeclObject (declareTypeObject Γ x τ) k.succ y υ ↔
-      typeFrameDeclObject Γ k.succ y υ := by
-  constructor <;> intro h
-  · rcases h with ⟨fr, hk, hb⟩
-    exact ⟨fr, by simpa using hk, hb⟩
-  · rcases h with ⟨fr, hk, hb⟩
-    exact ⟨fr, by simpa using hk, hb⟩
-
-@[simp] theorem typeFrameDeclRef_declareTypeObject_succ_iff
-    {Γ : TypeEnv} {x y : Ident} {τ υ : CppType} {k : Nat} :
-    typeFrameDeclRef (declareTypeObject Γ x τ) k.succ y υ ↔
-      typeFrameDeclRef Γ k.succ y υ := by
-  constructor <;> intro h
-  · rcases h with ⟨fr, hk, hb⟩
-    exact ⟨fr, by simpa using hk, hb⟩
-  · rcases h with ⟨fr, hk, hb⟩
-    exact ⟨fr, by simpa using hk, hb⟩
-
-@[simp] theorem typeFrameDeclObject_declareTypeRef_succ_iff
-    {Γ : TypeEnv} {x y : Ident} {τ υ : CppType} {k : Nat} :
-    typeFrameDeclObject (declareTypeRef Γ x τ) k.succ y υ ↔
-      typeFrameDeclObject Γ k.succ y υ := by
-  constructor <;> intro h
-  · rcases h with ⟨fr, hk, hb⟩
-    exact ⟨fr, by simpa using hk, hb⟩
-  · rcases h with ⟨fr, hk, hb⟩
-    exact ⟨fr, by simpa using hk, hb⟩
-
-@[simp] theorem typeFrameDeclRef_declareTypeRef_succ_iff
-    {Γ : TypeEnv} {x y : Ident} {τ υ : CppType} {k : Nat} :
-    typeFrameDeclRef (declareTypeRef Γ x τ) k.succ y υ ↔
-      typeFrameDeclRef Γ k.succ y υ := by
-  constructor <;> intro h
-  · rcases h with ⟨fr, hk, hb⟩
-    exact ⟨fr, by simpa using hk, hb⟩
-  · rcases h with ⟨fr, hk, hb⟩
-    exact ⟨fr, by simpa using hk, hb⟩
-
- theorem typeFrameDeclObject_declareTypeObject_zero_old_of_ne
-    {Γ : TypeEnv} {x x' : Ident} {τ τ' : CppType}
-    {fr0 : TypeFrame} {frs : List TypeFrame}
-    (hsc : Γ.scopes = fr0 :: frs)
-    (hx' : x' ≠ x) :
-    typeFrameDeclObject (declareTypeObject Γ x τ) 0 x' τ' →
-      typeFrameDeclObject Γ 0 x' τ' := by
-  intro hdecl
-  rcases hdecl with ⟨Γfr', hk, hb⟩
-  rcases declareTypeObject_lookup_zero_frame_of_cons
-      (Γ := Γ) (x := x) (τ := τ) (fr0 := fr0) (frs := frs) hsc hk with rfl
-  exact ⟨fr0, by simp [hsc], by simpa [hx'] using hb⟩
-
- theorem typeFrameDeclRef_declareTypeRef_zero_old_of_ne
-    {Γ : TypeEnv} {x x' : Ident} {τ τ' : CppType}
-    {fr0 : TypeFrame} {frs : List TypeFrame}
-    (hsc : Γ.scopes = fr0 :: frs)
-    (hx' : x' ≠ x) :
-    typeFrameDeclRef (declareTypeRef Γ x τ) 0 x' τ' →
-      typeFrameDeclRef Γ 0 x' τ' := by
-  intro hdecl
-  rcases hdecl with ⟨Γfr', hk, hb⟩
-  rcases declareTypeRef_lookup_zero_frame_of_cons
-      (Γ := Γ) (x := x) (τ := τ) (fr0 := fr0) (frs := frs) hsc hk with rfl
-  exact ⟨fr0, by simp [hsc], by simpa [hx'] using hb⟩
-
- theorem typeFrameDeclRef_declareTypeObject_zero_old
-    {Γ : TypeEnv} {x x' : Ident} {τ τ' : CppType}
-    {fr0 : TypeFrame} {frs : List TypeFrame}
-    (hsc : Γ.scopes = fr0 :: frs) :
-    typeFrameDeclRef (declareTypeObject Γ x τ) 0 x' τ' →
-      typeFrameDeclRef Γ 0 x' τ' := by
-  intro hdecl
-  rcases hdecl with ⟨Γfr', hk, hb⟩
-  rcases declareTypeObject_lookup_zero_frame_of_cons
-      (Γ := Γ) (x := x) (τ := τ) (fr0 := fr0) (frs := frs) hsc hk with rfl
-  have hx' : x' ≠ x := by
-    intro hEq
-    subst x'
-    simp at hb
-  exact ⟨fr0, by simp [hsc], by simpa [hx'] using hb⟩
-
- theorem typeFrameDeclObject_declareTypeRef_zero_old
-    {Γ : TypeEnv} {x x' : Ident} {τ τ' : CppType}
-    {fr0 : TypeFrame} {frs : List TypeFrame}
-    (hsc : Γ.scopes = fr0 :: frs) :
-    typeFrameDeclObject (declareTypeRef Γ x τ) 0 x' τ' →
-      typeFrameDeclObject Γ 0 x' τ' := by
-  intro hdecl
-  rcases hdecl with ⟨Γfr', hk, hb⟩
-  rcases declareTypeRef_lookup_zero_frame_of_cons
-      (Γ := Γ) (x := x) (τ := τ) (fr0 := fr0) (frs := frs) hsc hk with rfl
-  have hx' : x' ≠ x := by
-    intro hEq
-    subst x'
-    simp at hb
-  exact ⟨fr0, by simp [hsc], by simpa [hx'] using hb⟩
-
-end TypeEnvDeclTransportLocalLemmas
-
-section StateTransportLocalLemmas
 
 @[simp] theorem frameDepthAgreement_declareTypeObject_declareObjectState
     {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {ov : Option Value} :
@@ -395,9 +241,10 @@ section StateTransportLocalLemmas
   intro y d hdecl
   by_cases hy : y = x
   · subst y
-    rw [lookupDecl_declareTypeObject_self] at hdecl
-    injection hdecl with hd
-    subst hd
+    have hd : d = .object τ := by
+      rw [lookupDecl_declareTypeObject_self] at hdecl
+      exact Option.some.inj hdecl.symm
+    subst d
     refine ⟨.object τ σ.next, ?_, ?_⟩
     · simp [lookupBinding_declareObjectState_self]
     · simp [DeclMatchesBinding]
@@ -415,24 +262,23 @@ section StateTransportLocalLemmas
   intro y d hdecl
   by_cases hy : y = x
   · subst y
-    rw [lookupDecl_declareTypeRef_self] at hdecl
-    injection hdecl with hd
-    subst hd
-    refine ⟨.ref τ a, ⟨?_, by simp [DeclMatchesBinding]⟩⟩
-    unfold lookupBinding declareRefState bindTopBinding
-    cases hsc : σ.scopes with
-    | nil => simp [lookupBindingFrames]
-    | cons fr frs => simp [lookupBindingFrames]
+    have hd : d = .ref τ := by
+      rw [lookupDecl_declareTypeRef_self] at hdecl
+      exact Option.some.inj hdecl.symm
+    subst d
+    refine ⟨.ref τ a, ?_, ?_⟩
+    · simp [lookupBinding_declareRefState_self]
+    · simp [DeclMatchesBinding]
   · have hdeclOld : lookupDecl Γ y = some d := by
       simpa [lookupDecl_declareTypeRef_other (Γ := Γ) (τ := τ) hy] using hdecl
     rcases hshadow y d hdeclOld with ⟨b, hb, hmatch⟩
     refine ⟨b, ?_, hmatch⟩
     simpa [lookupBinding_declareRefState_other (σ := σ) (τ := τ) (x := x) (y := y) (a := a) hy] using hb
 
-end StateTransportLocalLemmas
+end TypeEnvLocalLemmas
 
 namespace DeclareObjectReadyStrong
-
+--復活範囲
 theorem transport_old_object_realization_after_declareObjectState
     {Γ : TypeEnv} {σ : State} {x : Ident}
     (h : DeclareObjectReadyStrong Γ σ x)
@@ -517,6 +363,8 @@ theorem declare_new_object_realization_after_declareObjectState
   · exact runtimeFrameOwnsAddress_declareObjectState_zero_next
       (σ := σ) (τ := τ) (x := x) (ov := ov)
   · simp
+--復活範囲
+
 
  theorem objectDeclRealized_after_declareObjectState
     {Γ : TypeEnv} {σ : State} {x : Ident}
@@ -531,30 +379,62 @@ theorem declare_new_object_realization_after_declareObjectState
         runtimeFrameOwnsAddress (declareObjectState σ τ x ov) k a ∧
         heapLiveTypedAt (declareObjectState σ τ x ov) a τ' := by
   intro k x' τ' hdecl
+  rcases hdecl with ⟨Γfr', hk, hb⟩
   cases k with
   | zero =>
-      rcases typeEnv_scopes_cons_of_zero_lookup (Γ := Γ) hΓ0 with ⟨fr0, frs, hsc⟩
-      rcases hdecl with ⟨Γfr', hk, hb⟩
-      rcases declareTypeObject_lookup_zero_frame_of_cons
-        (Γ := Γ) (x := x) (τ := τ) (fr0 := fr0) (frs := frs) hsc hk with rfl
-      by_cases hx' : x' = x
-      · subst x'
-        have : some (DeclInfo.object τ) = some (.object τ') := by simpa using hb
-        cases this
-        simpa using declare_new_object_realization_after_declareObjectState
-          (σ := σ) (x := x) (τ := τ) (ov := ov)
-      · have hdeclOld : typeFrameDeclObject Γ 0 x' τ' :=
-          typeFrameDeclObject_declareTypeObject_zero_old_of_ne
-            (Γ := Γ) (x := x) (x' := x') (τ := τ) (τ' := τ')
-            (fr0 := fr0) (frs := frs) hsc hx' ⟨_, hk, hb⟩
-        exact transport_old_object_realization_after_declareObjectState
-          (h := h) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdeclOld
+      cases hsc : Γ.scopes with
+      | nil =>
+          simp [hsc] at hΓ0
+      | cons fr0 frs =>
+          simp [declareTypeObject, insertTopDecl, hsc] at hk
+          subst Γfr'
+          by_cases hx' : x' = x
+          · subst x'
+            have hτ' : τ' = τ := by
+              have : some (DeclInfo.object τ) = some (DeclInfo.object τ') := by
+                simpa using hb
+              injection this with h_decl_eq
+              injection h_decl_eq with h_type_eq
+              exact h_type_eq.symm
+            subst τ'
+            have hkσ0 : ∃ fr, (declareObjectState σ τ x ov).scopes[0]? = some fr := by
+              cases hσ : σ.scopes <;>
+                simp [declareObjectState, recordLocal, bindTopBinding, writeHeap, hσ]
+            rcases hkσ0 with ⟨frσ0, hkσ0⟩
+            have hobj : runtimeFrameBindsObject (declareObjectState σ τ x ov) 0 x τ σ.next :=
+              runtimeFrameBindsObject_declareObjectState_zero_new
+                (σ := σ) (τ := τ) (x := x) (ov := ov) hkσ0
+            refine ⟨σ.next, hobj, ?_, ?_⟩
+            · exact allObjectBindingsOwned_declareObjectState
+                (σ := σ) (τ := τ) (x := x) (ov := ov) h.concrete.objectsOwned _ _ _ _ hobj
+            · simp
+          · have hbOld : fr0.decls x' = some (.object τ') := by
+              simpa [hx'] using hb
+            have hdeclOld : typeFrameDeclObject Γ 0 x' τ' := ⟨fr0, by simp [hsc], hbOld⟩
+            rcases h.concrete.objectDeclRealized hdeclOld with ⟨a, hobjOld, hownOld, hliveOld⟩
+            have hobjNew := runtimeFrameBindsObject_declareObjectState_forward_of_topFresh
+              (σ := σ) (τ := τ) (x := x) (ov := ov) (h.topFrameFresh hΓ0) hobjOld
+            have hownNew := runtimeFrameOwnsAddress_declareObjectState_forward
+              (σ := σ) (τ := τ) (x := x) (ov := ov) hownOld
+            have hane : a ≠ σ.next :=
+              runtimeFrameOwnsAddress_ne_next_of_nextFresh (σ := σ) (k := 0) (a := a) h.concrete.nextFresh hownOld
+            have hliveNew := heapLiveTypedAt_declareObjectState_of_ne
+              (σ := σ) (τ := τ) (x := x) (ov := ov) (a := a) (υ := τ') hane hliveOld
+            exact ⟨a, hobjNew, hownNew, hliveNew⟩
   | succ k =>
-      have hdeclOld : typeFrameDeclObject Γ k.succ x' τ' :=
-        (typeFrameDeclObject_declareTypeObject_succ_iff
-          (Γ := Γ) (x := x) (y := x') (τ := τ) (υ := τ') (k := k)).1 hdecl
-      exact transport_old_object_realization_after_declareObjectState
-        (h := h) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdeclOld
+      have hkOld : Γ.scopes[k.succ]? = some Γfr' := by
+        simpa using hk
+      have hdeclOld : typeFrameDeclObject Γ k.succ x' τ' := ⟨Γfr', hkOld, hb⟩
+      rcases h.concrete.objectDeclRealized hdeclOld with ⟨a, hobjOld, hownOld, hliveOld⟩
+      have hobjNew := runtimeFrameBindsObject_declareObjectState_forward_of_topFresh
+        (σ := σ) (τ := τ) (x := x) (ov := ov) (h.topFrameFresh hΓ0) hobjOld
+      have hownNew := runtimeFrameOwnsAddress_declareObjectState_forward
+        (σ := σ) (τ := τ) (x := x) (ov := ov) hownOld
+      have hane : a ≠ σ.next :=
+        runtimeFrameOwnsAddress_ne_next_of_nextFresh (σ := σ) (k := k.succ) (a := a) h.concrete.nextFresh hownOld
+      have hliveNew := heapLiveTypedAt_declareObjectState_of_ne
+        (σ := σ) (τ := τ) (x := x) (ov := ov) (a := a) (υ := τ') hane hliveOld
+      exact ⟨a, hobjNew, hownNew, hliveNew⟩
 
  theorem refDeclRealized_after_declareObjectState
     {Γ : TypeEnv} {σ : State} {x : Ident}
@@ -568,21 +448,43 @@ theorem declare_new_object_realization_after_declareObjectState
         runtimeFrameBindsRef (declareObjectState σ τ x ov) k x' τ' a ∧
         heapLiveTypedAt (declareObjectState σ τ x ov) a τ' := by
   intro k x' τ' hdecl
+  rcases hdecl with ⟨Γfr', hk, hb⟩
   cases k with
   | zero =>
-      rcases typeEnv_scopes_cons_of_zero_lookup (Γ := Γ) hΓ0 with ⟨fr0, frs, hsc⟩
-      have hdeclOld : typeFrameDeclRef Γ 0 x' τ' :=
-        typeFrameDeclRef_declareTypeObject_zero_old
-          (Γ := Γ) (x := x) (x' := x') (τ := τ) (τ' := τ')
-          (fr0 := fr0) (frs := frs) hsc hdecl
-      exact transport_old_ref_realization_after_declareObjectState
-        (h := h) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdeclOld
+      cases hsc : Γ.scopes with
+      | nil =>
+          simp [hsc] at hΓ0
+      | cons fr0 frs =>
+          simp [declareTypeObject, insertTopDecl, hsc] at hk
+          subst Γfr'
+          have hx' : x' ≠ x := by
+            intro hEq
+            subst x'
+            have hnone : fr0.decls x = none := h.typeFresh fr0 (by simp [hsc])
+            simp at hb
+          have hbOld : fr0.decls x' = some (.ref τ') := by
+            simpa [hx'] using hb
+          have hdeclOld : typeFrameDeclRef Γ 0 x' τ' := ⟨fr0, by simp [hsc], hbOld⟩
+          rcases h.concrete.refDeclRealized hdeclOld with ⟨a, hrefOld, hliveOld⟩
+          have hrefNew := runtimeFrameBindsRef_declareObjectState_forward_of_topFresh
+            (σ := σ) (τ := τ) (x := x) (ov := ov) (h.topFrameFresh hΓ0) hrefOld
+          have hane : a ≠ σ.next :=
+            heapLiveTypedAt_ne_next_of_nextFresh (σ := σ) (a := a) (τ := τ') h.concrete.nextFresh hliveOld
+          have hliveNew := heapLiveTypedAt_declareObjectState_of_ne
+            (σ := σ) (τ := τ) (x := x) (ov := ov) (a := a) (υ := τ') hane hliveOld
+          exact ⟨a, hrefNew, hliveNew⟩
   | succ k =>
-      have hdeclOld : typeFrameDeclRef Γ k.succ x' τ' :=
-        (typeFrameDeclRef_declareTypeObject_succ_iff
-          (Γ := Γ) (x := x) (y := x') (τ := τ) (υ := τ') (k := k)).1 hdecl
-      exact transport_old_ref_realization_after_declareObjectState
-        (h := h) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdeclOld
+      have hkOld : Γ.scopes[k.succ]? = some Γfr' := by
+        simpa using hk
+      have hdeclOld : typeFrameDeclRef Γ k.succ x' τ' := ⟨Γfr', hkOld, hb⟩
+      rcases h.concrete.refDeclRealized hdeclOld with ⟨a, hrefOld, hliveOld⟩
+      have hrefNew := runtimeFrameBindsRef_declareObjectState_forward_of_topFresh
+        (σ := σ) (τ := τ) (x := x) (ov := ov) (h.topFrameFresh hΓ0) hrefOld
+      have hane : a ≠ σ.next :=
+        heapLiveTypedAt_ne_next_of_nextFresh (σ := σ) (a := a) (τ := τ') h.concrete.nextFresh hliveOld
+      have hliveNew := heapLiveTypedAt_declareObjectState_of_ne
+        (σ := σ) (τ := τ) (x := x) (ov := ov) (a := a) (υ := τ') hane hliveOld
+      exact ⟨a, hrefNew, hliveNew⟩
 
  theorem kernel_after_declareObjectState
     {Γ : TypeEnv} {σ : State} {x : Ident}
@@ -637,45 +539,6 @@ end DeclareObjectReadyStrong
 
 namespace DeclareRefReadyStrong
 
-theorem transport_old_object_realization_after_declareRefState
-    {Γ : TypeEnv} {σ : State} {x : Ident}
-    (h : Ready Γ σ x)
-    {Γfr : TypeFrame}
-    (hΓ0 : Γ.scopes[0]? = some Γfr)
-    {τ : CppType} {a : Nat}
-    {k : Nat} {x' : Ident} {τ' : CppType}
-    (hdeclOld : typeFrameDeclObject Γ k x' τ') :
-    ∃ addr,
-      runtimeFrameBindsObject (declareRefState σ τ x a) k x' τ' addr ∧
-      runtimeFrameOwnsAddress (declareRefState σ τ x a) k addr ∧
-      heapLiveTypedAt (declareRefState σ τ x a) addr τ' := by
-  rcases h.concrete.objectDeclRealized hdeclOld with ⟨addr, hobjOld, hownOld, hliveOld⟩
-  have hobjNew := runtimeFrameBindsObject_declareRefState_forward_of_topFresh
-    (σ := σ) (τ := τ) (x := x) (a := a) (h.topFrameFresh hΓ0) hobjOld
-  have hownNew := (runtimeFrameOwnsAddress_declareRefState_iff
-    (σ := σ) (τ := τ) (x := x) (a := a) (k := k) (addr := addr)).2 hownOld
-  have hliveNew := (heapLiveTypedAt_declareRefState_iff
-    (σ := σ) (τ := τ) (x := x) (r := a) (a := addr) (υ := τ')).2 hliveOld
-  exact ⟨addr, hobjNew, hownNew, hliveNew⟩
-
-theorem transport_old_ref_realization_after_declareRefState
-    {Γ : TypeEnv} {σ : State} {x : Ident}
-    (h : Ready Γ σ x)
-    {Γfr : TypeFrame}
-    (hΓ0 : Γ.scopes[0]? = some Γfr)
-    {τ : CppType} {a : Nat}
-    {k : Nat} {x' : Ident} {τ' : CppType}
-    (hdeclOld : typeFrameDeclRef Γ k x' τ') :
-    ∃ addr,
-      runtimeFrameBindsRef (declareRefState σ τ x a) k x' τ' addr ∧
-      heapLiveTypedAt (declareRefState σ τ x a) addr τ' := by
-  rcases h.concrete.refDeclRealized hdeclOld with ⟨addr, hrefOld, hliveOld⟩
-  have hrefNew := runtimeFrameBindsRef_declareRefState_forward_of_topFresh
-    (σ := σ) (τ := τ) (x := x) (a := a) (h.topFrameFresh hΓ0) hrefOld
-  have hliveNew := (heapLiveTypedAt_declareRefState_iff
-    (σ := σ) (τ := τ) (x := x) (r := a) (a := addr) (υ := τ')).2 hliveOld
-  exact ⟨addr, hrefNew, hliveNew⟩
-
  theorem objectDeclRealized_after_declareRefState
     {Γ : TypeEnv} {σ : State} {x : Ident}
     (h : Ready Γ σ x)
@@ -689,42 +552,43 @@ theorem transport_old_ref_realization_after_declareRefState
         runtimeFrameOwnsAddress (declareRefState σ τ x a) k addr ∧
         heapLiveTypedAt (declareRefState σ τ x a) addr τ' := by
   intro k x' τ' hdecl
+  rcases hdecl with ⟨Γfr', hk, hb⟩
   cases k with
   | zero =>
-      rcases typeEnv_scopes_cons_of_zero_lookup (Γ := Γ) hΓ0 with ⟨fr0, frs, hsc⟩
-      have hdeclOld : typeFrameDeclObject Γ 0 x' τ' :=
-        typeFrameDeclObject_declareTypeRef_zero_old
-          (Γ := Γ) (x := x) (x' := x') (τ := τ) (τ' := τ')
-          (fr0 := fr0) (frs := frs) hsc hdecl
-      exact transport_old_object_realization_after_declareRefState
-        (h := h) (hΓ0 := hΓ0) (τ := τ) (a := a) hdeclOld
+      cases hsc : Γ.scopes with
+      | nil =>
+          simp [hsc] at hΓ0
+      | cons fr0 frs =>
+          simp [declareTypeRef, insertTopDecl, hsc] at hk
+          subst Γfr'
+          have hx' : x' ≠ x := by
+            intro hEq
+            subst x'
+            have hnone : fr0.decls x = none := h.typeFresh fr0 (by simp [hsc])
+            simp at hb
+          have hbOld : fr0.decls x' = some (.object τ') := by
+            simpa [hx'] using hb
+          have hdeclOld : typeFrameDeclObject Γ 0 x' τ' := ⟨fr0, by simp [hsc], hbOld⟩
+          rcases h.concrete.objectDeclRealized hdeclOld with ⟨addr, hobjOld, hownOld, hliveOld⟩
+          have hobjNew := runtimeFrameBindsObject_declareRefState_forward_of_topFresh
+            (σ := σ) (τ := τ) (x := x) (a := a) (h.topFrameFresh hΓ0) hobjOld
+          have hownNew := (runtimeFrameOwnsAddress_declareRefState_iff
+            (σ := σ) (τ := τ) (x := x) (a := a) (k := 0) (addr := addr)).2 hownOld
+          have hliveNew := (heapLiveTypedAt_declareRefState_iff
+            (σ := σ) (τ := τ) (x := x) (r := a) (a := addr) (υ := τ')).2 hliveOld
+          exact ⟨addr, hobjNew, hownNew, hliveNew⟩
   | succ k =>
-      have hdeclOld : typeFrameDeclObject Γ k.succ x' τ' :=
-        (typeFrameDeclObject_declareTypeRef_succ_iff
-          (Γ := Γ) (x := x) (y := x') (τ := τ) (υ := τ') (k := k)).1 hdecl
-      exact transport_old_object_realization_after_declareRefState
-        (h := h) (hΓ0 := hΓ0) (τ := τ) (a := a) hdeclOld
-
-
-theorem declare_new_ref_realization_after_declareRefState
-    {σ : State} {τ : CppType} {x : Ident} {a : Nat}
-    (haLive : heapLiveTypedAt σ a τ) :
-    ∃ addr,
-      runtimeFrameBindsRef (declareRefState σ τ x a) 0 x τ addr ∧
-      heapLiveTypedAt (declareRefState σ τ x a) addr τ := by
-  have hkσ0 : ∃ fr, (declareRefState σ τ x a).scopes[0]? = some fr := by
-    cases hσ : σ.scopes with
-    | nil =>
-        simp [declareRefState, bindTopBinding, hσ]
-    | cons fr frs =>
-        simp [declareRefState, bindTopBinding, hσ]
-  rcases hkσ0 with ⟨_, hkσ0⟩
-  refine ⟨a, ?_, ?_⟩
-  · exact runtimeFrameBindsRef_declareRefState_zero_new
-      (σ := σ) (τ := τ) (x := x) (a := a) hkσ0
-  · exact
-      (heapLiveTypedAt_declareRefState_iff
-        (σ := σ) (τ := τ) (x := x) (r := a) (a := a) (υ := τ)).2 haLive
+      have hkOld : Γ.scopes[k.succ]? = some Γfr' := by
+        simpa using hk
+      have hdeclOld : typeFrameDeclObject Γ k.succ x' τ' := ⟨Γfr', hkOld, hb⟩
+      rcases h.concrete.objectDeclRealized hdeclOld with ⟨addr, hobjOld, hownOld, hliveOld⟩
+      have hobjNew := runtimeFrameBindsObject_declareRefState_forward_of_topFresh
+        (σ := σ) (τ := τ) (x := x) (a := a) (h.topFrameFresh hΓ0) hobjOld
+      have hownNew := (runtimeFrameOwnsAddress_declareRefState_iff
+        (σ := σ) (τ := τ) (x := x) (a := a) (k := k.succ) (addr := addr)).2 hownOld
+      have hliveNew := (heapLiveTypedAt_declareRefState_iff
+        (σ := σ) (τ := τ) (x := x) (r := a) (a := addr) (υ := τ')).2 hliveOld
+      exact ⟨addr, hobjNew, hownNew, hliveNew⟩
 
  theorem refDeclRealized_after_declareRefState
     {Γ : TypeEnv} {σ : State} {x : Ident}
@@ -739,30 +603,53 @@ theorem declare_new_ref_realization_after_declareRefState
         runtimeFrameBindsRef (declareRefState σ τ x a) k x' τ' addr ∧
         heapLiveTypedAt (declareRefState σ τ x a) addr τ' := by
   intro k x' τ' hdecl
+  rcases hdecl with ⟨Γfr', hk, hb⟩
   cases k with
   | zero =>
-      rcases typeEnv_scopes_cons_of_zero_lookup (Γ := Γ) hΓ0 with ⟨fr0, frs, hsc⟩
-      rcases hdecl with ⟨Γfr', hk, hb⟩
-      rcases declareTypeRef_lookup_zero_frame_of_cons
-        (Γ := Γ) (x := x) (τ := τ) (fr0 := fr0) (frs := frs) hsc hk with rfl
-      by_cases hx' : x' = x
-      · subst x'
-        have : some (DeclInfo.ref τ) = some (.ref τ') := by simpa using hb
-        cases this
-        exact declare_new_ref_realization_after_declareRefState
-          (σ := σ) (τ := τ) (x := x) (a := a) haLive
-      · have hdeclOld : typeFrameDeclRef Γ 0 x' τ' :=
-        typeFrameDeclRef_declareTypeRef_zero_old_of_ne
-            (Γ := Γ) (x := x) (x' := x') (τ := τ) (τ' := τ')
-            (fr0 := fr0) (frs := frs) hsc hx' ⟨_, hk, hb⟩
-        exact transport_old_ref_realization_after_declareRefState
-          (h := h) (hΓ0 := hΓ0) (τ := τ) (a := a) hdeclOld
+      cases hsc : Γ.scopes with
+      | nil =>
+          simp [hsc] at hΓ0
+      | cons fr0 frs =>
+          simp [declareTypeRef, insertTopDecl, hsc] at hk
+          subst Γfr'
+          by_cases hx' : x' = x
+          · subst x'
+            have hτ' : τ' = τ := by
+              have : some (DeclInfo.ref τ) = some (DeclInfo.ref τ') := by
+                simpa using hb
+              injection this with h_decl_eq
+              injection h_decl_eq with h_type_eq
+              exact h_type_eq.symm
+            subst τ'
+            have hkσ0 : ∃ fr, (declareRefState σ τ x a).scopes[0]? = some fr := by
+              cases hσ : σ.scopes <;>
+                simp [declareRefState, bindTopBinding, hσ]
+            rcases hkσ0 with ⟨frσ0, hkσ0⟩
+            have hrefNew : runtimeFrameBindsRef (declareRefState σ τ x a) 0 x τ a :=
+              runtimeFrameBindsRef_declareRefState_zero_new
+                (σ := σ) (τ := τ) (x := x) (a := a) hkσ0
+            refine ⟨a, hrefNew, ?_⟩
+            exact (heapLiveTypedAt_declareRefState_iff
+              (σ := σ) (τ := τ) (x := x) (r := a) (a := a) (υ := τ)).2 haLive
+          · have hbOld : fr0.decls x' = some (.ref τ') := by
+              simpa [hx'] using hb
+            have hdeclOld : typeFrameDeclRef Γ 0 x' τ' := ⟨fr0, by simp [hsc], hbOld⟩
+            rcases h.concrete.refDeclRealized hdeclOld with ⟨addr, hrefOld, hliveOld⟩
+            have hrefNew := runtimeFrameBindsRef_declareRefState_forward_of_topFresh
+              (σ := σ) (τ := τ) (x := x) (a := a) (h.topFrameFresh hΓ0) hrefOld
+            have hliveNew := (heapLiveTypedAt_declareRefState_iff
+              (σ := σ) (τ := τ) (x := x) (r := a) (a := addr) (υ := τ')).2 hliveOld
+            exact ⟨addr, hrefNew, hliveNew⟩
   | succ k =>
-      have hdeclOld : typeFrameDeclRef Γ k.succ x' τ' :=
-        (typeFrameDeclRef_declareTypeRef_succ_iff
-          (Γ := Γ) (x := x) (y := x') (τ := τ) (υ := τ') (k := k)).1 hdecl
-      exact transport_old_ref_realization_after_declareRefState
-        (h := h) (hΓ0 := hΓ0) (τ := τ) (a := a) hdeclOld
+      have hkOld : Γ.scopes[k.succ]? = some Γfr' := by
+        simpa using hk
+      have hdeclOld : typeFrameDeclRef Γ k.succ x' τ' := ⟨Γfr', hkOld, hb⟩
+      rcases h.concrete.refDeclRealized hdeclOld with ⟨addr, hrefOld, hliveOld⟩
+      have hrefNew := runtimeFrameBindsRef_declareRefState_forward_of_topFresh
+        (σ := σ) (τ := τ) (x := x) (a := a) (h.topFrameFresh hΓ0) hrefOld
+      have hliveNew := (heapLiveTypedAt_declareRefState_iff
+        (σ := σ) (τ := τ) (x := x) (r := a) (a := addr) (υ := τ')).2 hliveOld
+      exact ⟨addr, hrefNew, hliveNew⟩
 
 theorem kernel_after_declareRefState
     {Γ : TypeEnv} {σ : State} {x : Ident}
@@ -814,4 +701,188 @@ theorem kernel_after_declareRefState
 
 end DeclareRefReadyStrong
 
+end Cpp
+
+namespace Cpp
+
+namespace DeclareObjectReadyRecomputed
+
+theorem transport_old_object_realization_after_declareObjectStateWithNext
+    {Γ : TypeEnv} {σ : State} {x : Ident}
+    {Γfr : TypeFrame}
+    {τ : CppType} {ov : Option Value}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ ov)
+    (hΓ0 : Γ.scopes[0]? = some Γfr)
+    {k : Nat} {x' : Ident} {τ' : CppType}
+    (hdeclOld : typeFrameDeclObject Γ k x' τ') :
+    ∃ a,
+      runtimeFrameBindsObject
+        (declareObjectStateWithNext σ τ x ov h.cursor.addr) k x' τ' a ∧
+      runtimeFrameOwnsAddress
+        (declareObjectStateWithNext σ τ x ov h.cursor.addr) k a ∧
+      heapLiveTypedAt
+        (declareObjectStateWithNext σ τ x ov h.cursor.addr) a τ' := by
+  rcases
+    (DeclareObjectReadyStrong.transport_old_object_realization_after_declareObjectState
+      (h := h.ready) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdeclOld)
+    with ⟨a, hobjOld, hownOld, hliveOld⟩
+  refine ⟨a, ?_, ?_, ?_⟩
+  · simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_old] using hobjOld
+  · simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_old] using hownOld
+  · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_old] using hliveOld
+
+theorem transport_old_ref_realization_after_declareObjectStateWithNext
+    {Γ : TypeEnv} {σ : State} {x : Ident}
+    {Γfr : TypeFrame}
+    {τ : CppType} {ov : Option Value}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ ov)
+    (hΓ0 : Γ.scopes[0]? = some Γfr)
+    {k : Nat} {x' : Ident} {τ' : CppType}
+    (hdeclOld : typeFrameDeclRef Γ k x' τ') :
+    ∃ a,
+      runtimeFrameBindsRef
+        (declareObjectStateWithNext σ τ x ov h.cursor.addr) k x' τ' a ∧
+      heapLiveTypedAt
+        (declareObjectStateWithNext σ τ x ov h.cursor.addr) a τ' := by
+  rcases
+    (DeclareObjectReadyStrong.transport_old_ref_realization_after_declareObjectState
+      (h := h.ready) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdeclOld)
+    with ⟨a, hrefOld, hliveOld⟩
+  refine ⟨a, ?_, ?_⟩
+  · simpa [runtimeFrameBindsRef, scopes_declareObjectStateWithNext_eq_old] using hrefOld
+  · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_old] using hliveOld
+
+theorem declare_new_object_realization_after_declareObjectStateWithNext
+    {σ : State} {x : Ident} {τ : CppType} {ov : Option Value}
+    (aNext : Nat) :
+    ∃ a,
+      runtimeFrameBindsObject (declareObjectStateWithNext σ τ x ov aNext) 0 x τ a ∧
+      runtimeFrameOwnsAddress (declareObjectStateWithNext σ τ x ov aNext) 0 a ∧
+      heapLiveTypedAt (declareObjectStateWithNext σ τ x ov aNext) a τ := by
+  rcases
+    (DeclareObjectReadyStrong.declare_new_object_realization_after_declareObjectState
+      (σ := σ) (x := x) (τ := τ) (ov := ov))
+    with ⟨a, hobjOld, hownOld, hliveOld⟩
+  refine ⟨a, ?_, ?_, ?_⟩
+  · simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_old] using hobjOld
+  · simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_old] using hownOld
+  · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_old] using hliveOld
+
+theorem objectDeclRealized_after_declareObjectStateWithNext
+    {Γ : TypeEnv} {σ : State} {x : Ident}
+    {Γfr : TypeFrame}
+    {τ : CppType} {ov : Option Value}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ ov)
+    (hΓ0 : Γ.scopes[0]? = some Γfr) :
+    ∀ {k x' τ'},
+      typeFrameDeclObject (declareTypeObject Γ x τ) k x' τ' →
+      ∃ a,
+        runtimeFrameBindsObject
+          (declareObjectStateWithNext σ τ x ov h.cursor.addr) k x' τ' a ∧
+        runtimeFrameOwnsAddress
+          (declareObjectStateWithNext σ τ x ov h.cursor.addr) k a ∧
+        heapLiveTypedAt
+          (declareObjectStateWithNext σ τ x ov h.cursor.addr) a τ' := by
+  intro k x' τ' hdecl
+  rcases
+    (DeclareObjectReadyStrong.objectDeclRealized_after_declareObjectState
+      (h := h.ready) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdecl)
+    with ⟨a, hobjOld, hownOld, hliveOld⟩
+  refine ⟨a, ?_, ?_, ?_⟩
+  · simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_old] using hobjOld
+  · simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_old] using hownOld
+  · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_old] using hliveOld
+
+theorem refDeclRealized_after_declareObjectStateWithNext
+    {Γ : TypeEnv} {σ : State} {x : Ident}
+    {Γfr : TypeFrame}
+    {τ : CppType} {ov : Option Value}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ ov)
+    (hΓ0 : Γ.scopes[0]? = some Γfr) :
+    ∀ {k x' τ'},
+      typeFrameDeclRef (declareTypeObject Γ x τ) k x' τ' →
+      ∃ a,
+        runtimeFrameBindsRef
+          (declareObjectStateWithNext σ τ x ov h.cursor.addr) k x' τ' a ∧
+        heapLiveTypedAt
+          (declareObjectStateWithNext σ τ x ov h.cursor.addr) a τ' := by
+  intro k x' τ' hdecl
+  rcases
+    (DeclareObjectReadyStrong.refDeclRealized_after_declareObjectState
+      (h := h.ready) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdecl)
+    with ⟨a, hrefOld, hliveOld⟩
+  refine ⟨a, ?_, ?_⟩
+  · simpa [runtimeFrameBindsRef, scopes_declareObjectStateWithNext_eq_old] using hrefOld
+  · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_old] using hliveOld
+
+theorem kernel_after_declareObjectStateWithNext
+    {Γ : TypeEnv} {σ : State} {x : Ident}
+    {Γfr : TypeFrame}
+    {τ : CppType} {ov : Option Value}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ ov)
+    (hΓ0 : Γ.scopes[0]? = some Γfr) :
+    ScopedTypedStateConcreteKernel
+      (declareTypeObject Γ x τ)
+      (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
+  let hold :=
+    DeclareObjectReadyStrong.kernel_after_declareObjectState
+      (h := h.ready) (hΓ0 := hΓ0) (τ := τ) (ov := ov)
+  refine
+    { frameDepth := by
+        unfold frameDepthAgreement at *
+        simpa [scopes_declareObjectStateWithNext_eq_old] using hold.frameDepth
+      shadowing := by
+        intro y d hdecl
+        rcases hold.shadowing y d hdecl with ⟨b, hb, hmatch⟩
+        refine ⟨b, ?_, hmatch⟩
+        simpa [lookupBinding, scopes_declareObjectStateWithNext_eq_old] using hb
+      objectDeclRealized :=
+        objectDeclRealized_after_declareObjectStateWithNext
+          (h := h) (hΓ0 := hΓ0)
+      refDeclRealized :=
+        refDeclRealized_after_declareObjectStateWithNext
+          (h := h) (hΓ0 := hΓ0) }
+
+theorem concrete_after_declareObjectStateWithNext
+    {Γ : TypeEnv} {σ : State} {x : Ident}
+    {Γfr : TypeFrame}
+    {τ : CppType} {ov : Option Value}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ ov)
+    (hΓ0 : Γ.scopes[0]? = some Γfr)
+    (hov : OptionValueCompat ov τ) :
+    ScopedTypedStateConcrete
+      (declareTypeObject Γ x τ)
+      (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
+  let hker :=
+    kernel_after_declareObjectStateWithNext
+      (h := h) (hΓ0 := hΓ0)
+  let hown :=
+    DeclareObjectReadyRecomputed.ownership_after_declareObjectStateWithNext
+      (h := h) (hΓ0 := hΓ0)
+  have hheapOld :
+      heapInitializedValuesTyped (declareObjectState σ τ x ov) := by
+    exact heapInitializedValuesTyped_declareObjectState_of_optionCompat
+      (σ := σ) (τ := τ) (x := x) (ov := ov)
+      h.ready.concrete.heapStoredValuesTyped hov
+  have hheapNew :
+      heapInitializedValuesTyped
+        (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
+    simpa [heapInitializedValuesTyped, heap_declareObjectStateWithNext_eq_old] using hheapOld
+  refine
+    { frameDepth := hker.frameDepth
+      shadowing := hker.shadowing
+      objectDeclRealized := hker.objectDeclRealized
+      refDeclRealized := hker.refDeclRealized
+      ownedAddressNamed := hown.ownedAddressNamed
+      refsNotOwned := hown.refsNotOwned
+      objectsOwned := hown.objectsOwned
+      ownedNoDupPerFrame := hown.ownedNoDupPerFrame
+      ownedDisjoint := hown.ownedDisjoint
+      ownedNamed := hown.ownedNamed
+      heapStoredValuesTyped := hheapNew
+      initializedValuesTyped := objectBindingsInitializedTypedWeak_trivial _
+      nextFresh := hown.nextFresh
+      refTargetsAvoidInnerOwned := hown.refTargetsAvoidInnerOwned }
+
+end DeclareObjectReadyRecomputed
 end Cpp

@@ -125,7 +125,7 @@ theorem ownership_after_declareObjectState
           (h := h) (hΓ0 := hΓ0) (τ := τ) (ov := ov)
       nextFresh :=
         nextFresh_after_declareObjectState
-         (τ := τ) (ov := ov) hnextSucc
+          (τ := τ) (ov := ov) hnextSucc
       refTargetsAvoidInnerOwned :=
         refTargetsAvoidInnerOwned_after_declareObjectState
           (h := h) (τ := τ) (ov := ov) }
@@ -169,4 +169,62 @@ theorem ownership_after_declareRefState
 
 end DeclareRefReadyStrong
 
+end Cpp
+
+namespace Cpp
+namespace DeclareObjectReadyRecomputed
+
+/-- recomputed-cursor policy 下でも frame 間 ownership disjointness は保存される。 -/
+theorem ownedDisjoint_after_declareObjectStateWithNext
+    {Γ : TypeEnv} {σ : State} {x : Ident}
+    {τ : CppType} {ov : Option Value}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ ov) :
+    ownedAddressesDisjointAcrossFrames
+      (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
+  intro i j fi fj a hij hi hj hai haj
+  have hiOld : (declareObjectState σ τ x ov).scopes[i]? = some fi := by
+    simpa [scopes_declareObjectStateWithNext_eq_old] using hi
+  have hjOld : (declareObjectState σ τ x ov).scopes[j]? = some fj := by
+    simpa [scopes_declareObjectStateWithNext_eq_old] using hj
+  exact
+    (DeclareObjectReadyStrong.ownedDisjoint_after_declareObjectState
+      (h := h.ready) (τ := τ) (ov := ov))
+      i j fi fj a hij hiOld hjOld hai haj
+
+/-- recomputed-cursor policy 下の ownership bundle。 -/
+theorem ownership_after_declareObjectStateWithNext
+    {Γ : TypeEnv} {σ : State} {x : Ident}
+    {Γfr : TypeFrame}
+    {τ : CppType} {ov : Option Value}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ ov)
+    (hΓ0 : Γ.scopes[0]? = some Γfr) :
+    ScopedTypedStateConcreteOwnership
+      (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
+  refine
+    { ownedAddressNamed :=
+        @DeclareObjectReadyRecomputed.ownedNamed_after_declareObjectStateWithNext
+          Γ σ x Γfr τ ov h hΓ0
+      refsNotOwned :=
+        DeclareObjectReadyRecomputed.refsNotOwned_after_declareObjectStateWithNext
+          (h := h) (hΓ0 := hΓ0)
+      objectsOwned :=
+        DeclareObjectReadyRecomputed.objectsOwned_after_declareObjectStateWithNext
+          (h := h)
+      ownedNoDupPerFrame :=
+        DeclareObjectReadyRecomputed.ownedNoDup_after_declareObjectStateWithNext
+          (h := h)
+      ownedDisjoint :=
+        DeclareObjectReadyRecomputed.ownedDisjoint_after_declareObjectStateWithNext
+          (h := h)
+      ownedNamed :=
+        DeclareObjectReadyRecomputed.ownedNamed_after_declareObjectStateWithNext
+          (h := h) (hΓ0 := hΓ0)
+      nextFresh :=
+        DeclareObjectReadyRecomputed.nextFresh_after_declareObjectStateWithNext
+          (h := h)
+      refTargetsAvoidInnerOwned :=
+        DeclareObjectReadyRecomputed.refTargetsAvoidInnerOwned_after_declareObjectStateWithNext
+          (h := h) }
+
+end DeclareObjectReadyRecomputed
 end Cpp

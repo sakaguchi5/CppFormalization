@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteFullAssembly
+import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteStrengthening
 import CppFormalization.Cpp2.Lemmas.RuntimeObjectCore
 
 namespace Cpp

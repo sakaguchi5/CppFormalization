@@ -1,5 +1,6 @@
 import CppFormalization.Cpp2.Semantics.Expr
 import CppFormalization.Cpp2.Core.RuntimeState
+import CppFormalization.Cpp2.Core.RuntimeObjectCore
 import CppFormalization.Cpp2.Core.Syntax
 import CppFormalization.Cpp2.Core.Types
 import CppFormalization.Cpp2.Core.Outcome
@@ -28,6 +29,17 @@ def DeclaresObject (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (
    | some v => ValueCompat v τ) ∧
   σ' = declareObjectState σ τ x ov
 
+
+def DeclaresObjectWithNext
+    (σ : State) (τ : CppType) (x : Ident) (ov : Option Value)
+    (aNext : Nat) (σ' : State) : Prop :=
+  ObjectType τ ∧
+  currentScopeFresh σ x ∧
+  σ.heap σ.next = none ∧
+  (match ov with
+   | none => True
+   | some v => ValueCompat v τ) ∧
+  σ' = declareObjectStateWithNext σ τ x ov aNext
 
 def DeclaresRef (σ : State) (τ : CppType) (x : Ident) (a : Nat) (σ' : State) : Prop :=
   currentScopeFresh σ x ∧

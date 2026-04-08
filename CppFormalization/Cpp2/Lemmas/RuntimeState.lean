@@ -37,12 +37,12 @@ namespace Cpp
     (σ : State) (a : Nat) (c : Cell) :
     (writeHeap σ a c).scopes = σ.scopes := by
   rfl
-
+/-
 @[simp] theorem next_writeHeap
     (σ : State) (a : Nat) (c : Cell) :
     (writeHeap σ a c).next = σ.next := by
   rfl
-
+-/
 @[simp] theorem lookupBinding_writeHeap
     (σ : State) (a : Nat) (c : Cell) (x : Ident) :
     lookupBinding (writeHeap σ a c) x = lookupBinding σ x := by
@@ -79,13 +79,13 @@ namespace Cpp
           { fr with binds := fun y => if y = x then some b else fr.binds y } :: frs := by
   unfold bindTopBinding
   cases σ.scopes <;> rfl
-
+/-
 @[simp] theorem next_bindTopBinding
     (σ : State) (x : Ident) (b : Binding) :
     (bindTopBinding σ x b).next = σ.next := by
   unfold bindTopBinding
   split <;> rfl
-
+-/
 @[simp] theorem heap_bindTopBinding
     (σ : State) (x : Ident) (bnd : Binding) :
     (bindTopBinding σ x bnd).heap = σ.heap := by
@@ -106,13 +106,13 @@ namespace Cpp
     (recordLocal σ a).heap = σ.heap := by
   unfold recordLocal
   split <;> rfl
-
+/-
 @[simp] theorem next_recordLocal
     (σ : State) (a : Nat) :
     (recordLocal σ a).next = σ.next := by
   unfold recordLocal
   split <;> rfl
-
+-/
 @[simp] theorem lookupBinding_recordLocal
     (σ : State) (a : Nat) (x : Ident) :
     lookupBinding (recordLocal σ a) x = lookupBinding σ x := by
