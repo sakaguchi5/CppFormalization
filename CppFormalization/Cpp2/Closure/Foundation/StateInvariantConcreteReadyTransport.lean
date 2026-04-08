@@ -80,8 +80,7 @@ theorem refTargetsAvoidInnerOwned_after_declareObjectState
 
 /-- object 宣言後の next-freshness は cursor successor の fresh 性から供給する。 -/
 theorem nextFresh_after_declareObjectState
-    {Γ : TypeEnv} {σ : State} {x : Ident}
-    (_h : DeclareObjectReadyStrong Γ σ x)
+    {σ : State} {x : Ident}
     {τ : CppType} {ov : Option Value}
     (hnextSucc : freshAddrAgainstOwned σ (σ.next + 1)) :
     nextFreshAgainstOwned (declareObjectState σ τ x ov) := by
