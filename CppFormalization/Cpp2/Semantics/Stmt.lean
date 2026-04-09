@@ -19,7 +19,7 @@ def Assigns (σ : State) (p : PlaceExpr) (v : Value) (σ' : State) : Prop :=
     ValueCompat v c.ty ∧
     σ' = writeHeap σ a { c with value := some v }
 
-def DeclaresObject (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (σ' : State) : Prop :=
+
 def DeclaresObjectWithNext
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value)
     (aNext : Nat) (σ' : State) : Prop :=
@@ -55,6 +55,7 @@ def DeclaresObject (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (
   intro h
   exact ⟨aNext, h⟩
 
+
 def DeclaresRef (σ : State) (τ : CppType) (x : Ident) (a : Nat) (σ' : State) : Prop :=
   currentScopeFresh σ x ∧
   ∃ c,
@@ -66,6 +67,7 @@ def DeclaresRef (σ : State) (τ : CppType) (x : Ident) (a : Nat) (σ' : State) 
 
 def OpenScope (σ σ' : State) : Prop :=
   σ' = pushScope σ
+
 
 def CloseScope (σ σ' : State) : Prop :=
   popScope? σ = some σ'
@@ -168,6 +170,7 @@ inductive BigStepBlock : State → StmtBlock → CtrlResult → State → Prop w
       BigStepBlock σ (.cons s ss) (.returnResult rv) σ₁
 
 end
+
 
 def BigStepStmtTerminates (σ : State) (st : CppStmt) : Prop :=
   ∃ ctrl σ', BigStepStmt σ st ctrl σ'
