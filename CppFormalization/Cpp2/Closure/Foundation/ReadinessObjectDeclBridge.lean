@@ -16,6 +16,50 @@ recomputed-cursor object-declaration package から `StmtReadyConcrete` /
 - `DeclareObjectReadyStrong` から無理に `currentTypeScopeFresh` を導かない。
 -/
 
+/--
+object declaration の initializer が、最終的に object に格納される初期値 `ov`
+を与えることを表す runtime-side relation.
+
+現在の idealized concrete semantics では、`some e` の場合は
+「`e` が値 `v` へ評価され、その `v` が `τ` に compatible である」ことをもって
+「object に格納される値が `some v` である」とみなす。
+-/
+def ObjectDeclInitStoredValue
+    (σ : State) (τ : CppType)
+    (initExpr : Option ValExpr) (ov : Option Value) : Prop :=
+  match initExpr with
+  | none => ov = none
+  | some e =>
+      ∃ v,
+        ov = some v ∧
+        BigStepValue σ e v ∧
+        ValueCompat v τ
+
+namespace ObjectDeclInitStoredValue
+
+@[simp] theorem none_iff
+     {σ : State} {τ : CppType} {ov : Option Value} :
+    ObjectDeclInitStoredValue  σ τ none ov ↔ ov = none :=
+  Iff.rfl
+
+@[simp] theorem some_iff
+     {σ : State} {τ : CppType} {e : ValExpr} {ov : Option Value} :
+    ObjectDeclInitStoredValue  σ τ (some e) ov ↔
+      ∃ v, ov = some v ∧ BigStepValue σ e v ∧ ValueCompat v τ :=
+  Iff.rfl
+
+@[simp] theorem ov_eq_none
+    {σ : State} {τ : CppType} {ov : Option Value}
+    (h : ObjectDeclInitStoredValue  σ τ none ov) :
+    ov = none := h
+
+@[simp] theorem exists_value_of_some
+    {σ : State} {τ : CppType} {e : ValExpr} {ov : Option Value}
+    (h : ObjectDeclInitStoredValue  σ τ (some e) ov) :
+    ∃ v, ov = some v ∧ BigStepValue σ e v ∧ ValueCompat v τ := h
+
+end ObjectDeclInitStoredValue
+
 namespace DeclareObjectReadyRecomputed
 
 @[simp] theorem stmtReadyConcrete_declareObjNone
