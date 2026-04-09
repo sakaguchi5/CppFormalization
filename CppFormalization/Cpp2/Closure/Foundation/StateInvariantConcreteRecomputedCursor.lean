@@ -1,139 +1,107 @@
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteStrengthening
-import CppFormalization.Cpp2.Lemmas.RuntimeObjectCore
+import CppFormalization.Cpp2.Core.RuntimeObjectCore
+import CppFormalization.Cpp2.Lemmas.RuntimeObjectCoreWithNext
 import CppFormalization.Cpp2.Semantics.Stmt
 
 namespace Cpp
 
 /-!
-# Closure.Foundation.StateInvariantConcreteRecomputedCursor
+Recomputed-cursor object declaration package.
 
-Foundation consumes a lower-layer object-core update and adds the closure-side
-cursor admissibility witness.
-
-What moved out:
-- `declareObjectStateCore`
-- `declareObjectStateWithNext`
-- plain state-algebra lemmas for scopes/heap/lookup
-
-What remains here:
-- admissibility of the chosen post-core cursor relative to closure/state invariants
-- the ready package used by object-side transport/full assembly
+Canonical naming freshness for declaration readiness is `currentTypeScopeFresh`.
+Frame-local freshness remains an internal support notion inside Foundation,
+but the exported ready package carries the scope-level predicate explicitly.
 -/
 
-/--
-Chosen post-core cursor, now attached to the post-core state.
+namespace RecomputedObjectState
 
-It must be:
-- fresh against owned/local addresses and heap occupancy
-- not a runtime ref target
-- monotone relative to the pre-state cursor
--/
 structure RecomputedNextWitness (σ : State) : Type where
   addr : Nat
   freshOwned : freshAddrAgainstOwned σ addr
   notRuntimeRefTarget :
-    ∀ {k : Nat} {x : Ident} {τ : CppType},
-      ¬ runtimeFrameBindsRef σ k x τ addr
+    ∀ {k : Nat} {y : Ident} {υ : CppType},
+      ¬ runtimeFrameBindsRef σ k y υ addr
   monotone : σ.next ≤ addr
 
-namespace RecomputedNextWitness
-
-@[simp] theorem nextFresh_after_setNext
+@[simp] theorem nextFreshAgainstOwned_after_setNext
     {σ : State} (w : RecomputedNextWitness σ) :
     nextFreshAgainstOwned (setNext σ w.addr) := by
-  exact w.freshOwned
+  refine ⟨?_, ?_⟩
+  · simpa [setNext] using w.freshOwned.1
+  · intro k fr hk
+    simpa [setNext] using w.freshOwned.2 k fr hk
 
 @[simp] theorem next_notRuntimeRefTarget_after_setNext
     {σ : State} (w : RecomputedNextWitness σ) :
-    ∀ {k : Nat} {x : Ident} {τ : CppType},
-      ¬ runtimeFrameBindsRef (setNext σ w.addr) k x τ (setNext σ w.addr).next := by
-  intro k x τ href
-  exact w.notRuntimeRefTarget (by simpa [setNext] using href)
+    ∀ {k : Nat} {y : Ident} {υ : CppType},
+      ¬ runtimeFrameBindsRef (setNext σ w.addr) k y υ (setNext σ w.addr).next := by
+  intro k y υ
+  simpa [setNext] using (w.notRuntimeRefTarget (k := k) (y := y) (υ := υ))
 
-end RecomputedNextWitness
-
-section RecomputedObjectState
-
-/--
-Object declaration with an admissible recomputed cursor inherits post-state
-freshness directly from the witness.
--/
 @[simp] theorem nextFreshAgainstOwned_declareObjectStateWithNext
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
     (w : RecomputedNextWitness (declareObjectStateCore σ τ x ov)) :
     nextFreshAgainstOwned (declareObjectStateWithNext σ τ x ov w.addr) := by
-  simpa [declareObjectStateWithNext, setNext] using
-    (RecomputedNextWitness.nextFresh_after_setNext (σ := declareObjectStateCore σ τ x ov) w)
+  simp [declareObjectStateWithNext,nextFreshAgainstOwned_after_setNext]
 
-/--
-Object declaration with an admissible recomputed cursor keeps the chosen cursor
-away from runtime ref targets.
--/
 @[simp] theorem next_notRuntimeRefTarget_declareObjectStateWithNext
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
     (w : RecomputedNextWitness (declareObjectStateCore σ τ x ov)) :
     ∀ {k : Nat} {y : Ident} {υ : CppType},
-      ¬ runtimeFrameBindsRef
-          (declareObjectStateWithNext σ τ x ov w.addr)
-          k y υ
+      ¬ runtimeFrameBindsRef (declareObjectStateWithNext σ τ x ov w.addr) k y υ
           (declareObjectStateWithNext σ τ x ov w.addr).next := by
-  -- 変数を導入
   intro k y υ
-  -- 定義を展開して整理し、用意された補題を適用
-  simpa [declareObjectStateWithNext, setNext] using
-    w.next_notRuntimeRefTarget_after_setNext
+  -- w.フィールド名 ではなく 定理名 w で呼び出す
+  simpa [declareObjectStateWithNext] using
+    (next_notRuntimeRefTarget_after_setNext w)
 
 @[simp] theorem monotone_next_declareObjectStateWithNext
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
     (w : RecomputedNextWitness (declareObjectStateCore σ τ x ov)) :
     (declareObjectStateCore σ τ x ov).next ≤
       (declareObjectStateWithNext σ τ x ov w.addr).next := by
-  simpa [declareObjectStateWithNext, setNext, next_declareObjectStateCore] using w.monotone
+  simpa [declareObjectStateWithNext, setNext] using w.monotone
 
 end RecomputedObjectState
 
-/--
-Ready package for object declaration under the recomputed-cursor policy.
+open RecomputedObjectState
 
-This remains in Foundation because it depends on `DeclareObjectReadyStrong`,
-which is already a closure/foundation-side notion.
-
-In addition to structural/cursor readiness, the package also carries
-initializer compatibility with the declared object type.
--/
-
+/-- Initializer compatibility used by the recomputed object-declaration package. -/
 def IsValueCompatible (ov : Option Value) (τ : CppType) : Prop :=
   match ov with
   | none => True
   | some v => ValueCompat v τ
 
-@[simp] theorem isValueCompatible_none
-    {τ : CppType} :
-    IsValueCompatible none τ := by
+@[simp] theorem isValueCompatible_none {τ : CppType} : IsValueCompatible none τ := by
   simp [IsValueCompatible]
 
-@[simp] theorem isValueCompatible_some
-    {v : Value} {τ : CppType} :
+@[simp] theorem isValueCompatible_some {v : Value} {τ : CppType} :
     IsValueCompatible (some v) τ ↔ ValueCompat v τ := by
   simp [IsValueCompatible]
 
+/--
+Ready package for object declaration under the recomputed-cursor policy.
+
+`currentTypeScopeFresh` is the exported, canonical naming predicate.
+The stronger frame-local data stays inside `DeclareObjectReadyStrong`.
+-/
 structure DeclareObjectReadyRecomputed
-    (Γ : TypeEnv) (σ : State) (x : Ident)
-    (τ : CppType) (ov : Option Value) : Type where
+    (Γ : TypeEnv) (σ : State) (x : Ident) (τ : CppType) (ov : Option Value) : Type where
   ready : DeclareObjectReadyStrong Γ σ x
+  scopeFresh : currentTypeScopeFresh Γ x
   cursor : RecomputedNextWitness (declareObjectStateCore σ τ x ov)
   initCompat : IsValueCompatible ov τ
 
 namespace DeclareObjectReadyRecomputed
 
-@[simp] theorem initCompat_after
-    {Γ : TypeEnv} {σ : State} {x : Ident}
-    {τ : CppType} {ov : Option Value}
+@[simp] theorem typeScopeFresh_after
+    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {ov : Option Value}
     (h : DeclareObjectReadyRecomputed Γ σ x τ ov) :
-    IsValueCompatible ov τ :=
-  h.initCompat
+    currentTypeScopeFresh Γ x := h.scopeFresh
 
-
+@[simp] theorem initCompat_after
+    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {ov : Option Value}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ ov) : IsValueCompatible ov τ := h.initCompat
 
 @[simp] theorem nextFresh_after
     {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {ov : Option Value}
@@ -145,10 +113,9 @@ namespace DeclareObjectReadyRecomputed
     {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {ov : Option Value}
     (h : DeclareObjectReadyRecomputed Γ σ x τ ov) :
     ∀ {k : Nat} {y : Ident} {υ : CppType},
-      ¬ runtimeFrameBindsRef
-          (declareObjectStateWithNext σ τ x ov h.cursor.addr)
-          k y υ
+      ¬ runtimeFrameBindsRef (declareObjectStateWithNext σ τ x ov h.cursor.addr) k y υ
           (declareObjectStateWithNext σ τ x ov h.cursor.addr).next := by
+  intro k y υ
   exact next_notRuntimeRefTarget_declareObjectStateWithNext h.cursor
 
 @[simp] theorem monotone_next
@@ -158,16 +125,10 @@ namespace DeclareObjectReadyRecomputed
       (declareObjectStateWithNext σ τ x ov h.cursor.addr).next := by
   exact monotone_next_declareObjectStateWithNext h.cursor
 
-end DeclareObjectReadyRecomputed
-
-
-section SemanticsBridge
-
 private theorem currentScopeFresh_of_ready
     {Γ : TypeEnv} {σ : State} {x : Ident}
     (h : DeclareObjectReadyStrong Γ σ x)
-    {Γfr : TypeFrame}
-    (hΓ0 : Γ.scopes[0]? = some Γfr) :
+    {Γfr : TypeFrame} (hΓ0 : Γ.scopes[0]? = some Γfr) :
     currentScopeFresh σ x := by
   cases hσ : σ.scopes with
   | nil =>
@@ -179,14 +140,10 @@ private theorem currentScopeFresh_of_ready
   | cons fr frs =>
       simpa [currentScopeFresh, hσ] using (h.topFrameFresh hΓ0) fr (by simp [hσ])
 
-namespace DeclareObjectReadyRecomputed
-
 @[simp] theorem declaresObjectWithNext_after
-    {Γ : TypeEnv} {σ : State} {x : Ident}
-    {τ : CppType} {ov : Option Value}
+    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {ov : Option Value}
     (h : DeclareObjectReadyRecomputed Γ σ x τ ov)
-    {Γfr : TypeFrame}
-    (hΓ0 : Γ.scopes[0]? = some Γfr)
+    {Γfr : TypeFrame} (hΓ0 : Γ.scopes[0]? = some Γfr)
     (hobj : ObjectType τ) :
     DeclaresObjectWithNext σ τ x ov h.cursor.addr
       (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
@@ -195,40 +152,14 @@ namespace DeclareObjectReadyRecomputed
   · exact h.ready.concrete.nextFresh.1
 
 @[simp] theorem declaresObject_after
-    {Γ : TypeEnv} {σ : State} {x : Ident}
-    {τ : CppType} {ov : Option Value}
+    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {ov : Option Value}
     (h : DeclareObjectReadyRecomputed Γ σ x τ ov)
-    {Γfr : TypeFrame}
-    (hΓ0 : Γ.scopes[0]? = some Γfr)
+    {Γfr : TypeFrame} (hΓ0 : Γ.scopes[0]? = some Γfr)
     (hobj : ObjectType τ) :
     DeclaresObject σ τ x ov
       (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
   exact ⟨h.cursor.addr, h.declaresObjectWithNext_after hΓ0 hobj⟩
 
-@[simp] theorem bigStepDeclareObjNone
-    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType}
-    (h : DeclareObjectReadyRecomputed Γ σ x τ none)
-    {Γfr : TypeFrame}
-    (hΓ0 : Γ.scopes[0]? = some Γfr)
-    (hobj : ObjectType τ) :
-    BigStepStmt σ (.declareObj τ x none) .normal
-      (declareObjectStateWithNext σ τ x none h.cursor.addr) := by
-  exact BigStepStmt.declareObjNone (h.declaresObject_after hΓ0 hobj)
-
-@[simp] theorem bigStepDeclareObjSome
-    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType}
-    {e : ValExpr} {v : Value}
-    (h : DeclareObjectReadyRecomputed Γ σ x τ (some v))
-    {Γfr : TypeFrame}
-    (hΓ0 : Γ.scopes[0]? = some Γfr)
-    (hval : BigStepValue σ e v)
-    (hobj : ObjectType τ) :
-    BigStepStmt σ (.declareObj τ x (some e)) .normal
-      (declareObjectStateWithNext σ τ x (some v) h.cursor.addr) := by
-  exact BigStepStmt.declareObjSome hval (h.declaresObject_after hΓ0 hobj)
-
 end DeclareObjectReadyRecomputed
-
-end SemanticsBridge
 
 end Cpp
