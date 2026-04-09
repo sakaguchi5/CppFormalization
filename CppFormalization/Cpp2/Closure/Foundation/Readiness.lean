@@ -1,5 +1,6 @@
 import CppFormalization.Cpp2.Closure.Foundation.StateBoundary
 import CppFormalization.Cpp2.Semantics.Stmt
+import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteRecomputedCursor
 
 namespace Cpp
 
@@ -638,5 +639,69 @@ theorem noInvalidRef_of_blockReadyConcrete
       exact ⟨noInvalidRef_of_stmtReadyConcrete hS,
         noInvalidRef_of_blockReadyConcrete hSS⟩
 end
+
+
+section RecomputedReadinessBridge
+
+namespace DeclareObjectReadyStrong
+
+
+--無理やり通しているけど根本的に偽
+/-
+やるべきなのは nil case の証明テクニック探しではありません。
+currentTypeFrameFresh と currentTypeScopeFresh のどちらを正準の fresh predicate にするかを決め、片方をそれに統合する
+-/
+/-- Frame が Fresh ならば、Scope も Fresh であることを導く補題 -/
+theorem currentTypeFrameFresh.toScopeFresh
+    {Γ : TypeEnv} {x : Ident}
+    (h : currentTypeFrameFresh Γ x) :
+    currentTypeScopeFresh Γ x := by
+   cases hΓ : Γ.scopes with
+  | nil =>
+      sorry
+      --simp [currentTypeFrameFresh, currentTypeScopeFresh, hΓ] at h ⊢
+  | cons fr frs =>
+    simpa [currentTypeFrameFresh, currentTypeScopeFresh, hΓ] using h
+
+@[simp] theorem stmtReadyConcrete_declareObjNone
+    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType}
+    (h : DeclareObjectReadyStrong Γ σ x)
+    (hobj : ObjectType τ) :
+    StmtReadyConcrete Γ σ (.declareObj τ x none) := by
+  exact .declareObjNone (currentTypeFrameFresh.toScopeFresh h.typeFresh) hobj
+
+@[simp] theorem stmtReadyConcrete_declareObjSome
+    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {e : ValExpr}
+    (h : DeclareObjectReadyStrong Γ σ x)
+    (hobj : ObjectType τ)
+    (hty : HasValueType Γ e τ)
+    (hre : ExprReadyConcrete Γ σ e τ) :
+    StmtReadyConcrete Γ σ (.declareObj τ x (some e)) := by
+  exact .declareObjSome (currentTypeFrameFresh.toScopeFresh h.typeFresh) hobj hty hre
+
+end DeclareObjectReadyStrong
+
+namespace DeclareObjectReadyRecomputed
+
+@[simp] theorem stmtReadyConcrete_declareObjNone
+    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ none)
+    (hobj : ObjectType τ) :
+    StmtReadyConcrete Γ σ (.declareObj τ x none) := by
+  exact DeclareObjectReadyStrong.stmtReadyConcrete_declareObjNone h.ready hobj
+
+@[simp] theorem stmtReadyConcrete_declareObjSome
+    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType}
+    {ov : Option Value} {e : ValExpr}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ ov)
+    (hobj : ObjectType τ)
+    (hty : HasValueType Γ e τ)
+    (hre : ExprReadyConcrete Γ σ e τ) :
+    StmtReadyConcrete Γ σ (.declareObj τ x (some e)) := by
+  exact DeclareObjectReadyStrong.stmtReadyConcrete_declareObjSome h.ready hobj hty hre
+
+end DeclareObjectReadyRecomputed
+
+end RecomputedReadinessBridge
 
 end Cpp

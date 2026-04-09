@@ -1,5 +1,6 @@
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteStrengthening
 import CppFormalization.Cpp2.Lemmas.RuntimeObjectCore
+import CppFormalization.Cpp2.Semantics.Stmt
 
 namespace Cpp
 
@@ -96,14 +97,43 @@ Ready package for object declaration under the recomputed-cursor policy.
 
 This remains in Foundation because it depends on `DeclareObjectReadyStrong`,
 which is already a closure/foundation-side notion.
+
+In addition to structural/cursor readiness, the package also carries
+initializer compatibility with the declared object type.
 -/
+
+def IsValueCompatible (ov : Option Value) (τ : CppType) : Prop :=
+  match ov with
+  | none => True
+  | some v => ValueCompat v τ
+
+@[simp] theorem isValueCompatible_none
+    {τ : CppType} :
+    IsValueCompatible none τ := by
+  simp [IsValueCompatible]
+
+@[simp] theorem isValueCompatible_some
+    {v : Value} {τ : CppType} :
+    IsValueCompatible (some v) τ ↔ ValueCompat v τ := by
+  simp [IsValueCompatible]
+
 structure DeclareObjectReadyRecomputed
     (Γ : TypeEnv) (σ : State) (x : Ident)
     (τ : CppType) (ov : Option Value) : Type where
   ready : DeclareObjectReadyStrong Γ σ x
   cursor : RecomputedNextWitness (declareObjectStateCore σ τ x ov)
+  initCompat : IsValueCompatible ov τ
 
 namespace DeclareObjectReadyRecomputed
+
+@[simp] theorem initCompat_after
+    {Γ : TypeEnv} {σ : State} {x : Ident}
+    {τ : CppType} {ov : Option Value}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ ov) :
+    IsValueCompatible ov τ :=
+  h.initCompat
+
+
 
 @[simp] theorem nextFresh_after
     {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {ov : Option Value}
@@ -129,5 +159,76 @@ namespace DeclareObjectReadyRecomputed
   exact monotone_next_declareObjectStateWithNext h.cursor
 
 end DeclareObjectReadyRecomputed
+
+
+section SemanticsBridge
+
+private theorem currentScopeFresh_of_ready
+    {Γ : TypeEnv} {σ : State} {x : Ident}
+    (h : DeclareObjectReadyStrong Γ σ x)
+    {Γfr : TypeFrame}
+    (hΓ0 : Γ.scopes[0]? = some Γfr) :
+    currentScopeFresh σ x := by
+  cases hσ : σ.scopes with
+  | nil =>
+      have hlen : Γ.scopes.length = 0 := by
+        simpa [frameDepthAgreement, hσ] using h.concrete.frameDepth
+      cases hG : Γ.scopes with
+      | nil => simp [hG] at hΓ0
+      | cons fr frs => simp [hG] at hlen
+  | cons fr frs =>
+      simpa [currentScopeFresh, hσ] using (h.topFrameFresh hΓ0) fr (by simp [hσ])
+
+namespace DeclareObjectReadyRecomputed
+
+@[simp] theorem declaresObjectWithNext_after
+    {Γ : TypeEnv} {σ : State} {x : Ident}
+    {τ : CppType} {ov : Option Value}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ ov)
+    {Γfr : TypeFrame}
+    (hΓ0 : Γ.scopes[0]? = some Γfr)
+    (hobj : ObjectType τ) :
+    DeclaresObjectWithNext σ τ x ov h.cursor.addr
+      (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
+  refine ⟨hobj, ?_, ?_, h.initCompat, rfl⟩
+  · exact currentScopeFresh_of_ready h.ready hΓ0
+  · exact h.ready.concrete.nextFresh.1
+
+@[simp] theorem declaresObject_after
+    {Γ : TypeEnv} {σ : State} {x : Ident}
+    {τ : CppType} {ov : Option Value}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ ov)
+    {Γfr : TypeFrame}
+    (hΓ0 : Γ.scopes[0]? = some Γfr)
+    (hobj : ObjectType τ) :
+    DeclaresObject σ τ x ov
+      (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
+  exact ⟨h.cursor.addr, h.declaresObjectWithNext_after hΓ0 hobj⟩
+
+@[simp] theorem bigStepDeclareObjNone
+    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ none)
+    {Γfr : TypeFrame}
+    (hΓ0 : Γ.scopes[0]? = some Γfr)
+    (hobj : ObjectType τ) :
+    BigStepStmt σ (.declareObj τ x none) .normal
+      (declareObjectStateWithNext σ τ x none h.cursor.addr) := by
+  exact BigStepStmt.declareObjNone (h.declaresObject_after hΓ0 hobj)
+
+@[simp] theorem bigStepDeclareObjSome
+    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType}
+    {e : ValExpr} {v : Value}
+    (h : DeclareObjectReadyRecomputed Γ σ x τ (some v))
+    {Γfr : TypeFrame}
+    (hΓ0 : Γ.scopes[0]? = some Γfr)
+    (hval : BigStepValue σ e v)
+    (hobj : ObjectType τ) :
+    BigStepStmt σ (.declareObj τ x (some e)) .normal
+      (declareObjectStateWithNext σ τ x (some v) h.cursor.addr) := by
+  exact BigStepStmt.declareObjSome hval (h.declaresObject_after hΓ0 hobj)
+
+end DeclareObjectReadyRecomputed
+
+end SemanticsBridge
 
 end Cpp

@@ -19,17 +19,7 @@ def Assigns (σ : State) (p : PlaceExpr) (v : Value) (σ' : State) : Prop :=
     ValueCompat v c.ty ∧
     σ' = writeHeap σ a { c with value := some v }
 
-
 def DeclaresObject (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (σ' : State) : Prop :=
-  ObjectType τ ∧
-  currentScopeFresh σ x ∧
-  σ.heap σ.next = none ∧
-  (match ov with
-   | none => True
-   | some v => ValueCompat v τ) ∧
-  σ' = declareObjectState σ τ x ov
-
-
 def DeclaresObjectWithNext
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value)
     (aNext : Nat) (σ' : State) : Prop :=
@@ -40,6 +30,30 @@ def DeclaresObjectWithNext
    | none => True
    | some v => ValueCompat v τ) ∧
   σ' = declareObjectStateWithNext σ τ x ov aNext
+
+/--
+Legacy façade for object declaration.
+
+The operational policy may now choose a post-state cursor explicitly,
+so the old relation is retained as an existential wrapper around the
+new `DeclaresObjectWithNext` relation.
+-/
+def DeclaresObject (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (σ' : State) : Prop :=
+  ∃ aNext, DeclaresObjectWithNext σ τ x ov aNext σ'
+
+@[simp] theorem declaresObject_iff_exists_withNext
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {σ' : State} :
+    DeclaresObject σ τ x ov σ' ↔
+      ∃ aNext, DeclaresObjectWithNext σ τ x ov aNext σ' := by
+  rfl
+
+@[simp] theorem declaresObject_of_withNext
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
+    {aNext : Nat} {σ' : State} :
+    DeclaresObjectWithNext σ τ x ov aNext σ' →
+      DeclaresObject σ τ x ov σ' := by
+  intro h
+  exact ⟨aNext, h⟩
 
 def DeclaresRef (σ : State) (τ : CppType) (x : Ident) (a : Nat) (σ' : State) : Prop :=
   currentScopeFresh σ x ∧
@@ -52,7 +66,6 @@ def DeclaresRef (σ : State) (τ : CppType) (x : Ident) (a : Nat) (σ' : State) 
 
 def OpenScope (σ σ' : State) : Prop :=
   σ' = pushScope σ
-
 
 def CloseScope (σ σ' : State) : Prop :=
   popScope? σ = some σ'
@@ -155,7 +168,6 @@ inductive BigStepBlock : State → StmtBlock → CtrlResult → State → Prop w
       BigStepBlock σ (.cons s ss) (.returnResult rv) σ₁
 
 end
-
 
 def BigStepStmtTerminates (σ : State) (st : CppStmt) : Prop :=
   ∃ ctrl σ', BigStepStmt σ st ctrl σ'

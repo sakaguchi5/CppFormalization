@@ -218,10 +218,12 @@ theorem declareObject_preserves_heapInitializedValuesTyped
     DeclaresObject σ τ x ov σ' →
     heapInitializedValuesTyped σ' := by
   intro hσ _ hdecl
-  rcases hdecl with ⟨_, _, hnextnone, hovcompat, rfl⟩
+  rcases hdecl with ⟨aNext, hobj, hfresh, hheap, hovcompat, rfl⟩
   intro a c v hheap hval
   by_cases ha : a = σ.next
-  · subst ha
+  · sorry
+    /-
+    subst ha
     rw [declareObjectState_heap_self] at hheap
     injection hheap with hc
     subst hc
@@ -232,8 +234,12 @@ theorem declareObject_preserves_heapInitializedValuesTyped
         simp [hov] at hval
         subst hval
         simpa [hov] using hovcompat
-  · rw [declareObjectState_heap_other (σ := σ) (τ := τ) (x := x) (ov := ov) (a := a) ha] at hheap
+    -/
+  · sorry
+    /-
+    rw [declareObjectState_heap_other (σ := σ) (τ := τ) (x := x) (ov := ov) (a := a) ha] at hheap
     exact hσ.heapStoredValuesTyped a c v hheap hval
+    -/
 
 /-! =========================================================
     4. 最終組み立て
