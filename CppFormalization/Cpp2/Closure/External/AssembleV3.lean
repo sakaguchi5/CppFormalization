@@ -5,22 +5,12 @@ namespace Cpp
 /-!
 # Closure.External.AssembleV3
 
-The visible entry object stays the same:
-explicit pieces plus `toBodyBoundary`.
+The visible entry object stays the same: explicit pieces plus `toBodyBoundary`.
 
-What changes after introducing `AdequacyKernelV3` is that we now support two
-low-level entry routes:
-
-1. explicit glue route:
-   - caller provides `G : VerifiedExternalGlueV3 F R`,
-   - assembly uses `G.mkAdequacy` directly.
-
-2. canonical-compatibility route:
-   - caller provides only a compatibility predicate `Compat`,
-   - assembly builds the canonical glue object `canonicalGlueV3 Compat`,
-   - then reuses the same explicit glue route.
-
-This keeps the old API working while adding the cleaner post-kernel route.
+Public-route policy after the compatibility-kernel refactor:
+- the explicit glue route remains available as a low-level specialization,
+- the compatibility route is the canonical public route,
+- both land in the same `ExternalPiecesV3` / `BodyClosureBoundaryCI` objects.
 -/
 
 /-- Explicit low-level external package. -/
@@ -36,21 +26,13 @@ def ExternalPiecesV3.toBodyBoundary
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (p : ExternalPiecesV3 Γ σ st) :
     BodyClosureBoundaryCI Γ σ st :=
-  mkBodyClosureBoundaryCI
-    p.structural
-    p.profile
-    p.dynamic
-    p.adequacy
+  mkBodyClosureBoundaryCI p.structural p.profile p.dynamic p.adequacy
 
-/--
-Assemble explicit pieces from an explicit glue object.
-This is the original Stage 2A low-level route and remains useful.
--/
+/-- Original low-level route using an explicit glue object. -/
 noncomputable def assembleExternalPiecesV3
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (G : VerifiedExternalGlueV3 F R)
-    {n : F.Name} {m : R.Meta}
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (huse : F.uses n)
     (hsuppRun : F.supportsRuntime n Γ σ st)
     (hgen : R.generates m st)
@@ -70,12 +52,11 @@ noncomputable def assembleExternalPiecesV3
       core := hrefl.core
       adequacy := hadeq }
 
-/-- The corresponding official boundary from the explicit glue route. -/
+/-- Original low-level boundary route using an explicit glue object. -/
 noncomputable def assembleBodyBoundaryV3
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (G : VerifiedExternalGlueV3 F R)
-    {n : F.Name} {m : R.Meta}
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (huse : F.uses n)
     (hsuppRun : F.supportsRuntime n Γ σ st)
     (hgen : R.generates m st)
@@ -84,16 +65,11 @@ noncomputable def assembleBodyBoundaryV3
     BodyClosureBoundaryCI Γ σ st :=
   (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).toBodyBoundary
 
-/--
-Canonical low-level assembly route:
-use only a compatibility predicate, build the canonical glue object from
-`AdequacyKernelV3`, and then reuse the explicit glue route.
--/
+/-- Canonical route: build the glue object from a compatibility predicate. -/
 noncomputable def assembleExternalPiecesFromCompatV3
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (Compat : CompatibilityPredicateV3 F R)
-    {n : F.Name} {m : R.Meta}
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (huse : F.uses n)
     (hsuppRun : F.supportsRuntime n Γ σ st)
     (hgen : R.generates m st)
@@ -105,12 +81,11 @@ noncomputable def assembleExternalPiecesFromCompatV3
     (canonicalGlueV3 (F := F) (R := R) Compat)
     huse hsuppRun hgen hsuppRefl hcompat
 
-/-- The corresponding official boundary from the canonical compatibility route. -/
+/-- Canonical boundary route: build the glue object from a compatibility predicate. -/
 noncomputable def assembleBodyBoundaryFromCompatV3
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (Compat : CompatibilityPredicateV3 F R)
-    {n : F.Name} {m : R.Meta}
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (huse : F.uses n)
     (hsuppRun : F.supportsRuntime n Γ σ st)
     (hgen : R.generates m st)
@@ -121,15 +96,11 @@ noncomputable def assembleBodyBoundaryFromCompatV3
     (F := F) (R := R) Compat
     huse hsuppRun hgen hsuppRefl hcompat).toBodyBoundary
 
-/--
-The canonical compatibility route is definitionally the explicit glue route with
-`canonicalGlueV3 Compat`.
--/
+/-- The canonical route is definitionally the explicit route with `canonicalGlueV3 Compat`. -/
 theorem assembleExternalPiecesFromCompatV3_eq_explicit
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (Compat : CompatibilityPredicateV3 F R)
-    {n : F.Name} {m : R.Meta}
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (huse : F.uses n)
     (hsuppRun : F.supportsRuntime n Γ σ st)
     (hgen : R.generates m st)
@@ -145,14 +116,11 @@ theorem assembleExternalPiecesFromCompatV3_eq_explicit
       huse hsuppRun hgen hsuppRefl hcompat := by
   rfl
 
-/--
-Likewise for the assembled official boundary.
--/
+/-- Likewise for the assembled boundary. -/
 theorem assembleBodyBoundaryFromCompatV3_eq_explicit
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (Compat : CompatibilityPredicateV3 F R)
-    {n : F.Name} {m : R.Meta}
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (huse : F.uses n)
     (hsuppRun : F.supportsRuntime n Γ σ st)
     (hgen : R.generates m st)
