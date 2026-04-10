@@ -201,7 +201,7 @@ def readyExternalPieces (B : ReadyCertificateFamilyV3) (c : B.Cert) :
     (B.compatible_self c)
 
 /-- Canonical explicit V3 pieces from the low-level glue route for a family certificate. -/
-def glueExternalPieces (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+noncomputable def glueExternalPieces (B : ReadyCertificateFamilyV3) (c : B.Cert) :
     ExternalPiecesV3 (B.targetΓ c) (B.targetσ c) (B.targetSt c) :=
   assembleExternalPiecesV3 B.toGlue
     (B.uses_self c)

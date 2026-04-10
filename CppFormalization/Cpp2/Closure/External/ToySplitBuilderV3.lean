@@ -175,7 +175,7 @@ def toySplitReadyExternalPiecesV3
     (toySplit_supportsReflection c)
     (toySplit_compatible c)
 
-def toySplitGlueExternalPiecesV3
+noncomputable def toySplitGlueExternalPiecesV3
     (c : ToyReadyCertificate) : ExternalPiecesV3 c.Γ c.σ c.st :=
   toySplitFamilyV3.glueExternalPieces
     (toySplit_uses c)

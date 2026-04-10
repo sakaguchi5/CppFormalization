@@ -32,7 +32,7 @@ theorem toyGlue_compatible (c : ToyReadyCertificate) :
   exact toy_compatible c
 
 /-- Canonical explicit V3 pieces assembled from the toy low-level glue route. -/
-def toyGlueExternalPiecesV3
+noncomputable def toyGlueExternalPiecesV3
     (c : ToyReadyCertificate) :
     ExternalPiecesV3 c.Γ c.σ c.st :=
   assembleExternalPiecesV3 toyGlueV3
@@ -129,7 +129,7 @@ theorem toyGlueExternalPiecesV3_packageCoherent
       (hsuppRefl := toy_supportsReflection c)
       (hcompat := toyGlue_compatible c))
 
-def toyGlueVisiblePiecesAt
+noncomputable def toyGlueVisiblePiecesAt
     {n : toyStdFragmentV3.Name}
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hsuppRun : toyStdFragmentV3.supportsRuntime n Γ σ st) :
@@ -137,7 +137,7 @@ def toyGlueVisiblePiecesAt
   rcases hsuppRun with ⟨hΓ, hσ, hst⟩
   exact castVisiblePiecesV3 hΓ.symm hσ.symm hst.symm ((toyGlueExternalPiecesV3 n).toVisiblePieces)
 
-def toyGlueExternalPiecesAt
+noncomputable def toyGlueExternalPiecesAt
     {n : toyStdFragmentV3.Name}
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hsuppRun : toyStdFragmentV3.supportsRuntime n Γ σ st) :

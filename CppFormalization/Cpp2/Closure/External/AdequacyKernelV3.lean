@@ -138,22 +138,22 @@ Package the two canonical kernel statements into the exact `BodyAdequacyCI`
 required by the V3 glue interface.
 -/
 noncomputable def canonicalAdequacyOfSoundnessV3
-    {R : VerifiedReflectionFragmentV3}
-    {m : R.Meta}
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (hgen : R.generates m st)
-    (hrefl : R.supportsReflection m Γ st)
-    (hNormal :
+   {R : VerifiedReflectionFragmentV3}
+   {m : R.Meta}
+   {Γ : TypeEnv} {σ : State} {st : CppStmt}
+   (hgen : R.generates m st)
+   (hrefl : R.supportsReflection m Γ st)
+   (hNormal :
       ∀ {σ' : State},
         BigStepStmt σ st .normal σ' →
         ∃ out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ st Δ},
           (canonicalProfileV3 (R := R) (m := m) (Γ := Γ) (st := st) hgen hrefl).summary.normalOut = some out)
-    (hReturn :
+   (hReturn :
       ∀ {rv : Option Value} {σ' : State},
         BigStepStmt σ st (.returnResult rv) σ' →
         ∃ out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ st Δ},
           (canonicalProfileV3 (R := R) (m := m) (Γ := Γ) (st := st) hgen hrefl).summary.returnOut = some out) :
-    BodyAdequacyCI Γ σ st
+   BodyAdequacyCI Γ σ st
       (canonicalProfileV3 (R := R) (m := m) (Γ := Γ) (st := st) hgen hrefl) := by
   refine
     { normalSound := ?_

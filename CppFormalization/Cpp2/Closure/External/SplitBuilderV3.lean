@@ -152,7 +152,7 @@ def readyExternalPieces
   externalPieces_of_ready_v3 A.toReadyAssembly
     huse hsuppRun hgen hsuppRefl hcompat
 
-def glueExternalPieces
+noncomputable def glueExternalPieces
     (A : SplitArtifactFamilyV3)
     {n : A.RuntimeName} {m : A.ReflectionMeta}
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
