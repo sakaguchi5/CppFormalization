@@ -1,5 +1,6 @@
 import CppFormalization.Cpp2.Closure.External.StdFragmentV3
 import CppFormalization.Cpp2.Closure.Transitions.Major.ObjectDeclRuntimeBridgeV3
+import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectDecomposition
 
 namespace Cpp
 
@@ -368,6 +369,55 @@ def bigStepStmt (c : ObjectDeclRuntimeCert) :
     (c : ObjectDeclRuntimeCert) :
     BigStepStmt c.σ c.targetStmt .normal c.postState :=
   c.bigStepStmt
+
+/-- Canonical post type environment determined by the cert. -/
+@[simp] def postTypeEnv (c : ObjectDeclRuntimeCert) : TypeEnv :=
+  declareTypeObject c.Γ c.x c.τ
+
+/-- Cert-level preservation of the concrete closure invariant. -/
+@[simp] theorem postStateConcrete
+    (c : ObjectDeclRuntimeCert) :
+    ScopedTypedStateConcrete c.postTypeEnv c.postState := by
+  simpa [ObjectDeclRuntimeCert.postTypeEnv] using
+    (declares_object_preserves_scoped_typed_state_concrete
+      (Γ := c.Γ) (σ := c.σ) (σ' := c.postState)
+      (x := c.x) (τ := c.τ) (ov := c.ov)
+      c.ready.scopeFresh
+      c.ready.ready.concrete
+      c.declaresObject)
+
+/-- The cert packages both the normal execution and the post-state invariant. -/
+theorem bigStepWithPostConcrete
+    (c : ObjectDeclRuntimeCert) :
+    BigStepStmt c.σ c.targetStmt .normal c.postState ∧
+      ScopedTypedStateConcrete c.postTypeEnv c.postState := by
+  exact ⟨c.bigStepStmt, c.postStateConcrete⟩
+
+@[simp] theorem bigStepWithPostConcrete_left
+    (c : ObjectDeclRuntimeCert) :
+    c.bigStepWithPostConcrete.left =
+      (c.bigStepStmt : BigStepStmt c.σ c.targetStmt .normal c.postState) :=
+  rfl
+
+@[simp] theorem bigStepWithPostConcrete_right
+    (c : ObjectDeclRuntimeCert) :
+    c.bigStepWithPostConcrete.right =
+      (c.postStateConcrete :
+        ScopedTypedStateConcrete c.postTypeEnv c.postState) :=
+  rfl
+
+@[simp] theorem bigStepWithPostConcrete_fst
+    (c : ObjectDeclRuntimeCert) :
+    c.bigStepWithPostConcrete.1 =
+      (c.bigStepStmt : BigStepStmt c.σ c.targetStmt .normal c.postState) :=
+  rfl
+
+@[simp] theorem bigStepWithPostConcrete_snd
+    (c : ObjectDeclRuntimeCert) :
+    c.bigStepWithPostConcrete.2 =
+      (c.postStateConcrete :
+        ScopedTypedStateConcrete c.postTypeEnv c.postState) :=
+  rfl
 
 end ObjectDeclRuntimeCert
 
