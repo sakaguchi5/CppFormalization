@@ -142,6 +142,17 @@ def stmtReadyConcrete (c : ObjectDeclRuntimeCert) :
         DeclareObjectReadyRecomputed.toStmtReadyConcrete_declareObjSome
           (h := c.ready) c.objTy hty hre
 
+def bodyDynamicBoundary (c : ObjectDeclRuntimeCert) :
+    BodyDynamicBoundary c.Γ c.σ c.targetStmt := by
+  exact BodyDynamicBoundary.intro_of_concrete_and_stmtReadyConcrete
+    ((c.ready).ready).concrete
+    c.stmtReadyConcrete
+
+theorem bodyDynamicBoundary_eq_target
+    (c : ObjectDeclRuntimeCert) :
+    BodyDynamicBoundary c.Γ c.σ c.targetStmt :=
+  c.bodyDynamicBoundary
+
 def mkRuntime_none {n : ObjectDeclRuntimeCert} (hinit : n.initExpr = none) :
     RuntimePiecesV3 n.Γ n.σ (.declareObj n.τ n.x none) := by
   rcases n with ⟨Γ, σ, x, τ, ov, initExpr, initStored, ready, objTy, hasExprTy, exprReady⟩
@@ -268,6 +279,95 @@ theorem objectDeclStdFragmentV3_mkRuntime_eq (c : ObjectDeclRuntimeCert) :
     StmtReadyConcrete c.Γ c.σ c.targetStmt :=
   c.stmtReadyConcrete
 
+
+/-- `currentTypeScopeFresh` already guarantees that the type environment has a
+top frame, so cert-level APIs can recover the witness expected by the
+recomputed-cursor preservation theorems without reopening lower layers. -/
+def topTypeFrameWitness_of_currentTypeScopeFresh
+    {Γ : TypeEnv} {x : Ident}
+    (h : currentTypeScopeFresh Γ x) :
+    {Γfr : TypeFrame // Γ.scopes[0]? = some Γfr} := by
+  cases hsc : Γ.scopes with
+  | nil =>
+      simp [currentTypeScopeFresh, hsc] at h
+
+  | cons fr frs =>
+      exact ⟨fr, by simp⟩
+
+/-- Recover the top type-frame witness needed by
+`DeclareObjectReadyRecomputed.declaresObjectWithNext_after`. -/
+def topTypeFrameWitness (c : ObjectDeclRuntimeCert) :
+    {Γfr : TypeFrame // c.Γ.scopes[0]? = some Γfr} :=
+  topTypeFrameWitness_of_currentTypeScopeFresh c.ready.scopeFresh
+
+@[simp] theorem topTypeFrameWitness_spec
+    (c : ObjectDeclRuntimeCert) :
+    c.Γ.scopes[0]? = some c.topTypeFrameWitness.1 :=
+  c.topTypeFrameWitness.2
+
+/-- Canonical post-state determined by the cert. -/
+@[simp] def postState (c : ObjectDeclRuntimeCert) : State :=
+  declareObjectStateWithNext c.σ c.τ c.x c.ov c.ready.cursor.addr
+
+/-- Cert-level access to the canonical `DeclaresObjectWithNext` witness. -/
+@[simp] theorem declaresObjectWithNext
+    (c : ObjectDeclRuntimeCert) :
+    DeclaresObjectWithNext c.σ c.τ c.x c.ov c.ready.cursor.addr c.postState := by
+  rcases c.topTypeFrameWitness with ⟨Γfr, hΓ0⟩
+  simpa [ObjectDeclRuntimeCert.postState] using
+    (DeclareObjectReadyRecomputed.declaresObjectWithNext_after
+      (h := c.ready) hΓ0 c.objTy)
+
+/-- Cert-level access to the existential `DeclaresObject` witness. -/
+@[simp] theorem declaresObject
+    (c : ObjectDeclRuntimeCert) :
+    DeclaresObject c.σ c.τ c.x c.ov c.postState := by
+  rcases c.topTypeFrameWitness with ⟨Γfr, hΓ0⟩
+  simpa [ObjectDeclRuntimeCert.postState] using
+    (DeclareObjectReadyRecomputed.declaresObject_after
+      (h := c.ready) hΓ0 c.objTy)
+
+theorem declaresObject_none
+    {c : ObjectDeclRuntimeCert}
+    (hinit : c.initExpr = none) :
+    DeclaresObject c.σ c.τ c.x none c.postState := by
+  have hov : c.ov = none := c.ov_eq_none_of_init_none hinit
+  simpa [ObjectDeclRuntimeCert.postState, hov] using c.declaresObject
+
+theorem declaresObject_some
+    {c : ObjectDeclRuntimeCert} {e : ValExpr}
+    (hinit : c.initExpr = some e) :
+    DeclaresObject c.σ c.τ c.x (some (c.storedValueWitness hinit).1) c.postState := by
+  have hov : c.ov = some (c.storedValueWitness hinit).1 :=
+    c.storedValueWitness_ov hinit
+  simpa [ObjectDeclRuntimeCert.postState, hov] using c.declaresObject
+
+/-- Cert-level big-step semantics for the declaration statement itself. -/
+def bigStepStmt (c : ObjectDeclRuntimeCert) :
+    BigStepStmt c.σ c.targetStmt .normal c.postState := by
+  cases hinit : c.initExpr with
+  | none =>
+      have hdecl : DeclaresObject c.σ c.τ c.x none c.postState :=
+        c.declaresObject_none hinit
+      simpa [ObjectDeclRuntimeCert.targetStmt, ObjectDeclRuntimeCert.postState, hinit] using
+        (BigStepStmt.declareObjNone
+          (σ := c.σ) (σ' := c.postState) (τ := c.τ) (x := c.x) hdecl)
+  | some e =>
+      have hstep : BigStepValue c.σ e (c.storedValueWitness hinit).1 :=
+        c.storedValueWitness_bigStep hinit
+      have hdecl :
+          DeclaresObject c.σ c.τ c.x (some (c.storedValueWitness hinit).1) c.postState :=
+        c.declaresObject_some hinit
+      simpa [ObjectDeclRuntimeCert.targetStmt, ObjectDeclRuntimeCert.postState, hinit] using
+        (BigStepStmt.declareObjSome
+          (σ := c.σ) (σ' := c.postState) (τ := c.τ) (x := c.x)
+          (e := e) (v := (c.storedValueWitness hinit).1)
+          hstep hdecl)
+
+@[simp] theorem bigStepStmt_target
+    (c : ObjectDeclRuntimeCert) :
+    BigStepStmt c.σ c.targetStmt .normal c.postState :=
+  c.bigStepStmt
 
 end ObjectDeclRuntimeCert
 
