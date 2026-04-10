@@ -23,4 +23,11 @@ structure BlockBodyDynamicBoundary (Γ : TypeEnv) (σ : State) (ss : StmtBlock) 
   state : ScopedTypedStateConcrete (pushTypeScope Γ) σ
   safe : BlockReadyConcrete (pushTypeScope Γ) σ ss
 
+theorem BodyDynamicBoundary.intro_of_concrete_and_stmtReadyConcrete
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (hstate : ScopedTypedStateConcrete Γ σ)
+    (hstmt : StmtReadyConcrete Γ σ st) :
+    BodyDynamicBoundary Γ σ st := by
+  exact ⟨hstate, hstmt⟩
+
 end Cpp

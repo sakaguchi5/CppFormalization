@@ -21,7 +21,7 @@ structure ObjectDeclRuntimeCert where
   τ : CppType
   ov : Option Value
   initExpr : Option ValExpr
-  initStored : ObjectDeclInitStoredValue  σ τ initExpr ov
+  initStored : ObjectDeclInitStoredValue σ τ initExpr ov
   ready : DeclareObjectReadyRecomputed Γ σ x τ ov
   objTy : ObjectType τ
   hasExprTy :
@@ -34,21 +34,21 @@ structure ObjectDeclRuntimeCert where
     | some e => ExprReadyConcrete Γ σ e τ
 
 /-- 初期化式がある場合、その型が τ であることを抽出する -/
-def getHasValueType (c : ObjectDeclRuntimeCert) {e : ValExpr}
+def ObjectDeclRuntimeCert.getHasValueType (c : ObjectDeclRuntimeCert) {e : ValExpr}
     (h_expr : c.initExpr = some e) : HasValueType c.Γ e c.τ := by
   rcases c with ⟨Γ, σ, x, τ, ov, initExpr, initStored, ready, objTy, hasExprTy, exprReady⟩
-  subst h_expr
+  cases h_expr
   exact hasExprTy
 
 /-- 初期化式がある場合、その readiness を抽出する -/
-def getExprReady (c : ObjectDeclRuntimeCert) {e : ValExpr}
+def ObjectDeclRuntimeCert.getExprReady (c : ObjectDeclRuntimeCert) {e : ValExpr}
     (h_expr : c.initExpr = some e) : ExprReadyConcrete c.Γ c.σ e c.τ := by
   rcases c with ⟨Γ, σ, x, τ, ov, initExpr, initStored, ready, objTy, hasExprTy, exprReady⟩
-  subst h_expr
+  cases h_expr
   exact exprReady
 
 /-- 初期化式がある場合、その式が最終的に格納する concrete value を抽出する -/
-def getStoredValue (c : ObjectDeclRuntimeCert) {e : ValExpr}
+def ObjectDeclRuntimeCert.getStoredValue (c : ObjectDeclRuntimeCert) {e : ValExpr}
     (h_expr : c.initExpr = some e) :
     ∃ v, c.ov = some v ∧ BigStepValue c.σ e v ∧ ValueCompat v c.τ := by
   rcases c with ⟨Γ, σ, x, τ, ov, initExpr, initStored, ready, objTy, hasExprTy, exprReady⟩
@@ -63,7 +63,7 @@ namespace ObjectDeclRuntimeCert
 
 @[simp] theorem targetStmt_none
     {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {ov : Option Value}
-    {hstore : ObjectDeclInitStoredValue  σ τ none ov}
+    {hstore : ObjectDeclInitStoredValue σ τ none ov}
     {h : DeclareObjectReadyRecomputed Γ σ x τ ov}
     {hobj : ObjectType τ} :
     (ObjectDeclRuntimeCert.mk Γ σ x τ ov none hstore h hobj True.intro True.intro).targetStmt =
@@ -72,7 +72,7 @@ namespace ObjectDeclRuntimeCert
 @[simp] theorem targetStmt_some
     {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {ov : Option Value}
     {e : ValExpr}
-    {hstore : ObjectDeclInitStoredValue  σ τ (some e) ov}
+    {hstore : ObjectDeclInitStoredValue σ τ (some e) ov}
     {h : DeclareObjectReadyRecomputed Γ σ x τ ov}
     {hobj : ObjectType τ}
     {hty : HasValueType Γ e τ}
@@ -87,6 +87,61 @@ namespace ObjectDeclRuntimeCert
   cases hinit
   exact ObjectDeclInitStoredValue.ov_eq_none initStored
 
+/-- 初期化式がある場合の stored-value witness を subtype として取り出す。 -/
+def storedValueWitness (c : ObjectDeclRuntimeCert) {e : ValExpr}
+    (hinit : c.initExpr = some e) :
+    {v : Value // c.ov = some v ∧ BigStepValue c.σ e v ∧ ValueCompat v c.τ} := by
+  rcases c with ⟨Γ, σ, x, τ, ov, initExpr, initStored, ready, objTy, hasExprTy, exprReady⟩
+  cases hinit
+  exact ObjectDeclInitStoredValue.witness initStored
+
+/-- 初期化式がある場合、ov は必ず some v になる -/
+theorem ov_is_some_of_init_some {c : ObjectDeclRuntimeCert} {e : ValExpr}
+    (hinit : c.initExpr = some e) : ∃ v, c.ov = some v := by
+  let ⟨v, h_ov, _⟩ := c.getStoredValue hinit
+  exists v
+
+@[simp] theorem ov_ne_none_of_init_some
+    {c : ObjectDeclRuntimeCert} {e : ValExpr}
+    (hinit : c.initExpr = some e) :
+    c.ov ≠ none := by
+  rcases c.getStoredValue hinit with ⟨v, hov, _, _⟩
+  simp [hov]
+
+@[simp] theorem storedValueWitness_ov
+    {c : ObjectDeclRuntimeCert} {e : ValExpr}
+    (hinit : c.initExpr = some e) :
+    c.ov = some (c.storedValueWitness hinit).1 :=
+  (c.storedValueWitness hinit).2.1
+
+@[simp] theorem storedValueWitness_bigStep
+    {c : ObjectDeclRuntimeCert} {e : ValExpr}
+    (hinit : c.initExpr = some e) :
+    BigStepValue c.σ e (c.storedValueWitness hinit).1 :=
+  (c.storedValueWitness hinit).2.2.1
+
+@[simp] theorem storedValueWitness_compat
+    {c : ObjectDeclRuntimeCert} {e : ValExpr}
+    (hinit : c.initExpr = some e) :
+    ValueCompat (c.storedValueWitness hinit).1 c.τ :=
+  (c.storedValueWitness hinit).2.2.2
+
+def stmtReadyConcrete (c : ObjectDeclRuntimeCert) :
+    StmtReadyConcrete c.Γ c.σ c.targetStmt := by
+  cases hinit : c.initExpr with
+  | none =>
+      have hreadyNone : DeclareObjectReadyRecomputed c.Γ c.σ c.x c.τ none :=
+        (c.ov_eq_none_of_init_none hinit) ▸ c.ready
+      simpa [ObjectDeclRuntimeCert.targetStmt, hinit] using
+        DeclareObjectReadyRecomputed.toStmtReadyConcrete_declareObjNone
+          hreadyNone c.objTy
+  | some e =>
+      have hty : HasValueType c.Γ e c.τ := c.getHasValueType hinit
+      have hre : ExprReadyConcrete c.Γ c.σ e c.τ := c.getExprReady hinit
+      simpa [ObjectDeclRuntimeCert.targetStmt, hinit] using
+        DeclareObjectReadyRecomputed.toStmtReadyConcrete_declareObjSome
+          (h := c.ready) c.objTy hty hre
+
 def mkRuntime_none {n : ObjectDeclRuntimeCert} (hinit : n.initExpr = none) :
     RuntimePiecesV3 n.Γ n.σ (.declareObj n.τ n.x none) := by
   rcases n with ⟨Γ, σ, x, τ, ov, initExpr, initStored, ready, objTy, hasExprTy, exprReady⟩
@@ -95,7 +150,6 @@ def mkRuntime_none {n : ObjectDeclRuntimeCert} (hinit : n.initExpr = none) :
     ObjectDeclInitStoredValue.ov_eq_none_of_none initStored
   subst hov
   exact DeclareObjectReadyRecomputed.runtimePieces_declareObjNone ready objTy
-
 
 def mkRuntime_some {n : ObjectDeclRuntimeCert} {e : ValExpr} (hinit : n.initExpr = some e) :
     RuntimePiecesV3 n.Γ n.σ (.declareObj n.τ n.x (some e)) := by
@@ -208,6 +262,12 @@ theorem objectDeclStdFragmentV3_mkRuntime_eq (c : ObjectDeclRuntimeCert) :
   have : c.supportsRuntime_self = ⟨rfl, rfl, rfl⟩ := rfl
   rw [this]
   exact objectDeclStdFragmentV3_mkRuntime_eq c
+
+@[simp] theorem stmtReadyConcrete_eq_target
+    (c : ObjectDeclRuntimeCert) :
+    StmtReadyConcrete c.Γ c.σ c.targetStmt :=
+  c.stmtReadyConcrete
+
 
 end ObjectDeclRuntimeCert
 

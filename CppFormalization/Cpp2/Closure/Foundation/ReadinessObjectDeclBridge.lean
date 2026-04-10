@@ -200,14 +200,6 @@ theorem toStmtReadyConcrete_declareObjSome
     StmtReadyConcrete Γ σ (.declareObj τ x (some e)) := by
   exact .declareObjSome h.scopeFresh hobj hty hre
 
-
-theorem BodyDynamicBoundary.intro_of_concrete_and_stmtReadyConcrete
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (hstate : ScopedTypedStateConcrete Γ σ)
-    (hstmt : StmtReadyConcrete Γ σ st) :
-    BodyDynamicBoundary Γ σ st := by
-  exact ⟨hstate, hstmt⟩
-
 theorem toBodyDynamicBoundary_declareObjNone
     {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType}
     (h : DeclareObjectReadyRecomputed Γ σ x τ none)
