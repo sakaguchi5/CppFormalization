@@ -1,7 +1,7 @@
 import CppFormalization.Cpp2.Closure.External.StdFragmentV3
 import CppFormalization.Cpp2.Closure.Transitions.Major.ObjectDeclRuntimeBridgeV3
 import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectDecomposition
-
+import CppFormalization.Cpp2.Closure.Foundation.CoreBigStepFragment
 namespace Cpp
 
 /-!
@@ -569,6 +569,37 @@ def bodyReadyCI
 @[simp] theorem bodyReadyCI_state
     (c : ObjectDeclRuntimeCert) :
     c.bodyReadyCI.state = c.ready.ready.concrete :=
+  rfl
+
+@[simp] theorem targetStmt_inCoreBigStepFragment
+    (c : ObjectDeclRuntimeCert) :
+    CoreBigStepFragment c.targetStmt := by
+  cases hinit : c.initExpr <;>
+    simp [CoreBigStepFragment, InBigStepFragment, ObjectDeclRuntimeCert.targetStmt, hinit]
+
+/-- Erase the object-declaration-specific cert into the common core big-step cert. -/
+def toCoreBigStepCert
+    (c : ObjectDeclRuntimeCert) :
+    CoreBigStepCert :=
+  { Γ := c.Γ
+    σ := c.σ
+    st := c.targetStmt
+    fragment := c.targetStmt_inCoreBigStepFragment
+    closure := c.bodyClosureBoundaryCI }
+
+@[simp] theorem toCoreBigStepCert_st
+    (c : ObjectDeclRuntimeCert) :
+    c.toCoreBigStepCert.st = c.targetStmt :=
+  rfl
+
+@[simp] theorem toCoreBigStepCert_bodyReadyCI_safe
+    (c : ObjectDeclRuntimeCert) :
+    c.toCoreBigStepCert.bodyReadyCI.safe = c.stmtReadyConcrete :=
+  rfl
+
+@[simp] theorem toCoreBigStepCert_bodyReadyCI_state
+    (c : ObjectDeclRuntimeCert) :
+    c.toCoreBigStepCert.bodyReadyCI.state = c.ready.ready.concrete :=
   rfl
 
 end ObjectDeclRuntimeCert
