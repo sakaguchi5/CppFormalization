@@ -419,6 +419,158 @@ theorem bigStepWithPostConcrete
         ScopedTypedStateConcrete c.postTypeEnv c.postState) :=
   rfl
 
+mutual
+
+private theorem wellFormedPlace_of_hasPlaceType
+    {Γ : TypeEnv} {p : PlaceExpr} {τ : CppType} :
+    HasPlaceType Γ p τ → WellFormedPlace p := by
+  intro h
+  cases h with
+  | var _ =>
+      simp [WellFormedPlace]
+  | deref hv =>
+      exact wellFormedValue_of_hasValueType hv
+
+private theorem wellFormedValue_of_hasValueType
+    {Γ : TypeEnv} {e : ValExpr} {τ : CppType} :
+    HasValueType Γ e τ → WellFormedValue e := by
+  intro h
+  cases h with
+  | litBool =>
+      simp [WellFormedValue]
+  | litInt =>
+      simp [WellFormedValue]
+  | load hp =>
+      simpa [WellFormedValue] using wellFormedPlace_of_hasPlaceType hp
+  | addrOf hp =>
+      simpa [WellFormedValue] using wellFormedPlace_of_hasPlaceType hp
+  | add h1 h2 =>
+      exact ⟨wellFormedValue_of_hasValueType h1, wellFormedValue_of_hasValueType h2⟩
+  | sub h1 h2 =>
+      exact ⟨wellFormedValue_of_hasValueType h1, wellFormedValue_of_hasValueType h2⟩
+  | mul h1 h2 =>
+      exact ⟨wellFormedValue_of_hasValueType h1, wellFormedValue_of_hasValueType h2⟩
+  | eq h1 h2 =>
+      exact ⟨wellFormedValue_of_hasValueType h1, wellFormedValue_of_hasValueType h2⟩
+  | lt h1 h2 =>
+      exact ⟨wellFormedValue_of_hasValueType h1, wellFormedValue_of_hasValueType h2⟩
+  | not h1 =>
+      simp [WellFormedValue]
+      exact wellFormedValue_of_hasValueType h1
+
+end
+
+/-- Canonical normal CI typing carried by the cert. -/
+@[simp] theorem normalTyping
+    (c : ObjectDeclRuntimeCert) :
+    HasTypeStmtCI .normalK c.Γ c.targetStmt c.postTypeEnv := by
+  cases hinit : c.initExpr with
+  | none =>
+      simpa [ObjectDeclRuntimeCert.targetStmt, ObjectDeclRuntimeCert.postTypeEnv, hinit] using
+        (HasTypeStmtCI.declareObjNone
+          (Γ := c.Γ) (τ := c.τ) (x := c.x)
+          c.ready.scopeFresh c.objTy)
+  | some e =>
+      have hty : HasValueType c.Γ e c.τ := c.getHasValueType hinit
+      simpa [ObjectDeclRuntimeCert.targetStmt, ObjectDeclRuntimeCert.postTypeEnv, hinit] using
+        (HasTypeStmtCI.declareObjSome
+          (Γ := c.Γ) (τ := c.τ) (x := c.x) (e := e)
+          c.ready.scopeFresh c.objTy hty)
+
+/-- Structural boundary extracted from the cert. -/
+def bodyStructuralBoundary
+    (c : ObjectDeclRuntimeCert) :
+    BodyStructuralBoundary c.Γ c.targetStmt := by
+  refine
+    { wf := ?_
+      typed0 := ?_
+      breakScoped := ?_
+      continueScoped := ?_ }
+  ·
+    cases hinit : c.initExpr with
+    | none =>
+        simp [ObjectDeclRuntimeCert.targetStmt, hinit, WellFormedStmt]
+    | some e =>
+        have hty : HasValueType c.Γ e c.τ := c.getHasValueType hinit
+        simpa [ObjectDeclRuntimeCert.targetStmt, hinit, WellFormedStmt] using
+          (wellFormedValue_of_hasValueType hty)
+  ·
+    exact ⟨c.postTypeEnv, normalCI_to_old_stmt c.normalTyping⟩
+  ·
+    cases hinit : c.initExpr <;>
+      simp [ObjectDeclRuntimeCert.targetStmt, hinit, BreakWellScoped, BreakWellScopedAt]
+  ·
+    cases hinit : c.initExpr <;>
+      simp [ObjectDeclRuntimeCert.targetStmt, hinit, ContinueWellScoped, ContinueWellScopedAt]
+
+/-- Canonical normal-out payload for the statement profile. -/
+def normalOut
+    (c : ObjectDeclRuntimeCert) :
+    {Δ : TypeEnv // HasTypeStmtCI .normalK c.Γ c.targetStmt Δ} :=
+  ⟨c.postTypeEnv, c.normalTyping⟩
+
+/-- State-free control profile extracted from the cert. -/
+def bodyControlProfile
+    (c : ObjectDeclRuntimeCert) :
+    BodyControlProfile c.Γ c.targetStmt :=
+  { summary :=
+      { normalOut := some c.normalOut
+        returnOut := none } }
+
+/-- Object declaration statements cannot produce a top-level return exit. -/
+theorem noReturnBigStep
+    (c : ObjectDeclRuntimeCert)
+    {rv : Option Value} {σ' : State} :
+    ¬ BigStepStmt c.σ c.targetStmt (.returnResult rv) σ' := by
+  intro hstep
+  cases hinit : c.initExpr with
+  | none =>
+      simp [ObjectDeclRuntimeCert.targetStmt, hinit] at hstep
+      cases hstep
+  | some e =>
+      simp [ObjectDeclRuntimeCert.targetStmt, hinit] at hstep
+      cases hstep
+
+/-- Adequacy of the cert-induced control profile. -/
+def bodyAdequacyCI
+    (c : ObjectDeclRuntimeCert) :
+    BodyAdequacyCI c.Γ c.σ c.targetStmt c.bodyControlProfile := by
+  refine
+    { normalSound := ?_
+      returnSound := ?_ }
+  ·
+    intro σ' hstep
+    exact ⟨c.normalOut, rfl⟩
+  ·
+    intro rv σ' hstep
+    exact False.elim (c.noReturnBigStep hstep)
+
+/-- Fully assembled CI closure boundary extracted from the cert. -/
+def bodyClosureBoundaryCI
+    (c : ObjectDeclRuntimeCert) :
+    BodyClosureBoundaryCI c.Γ c.σ c.targetStmt :=
+  mkBodyClosureBoundaryCI
+    c.bodyStructuralBoundary
+    c.bodyControlProfile
+    c.bodyDynamicBoundary
+    c.bodyAdequacyCI
+
+/-- Legacy CI wrapper, recovered from the assembled boundary. -/
+def bodyReadyCI
+    (c : ObjectDeclRuntimeCert) :
+    BodyReadyCI c.Γ c.σ c.targetStmt :=
+  c.bodyClosureBoundaryCI.toBodyReadyCI
+
+@[simp] theorem bodyReadyCI_safe
+    (c : ObjectDeclRuntimeCert) :
+    c.bodyReadyCI.safe = c.stmtReadyConcrete :=
+  rfl
+
+@[simp] theorem bodyReadyCI_state
+    (c : ObjectDeclRuntimeCert) :
+    c.bodyReadyCI.state = c.ready.ready.concrete :=
+  rfl
+
 end ObjectDeclRuntimeCert
 
 end Cpp
