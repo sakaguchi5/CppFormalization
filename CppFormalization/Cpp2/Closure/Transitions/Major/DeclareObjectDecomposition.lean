@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Closure.Transitions.Major.CloseScopeDecomposition
-
+import CppFormalization.Cpp2.Lemmas.RuntimeObjectCoreWithNext
 namespace Cpp
 
 /-!
@@ -218,28 +218,29 @@ theorem declareObject_preserves_heapInitializedValuesTyped
     DeclaresObject σ τ x ov σ' →
     heapInitializedValuesTyped σ' := by
   intro hσ _ hdecl
-  rcases hdecl with ⟨aNext, hobj, hfresh, hheap, hovcompat, rfl⟩
+  rcases hdecl with ⟨aNext, hobj, hfresh, hheap0, hovcompat, rfl⟩
   intro a c v hheap hval
   by_cases ha : a = σ.next
-  · sorry
-    /-
-    subst ha
-    rw [declareObjectState_heap_self] at hheap
+  · subst ha
+    rw [RuntimeObjectCoreWithNext.heap_declareObjectStateWithNext_self
+          (σ := σ) (τ := τ) (x := x) (ov := ov) (aNext := aNext)] at hheap
     injection hheap with hc
     subst hc
     cases hov : ov with
     | none =>
-        simp [hov] at hval
+        have : False := by
+          simp [hov] at hval
+        exact False.elim this
     | some w =>
-        simp [hov] at hval
-        subst hval
+        have hval' : some w = some v := by
+          simpa [hov] using hval
+        injection hval' with hv
+        subst hv
         simpa [hov] using hovcompat
-    -/
-  · sorry
-    /-
-    rw [declareObjectState_heap_other (σ := σ) (τ := τ) (x := x) (ov := ov) (a := a) ha] at hheap
+  · rw [RuntimeObjectCoreWithNext.heap_declareObjectStateWithNext_other
+          (σ := σ) (τ := τ) (x := x) (ov := ov)
+          (aNext := aNext) (a := a) ha] at hheap
     exact hσ.heapStoredValuesTyped a c v hheap hval
-    -/
 
 /-! =========================================================
     4. 最終組み立て
