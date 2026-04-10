@@ -7,17 +7,22 @@ namespace Cpp
 /-!
 # Closure.External.LegacyBuilderV3
 
-Stage 5: lift the old assumption-style external surface into the builder-based
-V3 world.
+Stage 5: lift the old assumption-style external surface into the builder-based V3 world.
 
-This is the first non-toy family after the builder is in place. The point is
-not to invent a new compiler-like artifact yet, but to package the already-used
-legacy assumption surface into a target-indexed certificate family so that it
-lands in the same V3 interfaces as the toy family.
+After the adequacy-only refactor of the legacy interface/bridge, each legacy
+certificate now also carries:
+- an explicit glue object `G : VerifiedExternalGlueLegacy F R`,
+- an explicit compatibility witness `hcompat : G.compatible n m Γ σ st`.
+
+The point is still the same:
+package the already-used legacy assumption surface into a target-indexed
+certificate family so that it lands in the same V3 interfaces as the toy family.
 -/
 
+/-- One legacy target certificate, now carrying explicit glue and compatibility. -/
 structure LegacyCertificateV3
     (F : VerifiedStdFragment) (R : VerifiedReflectionFragment) where
+  G : VerifiedExternalGlueLegacy F R
   n : F.Name
   m : R.Meta
   Γ : TypeEnv
@@ -28,34 +33,39 @@ structure LegacyCertificateV3
   hgen : R.generates m st
   hstruct : R.establishesStructural m Γ st
   hprof : R.establishesProfile m Γ st
+  hcompat : G.compatible n m Γ σ st
 
 namespace LegacyCertificateV3
 
+/-- The official old assembled closure boundary for this legacy certificate. -/
 noncomputable def oldBoundary
     {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}
     (c : LegacyCertificateV3 F R) :
     BodyClosureBoundaryCI c.Γ c.σ c.st :=
   fragments_establish_body_closure_boundary
-    c.huse c.hdyn c.hgen c.hstruct c.hprof
+    c.G c.huse c.hdyn c.hgen c.hstruct c.hprof c.hcompat
 
+/-- The corresponding old ready witness extracted from the official boundary. -/
 noncomputable def oldReady
     {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}
     (c : LegacyCertificateV3 F R) :
     BodyReadyCI c.Γ c.σ c.st :=
   (oldBoundary c).toBodyReadyCI
 
+/-- The remaining old core-membership witness. -/
 def oldCore
     {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}
     (c : LegacyCertificateV3 F R) :
     CoreBigStepFragment c.st :=
   reflection_fragment_generates_core c.hgen
 
+/-- Explicit V3 pieces obtained from the refactored legacy bridge. -/
 noncomputable def oldExternalPieces
     {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}
     (c : LegacyCertificateV3 F R) :
     ExternalPiecesV3 c.Γ c.σ c.st :=
   externalPiecesV3_of_legacy_external_assumptions
-    c.huse c.hdyn c.hgen c.hstruct c.hprof
+    c.G c.huse c.hdyn c.hgen c.hstruct c.hprof c.hcompat
 
 end LegacyCertificateV3
 
