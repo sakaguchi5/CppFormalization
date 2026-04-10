@@ -43,14 +43,14 @@ namespace DeclareObjectReadyRecomputed
     (h : DeclareObjectReadyRecomputed Γ σ x τ none)
     (hobj : ObjectType τ) :
     RuntimePiecesV3 Γ σ (.declareObj τ x none) :=
-  (bodyDynamicBoundary_declareObjNone (h := h) hobj).toRuntimePiecesV3
+  (toBodyDynamicBoundary_declareObjNone (h := h) hobj).toRuntimePiecesV3
 
 @[simp] theorem runtimePieces_declareObjNone_dynamic
     {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType}
     (h : DeclareObjectReadyRecomputed Γ σ x τ none)
     (hobj : ObjectType τ) :
     (runtimePieces_declareObjNone (h := h) hobj).dynamic =
-      bodyDynamicBoundary_declareObjNone (h := h) hobj := rfl
+      toBodyDynamicBoundary_declareObjNone (h := h) hobj := rfl
 
 /-- Runtime package for a declaration with initializer expression.  The
 recomputed ready package supplies the state-side prerequisites, while the
@@ -63,7 +63,7 @@ initializer contributes the expression-side runtime assumptions. -/
     (hty : HasValueType Γ e τ)
     (hre : ExprReadyConcrete Γ σ e τ) :
     RuntimePiecesV3 Γ σ (.declareObj τ x (some e)) :=
-  (bodyDynamicBoundary_declareObjSome (h := h) hobj hty hre).toRuntimePiecesV3
+  (toBodyDynamicBoundary_declareObjSome (h := h) hobj hty hre).toRuntimePiecesV3
 
 @[simp] theorem runtimePieces_declareObjSome_dynamic
     {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType}
@@ -73,7 +73,7 @@ initializer contributes the expression-side runtime assumptions. -/
     (hty : HasValueType Γ e τ)
     (hre : ExprReadyConcrete Γ σ e τ) :
     (runtimePieces_declareObjSome (h := h) hobj hty hre).dynamic =
-      bodyDynamicBoundary_declareObjSome (h := h) hobj hty hre := rfl
+      toBodyDynamicBoundary_declareObjSome (h := h) hobj hty hre := rfl
 
 /-- Expose the underlying concrete state carried by the runtime package for a
 non-initialized declaration.  This is often the only part needed by later
@@ -96,5 +96,3 @@ concrete pre-state; only the statement-side readiness differs. -/
     (runtimePieces_declareObjSome (h := h) hobj hty hre).dynamic.state = h.ready.concrete := rfl
 
 end DeclareObjectReadyRecomputed
-
-end Cpp
