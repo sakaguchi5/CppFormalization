@@ -5,22 +5,20 @@ namespace Cpp
 /-!
 # Closure.External.AdequacyNormalV3
 
-Dedicated workbench for the normal-side adequacy kernel.
+Normal-side *semantic contract* for the honest adequacy route.
 
-Interpretation after simplification:
-- `NormalCompatibilityV3` is no longer a mixed std/glue/reflection notion.
-- It is now a *pure reflection-side semantic contract*.
-- Concretely, it says:
-  once a reflection package chooses a canonical profile for a generated statement,
-  every actual normal execution of that statement is already accounted for by
-  that canonical profile.
+Key point:
+- this file does **not** pretend that normal profile soundness is derivable from
+  the current generic kernel axioms alone;
+- instead it exposes the real missing contract explicitly.
 
-This is mathematically stronger and cleaner than the earlier version:
-the contract no longer pretends to depend on runtime-side compatibility inputs
-if those inputs never actually appear in the target statement.
+Meaning:
+once reflection chooses a canonical profile for a generated statement,
+every actual normal execution of that statement is already represented by the
+canonical normal summary.
 -/
 
-/-- The exact bundled normal-side target for the canonical V3 profile. -/
+/-- Exact bundled normal-side target for the canonical V3 profile. -/
 abbrev CanonicalNormalGoalV3
     {R : VerifiedReflectionFragmentV3}
     {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
@@ -34,9 +32,8 @@ abbrev CanonicalNormalGoalV3
 /--
 Pure reflection-side semantic contract for normal completion.
 
-No std-side fragment, compatibility predicate, or runtime-side support witness
-appears here anymore, because none of them survived into the actual target
-statement.
+This is the honest place where the remaining normal-side adequacy assumption
+lives.
 -/
 structure NormalCompatibilityV3
     (R : VerifiedReflectionFragmentV3) : Prop where
@@ -50,10 +47,7 @@ structure NormalCompatibilityV3
       ∃ out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ st Δ},
         (canonicalProfileV3 (R := R) (m := m) (Γ := Γ) (st := st) hgen hrefl).summary.normalOut = some out
 
-/--
-Main theorem from the explicit normal-compatibility contract to the exact
-canonical normal-soundness statement.
--/
+/-- Pointwise normal-side soundness from the explicit contract. -/
 theorem canonical_profile_normal_sound_v3_of_normalCompat
     {R : VerifiedReflectionFragmentV3}
     (H : NormalCompatibilityV3 R)
@@ -67,7 +61,7 @@ theorem canonical_profile_normal_sound_v3_of_normalCompat
       (canonicalProfileV3 (R := R) (m := m) (Γ := Γ) (st := st) hgen hrefl).summary.normalOut = some out :=
   H.normalSound hgen hrefl hstep
 
-/-- Bundled normal-side target obtained from `NormalCompatibilityV3`. -/
+/-- Bundled normal-side soundness from the explicit contract. -/
 theorem canonical_profile_normal_goal_v3_of_normalCompat
     {R : VerifiedReflectionFragmentV3}
     (H : NormalCompatibilityV3 R)
@@ -80,10 +74,11 @@ theorem canonical_profile_normal_goal_v3_of_normalCompat
   exact canonical_profile_normal_sound_v3_of_normalCompat H hgen hrefl hstep
 
 /--
-Compatibility wrapper name kept as a staging surface.
+Compatibility-wrapper theorem name kept as a staging surface.
 
-This theorem now makes the real dependency explicit:
-what matters is the reflection-side `NormalCompatibilityV3` contract.
+This theorem now says exactly what it should say:
+the result follows from the explicit reflection-side normal contract,
+not from hidden generic assumptions.
 -/
 theorem canonical_profile_normal_sound_kernel_v3
     {R : VerifiedReflectionFragmentV3}
@@ -98,7 +93,7 @@ theorem canonical_profile_normal_sound_kernel_v3
       (canonicalProfileV3 (R := R) (m := m) (Γ := Γ) (st := st) hgen hrefl).summary.normalOut = some out := by
   exact canonical_profile_normal_sound_v3_of_normalCompat H hgen hrefl hstep
 
-/-- Bundled normal-side kernel statement via the explicit compatibility structure. -/
+/-- Bundled wrapper theorem name kept for downstream migration. -/
 theorem canonical_profile_normal_goal_v3
     {R : VerifiedReflectionFragmentV3}
     (H : NormalCompatibilityV3 R)
@@ -108,40 +103,5 @@ theorem canonical_profile_normal_goal_v3
     (hrefl : R.supportsReflection m Γ st) :
     CanonicalNormalGoalV3 (R := R) (m := m) (Γ := Γ) (σ := σ) (st := st) hgen hrefl := by
   exact canonical_profile_normal_goal_v3_of_normalCompat H hgen hrefl
-
-/--
-Conservative bridge from the current generic kernel axiom.
-
-This lets downstream code migrate immediately, while making the stronger and
-cleaner reflection-side contract explicit.
--/
-theorem normalCompatibilityV3_of_kernelAxiom
-    {F : VerifiedStdFragmentV3}
-    {R : VerifiedReflectionFragmentV3}
-    (Compat : CompatibilityPredicateV3 F R)
-    {n : F.Name}
-    (huses : F.uses n)
-    (defaultRuntime :
-      ∀ {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt},
-        R.generates m st →
-        R.supportsReflection m Γ st →
-        F.supportsRuntime n Γ σ st)
-    (defaultCompat :
-      ∀ {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt},
-        R.generates m st →
-        R.supportsReflection m Γ st →
-        Compat n m Γ σ st) :
-    NormalCompatibilityV3 R := by
-  refine ⟨?_⟩
-  intro m Γ σ st hgen hrefl σ' hstep
-  exact
-    canonical_profile_normal_sound_v3
-      (F := F) (R := R) Compat
-      huses
-      (defaultRuntime hgen hrefl)
-      hgen
-      hrefl
-      (defaultCompat hgen hrefl)
-      hstep
 
 end Cpp
