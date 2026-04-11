@@ -61,47 +61,50 @@ theorem block_head_normal_preserves_block_ready_concrete
 /--
 Typed concrete readiness boundary for the `body .normal` branch of `while`.
 
-This remains the strongest full-generic theorem honestly derivable from the current
-concrete interface. The weaker signature without `htyWhile` is not available yet.
+旧 signature では whole-while typing/readiness しか持っていなかったが、
+新設計では residual readiness reconstruction は
+`LoopBodyBoundaryCI` + `LoopReentryKernelCI` に委ねる。
 -/
 theorem while_body_normal_preserves_body_ready_concrete_typed
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
-    HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ →
-    StmtReadyConcrete Γ σ (.whileStmt c body) →
+    ExprReadyConcrete Γ σ c (.base .bool) →
+    LoopBodyBoundaryCI Γ σ body →
+    LoopReentryKernelCI Γ c body →
     BigStepStmt σ body .normal σ' →
-    ScopedTypedStateConcrete Γ σ →
     ScopedTypedStateConcrete Γ σ' ∧ StmtReadyConcrete Γ σ' (.whileStmt c body) := by
-  intro htyWhile hreadyWhile hstepBody hσ
-  rcases while_normal_typing_data htyWhile with ⟨_, _, hN, _, _⟩
-  have hreadyBody : StmtReadyConcrete Γ σ body :=
-    while_ready_body_data hreadyWhile
+  intro hcond hbody K hstepBody
+  have hN : HasTypeStmtCI .normalK Γ body Γ :=
+    hbody.profile.normalTyping
   have hσ' : ScopedTypedStateConcrete Γ σ' :=
     stmt_normal_preserves_scoped_typed_state_concrete
-      hN hσ hreadyBody hstepBody
+      hN hbody.dynamic.state hbody.dynamic.safe hstepBody
   have hreadyTail : StmtReadyConcrete Γ σ' (.whileStmt c body) :=
-    while_ready_after_body_normal hN hσ' hreadyWhile hstepBody
+    K.whileReady_after_normal hcond hbody hstepBody
   exact ⟨hσ', hreadyTail⟩
 
 /--
 Typed concrete readiness boundary for the `body .continueResult` branch of `while`.
+
+continue branch も同様に、新設計では reentry kernel を明示的に要求する。
 -/
 theorem while_body_continue_preserves_body_ready_concrete_typed
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
-    HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ →
-    StmtReadyConcrete Γ σ (.whileStmt c body) →
+    ExprReadyConcrete Γ σ c (.base .bool) →
+    LoopBodyBoundaryCI Γ σ body →
+    LoopReentryKernelCI Γ c body →
     BigStepStmt σ body .continueResult σ' →
-    ScopedTypedStateConcrete Γ σ →
     ScopedTypedStateConcrete Γ σ' ∧ StmtReadyConcrete Γ σ' (.whileStmt c body) := by
-  intro htyWhile hreadyWhile hstepBody hσ
-  rcases while_normal_typing_data htyWhile with ⟨_, _, hN, _, hC⟩
-  have hreadyBody : StmtReadyConcrete Γ σ body :=
-    while_ready_body_data hreadyWhile
+  intro hcond hbody K hstepBody
+  have hC : HasTypeStmtCI .continueK Γ body Γ :=
+    hbody.profile.continueTyping
   have hcompBody : StmtControlCompatible hC hstepBody :=
-    stmt_continue_control_compatible_of_normal stmt_normal_control_compatible hC hstepBody
+    stmt_continue_control_compatible_of_normal
+      stmt_normal_control_compatible hC hstepBody
   have hσ' : ScopedTypedStateConcrete Γ σ' :=
-    stmt_continue_preserves_scoped_typed_state_concrete hC hstepBody hcompBody hσ hreadyBody
+    stmt_continue_preserves_scoped_typed_state_concrete
+      hC hstepBody hcompBody hbody.dynamic.state hbody.dynamic.safe
   have hreadyTail : StmtReadyConcrete Γ σ' (.whileStmt c body) :=
-    while_ready_after_body_continue hN hσ' hreadyWhile hstepBody
+    K.whileReady_after_continue hcond hbody hstepBody
   exact ⟨hσ', hreadyTail⟩
 
 /--

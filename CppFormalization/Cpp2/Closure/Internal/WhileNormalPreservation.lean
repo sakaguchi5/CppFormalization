@@ -4,35 +4,23 @@ import CppFormalization.Cpp2.Closure.Foundation.TypingCI
 import CppFormalization.Cpp2.Closure.Internal.PrimitiveStmtNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.ReadinessReplayPrimitive
 import CppFormalization.Cpp2.Closure.Internal.ConditionReplayKernel
+import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelCI
 
 namespace Cpp
 
 /-!
-`while` の normal-path preservation。
+# Closure.Internal.WhileNormalPreservation
 
-ここで直接示したいのは
-`BigStepStmt σ (.whileStmt c body) .normal σ'`
-なら `ScopedTypedStateConcrete Γ σ'`
-が保たれることだが、その本体は
+`while` の normal-path preservation を、`LoopBodyBoundaryCI` と
+`LoopReentryKernelCI` を明示した形へ組み替える。
 
-1. 条件が false で即 normal 終了する場合
-2. body が normal で 1 周進んでから tail loop が normal 終了する場合
-3. body が break でその場で normal 終了する場合
-4. body が continue で 1 周進んでから tail loop が normal 終了する場合
-
-の 4 分岐である。
-
-このファイルでは generic な while 分解を与えたうえで、
-step 4/5 として
-- `while_ready_after_body_*` の theorem-backed な再構成層を追加し
-- replay-stable primitive body について、break 込み while preservation を
-  generic axiom に頼らず再構成する
-
-ところまで進める。
-
-condition replay kernel 導入後は、replay-stable primitive body 版については
-post-state の condition readiness を外から受け取る必要はない。
-`ReplayStableCondExpr c` と initial while-ready から内部で再構成する。
+重要:
+- loop body の local 4-channel contract は `LoopBodyBoundaryCI` が担う。
+- body の `normal` / `continue` 後に header へ再入できることは
+  `LoopReentryKernelCI` が担う。
+- したがって旧 generic axiom
+  `while_ready_after_body_normal` / `while_ready_after_body_continue`
+  にはもう依存しない。
 -/
 
 /- =========================================================
@@ -68,57 +56,6 @@ theorem while_ready_cond_data
   | whileStmt hc hcr _ =>
       exact ⟨hc, hcr⟩
 
-/--
-Full generic な residual-readiness reconstruction はまだ kernel axiom のまま残す。
-理由は condition 側の replay theorem が full generic にはまだ無いからである。
--/
-axiom while_ready_after_body_normal
-    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
-    HasTypeStmtCI .normalK Γ body Γ →
-    ScopedTypedStateConcrete Γ σ' →
-    StmtReadyConcrete Γ σ (.whileStmt c body) →
-    BigStepStmt σ body .normal σ' →
-    StmtReadyConcrete Γ σ' (.whileStmt c body)
-
-axiom while_ready_after_body_continue
-    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
-    HasTypeStmtCI .normalK Γ body Γ →
-    ScopedTypedStateConcrete Γ σ' →
-    StmtReadyConcrete Γ σ (.whileStmt c body) →
-    BigStepStmt σ body .continueResult σ' →
-    StmtReadyConcrete Γ σ' (.whileStmt c body)
-
-/--
-Step 4 の theorem 化の中核。
-condition と body の post-state replay witness が外から与えられれば、
-whole-while ready は constructor で再構成できる。
--/
-theorem while_ready_after_body_normal_from_replay
-    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
-    HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ →
-    ExprReadyConcrete Γ σ' c (.base .bool) →
-    StmtReadyConcrete Γ σ' body →
-    BigStepStmt σ body .normal σ' →
-    StmtReadyConcrete Γ σ' (.whileStmt c body) := by
-  intro htyWhile hcondReady hbodyReady _
-  rcases while_typing_data htyWhile with ⟨_, hc, _, _, _⟩
-  exact StmtReadyConcrete.whileStmt hc hcondReady hbodyReady
-
-/--
-continue 分岐も同様。
-本質は step result ではなく、post-state での condition/body replay witness である。
--/
-theorem while_ready_after_body_continue_from_replay
-    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
-    HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ →
-    ExprReadyConcrete Γ σ' c (.base .bool) →
-    StmtReadyConcrete Γ σ' body →
-    BigStepStmt σ body .continueResult σ' →
-    StmtReadyConcrete Γ σ' (.whileStmt c body) := by
-  intro htyWhile hcondReady hbodyReady _
-  rcases while_typing_data htyWhile with ⟨_, hc, _, _, _⟩
-  exact StmtReadyConcrete.whileStmt hc hcondReady hbodyReady
-
 theorem while_normal_data
     {σ σ' : State} {c : ValExpr} {body : CppStmt} :
     BigStepStmt σ (.whileStmt c body) .normal σ' →
@@ -143,11 +80,9 @@ theorem while_normal_data
   | whileTrueContinue _ hBody hTail =>
       exact Or.inr (Or.inr (Or.inr ⟨_, hBody, hTail⟩))
 
-
 /- =========================================================
-   2. generic theorem from body/tail subproofs
+   2. generic theorem from body/tail subproofs, now via reentry kernel
    ========================================================= -/
-
 
 def WhileTailClosed
     (Γ : TypeEnv) (σ' : State) (c : ValExpr) (body : CppStmt) : Prop :=
@@ -156,7 +91,6 @@ def WhileTailClosed
     StmtReadyConcrete Γ σ1 (.whileStmt c body) →
     BigStepStmt σ1 (.whileStmt c body) .normal σ' →
     ScopedTypedStateConcrete Γ σ'
-
 
 theorem while_normal_stop_case_preserves_scoped_typed_state
     {Γ Δ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
@@ -170,14 +104,50 @@ theorem while_normal_stop_case_preserves_scoped_typed_state
   subst hEq
   exact hσ
 
+theorem while_ready_after_body_normal_via_reentry
+    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
+    (K : LoopReentryKernelCI Γ c body)
+    (hcond : ExprReadyConcrete Γ σ c (.base .bool))
+    (hbody : LoopBodyBoundaryCI Γ σ body)
+    (hstep : BigStepStmt σ body .normal σ') :
+    StmtReadyConcrete Γ σ' (.whileStmt c body) :=
+  K.whileReady_after_normal hcond hbody hstep
 
-theorem while_normal_body_normal_case_preserves_scoped_typed_state
+theorem while_ready_after_body_continue_via_reentry
+    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
+    (K : LoopReentryKernelCI Γ c body)
+    (hcond : ExprReadyConcrete Γ σ c (.base .bool))
+    (hbody : LoopBodyBoundaryCI Γ σ body)
+    (hstep : BigStepStmt σ body .continueResult σ') :
+    StmtReadyConcrete Γ σ' (.whileStmt c body) :=
+  K.whileReady_after_continue hcond hbody hstep
+--旧axiomの移行用補題
+theorem while_ready_after_body_normal_of_kernel
+    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
+    (K : LoopReentryKernelCI Γ c body)
+    (hcond : ExprReadyConcrete Γ σ c (.base .bool))
+    (hbody : LoopBodyBoundaryCI Γ σ body)
+    (hstep : BigStepStmt σ body .normal σ') :
+    StmtReadyConcrete Γ σ' (.whileStmt c body) :=
+  K.whileReady_after_normal hcond hbody hstep
+
+theorem while_ready_after_body_continue_of_kernel
+    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
+    (K : LoopReentryKernelCI Γ c body)
+    (hcond : ExprReadyConcrete Γ σ c (.base .bool))
+    (hbody : LoopBodyBoundaryCI Γ σ body)
+    (hstep : BigStepStmt σ body .continueResult σ') :
+    StmtReadyConcrete Γ σ' (.whileStmt c body) :=
+  K.whileReady_after_continue hcond hbody hstep
+  --
+theorem while_normal_body_normal_case_preserves_scoped_typed_state_via_reentry
     {Γ Δ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
     HasTypeStmtCI .normalK Γ (.whileStmt c body) Δ →
     ScopedTypedStateConcrete Γ σ →
-    StmtReadyConcrete Γ σ (.whileStmt c body) →
+    ExprReadyConcrete Γ σ c (.base .bool) →
+    LoopBodyBoundaryCI Γ σ body →
+    LoopReentryKernelCI Γ c body →
     (∀ {σ1},
-      StmtReadyConcrete Γ σ body →
       BigStepStmt σ body .normal σ1 →
       ScopedTypedStateConcrete Γ σ1) →
     WhileTailClosed Γ σ' c body →
@@ -185,51 +155,42 @@ theorem while_normal_body_normal_case_preserves_scoped_typed_state
       BigStepStmt σ body .normal σ1 ∧
       BigStepStmt σ1 (.whileStmt c body) .normal σ') →
     ScopedTypedStateConcrete Δ σ' := by
-  intro hty hσ hready hbodyNorm htail hcase
-  rcases while_typing_data hty with ⟨hΔ, _, hbodyTy, _, _⟩
+  intro hty hσ hcond hbody K hbodyNorm htail hcase
+  rcases while_typing_data hty with ⟨hΔ, _, _, _, _⟩
   subst hΔ
   rcases hcase with ⟨σ1, hbodyStep, htailStep⟩
-  have hreadyBody : StmtReadyConcrete Δ σ body :=
-    while_ready_body_data hready
-  have hσ1 : ScopedTypedStateConcrete Δ σ1 :=
-    hbodyNorm hreadyBody hbodyStep
-  have hreadyTail : StmtReadyConcrete Δ σ1 (.whileStmt c body) :=
-    while_ready_after_body_normal hbodyTy hσ1 hready hbodyStep
+  have hσ1 := hbodyNorm hbodyStep
+  have hreadyTail := K.whileReady_after_normal hcond hbody hbodyStep
   exact htail hσ1 hreadyTail htailStep
-
 
 theorem while_normal_body_break_case_preserves_scoped_typed_state
     {Γ Δ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
     HasTypeStmtCI .normalK Γ (.whileStmt c body) Δ →
     ScopedTypedStateConcrete Γ σ →
-    StmtReadyConcrete Γ σ (.whileStmt c body) →
+    LoopBodyBoundaryCI Γ σ body →
     (∀ {σ1},
-      StmtReadyConcrete Γ σ body →
       BigStepStmt σ body .breakResult σ1 →
       ScopedTypedStateConcrete Γ σ1) →
     (∃ σ1,
       BigStepStmt σ body .breakResult σ1 ∧
       σ' = σ1) →
     ScopedTypedStateConcrete Δ σ' := by
-  intro hty hσ hready hbodyBreak hcase
+  intro hty hσ hbody hbodyBreak hcase
   rcases while_typing_data hty with ⟨hΔ, _, _, _, _⟩
   subst hΔ
   rcases hcase with ⟨σ1, hbodyStep, hEq⟩
-  have hreadyBody : StmtReadyConcrete Δ σ body :=
-    while_ready_body_data hready
-  have hσ1 : ScopedTypedStateConcrete Δ σ1 :=
-    hbodyBreak hreadyBody hbodyStep
+  have hσ1 := hbodyBreak hbodyStep
   subst hEq
   exact hσ1
 
-
-theorem while_normal_body_continue_case_preserves_scoped_typed_state
+theorem while_normal_body_continue_case_preserves_scoped_typed_state_via_reentry
     {Γ Δ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
     HasTypeStmtCI .normalK Γ (.whileStmt c body) Δ →
     ScopedTypedStateConcrete Γ σ →
-    StmtReadyConcrete Γ σ (.whileStmt c body) →
+    ExprReadyConcrete Γ σ c (.base .bool) →
+    LoopBodyBoundaryCI Γ σ body →
+    LoopReentryKernelCI Γ c body →
     (∀ {σ1},
-      StmtReadyConcrete Γ σ body →
       BigStepStmt σ body .continueResult σ1 →
       ScopedTypedStateConcrete Γ σ1) →
     WhileTailClosed Γ σ' c body →
@@ -237,50 +198,42 @@ theorem while_normal_body_continue_case_preserves_scoped_typed_state
       BigStepStmt σ body .continueResult σ1 ∧
       BigStepStmt σ1 (.whileStmt c body) .normal σ') →
     ScopedTypedStateConcrete Δ σ' := by
-  intro hty hσ hready hbodyCont htail hcase
-  rcases while_typing_data hty with ⟨hΔ, _, hbodyTy, _, _⟩
+  intro hty hσ hcond hbody K hbodyCont htail hcase
+  rcases while_typing_data hty with ⟨hΔ, _, _, _, _⟩
   subst hΔ
   rcases hcase with ⟨σ1, hbodyStep, htailStep⟩
-  have hreadyBody : StmtReadyConcrete Δ σ body :=
-    while_ready_body_data hready
-  have hσ1 : ScopedTypedStateConcrete Δ σ1 :=
-    hbodyCont hreadyBody hbodyStep
-  have hreadyTail : StmtReadyConcrete Δ σ1 (.whileStmt c body) :=
-    while_ready_after_body_continue hbodyTy hσ1 hready hbodyStep
+  have hσ1 := hbodyCont hbodyStep
+  have hreadyTail := K.whileReady_after_continue hcond hbody hbodyStep
   exact htail hσ1 hreadyTail htailStep
 
-
-theorem while_normal_preserves_scoped_typed_state_from_body_and_tail
+theorem while_normal_preserves_scoped_typed_state_from_loop_boundary_and_tail
     {Γ Δ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
     HasTypeStmtCI .normalK Γ (.whileStmt c body) Δ →
     ScopedTypedStateConcrete Γ σ →
-    StmtReadyConcrete Γ σ (.whileStmt c body) →
+    ExprReadyConcrete Γ σ c (.base .bool) →
+    LoopBodyBoundaryCI Γ σ body →
+    LoopReentryKernelCI Γ c body →
     BigStepStmt σ (.whileStmt c body) .normal σ' →
     (∀ {σ1},
-      StmtReadyConcrete Γ σ body →
       BigStepStmt σ body .normal σ1 →
       ScopedTypedStateConcrete Γ σ1) →
     (∀ {σ1},
-      StmtReadyConcrete Γ σ body →
       BigStepStmt σ body .breakResult σ1 →
       ScopedTypedStateConcrete Γ σ1) →
     (∀ {σ1},
-      StmtReadyConcrete Γ σ body →
       BigStepStmt σ body .continueResult σ1 →
       ScopedTypedStateConcrete Γ σ1) →
     WhileTailClosed Γ σ' c body →
     ScopedTypedStateConcrete Δ σ' := by
-  intro hty hσ hready hstep hbodyNorm hbodyBreak hbodyCont htail
+  intro hty hσ hcond hbody K hstep hbodyNorm hbodyBreak hbodyCont htail
   rcases while_normal_data hstep with hstop | hnorm | hbreak | hcont
-  · exact while_normal_stop_case_preserves_scoped_typed_state
-      hty hσ hstop
-  · exact while_normal_body_normal_case_preserves_scoped_typed_state
-      hty hσ hready hbodyNorm htail hnorm
+  · exact while_normal_stop_case_preserves_scoped_typed_state hty hσ hstop
+  · exact while_normal_body_normal_case_preserves_scoped_typed_state_via_reentry
+      hty hσ hcond hbody K hbodyNorm htail hnorm
   · exact while_normal_body_break_case_preserves_scoped_typed_state
-      hty hσ hready hbodyBreak hbreak
-  · exact while_normal_body_continue_case_preserves_scoped_typed_state
-      hty hσ hready hbodyCont htail hcont
-
+      hty hσ hbody hbodyBreak hbreak
+  · exact while_normal_body_continue_case_preserves_scoped_typed_state_via_reentry
+      hty hσ hcond hbody K hbodyCont htail hcont
 
 /- =========================================================
    3. primitive body の corollary
@@ -295,7 +248,6 @@ theorem primitive_normal_stmt_no_break
     simp [PrimitiveNormalStmt] at hprim <;>
     cases hbreak
 
-
 theorem primitive_normal_stmt_no_continue
     {σ σ' : State} {st : CppStmt} :
     PrimitiveNormalStmt st →
@@ -305,13 +257,14 @@ theorem primitive_normal_stmt_no_continue
     simp [PrimitiveNormalStmt] at hprim <;>
     cases hcont
 
-
 theorem primitive_body_while_normal_preserves_scoped_typed_state_concrete
     {Γ Δ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
     PrimitiveNormalStmt body →
     HasTypeStmtCI .normalK Γ (.whileStmt c body) Δ →
     ScopedTypedStateConcrete Γ σ →
-    StmtReadyConcrete Γ σ (.whileStmt c body) →
+    ExprReadyConcrete Γ σ c (.base .bool) →
+    LoopBodyBoundaryCI Γ σ body →
+    LoopReentryKernelCI Γ c body →
     BigStepStmt σ (.whileStmt c body) .normal σ' →
     (∀ {σ1},
       ScopedTypedStateConcrete Γ σ1 →
@@ -319,39 +272,39 @@ theorem primitive_body_while_normal_preserves_scoped_typed_state_concrete
       BigStepStmt σ1 (.whileStmt c body) .normal σ' →
       ScopedTypedStateConcrete Γ σ') →
     ScopedTypedStateConcrete Δ σ' := by
-  intro hprim hty hσ hready hstep htail
+  intro hprim hty hσ hcond hbody K hstep htail
   rcases while_typing_data hty with ⟨_, _, hbodyTy, _, _⟩
-  refine while_normal_preserves_scoped_typed_state_from_body_and_tail
-    hty hσ hready hstep ?_ ?_ ?_ ?_
-  · intro σ1 hreadyBody hbodyStep
+  refine while_normal_preserves_scoped_typed_state_from_loop_boundary_and_tail
+    hty hσ hcond hbody K hstep ?_ ?_ ?_ ?_
+  · intro σ1 hbodyStep
     exact primitive_stmt_normal_preserves_scoped_typed_state_concrete
-      hprim hbodyTy hσ hreadyBody hbodyStep
-  · intro σ1 hreadyBody hbodyStep
+      hprim hbodyTy hσ hbody.dynamic.safe hbodyStep
+  · intro σ1 hbodyStep
     exfalso
     exact primitive_normal_stmt_no_break hprim hbodyStep
-  · intro σ1 hreadyBody hbodyStep
+  · intro σ1 hbodyStep
     exfalso
     exact primitive_normal_stmt_no_continue hprim hbodyStep
   · intro σ1 hσ1 hreadyTail htailStep
     exact htail hσ1 hreadyTail htailStep
-
 
 theorem while_normal_preserves_scoped_typed_state_concrete_of_primitive_body
     {Γ Δ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
     PrimitiveNormalStmt body →
     HasTypeStmtCI .normalK Γ (.whileStmt c body) Δ →
     ScopedTypedStateConcrete Γ σ →
-    StmtReadyConcrete Γ σ (.whileStmt c body) →
+    ExprReadyConcrete Γ σ c (.base .bool) →
+    LoopBodyBoundaryCI Γ σ body →
+    LoopReentryKernelCI Γ c body →
     BigStepStmt σ (.whileStmt c body) .normal σ' →
     WhileTailClosed Γ σ' c body →
     ScopedTypedStateConcrete Δ σ' := by
-  intro hprim hty hσ hready hstep htail
+  intro hprim hty hσ hcond hbody K hstep htail
   exact primitive_body_while_normal_preserves_scoped_typed_state_concrete
-    hprim hty hσ hready hstep htail
-
+    hprim hty hσ hcond hbody K hstep htail
 
 /- =========================================================
-   4. theorem-backed replay reconstruction for replay-stable primitive body
+   4. replay-stable primitive case remains useful as a concrete reentry target
    ========================================================= -/
 
 theorem replay_stable_primitive_stmt_is_primitive_normal
@@ -359,7 +312,6 @@ theorem replay_stable_primitive_stmt_is_primitive_normal
     ReplayStablePrimitiveStmt st → PrimitiveNormalStmt st := by
   intro h
   cases st <;> simp [ReplayStablePrimitiveStmt, PrimitiveNormalStmt] at h ⊢
-
 
 theorem replay_stable_primitive_stmt_no_break
     {σ σ' : State} {st : CppStmt} :
@@ -369,7 +321,6 @@ theorem replay_stable_primitive_stmt_no_break
   cases st <;>
     simp [ReplayStablePrimitiveStmt] at hstable <;>
     cases hbreak
-
 
 theorem replay_stable_primitive_stmt_no_continue
     {σ σ' : State} {st : CppStmt} :
@@ -381,12 +332,8 @@ theorem replay_stable_primitive_stmt_no_continue
     cases hcont
 
 /--
-Step 4 の theorem 化その1。
-replay-stable primitive body では、body の normal 実行後
-- body 自体の ready は primitive replay kernel で再構成できる
-- condition ready は condition replay kernel で再構成できる
-
-したがって post-state の while-ready は theorem で再構成できる。
+This theorem is now best read as the core ingredient for constructing a
+concrete `LoopReentryKernelCI` instance for replay-stable primitive bodies.
 -/
 theorem while_ready_after_body_normal_of_replay_stable_primitive
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
@@ -408,14 +355,9 @@ theorem while_ready_after_body_normal_of_replay_stable_primitive
   have hcondReady' : ExprReadyConcrete Γ σ' c (.base .bool) :=
     replay_stable_cond_expr_ready_after_replay_stable_primitive
       hstable hcstable hσ' hcondReady0 hstepBody
-  exact while_ready_after_body_normal_from_replay
-    htyWhile hcondReady' hreadyBody' hstepBody
+  rcases while_typing_data htyWhile with ⟨_, hc, _, _, _⟩
+  exact StmtReadyConcrete.whileStmt hc hcondReady' hreadyBody'
 
-/--
-continue 分岐も同様。
-replay-stable primitive body には continue 実行そのものが存在しないので、
-continue 分岐の residual-readiness は contradiction から閉じる。
--/
 theorem while_ready_after_body_continue_of_replay_stable_primitive
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
     ReplayStablePrimitiveStmt body →
@@ -429,19 +371,6 @@ theorem while_ready_after_body_continue_of_replay_stable_primitive
   have hfalse : False := replay_stable_primitive_stmt_no_continue hstable hstepBody
   exact False.elim hfalse
 
-
-/- =========================================================
-   5. break 込みでの replay-stable primitive while preservation 再構成
-   ========================================================= -/
-
-/--
-Step 5。
-replay-stable primitive body の while-preservation を、generic residual-readiness axiom に頼らず
-replay kernel と break/continue impossibility から組み直す。
-
-condition replay kernel 導入後は、`ReplayStableCondExpr c` から body-normal 分岐の
-condition ready も内部で再構成できるので、追加の replay hypothesis は不要である。
--/
 theorem replay_stable_primitive_body_while_normal_preserves_scoped_typed_state_concrete
     {Γ Δ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
     ReplayStablePrimitiveStmt body →

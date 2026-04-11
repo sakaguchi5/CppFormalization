@@ -45,21 +45,23 @@ theorem block_head_normal_preserves_block_ready
 
 theorem while_body_normal_preserves_stmt_ready_typed
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
-    (htyWhile : HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ)
-    (hready : StmtReadyConcrete Γ σ (.whileStmt c body))
-    (hstepBody : BigStepStmt σ body .normal σ')
-    (hσ : ScopedTypedStateConcrete Γ σ) :
+    (hcond : ExprReadyConcrete Γ σ c (.base .bool))
+    (hbody : LoopBodyBoundaryCI Γ σ body)
+    (K : LoopReentryKernelCI Γ c body)
+    (hstepBody : BigStepStmt σ body .normal σ') :
     StmtReadyConcrete Γ σ' (.whileStmt c body) :=
-  InternalClosureRoadmapConcrete.while_body_normal_preserves_body_ready_typed htyWhile hready hstepBody hσ
+  InternalClosureRoadmapConcrete.while_body_normal_preserves_body_ready_typed
+    hcond hbody K hstepBody
 
 theorem while_body_continue_preserves_stmt_ready_typed
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
-    (htyWhile : HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ)
-    (hready : StmtReadyConcrete Γ σ (.whileStmt c body))
-    (hstepBody : BigStepStmt σ body .continueResult σ')
-    (hσ : ScopedTypedStateConcrete Γ σ) :
+    (hcond : ExprReadyConcrete Γ σ c (.base .bool))
+    (hbody : LoopBodyBoundaryCI Γ σ body)
+    (K : LoopReentryKernelCI Γ c body)
+    (hstepBody : BigStepStmt σ body .continueResult σ') :
     StmtReadyConcrete Γ σ' (.whileStmt c body) :=
-  InternalClosureRoadmapConcrete.while_body_continue_preserves_body_ready_typed htyWhile hready hstepBody hσ
+  InternalClosureRoadmapConcrete.while_body_continue_preserves_body_ready_typed
+    hcond hbody K hstepBody
 
 theorem body_ready_ci_function_body_progress_or_diverges
     {Γ : TypeEnv} {σ : State} {st : CppStmt} :

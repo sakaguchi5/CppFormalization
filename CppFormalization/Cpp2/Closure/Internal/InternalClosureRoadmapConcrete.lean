@@ -57,29 +57,30 @@ theorem block_head_normal_preserves_block_ready
     (Cpp.block_head_normal_preserves_block_ready_concrete
       htyS hready hstepS hσ).2
 
--- While: current concrete API honestly needs body-normal typing.
+-- While: residual readiness now depends on
+-- condition readiness + loop-body local boundary + reentry kernel.
 
 theorem while_body_normal_preserves_body_ready_typed
     {Γ : TypeEnv} {σ σ₁ : State} {c : ValExpr} {body : CppStmt}
-    (htyWhile : HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ)
-    (hready : StmtReadyConcrete Γ σ (.whileStmt c body))
-    (hstepBody : BigStepStmt σ body .normal σ₁)
-    (hσ : ScopedTypedStateConcrete Γ σ) :
+    (hcond : ExprReadyConcrete Γ σ c (.base .bool))
+    (hbody : LoopBodyBoundaryCI Γ σ body)
+    (K : LoopReentryKernelCI Γ c body)
+    (hstepBody : BigStepStmt σ body .normal σ₁) :
     StmtReadyConcrete Γ σ₁ (.whileStmt c body) := by
   exact
     (Cpp.while_body_normal_preserves_body_ready_concrete_typed
-      htyWhile hready hstepBody hσ).2
+      hcond hbody K hstepBody).2
 
 theorem while_body_continue_preserves_body_ready_typed
     {Γ : TypeEnv} {σ σ₁ : State} {c : ValExpr} {body : CppStmt}
-    (htyWhile : HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ)
-    (hready : StmtReadyConcrete Γ σ (.whileStmt c body))
-    (hstepBody : BigStepStmt σ body .continueResult σ₁)
-    (hσ : ScopedTypedStateConcrete Γ σ) :
+    (hcond : ExprReadyConcrete Γ σ c (.base .bool))
+    (hbody : LoopBodyBoundaryCI Γ σ body)
+    (K : LoopReentryKernelCI Γ c body)
+    (hstepBody : BigStepStmt σ body .continueResult σ₁) :
     StmtReadyConcrete Γ σ₁ (.whileStmt c body) := by
   exact
     (Cpp.while_body_continue_preserves_body_ready_concrete_typed
-      htyWhile hready hstepBody hσ).2
+      hcond hbody K hstepBody).2
 
 end InternalClosureRoadmapConcrete
 end Cpp
