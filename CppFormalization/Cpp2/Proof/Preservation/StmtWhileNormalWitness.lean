@@ -1,4 +1,5 @@
 import CppFormalization.Cpp2.Proof.Preservation.StmtNormalWitness
+import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCompatibility
 
 namespace Cpp
 
@@ -7,47 +8,67 @@ namespace Cpp
 
 Execution-based witness workbench for `while` normal completion.
 
-After reading the current statement/block witness layers carefully, the next real
-bottleneck is `while`. The reason is structural:
+After introducing `LoopBodyBoundaryCI`, the static bottleneck should no longer be
+phrased as an ad-hoc standalone quadruple.  The real static input is:
+- a loop-body local 4-channel profile, and
+- the boolean typing of the loop condition.
 
-- `seq` only needed a normal witness for the left statement and an arbitrary
-  witness for the tail.
-- `if` only needed one executed-branch witness plus typing data for the
-  non-executed branch.
-- `while` is different: even the *normal* typing rule already requires
-  **three** body-side typing ingredients:
-  `normal`, `break`, and `continue`.  The compatibility kernel mirrors that:
-  `while_false_normal` and `while_true_normal_normal` both depend on the same
-  quadruple `(hc, hN, hB, hC)`. citeturn596731view0turn596731view1
-
-So this file does not pretend to have solved the global theorem either.
-It isolates the honest helper packages for the two theorem-backed normal `while`
-cases:
-- `whileFalse`
-- `whileTrueNormal`
+This file keeps the theorem-backed `whileFalse` / `whileTrueNormal` constructors,
+but re-roots their static input in `LoopBodyControlProfile`.
 -/
 
 /--
-The exact body-side typing package required by the normal `while` rule.
+Static input needed by the normal `while` rule.
 
-This is the new bottleneck that becomes visible only after statement and block
-normal witnesses have been packaged honestly.
+The body-side `normal / break / continue` payload is now carried by the loop-body
+profile rather than by an ad-hoc standalone structure.
 -/
 structure WhileNormalTypingV3
     (Γ : TypeEnv) (c : ValExpr) (body : CppStmt) : Type where
   hc : HasValueType Γ c (.base .bool)
-  hN : HasTypeStmtCI .normalK Γ body Γ
-  hB : HasTypeStmtCI .breakK Γ body Γ
-  hC : HasTypeStmtCI .continueK Γ body Γ
+  bodyProfile : LoopBodyControlProfile Γ body
 
 namespace WhileNormalTypingV3
+
+@[simp] def hN
+    {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
+    (h : WhileNormalTypingV3 Γ c body) :
+    HasTypeStmtCI .normalK Γ body Γ :=
+  LoopBodyControlProfile.normalTyping h.bodyProfile
+
+@[simp] def hB
+    {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
+    (h : WhileNormalTypingV3 Γ c body) :
+    HasTypeStmtCI .breakK Γ body Γ :=
+  LoopBodyControlProfile.breakTyping h.bodyProfile
+
+@[simp] def hC
+    {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
+    (h : WhileNormalTypingV3 Γ c body) :
+    HasTypeStmtCI .continueK Γ body Γ :=
+  LoopBodyControlProfile.continueTyping h.bodyProfile
+
+/-- Constructor from the loop-body profile plus condition typing. -/
+def ofLoopBodyProfile
+    {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
+    (hc : HasValueType Γ c (.base .bool))
+    (P : LoopBodyControlProfile Γ body) :
+    WhileNormalTypingV3 Γ c body :=
+  { hc := hc, bodyProfile := P }
 
 /-- The canonical normal typing witness for the whole `while` statement. -/
 def stmtTyping
     {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
     (h : WhileNormalTypingV3 Γ c body) :
     HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ :=
-  HasTypeStmtCI.while_normal h.hc h.hN h.hB h.hC
+  LoopBodyControlProfile.whileNormalTyping h.bodyProfile h.hc
+
+/-- Old coarse typing of the loop body, recovered from the loop-body profile. -/
+def bodyTyped0
+    {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
+    (h : WhileNormalTypingV3 Γ c body) :
+    WellTypedFrom Γ body :=
+  LoopBodyControlProfile.typed0 h.bodyProfile
 
 end WhileNormalTypingV3
 
@@ -56,7 +77,7 @@ Packaged inputs for the `whileTrueNormal` case.
 
 Both the body execution and the tail recursive execution must end back at `Γ`.
 That requirement is not accidental: it is exactly what the normal `while`
-typing rule says. citeturn596731view1turn596731view0
+typing rule says.
 -/
 structure WhileTrueNormalInputV3
     {Γ : TypeEnv}
@@ -70,8 +91,8 @@ structure WhileTrueNormalInputV3
 namespace NormalControlWitnessAtV3
 
 /--
-The `whileFalse` normal witness is already constructor-shaped once the body-side
-typing package is given.
+The `whileFalse` normal witness is already constructor-shaped once the loop-body
+profile and condition typing are given.
 -/
 def while_false_normal
     {Γ : TypeEnv} {σ : State}
@@ -98,7 +119,7 @@ The `whileTrueNormal` case is the first genuinely recursive normal `while` case.
 It needs:
 - the body execution packaged as a normal witness ending at `Γ`,
 - the tail recursive execution packaged as a normal witness ending at `Γ`,
-- the body-side typing package `(hc, hN, hB, hC)`.
+- the loop-body profile together with condition typing.
 -/
 def while_true_normal
     {Γ : TypeEnv}
@@ -114,14 +135,15 @@ def while_true_normal
       (hbody := hbody) (htail := htail)) :
     NormalControlWitnessAtV3
       (Γ := Γ)
-      (st := .whileStmt c body) -- 以前と同様に st を明示
+      (st := .whileStmt c body)
       (hstep := BigStepStmt.whileTrueNormal hcond hbody htail)
       Γ := by
-  -- 1. body の witness を hw.hN の型に transport する
-  let hcompS' := StmtControlCompatible.transport_end_env hin.body_witness.end_eq hin.body_witness.witness.comp
-
-  -- 2. tail (再帰呼び出し) の witness を while 本体の型付けに transport する
-  let hcompT' := StmtControlCompatible.transport_end_env hin.tail_witness.end_eq hin.tail_witness.witness.comp
+  let hcompS' :=
+    StmtControlCompatible.transport_end_env
+      hin.body_witness.end_eq hin.body_witness.witness.comp
+  let hcompT' :=
+    StmtControlCompatible.transport_end_env
+      hin.tail_witness.end_eq hin.tail_witness.witness.comp
 
   refine
     { witness :=
@@ -129,7 +151,6 @@ def while_true_normal
           comp := ?_ }
       end_eq := rfl }
 
-  -- 3. 型が揃った証拠を適用する
   exact StmtControlCompatible.while_true_normal_normal
     (hc := hw.hc) (hN := hw.hN) (hB := hw.hB) (hC := hw.hC)
     (hcond := hcond)
@@ -138,9 +159,7 @@ def while_true_normal
 
 end NormalControlWitnessAtV3
 
-/--
-Existential wrapper for the `whileFalse` normal case.
--/
+/-- Existential wrapper for the `whileFalse` normal case. -/
 def while_false_normal_control_witness_v3
     {Γ : TypeEnv} {σ : State}
     {c : ValExpr} {body : CppStmt}
@@ -149,11 +168,11 @@ def while_false_normal_control_witness_v3
     ∃ out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.whileStmt c body) Δ},
       out.1 = Γ ∧
       StmtControlCompatible out.property (BigStepStmt.whileFalse hcond) := by
-  exact (NormalControlWitnessAtV3.while_false_normal (Γ := Γ) (c := c) (body := body) (hcond := hcond) hw).to_exists
+  exact
+    (NormalControlWitnessAtV3.while_false_normal
+      (Γ := Γ) (c := c) (body := body) (hcond := hcond) hw).to_exists
 
-/--
-Existential wrapper for the `whileTrueNormal` case.
--/
+/-- Existential wrapper for the `whileTrueNormal` case. -/
 def while_true_normal_control_witness_v3
     {Γ : TypeEnv}
     {σ σ₁ σ₂ : State}
@@ -168,11 +187,13 @@ def while_true_normal_control_witness_v3
       (hbody := hbody) (htail := htail)) :
     ∃ out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.whileStmt c body) Δ},
       out.1 = Γ ∧
-      StmtControlCompatible out.property (BigStepStmt.whileTrueNormal hcond hbody htail) := by
-  exact (NormalControlWitnessAtV3.while_true_normal
-    (Γ := Γ) (c := c) (body := body)
-    (hcond := hcond) (hbody := hbody) (htail := htail)
-    hw hin).to_exists
+      StmtControlCompatible out.property
+        (BigStepStmt.whileTrueNormal hcond hbody htail) := by
+  exact
+    (NormalControlWitnessAtV3.while_true_normal
+      (Γ := Γ) (c := c) (body := body)
+      (hcond := hcond) (hbody := hbody) (htail := htail)
+      hw hin).to_exists
 
 /--
 Phase-4 statement normal witness package:
@@ -202,7 +223,8 @@ structure StmtNormalWitnessPhase4V3 : Type extends StmtNormalWitnessPhase3V3 whe
         (hbody := hbody) (htail := htail) →
       ∃ out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.whileStmt c body) Δ},
         out.1 = Γ ∧
-        StmtControlCompatible out.property (BigStepStmt.whileTrueNormal hcond hbody htail)
+        StmtControlCompatible out.property
+          (BigStepStmt.whileTrueNormal hcond hbody htail)
 
 /-- Phase-4 is already inhabited by phase-3 plus the explicit `while` constructors above. -/
 def stmtNormalWitnessPhase4V3_inst : StmtNormalWitnessPhase4V3 := by
@@ -211,12 +233,15 @@ def stmtNormalWitnessPhase4V3_inst : StmtNormalWitnessPhase4V3 := by
       while_false_case := ?_
       while_true_normal_case := ?_ }
   · intro Γ σ c body hw hcond
-    exact while_false_normal_control_witness_v3 (Γ := Γ) (σ := σ) (c := c) (body := body) (hcond := hcond) hw
+    exact
+      while_false_normal_control_witness_v3
+        (Γ := Γ) (σ := σ) (c := c) (body := body) (hcond := hcond) hw
   · intro Γ σ σ₁ σ₂ c body hw hcond hbody htail hin
-    exact while_true_normal_control_witness_v3
-      (Γ := Γ) (σ := σ) (σ₁ := σ₁) (σ₂ := σ₂)
-      (c := c) (body := body)
-      (hcond := hcond) (hbody := hbody) (htail := htail)
-      hw hin
+    exact
+      while_true_normal_control_witness_v3
+        (Γ := Γ) (σ := σ) (σ₁ := σ₁) (σ₂ := σ₂)
+        (c := c) (body := body)
+        (hcond := hcond) (hbody := hbody) (htail := htail)
+        hw hin
 
 end Cpp
