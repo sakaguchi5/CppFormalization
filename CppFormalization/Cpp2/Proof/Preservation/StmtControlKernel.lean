@@ -1,5 +1,3 @@
---import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
---import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
 import CppFormalization.Cpp2.Closure.Internal.PrimitiveStmtNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
@@ -31,7 +29,6 @@ abrupt control での path-sensitive post-environment を正面から扱う。
   として切り出す。
 -/
 
-
 private def StmtCompatGoal
     {k : ControlKind} {Γ Δ : TypeEnv} {s : CppStmt}
     {σ : State} {ctrl : CtrlResult} {σ' : State}
@@ -60,7 +57,6 @@ while の generic compatibility 分岐は、新設計では
 を必要とする。
 `StmtCompatGoal` はそれを持っていないので、ここでは open obligation として退避する。
 -/
-
 
 private axiom while_true_normal_normal_goal
     {Γ : TypeEnv} {σ σ₁ σ₂ : State} {c : ValExpr} {body : CppStmt}
@@ -344,6 +340,35 @@ private theorem block_control_goal
 
 end
 
+structure StmtBlockPreservationKernel where
+  stmt :
+    ∀ {k : ControlKind} {Γ Δ : TypeEnv} {s : CppStmt}
+      {σ : State} {ctrl : CtrlResult} {σ' : State}
+      {hty : HasTypeStmtCI k Γ s Δ}
+      {hstep : BigStepStmt σ s ctrl σ'},
+      StmtControlCompatible hty hstep →
+      ScopedTypedStateConcrete Γ σ →
+      StmtReadyConcrete Γ σ s →
+      ScopedTypedStateConcrete Δ σ'
+  block :
+    ∀ {k : ControlKind} {Γ Δ : TypeEnv} {ss : StmtBlock}
+      {σ : State} {ctrl : CtrlResult} {σ' : State}
+      {hty : HasTypeBlockCI k Γ ss Δ}
+      {hstep : BigStepBlock σ ss ctrl σ'},
+      BlockControlCompatible hty hstep →
+      ScopedTypedStateConcrete Γ σ →
+      BlockReadyConcrete Γ σ ss →
+      ScopedTypedStateConcrete Δ σ'
+
+def stmtBlock_preservation_kernel : StmtBlockPreservationKernel := by
+  refine
+    { stmt := ?_
+      block := ?_ }
+  · intro k Γ Δ s σ ctrl σ' hty hstep hcomp
+    exact stmt_control_goal hcomp
+  · intro k Γ Δ ss σ ctrl σ' hty hstep hcomp
+    exact block_control_goal hcomp
+
 theorem stmt_control_preserves_scoped_typed_state_of_compatible
     {k : ControlKind} {Γ Δ : TypeEnv} {s : CppStmt}
     {σ : State} {ctrl : CtrlResult} {σ' : State}
@@ -353,7 +378,7 @@ theorem stmt_control_preserves_scoped_typed_state_of_compatible
     ScopedTypedStateConcrete Γ σ →
     StmtReadyConcrete Γ σ s →
     ScopedTypedStateConcrete Δ σ' :=
-  stmt_control_goal hcomp
+  (stmtBlock_preservation_kernel).stmt hcomp
 
 theorem block_control_preserves_scoped_typed_state_of_compatible
     {k : ControlKind} {Γ Δ : TypeEnv} {ss : StmtBlock}
@@ -364,6 +389,6 @@ theorem block_control_preserves_scoped_typed_state_of_compatible
     ScopedTypedStateConcrete Γ σ →
     BlockReadyConcrete Γ σ ss →
     ScopedTypedStateConcrete Δ σ' :=
-  block_control_goal hcomp
+  (stmtBlock_preservation_kernel).block hcomp
 
 end Cpp
