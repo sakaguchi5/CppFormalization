@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteRecomputedCursor
-
+import CppFormalization.Cpp2.Lemmas.RuntimeObjectCore
 namespace Cpp
 
 /-!

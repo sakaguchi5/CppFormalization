@@ -1,14 +1,13 @@
-import CppFormalization.Cpp2.Closure.Foundation.TypingCI
-import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmap
-import CppFormalization.Cpp2.Closure.External.Interface
-import CppFormalization.Cpp2.Closure.External.ReflectiveStdClosure
+import CppFormalization.Cpp2.Closure.All
+import CppFormalization.Cpp2.Proof.All
 
 /-!
-# Cpp2.Closure.All
+# Cpp2.All
 
-Canonical aggregate for the closure subsystem.
+Canonical aggregate for the current Cpp2 surface.
 
 方針:
-- default aggregate は mainline wrapper だけを公開面として集約する。
-- compatibility / CI implementation detail は必要な利用側が個別に import する。
+- `Closure.All` を通して closure mainline と internal transport aggregate を拾う。
+- `Proof.All` を通して control / preservation / determinism aggregate を拾う。
+- Frontier は canonical aggregate には含めない。
 -/
