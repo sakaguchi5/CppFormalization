@@ -4,6 +4,8 @@ import CppFormalization.Cpp2.Static.NoDeclareObj
 
 namespace Cpp
 
+mutual
+
 theorem bigStepStmt_deterministic_noDeclareObj
     {σ : State} {s : CppStmt} {ctrl₁ ctrl₂ : CtrlResult} {σ₁ σ₂ : State}
     (hno : NoDeclareObjStmt s)

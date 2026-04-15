@@ -2,6 +2,7 @@
 --import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
 import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCI
+import CppFormalization.Cpp2.Closure.Foundation.ReadinessSemanticsBridge
 import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelCI
 import CppFormalization.Cpp2.Closure.Internal.PrimitiveStmtNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
@@ -11,217 +12,16 @@ import CppFormalization.Cpp2.Closure.Internal.BlockNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyNormalPreservation
 import CppFormalization.Cpp2.Proof.Control.StmtControlCompatibility
 import CppFormalization.Cpp2.Closure.Transitions.Minor.OpenScopeDecomposition
-import CppFormalization.Cpp2.Proof.Preservation.a
+import CppFormalization.Cpp2.Lemmas.TransitionDeterminism
+import CppFormalization.Cpp2.Lemmas.ExprTypeUniqueness
+import CppFormalization.Cpp2.Proof.Preservation.StmtControlKernelSupport
 namespace Cpp
 
 /-!
-# Proof.Preservation.StmtControlKernel
 
-preservation kernel は statement / block の syntax recursion ではなく、
-`StmtControlCompatible` / `BlockControlCompatible` の導出木に対する
-structural induction で閉じる。
-
-これにより mutual recursive theorem に対する termination 問題を避けつつ、
-abrupt control での path-sensitive post-environment を正面から扱う。
-
-重要:
-- primitive / seq / ite / block はこのファイルで theorem-backed に閉じる。
-- while については、旧 generic residual-readiness axiom を削除した結果、
-  generic kernel としては前提が弱すぎる。
-- 新設計では `LoopBodyBoundaryCI` と `LoopReentryKernelCI` が必要になるので、
-  generic compatibility kernel 側でも while 専用の局所文脈を明示する。
-- 4 helper slot は、
-  * body が `.normal` で抜ける場合
-  * body が `.continueResult` で抜ける場合
-  の 2 helper obligation に圧縮する。
 -/
 
-
-/-- while compatibility branch が必要とする局所文脈。 -/
-private structure WhileCompatCtx
-    (Γ : TypeEnv) (σ : State) (c : ValExpr) (body : CppStmt) : Type where
-  condReady : ExprReadyConcrete Γ σ c (.base .bool)
-  bodyBoundary : LoopBodyBoundaryCI Γ σ body
-  reentry : LoopReentryKernelCI Γ c body
-
-private abbrev WhileCtxProvider : Type :=
-  ∀ {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt},
-    HasValueType Γ c (.base .bool) →
-    HasTypeStmtCI .normalK Γ body Γ →
-    HasTypeStmtCI .breakK Γ body Γ →
-    HasTypeStmtCI .continueK Γ body Γ →
-    ScopedTypedStateConcrete Γ σ →
-    StmtReadyConcrete Γ σ (.whileStmt c body) →
-    WhileCompatCtx Γ σ c body
-
-private def whileCtxOf
-    (mkWhileCtx : WhileCtxProvider)
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
-    (hc : HasValueType Γ c (.base .bool))
-    (hN : HasTypeStmtCI .normalK Γ body Γ)
-    (hB : HasTypeStmtCI .breakK Γ body Γ)
-    (hC : HasTypeStmtCI .continueK Γ body Γ)
-    (hsc : ScopedTypedStateConcrete Γ σ)
-    (hreadyWhile : StmtReadyConcrete Γ σ (.whileStmt c body)) :
-    WhileCompatCtx Γ σ c body :=
-  mkWhileCtx hc hN hB hC hsc hreadyWhile
-
-private theorem whileBodyConcrete
-    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
-    (ihBody :
-      ScopedTypedStateConcrete Γ σ →
-      StmtReadyConcrete Γ σ body →
-      ScopedTypedStateConcrete Γ σ')
-    (hsc : ScopedTypedStateConcrete Γ σ)
-    (hreadyWhile : StmtReadyConcrete Γ σ (.whileStmt c body)) :
-    ScopedTypedStateConcrete Γ σ' := by
-  exact ihBody hsc (while_ready_body_data hreadyWhile)
-
-private theorem whileTailReadyNormal
-    (mkWhileCtx : WhileCtxProvider)
-    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
-    (hc : HasValueType Γ c (.base .bool))
-    (hN : HasTypeStmtCI .normalK Γ body Γ)
-    (hB : HasTypeStmtCI .breakK Γ body Γ)
-    (hC : HasTypeStmtCI .continueK Γ body Γ)
-    (hsc : ScopedTypedStateConcrete Γ σ)
-    (hreadyWhile : StmtReadyConcrete Γ σ (.whileStmt c body))
-    (hbody : BigStepStmt σ body .normal σ') :
-    StmtReadyConcrete Γ σ' (.whileStmt c body) := by
-  let wctx := whileCtxOf mkWhileCtx hc hN hB hC hsc hreadyWhile
-  exact while_ready_after_body_normal_of_kernel
-    wctx.reentry
-    wctx.condReady
-    wctx.bodyBoundary
-    hbody
-
-private theorem whileTailReadyContinue
-    (mkWhileCtx : WhileCtxProvider)
-    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
-    (hc : HasValueType Γ c (.base .bool))
-    (hN : HasTypeStmtCI .normalK Γ body Γ)
-    (hB : HasTypeStmtCI .breakK Γ body Γ)
-    (hC : HasTypeStmtCI .continueK Γ body Γ)
-    (hsc : ScopedTypedStateConcrete Γ σ)
-    (hreadyWhile : StmtReadyConcrete Γ σ (.whileStmt c body))
-    (hbody : BigStepStmt σ body .continueResult σ') :
-    StmtReadyConcrete Γ σ' (.whileStmt c body) := by
-  let wctx := whileCtxOf mkWhileCtx hc hN hB hC hsc hreadyWhile
-  exact while_ready_after_body_continue_of_kernel
-    wctx.reentry
-    wctx.condReady
-    wctx.bodyBoundary
-    hbody
-
-
-
-
-mutual
-
-theorem hasPlaceType_unique
-    {Γ : TypeEnv} {p : PlaceExpr} {τ₁ τ₂ : CppType}
-    (h₁ : HasPlaceType Γ p τ₁)
-    (h₂ : HasPlaceType Γ p τ₂) :
-    τ₁ = τ₂ := by
-  cases h₁ with
-  | var hlookup =>
-      rename_i x d
-      cases h₂ with
-      | var hlookup' =>
-          rename_i d'
-          rw [hlookup] at hlookup'
-          cases hlookup'
-          rfl
-  | deref hv =>
-      rename_i e
-      cases h₂ with
-      | deref hv' =>
-        have hptr : CppType.ptr τ₁ = CppType.ptr τ₂ :=
-          hasValueType_unique hv hv'
-        injection hptr with hτ
-
-theorem hasValueType_unique
-    {Γ : TypeEnv} {e : ValExpr} {τ₁ τ₂ : CppType}
-    (h₁ : HasValueType Γ e τ₁)
-    (h₂ : HasValueType Γ e τ₂) :
-    τ₁ = τ₂ := by
-  cases h₁ with
-  | litBool =>
-      cases h₂ <;> rfl
-  | litInt =>
-      cases h₂ <;> rfl
-  | load hp =>
-      rename_i p
-      cases h₂ with
-      | load hp' =>
-          exact hasPlaceType_unique hp hp'
-  | addrOf hp =>
-      rename_i p τ
-      cases h₂ with
-      | addrOf hp' =>
-          rename_i τ'
-          have hτ : τ = τ' :=
-            hasPlaceType_unique hp hp'
-          cases hτ
-          rfl
-  | add hv₁ hv₂ =>
-      cases h₂ <;> rfl
-  | sub hv₁ hv₂ =>
-      cases h₂ <;> rfl
-  | mul hv₁ hv₂ =>
-      cases h₂ <;> rfl
-  | eq hv₁ hv₂ =>
-      cases h₂ <;> rfl
-  | lt hv₁ hv₂ =>
-      cases h₂ <;> rfl
-  | not hv =>
-      cases h₂ <;> rfl
-
-end
-
-private theorem assign_ready_data
-    {Γ : TypeEnv} {σ : State} {p : PlaceExpr} {e : ValExpr} :
-    StmtReadyConcrete Γ σ (.assign p e) →
-    ∃ τ, HasPlaceType Γ p τ ∧ PlaceReadyConcrete Γ σ p τ ∧
-         HasValueType Γ e τ ∧ ExprReadyConcrete Γ σ e τ := by
-  intro hready
-  cases hready with
-  | assign hp hrp hv hre =>
-      exact ⟨_, hp, hrp, hv, hre⟩
-
-private theorem assign_preservation_inputs
-    {Γ : TypeEnv} {σ σ' : State} {p : PlaceExpr} {e : ValExpr} {τ : CppType}
-    (hp : HasPlaceType Γ p τ)
-    (hready : StmtReadyConcrete Γ σ (.assign p e))
-    (hstep : BigStepStmt σ (.assign p e) CtrlResult.normal σ') :
-    ∃ v,
-      PlaceReadyConcrete Γ σ p τ ∧
-      ValueCompat v τ ∧
-      Assigns σ p v σ' := by
-  rcases assign_ready_data hready with ⟨τ', hp', hrp', hv', hre'⟩
-  have hτ : τ' = τ := hasPlaceType_unique hp' hp
-  subst hτ
-  cases hstep with
-| assign hstepE hassign =>
-    exact ⟨_, hrp', expr_ready_eval_compat hre' hstepE, hassign⟩
-
-private theorem blockReadyConcrete_of_openScope
-    {Γ : TypeEnv} {σ σ' : State} {ss : StmtBlock}
-    (hready : BlockReadyConcrete (pushTypeScope Γ) (pushScope σ) ss)
-    (hopen : OpenScope σ σ') :
-    BlockReadyConcrete (pushTypeScope Γ) σ' ss := by
-  have hopen_push : OpenScope σ (pushScope σ) := by
-    -- OpenScope の正準証人
-    simp [OpenScope, pushScope]
-  have hEq : σ' = pushScope σ :=
-    openScope_deterministic hopen hopen_push
-  subst hEq
-  simpa using hready
-
-
-
-
-private theorem stmt_control_preserves_scoped_typed_state_of_compatible_core
+theorem stmt_control_preserves_scoped_typed_state_of_compatible_core
     (mkWhileCtx : WhileCtxProvider)
     {k : ControlKind} {Γ Δ : TypeEnv} {s : CppStmt}
     {σ : State} {ctrl : CtrlResult} {σ' : State}
