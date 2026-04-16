@@ -1,9 +1,9 @@
-
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureConcreteRefined
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapConcrete
 import CppFormalization.Cpp2.Closure.Internal.WhileNormalPreservation
+import CppFormalization.Cpp2.Closure.Internal.CurrentShellCI
 import CppFormalization.Cpp2.Boundary.FunctionBody
 
 namespace Cpp
@@ -57,7 +57,9 @@ theorem primitive_stmt_function_body_step_or_diverges_ci
     BodyReadyCI Γ σ st →
     (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
   intro hprim hready
-  exact primitive_stmt_function_body_step_or_diverges_concrete_refined hprim (bodyReadyConcrete_of_bodyReadyCI hready)
+  exact
+    primitive_stmt_function_body_step_or_diverges_concrete_refined
+      hprim (bodyReadyConcrete_of_bodyReadyCI hready)
 
 /-- entry version of the primitive case. -/
 theorem primitive_stmt_function_body_step_or_diverges_body_closure
@@ -66,10 +68,13 @@ theorem primitive_stmt_function_body_step_or_diverges_body_closure
     BodyClosureBoundaryCI Γ σ st →
     (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
   intro hprim hready
-  exact primitive_stmt_function_body_step_or_diverges_concrete_refined hprim
-    (bodyReadyConcrete_of_bodyClosureBoundaryCI hready)
+  exact
+    primitive_stmt_function_body_step_or_diverges_concrete_refined
+      hprim (bodyReadyConcrete_of_bodyClosureBoundaryCI hready)
 
-/-- Sequence closure at a CI boundary. -/
+/-
+Dead candidate moved out of the live CI surface.
+
 axiom seq_function_body_closure_ci
     {Γ : TypeEnv} {σ : State} {s t : CppStmt} :
     BodyReadyCI Γ σ (.seq s t) →
@@ -79,34 +84,22 @@ axiom seq_function_body_closure_ci
       (∃ ex σ'', BigStepFunctionBody σ' t ex σ'') ∨ BigStepStmtDiv σ' t) →
     (∃ ex σ', BigStepFunctionBody σ (.seq s t) ex σ') ∨ BigStepStmtDiv σ (.seq s t)
 
-/-- Conditional closure at a CI boundary. -/
 axiom ite_function_body_closure_ci
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt} :
     BodyReadyCI Γ σ (.ite c s t) →
-    (BodyReadyCI Γ σ s → (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨ BigStepStmtDiv σ s) →
-    (BodyReadyCI Γ σ t → (∃ ex σ', BigStepFunctionBody σ t ex σ') ∨ BigStepStmtDiv σ t) →
-    (∃ ex σ', BigStepFunctionBody σ (.ite c s t) ex σ') ∨ BigStepStmtDiv σ (.ite c s t)
+    (BodyReadyCI Γ σ s →
+      (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨ BigStepStmtDiv σ s) →
+    (BodyReadyCI Γ σ t →
+      (∃ ex σ', BigStepFunctionBody σ t ex σ') ∨ BigStepStmtDiv σ t) →
+    (∃ ex σ', BigStepFunctionBody σ (.ite c s t) ex σ') ∨
+      BigStepStmtDiv σ (.ite c s t)
 
-/-- Block closure at a CI boundary. The honest opened-body formulation lives in
-`BlockBodyClosureCI`; this theorem is the statement-level wrapper. -/
 axiom block_function_body_closure_ci
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock} :
     BodyReadyCI Γ σ (.block ss) →
-    (∃ ex σ', BigStepFunctionBody σ (.block ss) ex σ') ∨ BigStepStmtDiv σ (.block ss)
-
-/-- While closure at a CI boundary. -/
-axiom while_function_body_closure_ci
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
-    BodyReadyCI Γ σ (.whileStmt c body) →
-    (∀ {σ'},
-      BigStepStmt σ body .normal σ' →
-      BodyReadyCI Γ σ' (.whileStmt c body) →
-      (∃ ex σ'', BigStepFunctionBody σ' (.whileStmt c body) ex σ'') ∨ BigStepStmtDiv σ' (.whileStmt c body)) →
-    (∀ {σ'},
-      BigStepStmt σ body .continueResult σ' →
-      BodyReadyCI Γ σ' (.whileStmt c body) →
-      (∃ ex σ'', BigStepFunctionBody σ' (.whileStmt c body) ex σ'') ∨ BigStepStmtDiv σ' (.whileStmt c body)) →
-    (∃ ex σ', BigStepFunctionBody σ (.whileStmt c body) ex σ') ∨ BigStepStmtDiv σ (.whileStmt c body)
+    (∃ ex σ', BigStepFunctionBody σ (.block ss) ex σ') ∨
+      BigStepStmtDiv σ (.block ss)
+-/
 
 /-! ## theorem-backed replay-stable primitive while tail boundary -/
 
@@ -116,9 +109,7 @@ theorem replay_stable_primitive_stmt_no_return
     ReplayStablePrimitiveStmt st →
     ¬ BigStepStmt σ st (.returnResult rv) σ' := by
   intro hstable hret
-  cases st <;>
-    simp [ReplayStablePrimitiveStmt] at hstable <;>
-    cases hret
+  cases st <;> simp [ReplayStablePrimitiveStmt] at hstable <;> cases hret
 
 /--
 導出 recursor で while-return を直接潰す補助 claim。
@@ -331,14 +322,17 @@ theorem while_function_body_closure_ci_of_replay_stable_primitive
     (∀ {σ'},
       BigStepStmt σ body .normal σ' →
       BodyReadyCI Γ σ' (.whileStmt c body) →
-      (∃ ex σ'', BigStepFunctionBody σ' (.whileStmt c body) ex σ'') ∨ BigStepStmtDiv σ' (.whileStmt c body)) →
-    (∃ ex σ', BigStepFunctionBody σ (.whileStmt c body) ex σ') ∨ BigStepStmtDiv σ (.whileStmt c body) := by
+      (∃ ex σ'', BigStepFunctionBody σ' (.whileStmt c body) ex σ'') ∨
+        BigStepStmtDiv σ' (.whileStmt c body)) →
+    (∃ ex σ', BigStepFunctionBody σ (.whileStmt c body) ex σ') ∨
+      BigStepStmtDiv σ (.whileStmt c body) := by
   intro hstable hcstable htyWhile hready htail
   refine while_function_body_closure_ci hready ?_ ?_
   · intro σ' hbodyStep _
-    exact htail hbodyStep
-      (bodyReadyCI_while_after_body_normal_of_replay_stable_primitive
-        hstable hcstable htyWhile hready hbodyStep)
+    exact
+      htail hbodyStep
+        (bodyReadyCI_while_after_body_normal_of_replay_stable_primitive
+          hstable hcstable htyWhile hready hbodyStep)
   · intro σ' hbodyStep _
     exfalso
     exact replay_stable_primitive_stmt_no_continue hstable hbodyStep
@@ -353,21 +347,28 @@ theorem while_function_body_closure_ci_of_replay_stable_primitive_body_closure
     (∀ {σ'},
       BigStepStmt σ body .normal σ' →
       BodyClosureBoundaryCI Γ σ' (.whileStmt c body) →
-      (∃ ex σ'', BigStepFunctionBody σ' (.whileStmt c body) ex σ'') ∨ BigStepStmtDiv σ' (.whileStmt c body)) →
-    (∃ ex σ', BigStepFunctionBody σ (.whileStmt c body) ex σ') ∨ BigStepStmtDiv σ (.whileStmt c body) := by
+      (∃ ex σ'', BigStepFunctionBody σ' (.whileStmt c body) ex σ'') ∨
+        BigStepStmtDiv σ' (.whileStmt c body)) →
+    (∃ ex σ', BigStepFunctionBody σ (.whileStmt c body) ex σ') ∨
+      BigStepStmtDiv σ (.whileStmt c body) := by
   intro hstable hcstable htyWhile hready htail
-  exact while_function_body_closure_ci_of_replay_stable_primitive
-    hstable hcstable htyWhile hready.toBodyReadyCI
-    (fun hstep htailReadyOld =>
-      htail hstep htailReadyOld.toClosureBoundary)
+  exact
+    while_function_body_closure_ci_of_replay_stable_primitive
+      hstable hcstable htyWhile hready.toBodyReadyCI
+      (fun hstep htailReadyOld =>
+        htail hstep htailReadyOld.toClosureBoundary)
+
+/-
+Current live CI shell axioms were moved to `CurrentShellCI.lean`.
+
+axiom while_function_body_closure_ci ...
+
+axiom body_ready_ci_function_body_progress_or_diverges_by_cases ...
+
+axiom body_closure_ci_function_body_progress_or_diverges_by_cases ...
+-/
 
 /-- CI-boundary master theorem target. -/
-axiom body_ready_ci_function_body_progress_or_diverges_by_cases
-    {Γ : TypeEnv} {σ : State} {st : CppStmt} :
-    CoreBigStepFragment st →
-    BodyReadyCI Γ σ st →
-    (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st
-
 theorem body_ready_ci_function_body_progress_or_diverges
     {Γ : TypeEnv} {σ : State} {st : CppStmt} :
     CoreBigStepFragment st →
@@ -375,13 +376,6 @@ theorem body_ready_ci_function_body_progress_or_diverges
     (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
   intro hfrag hready
   exact body_ready_ci_function_body_progress_or_diverges_by_cases hfrag hready
-
-/-- master theorem target. -/
-axiom body_closure_ci_function_body_progress_or_diverges_by_cases
-    {Γ : TypeEnv} {σ : State} {st : CppStmt} :
-    CoreBigStepFragment st →
-    BodyClosureBoundaryCI Γ σ st →
-    (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st
 
 /-- canonical entry theorem for function-body closure. -/
 theorem body_closure_ci_function_body_progress_or_diverges

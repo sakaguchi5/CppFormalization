@@ -27,6 +27,10 @@ theorem blockBodyReadyConcrete_of_blockBodyReadyCI
     safe := h.safe
   }
 
+/-
+Dead candidates, currently unused in the live CI route.
+Kept here only as commented inventory so the old obligation surface remains visible.
+
 /-- Honest opened-scope bridge into the CI block-body boundary.
 
 This is the one place where old typing still enters from the top-level body boundary;
@@ -49,5 +53,6 @@ axiom block_function_body_closure_ci_honest
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock} :
     BodyReadyCI Γ σ (.block ss) →
     (∃ ex σ', BigStepFunctionBody σ (.block ss) ex σ') ∨ BigStepStmtDiv σ (.block ss)
+-/
 
 end Cpp

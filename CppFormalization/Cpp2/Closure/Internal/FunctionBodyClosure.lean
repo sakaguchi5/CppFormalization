@@ -35,6 +35,25 @@ theorem PrimitiveCoreStmt.core
   intro h
   cases st <;> simp [PrimitiveCoreStmt, CoreBigStepFragment, InBigStepFragment] at h ⊢
 
+/-
+LEGACY SHELL COMMENTED OUT
+
+理由:
+- current closure route は `FunctionBodyClosureCI` / `InternalClosureRoadmapCI`
+  を本線としており、このファイルの高レベル case-driver axiom 群は
+  live 本線では使っていない。
+- dead / legacy / shell を切り分けるため、削除ではなくコメント退避する。
+
+退避対象:
+- primitive_stmt_function_body_step_or_diverges
+- seq_function_body_closure
+- ite_function_body_closure
+- block_function_body_closure
+- while_function_body_closure
+- top_level_abrupt_excluded_from_bodyReady
+- concrete_body_ready_function_body_progress_or_diverges_by_cases
+- concrete_body_ready_function_body_progress_or_diverges_via_cases
+
 /-- primitive stmt は expr/place progress と primitive preservation で処理する。 -/
 axiom primitive_stmt_function_body_step_or_diverges
     {Γ : TypeEnv} {σ : State} {st : CppStmt} :
@@ -131,5 +150,6 @@ theorem concrete_body_ready_function_body_progress_or_diverges_via_cases
   intro hfrag hwf hty hbr hcont hσ hready
   exact concrete_body_ready_function_body_progress_or_diverges_by_cases
     hfrag hwf hty hbr hcont hσ hready
+-/
 
 end Cpp

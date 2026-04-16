@@ -128,6 +128,23 @@ theorem declares_ref_preserves_scoped_typed_state_via_concrete
   exact scopedTypedState_of_concrete
     (declares_ref_preserves_concrete_state hσ hfresh hdecl)
 
+/-
+LEGACY SHELL COMMENTED OUT
+
+理由:
+- current route では residual readiness と statement-level preservation は
+  `ReadinessBoundaryConcrete`, `StmtControlKernel`, `InternalClosureRoadmapConcrete/CI`
+  側で扱っており、このファイル後半の高レベル roadmap axiom 群は本線ではない。
+- 低レベル primitive preservation / abstract bridge は残し、
+  高レベル shoulder axioms はコメント退避する。
+
+退避対象:
+- while_body_normal_preserves_body_ready_concrete
+- while_body_continue_preserves_body_ready_concrete
+- stmt_normal_preserves_concrete_state
+- block_normal_preserves_concrete_state
+- concrete_body_ready_function_body_progress_or_diverges
+
 /- =========================================
    3. residual readiness
    ========================================= -/
@@ -180,5 +197,6 @@ axiom concrete_body_ready_function_body_progress_or_diverges
     ScopedTypedStateConcrete Γ σ →
     StmtReadyConcrete Γ σ st →
     (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st
+-/
 
 end Cpp

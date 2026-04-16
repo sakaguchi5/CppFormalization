@@ -52,17 +52,23 @@ theorem top_level_abrupt_excluded_from_bodyReady_concrete
   · intro hcont
     exact stmt_continue_not_scoped hcont hready.continueScoped
 
-/-! ## Remaining open obligations
+/-
+LEGACY SHELL COMMENTED OUT
 
-The following obligations are the honest remainder after the concrete roadmap became
- theorem-backed.
+理由:
+- current closure route は CI-centric route へ移っており、
+  この concrete shell の高レベル case-driver axiom 群は live 本線では使わない。
+- `PrimitiveCoreStmtConcrete` とその basic theorem だけを残し、
+  高レベル肩代わりはコメント退避する。
 
-Notably absent from this file:
-- concrete normal preservation for stmt/block
-- concrete residual readiness for seq/block/while
-
-Those have already been discharged and imported through `InternalClosureRoadmapConcrete`.
--/
+退避対象:
+- primitive_stmt_function_body_step_or_diverges_concrete
+- seq_function_body_closure_concrete
+- ite_function_body_closure_concrete
+- block_function_body_closure_concrete
+- while_function_body_closure_concrete
+- concrete_body_ready_function_body_progress_or_diverges_by_cases_concrete
+- concrete_body_ready_function_body_progress_or_diverges_via_cases_concrete
 
 /-- Primitive statements: discharge by expr/place progress and primitive preservation. -/
 axiom primitive_stmt_function_body_step_or_diverges_concrete
@@ -158,5 +164,6 @@ theorem concrete_body_ready_function_body_progress_or_diverges_via_cases_concret
   exact
     concrete_body_ready_function_body_progress_or_diverges_by_cases_concrete
       hfrag hwf hty hbr hcont hσ hready
+-/
 
 end Cpp

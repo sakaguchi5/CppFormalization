@@ -48,6 +48,10 @@ axiom primitive_stmt_function_body_step_or_diverges_concrete_refined
     BodyReadyConcrete Γ σ st →
     (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st
 
+/-
+Dead candidates, currently unused in the live CI route.
+Kept here only as commented inventory so the old obligation surface remains visible.
+
 /-- Sequence closure with the honest top-level boundary contract. -/
 axiom seq_function_body_closure_concrete_refined
     {Γ : TypeEnv} {σ : State} {s t : CppStmt} :
@@ -67,6 +71,7 @@ axiom ite_function_body_closure_concrete_refined
     (BodyReadyConcrete Γ σ s → (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨ BigStepStmtDiv σ s) →
     (BodyReadyConcrete Γ σ t → (∃ ex σ', BigStepFunctionBody σ t ex σ') ∨ BigStepStmtDiv σ t) →
     (∃ ex σ', BigStepFunctionBody σ (.ite c s t) ex σ') ∨ BigStepStmtDiv σ (.ite c s t)
+-/
 
 /-- Block closure with the honest top-level boundary contract. -/
 axiom block_function_body_closure_concrete_refined
