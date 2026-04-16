@@ -1,5 +1,6 @@
 import CppFormalization.Cpp2.Closure.Transitions.Major.CloseScopeDecomposition
 import CppFormalization.Cpp2.Lemmas.RuntimeObjectCoreWithNext
+
 namespace Cpp
 
 /-!
@@ -16,18 +17,64 @@ namespace Cpp
     1. 型環境側の分解
     ========================================================= -/
 
-axiom typeFrameDeclRef_declareTypeObject_inv
+theorem typeFrameDeclRef_declareTypeObject_inv
     {Γ : TypeEnv} {x : Ident} {τ : CppType}
     {k : Nat} {y : Ident} {υ : CppType} :
     typeFrameDeclRef (declareTypeObject Γ x τ) k y υ →
-    typeFrameDeclRef Γ k y υ
+    typeFrameDeclRef Γ k y υ := by
+  intro hty
+  rcases hty with ⟨fr, hk, hdecl⟩
+  cases hsc : Γ.scopes with
+  | nil =>
+      cases k <;>
+        simp [declareTypeObject, insertTopDecl, hsc] at hk hdecl
+      subst hk
+      simp at hdecl
+  | cons fr0 frs =>
+      cases k with
+      | zero =>
+          simp [declareTypeObject, insertTopDecl, hsc] at hk
+          subst hk
+          by_cases hy : y = x
+          · subst hy
+            simp at hdecl
+          · refine ⟨fr0, by simp [hsc], ?_⟩
+            simpa [hy] using hdecl
+      | succ j =>
+          refine ⟨fr, ?_, ?_⟩
+          · simpa [typeFrameDeclRef, declareTypeObject, insertTopDecl, hsc] using hk
+          · simpa [declareTypeObject, insertTopDecl, hsc] using hdecl
 
-axiom typeFrameDeclObject_declareTypeObject_cases
+theorem typeFrameDeclObject_declareTypeObject_cases
     {Γ : TypeEnv} {x : Ident} {τ : CppType}
     {k : Nat} {y : Ident} {υ : CppType} :
     currentTypeScopeFresh Γ x →
     typeFrameDeclObject (declareTypeObject Γ x τ) k y υ →
-    (k = 0 ∧ y = x ∧ υ = τ) ∨ typeFrameDeclObject Γ k y υ
+    (k = 0 ∧ y = x ∧ υ = τ) ∨ typeFrameDeclObject Γ k y υ := by
+  intro hfresh hty
+  rcases hty with ⟨fr, hk, hdecl⟩
+  cases hsc : Γ.scopes with
+  | nil =>
+      simp [currentTypeScopeFresh, hsc] at hfresh
+  | cons fr0 frs =>
+      cases k with
+      | zero =>
+          simp [declareTypeObject, insertTopDecl, hsc] at hk
+          subst hk
+          by_cases hy : y = x
+          · subst hy
+            left
+            have hυ : υ = τ := by
+              simpa using hdecl.symm
+            exact ⟨rfl, rfl, hυ⟩
+          · right
+            refine ⟨fr0, by simp [hsc], ?_⟩
+            simpa [hy] using hdecl
+      | succ j =>
+          right
+          refine ⟨fr, ?_, ?_⟩
+          · simpa [typeFrameDeclObject, declareTypeObject, insertTopDecl, hsc] using hk
+          · simpa [declareTypeObject, insertTopDecl, hsc] using hdecl
 
 
 /-! =========================================================
@@ -61,7 +108,7 @@ axiom declareObject_preserves_old_ref_realizers
         runtimeFrameBindsRef σ' k y υ a ∧
         heapLiveTypedAt σ' a υ
 
-axiom declareObject_realizes_new_top_object
+theorem declareObject_realizes_new_top_object
     {Γ : TypeEnv} {σ σ' : State}
     {x : Ident} {τ : CppType} {ov : Option Value} :
     ScopedTypedStateConcrete Γ σ →
@@ -70,7 +117,29 @@ axiom declareObject_realizes_new_top_object
     ∃ a,
       runtimeFrameBindsObject σ' 0 x τ a ∧
       runtimeFrameOwnsAddress σ' 0 a ∧
-      heapLiveTypedAt σ' a τ
+      heapLiveTypedAt σ' a τ := by
+  intro _ _ hdecl
+  rcases hdecl with ⟨aNext, hobjTy, hsfresh, hheapNone, hovcompat, rfl⟩
+  cases hsc : σ.scopes with
+  | nil =>
+      simp [currentScopeFresh, hsc] at hsfresh
+  | cons fr frs =>
+      let fr' : ScopeFrame :=
+        { binds := fun y => if y = x then some (.object τ σ.next) else fr.binds y
+          locals := σ.next :: fr.locals }
+      refine ⟨σ.next, ?_, ?_, ?_⟩
+      · refine ⟨fr', ?_, ?_⟩
+        · simp [fr', declareObjectStateWithNext, setNext, declareObjectStateCore,
+            recordLocal, writeHeap, bindTopBinding, hsc]
+        · simp [fr']
+      · refine ⟨fr', ?_, ?_⟩
+        · simp [fr', declareObjectStateWithNext, setNext, declareObjectStateCore,
+            recordLocal, writeHeap, bindTopBinding, hsc]
+        · simp [fr']
+      · refine ⟨{ ty := τ, value := ov, alive := true }, ?_, rfl, rfl⟩
+        simp
+          [(RuntimeObjectCoreWithNext.heap_declareObjectStateWithNext_self
+            (σ := σ) (τ := τ) (x := x) (ov := ov) (aNext := aNext))]
 
 
 theorem declareObject_objectDeclRealized_of_decomposition
@@ -115,13 +184,26 @@ theorem declareObject_refDeclRealized_of_decomposition
     3. 構造 field の preservation
     ========================================================= -/
 
-axiom declareObject_preserves_frameDepthAgreement
+theorem declareObject_preserves_frameDepthAgreement
     {Γ : TypeEnv} {σ σ' : State}
     {x : Ident} {τ : CppType} {ov : Option Value} :
     ScopedTypedStateConcrete Γ σ →
     currentTypeScopeFresh Γ x →
     DeclaresObject σ τ x ov σ' →
-    frameDepthAgreement (declareTypeObject Γ x τ) σ'
+    frameDepthAgreement (declareTypeObject Γ x τ) σ' := by
+  intro hσ hfresh hdecl
+  rcases hdecl with ⟨aNext, hobjTy, hsfresh, hheap0, hovcompat, rfl⟩
+  cases hΓ : Γ.scopes with
+  | nil =>
+      simp [currentTypeScopeFresh, hΓ] at hfresh
+  | cons Γfr Γrs =>
+      cases hσs : σ.scopes with
+      | nil =>
+          simp [currentScopeFresh, hσs] at hsfresh
+      | cons σfr σrs =>
+          simpa [frameDepthAgreement, declareTypeObject, insertTopDecl, hΓ,
+            declareObjectStateWithNext, setNext, declareObjectStateCore,
+            recordLocal, writeHeap, bindTopBinding, hσs] using hσ.frameDepth
 
 axiom declareObject_preserves_shadowingCompatible
     {Γ : TypeEnv} {σ σ' : State}
@@ -191,6 +273,14 @@ axiom declareObject_preserves_initializedValuesTyped
       runtimeFrameBindsObject σ' k y υ a →
       heapInitializedTypedAt σ' a υ ∨ True
 
+/-
+Important:
+`DeclaresObjectWithNext` does not constrain the chosen post-state cursor `aNext`
+beyond setting `σ'.next = aNext`.
+Therefore `nextFreshAgainstOwned σ'` is not derivable from the current semantics
+without an additional freshness policy on `aNext`.
+This remains an axiom until the cursor policy is strengthened.
+-/
 axiom declareObject_preserves_nextFreshAgainstOwned
     {Γ : TypeEnv} {σ σ' : State}
     {x : Ident} {τ : CppType} {ov : Option Value} :
