@@ -66,6 +66,58 @@ theorem declareObject_preserves_ownedAddressNamed
               (σ := σ) (aNext := aNext) (x := x) (y := y) (τ := τ) (υ := υ) (ov := ov)
               (j := j) (a := a) (fr := fr) (frs := frs) hsc hbindOld⟩
 
+theorem declareObject_preserves_refBindingsNeverOwned
+    {Γ : TypeEnv} {σ σ' : State}
+    {x : Ident} {τ : CppType} {ov : Option Value} :
+    ScopedTypedStateConcrete Γ σ →
+    currentTypeScopeFresh Γ x →
+    DeclaresObject σ τ x ov σ' →
+    refBindingsNeverOwned σ' := by
+  intro hσ hfresh hdecl k fr' xref τref a hk hbind hlocal
+  rcases hdecl with ⟨aNext, σcore, hpayload, hpolicy⟩
+  rcases hpayload with ⟨hobjTy, hsfresh, hheap0, hovcompat, hcore⟩
+  rcases hpolicy with ⟨hcursorFresh, hσ'⟩
+  subst σcore
+  subst hσ'
+  cases hsc : σ.scopes with
+  | nil =>
+      simp [currentScopeFresh, hsc] at hsfresh
+  | cons fr frs =>
+      let frNew : ScopeFrame :=
+        { binds := fun z => if z = x then some (.object τ σ.next) else fr.binds z
+          locals := σ.next :: fr.locals }
+      cases k with
+      | zero =>
+          have hfr' : fr' = frNew := by
+            simpa [frNew, declareObjectStateWithNext, setNext, declareObjectStateCore,
+              recordLocal, writeHeap, bindTopBinding, hsc] using hk.symm
+          subst hfr'
+          by_cases ha : a = σ.next
+          · refine ⟨x, τ, ?_⟩
+            simp [frNew, ha]
+          · have hold : a ∈ fr.locals := by
+              simpa [frNew, ha] using hlocal
+            have hx : xref ≠ x := by
+              intro hEq
+              subst hEq
+              simp [frNew] at hbind
+            have hbindOld : fr.binds xref = some (.ref τref a) := by
+              simpa [frNew, hx] using hbind
+            rcases hσ.refsNotOwned 0 fr xref τref a (by simp [hsc]) hbindOld hold with ⟨y, υ, hyobj⟩
+            have hy : y ≠ x := by
+              intro hEq
+              subst y
+              simp [currentScopeFresh, hsc] at hsfresh
+              rw [hsfresh] at hyobj
+              simp at hyobj
+            refine ⟨y, υ, ?_⟩
+            simpa [frNew, hy] using hyobj
+      | succ j =>
+          have hkOld : σ.scopes[j + 1]? = some fr' := by
+            simpa [declareObjectStateWithNext, setNext, declareObjectStateCore,
+              recordLocal, writeHeap, bindTopBinding, hsc] using hk
+          exact hσ.refsNotOwned (j + 1) fr' xref τref a hkOld hbind hlocal
+
 theorem declareObject_preserves_allObjectBindingsOwned
     {Γ : TypeEnv} {σ σ' : State}
     {x : Ident} {τ : CppType} {ov : Option Value} :

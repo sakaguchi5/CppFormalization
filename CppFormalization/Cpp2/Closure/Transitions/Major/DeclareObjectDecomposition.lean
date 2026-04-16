@@ -55,14 +55,6 @@ axiom declareObject_preserves_shadowingCompatible
     DeclaresObject σ τ x ov σ' →
     shadowingCompatible (declareTypeObject Γ x τ) σ'
 
-axiom declareObject_preserves_refBindingsNeverOwned
-    {Γ : TypeEnv} {σ σ' : State}
-    {x : Ident} {τ : CppType} {ov : Option Value} :
-    ScopedTypedStateConcrete Γ σ →
-    currentTypeScopeFresh Γ x →
-    DeclaresObject σ τ x ov σ' →
-    refBindingsNeverOwned σ'
-
 axiom declareObject_preserves_initializedValuesTyped
     {Γ : TypeEnv} {σ σ' : State}
     {x : Ident} {τ : CppType} {ov : Option Value} :
