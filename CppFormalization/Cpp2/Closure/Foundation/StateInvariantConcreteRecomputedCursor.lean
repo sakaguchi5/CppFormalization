@@ -147,9 +147,12 @@ private theorem currentScopeFresh_of_ready
     (hobj : ObjectType τ) :
     DeclaresObjectWithNext σ τ x ov h.cursor.addr
       (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
-  refine ⟨hobj, ?_, ?_, h.initCompat, rfl⟩
-  · exact currentScopeFresh_of_ready h.ready hΓ0
-  · exact h.ready.concrete.nextFresh.1
+  refine ⟨declareObjectStateCore σ τ x ov, ?_, ?_⟩
+  · refine ⟨hobj, ?_, ?_, h.initCompat, rfl⟩
+    · exact currentScopeFresh_of_ready h.ready hΓ0
+    · exact h.ready.concrete.nextFresh.1
+  · refine ⟨?_, rfl⟩
+    simpa [FreshPostCursor, freshAddrAgainstOwned] using h.cursor.freshOwned
 
 @[simp] theorem declaresObject_after
     {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {ov : Option Value}
