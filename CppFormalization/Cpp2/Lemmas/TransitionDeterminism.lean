@@ -16,9 +16,22 @@ theorem assigns_deterministic {σ p v σ₁ σ₂} (h₁ : Assigns σ p v σ₁)
 theorem declaresObjectWithNext_deterministic {σ τ x ov aNext σ₁ σ₂}
     (h₁ : DeclaresObjectWithNext σ τ x ov aNext σ₁)
     (h₂ : DeclaresObjectWithNext σ τ x ov aNext σ₂) : σ₁ = σ₂ := by
-  rcases h₁ with ⟨_, _, _, _, hs₁⟩
-  rcases h₂ with ⟨_, _, _, _, hs₂⟩
-  exact hs₁.trans hs₂.symm
+  -- h₁ と h₂ を Payload と Policy に分解する
+  rcases h₁ with ⟨σcore1, hpayload1, hpolicy1⟩
+  rcases h₂ with ⟨σcore2, hpayload2, hpolicy2⟩
+
+  -- 1. σcore1 = σcore2 であることを示す
+  -- 両方とも σcore = declareObjectStateCore σ τ x ov なので一意
+  rcases hpayload1 with ⟨_, _, _, _, rfl⟩
+  rcases hpayload2 with ⟨_, _, _, _, rfl⟩
+  -- これで σcore1 と σcore2 が同じ定義に簡約され、同一視される
+
+  -- 2. σ₁ = σ₂ であることを示す
+  -- 両方とも σ' = setNext σcore aNext なので一意
+  rcases hpolicy1 with ⟨_, rfl⟩
+  rcases hpolicy2 with ⟨_, rfl⟩
+
+  rfl
 
 -- スコープ操作の一意性
 theorem openScope_deterministic {σ σ₁ σ₂}

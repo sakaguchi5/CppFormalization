@@ -19,24 +19,66 @@ def Assigns (σ : State) (p : PlaceExpr) (v : Value) (σ' : State) : Prop :=
     ValueCompat v c.ty ∧
     σ' = writeHeap σ a { c with value := some v }
 
+/--
+Low-level post-state cursor safety, stated without importing Closure invariants.
 
-def DeclaresObjectWithNext
-    (σ : State) (τ : CppType) (x : Ident) (ov : Option Value)
-    (aNext : Nat) (σ' : State) : Prop :=
+This is intentionally the same shape as `nextFreshAgainstOwned`, but kept here
+at the semantics layer so that object semantics can constrain allocator policy
+without depending on `Closure/Foundation`.
+-/
+def FreshPostCursor (σ : State) (a : Nat) : Prop :=
+  σ.heap a = none ∧
+  ∀ (k : Nat) (fr : ScopeFrame),
+    σ.scopes[k]? = some fr →
+    a ∉ fr.locals
+
+/--
+Payload semantics of object declaration.
+
+This is the C++-semantic part: a new top object is created at the pre-state
+cursor `σ.next`. No commitment is made yet about the post-state cursor.
+-/
+def DeclaresObjectPayload
+    (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (σcore : State) : Prop :=
   ObjectType τ ∧
   currentScopeFresh σ x ∧
   σ.heap σ.next = none ∧
   (match ov with
    | none => True
    | some v => ValueCompat v τ) ∧
-  σ' = declareObjectStateWithNext σ τ x ov aNext
+  σcore = declareObjectStateCore σ τ x ov
+
+/--
+Cursor policy for object declaration.
+
+This is *not* the payload semantics of the declaration itself. It only chooses
+the post-state cursor and requires that the chosen cursor be fresh for the
+post-payload state.
+-/
+def DeclaresObjectCursorPolicy
+    (σcore : State) (aNext : Nat) (σ' : State) : Prop :=
+  FreshPostCursor σcore aNext ∧
+  σ' = setNext σcore aNext
+
+/--
+Strong object-declaration semantics.
+
+The declaration is split into
+1. payload creation at `σ.next`
+2. explicit fresh post-state cursor policy
+-/
+def DeclaresObjectWithNext
+    (σ : State) (τ : CppType) (x : Ident) (ov : Option Value)
+    (aNext : Nat) (σ' : State) : Prop :=
+  ∃ σcore,
+    DeclaresObjectPayload σ τ x ov σcore ∧
+    DeclaresObjectCursorPolicy σcore aNext σ'
 
 /--
 Legacy façade for object declaration.
 
-The operational policy may now choose a post-state cursor explicitly,
-so the old relation is retained as an existential wrapper around the
-new `DeclaresObjectWithNext` relation.
+The operational policy may choose a post-state cursor explicitly, but only
+through the strong payload+cursor split above.
 -/
 def DeclaresObject (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (σ' : State) : Prop :=
   ∃ aNext, DeclaresObjectWithNext σ τ x ov aNext σ'
@@ -55,6 +97,23 @@ def DeclaresObject (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (
   intro h
   exact ⟨aNext, h⟩
 
+/--
+The strong semantics honestly yields a fresh post-state cursor.
+-/
+theorem declaresObjectWithNext_postCursorFresh
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
+    {aNext : Nat} {σ' : State} :
+    DeclaresObjectWithNext σ τ x ov aNext σ' →
+    FreshPostCursor σ' σ'.next := by
+  intro h
+  rcases h with ⟨σcore, hpayload, hpolicy⟩
+  rcases hpolicy with ⟨hfresh, hσ'⟩
+  rcases hfresh with ⟨hheapNone, hlocals⟩
+  subst hσ'
+  constructor
+  · simpa [FreshPostCursor, setNext] using hheapNone
+  · intro k fr hk
+    simpa [FreshPostCursor, setNext] using hlocals k fr hk
 
 def DeclaresRef (σ : State) (τ : CppType) (x : Ident) (a : Nat) (σ' : State) : Prop :=
   currentScopeFresh σ x ∧
@@ -64,10 +123,8 @@ def DeclaresRef (σ : State) (τ : CppType) (x : Ident) (a : Nat) (σ' : State) 
     c.alive = true ∧
     σ' = declareRefState σ τ x a
 
-
 def OpenScope (σ σ' : State) : Prop :=
   σ' = pushScope σ
-
 
 def CloseScope (σ σ' : State) : Prop :=
   popScope? σ = some σ'
@@ -170,7 +227,6 @@ inductive BigStepBlock : State → StmtBlock → CtrlResult → State → Prop w
       BigStepBlock σ (.cons s ss) (.returnResult rv) σ₁
 
 end
-
 
 def BigStepStmtTerminates (σ : State) (st : CppStmt) : Prop :=
   ∃ ctrl σ', BigStepStmt σ st ctrl σ'

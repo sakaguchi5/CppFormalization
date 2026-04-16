@@ -11,6 +11,11 @@ namespace Cpp
 
 このファイルでは、`DeclaresObject` が `ScopedTypedStateConcrete` を保つことを、
 `closeScope` と同じく field ごとに分解して組み立てる。
+
+重要:
+- object payload semantics と post-state cursor policy は分離された。
+- したがって `nextFreshAgainstOwned` は allocator/cursor policy 側から
+  honest に供給できる。
 -/
 
 /-! =========================================================
@@ -76,11 +81,8 @@ theorem typeFrameDeclObject_declareTypeObject_cases
           · simpa [typeFrameDeclObject, declareTypeObject, insertTopDecl, hsc] using hk
           · simpa [declareTypeObject, insertTopDecl, hsc] using hdecl
 
-
 /-! =========================================================
     2. 実現子の分解
-    object は「新しい top object」か「旧 object 実現の保全」。
-    ref は新規ケースなしで、旧 ref 実現の保全のみ。
     ========================================================= -/
 
 axiom declareObject_preserves_old_object_realizers
@@ -119,7 +121,11 @@ theorem declareObject_realizes_new_top_object
       runtimeFrameOwnsAddress σ' 0 a ∧
       heapLiveTypedAt σ' a τ := by
   intro _ _ hdecl
-  rcases hdecl with ⟨aNext, hobjTy, hsfresh, hheapNone, hovcompat, rfl⟩
+  rcases hdecl with ⟨aNext, σcore, hpayload, hpolicy⟩
+  rcases hpayload with ⟨hobjTy, hsfresh, hheapNone, hovcompat, hcore⟩
+  rcases hpolicy with ⟨hcursorFresh, hσ'⟩
+  subst σcore
+  subst hσ'
   cases hsc : σ.scopes with
   | nil =>
       simp [currentScopeFresh, hsc] at hsfresh
@@ -129,18 +135,15 @@ theorem declareObject_realizes_new_top_object
           locals := σ.next :: fr.locals }
       refine ⟨σ.next, ?_, ?_, ?_⟩
       · refine ⟨fr', ?_, ?_⟩
-        · simp [fr', declareObjectStateWithNext, setNext, declareObjectStateCore,
+        · simp [fr', setNext, declareObjectStateCore,
             recordLocal, writeHeap, bindTopBinding, hsc]
         · simp [fr']
       · refine ⟨fr', ?_, ?_⟩
-        · simp [fr', declareObjectStateWithNext, setNext, declareObjectStateCore,
+        · simp [fr',setNext, declareObjectStateCore,
             recordLocal, writeHeap, bindTopBinding, hsc]
         · simp [fr']
       · refine ⟨{ ty := τ, value := ov, alive := true }, ?_, rfl, rfl⟩
         simp
-          [(RuntimeObjectCoreWithNext.heap_declareObjectStateWithNext_self
-            (σ := σ) (τ := τ) (x := x) (ov := ov) (aNext := aNext))]
-
 
 theorem declareObject_objectDeclRealized_of_decomposition
     {Γ : TypeEnv} {σ σ' : State}
@@ -163,7 +166,6 @@ theorem declareObject_objectDeclRealized_of_decomposition
     exact declareObject_realizes_new_top_object hσ hfresh hdecl
   · exact declareObject_preserves_old_object_realizers hσ hfresh hdecl hold
 
-
 theorem declareObject_refDeclRealized_of_decomposition
     {Γ : TypeEnv} {σ σ' : State}
     {x : Ident} {τ : CppType} {ov : Option Value} :
@@ -179,7 +181,6 @@ theorem declareObject_refDeclRealized_of_decomposition
   exact declareObject_preserves_old_ref_realizers hσ hfresh hdecl
     (typeFrameDeclRef_declareTypeObject_inv hty)
 
-
 /-! =========================================================
     3. 構造 field の preservation
     ========================================================= -/
@@ -192,7 +193,11 @@ theorem declareObject_preserves_frameDepthAgreement
     DeclaresObject σ τ x ov σ' →
     frameDepthAgreement (declareTypeObject Γ x τ) σ' := by
   intro hσ hfresh hdecl
-  rcases hdecl with ⟨aNext, hobjTy, hsfresh, hheap0, hovcompat, rfl⟩
+  rcases hdecl with ⟨aNext, σcore, hpayload, hpolicy⟩
+  rcases hpayload with ⟨hobjTy, hsfresh, hheap0, hovcompat, hcore⟩
+  rcases hpolicy with ⟨hcursorFresh, hσ'⟩
+  subst σcore
+  subst hσ'
   cases hΓ : Γ.scopes with
   | nil =>
       simp [currentTypeScopeFresh, hΓ] at hfresh
@@ -273,21 +278,17 @@ axiom declareObject_preserves_initializedValuesTyped
       runtimeFrameBindsObject σ' k y υ a →
       heapInitializedTypedAt σ' a υ ∨ True
 
-/-
-Important:
-`DeclaresObjectWithNext` does not constrain the chosen post-state cursor `aNext`
-beyond setting `σ'.next = aNext`.
-Therefore `nextFreshAgainstOwned σ'` is not derivable from the current semantics
-without an additional freshness policy on `aNext`.
-This remains an axiom until the cursor policy is strengthened.
--/
-axiom declareObject_preserves_nextFreshAgainstOwned
+theorem declareObject_preserves_nextFreshAgainstOwned
     {Γ : TypeEnv} {σ σ' : State}
     {x : Ident} {τ : CppType} {ov : Option Value} :
     ScopedTypedStateConcrete Γ σ →
     currentTypeScopeFresh Γ x →
     DeclaresObject σ τ x ov σ' →
-    nextFreshAgainstOwned σ'
+    nextFreshAgainstOwned σ' := by
+  intro _ _ hdecl
+  rcases hdecl with ⟨aNext, hdeclNext⟩
+  rcases declaresObjectWithNext_postCursorFresh hdeclNext with ⟨hheapNone, hlocals⟩
+  exact ⟨hheapNone, hlocals⟩
 
 axiom declareObject_preserves_refTargetsAvoidInnerOwned
     {Γ : TypeEnv} {σ σ' : State}
@@ -308,28 +309,32 @@ theorem declareObject_preserves_heapInitializedValuesTyped
     DeclaresObject σ τ x ov σ' →
     heapInitializedValuesTyped σ' := by
   intro hσ _ hdecl
-  rcases hdecl with ⟨aNext, hobj, hfresh, hheap0, hovcompat, rfl⟩
+  rcases hdecl with ⟨aNext, σcore, hpayload, hpolicy⟩
+  rcases hpayload with ⟨hobj, hfresh, hheap0, hovcompat, hcore⟩
+  rcases hpolicy with ⟨hcursorFresh, hstate⟩
+  subst σcore
+  subst hstate
   intro a c v hheap hval
   by_cases ha : a = σ.next
-  · subst ha
-    rw [RuntimeObjectCoreWithNext.heap_declareObjectStateWithNext_self
-          (σ := σ) (τ := τ) (x := x) (ov := ov) (aNext := aNext)] at hheap
-    injection hheap with hc
-    subst hc
-    cases hov : ov with
-    | none =>
-        have : False := by
-          simp [hov] at hval
-        exact False.elim this
-    | some w =>
-        have hval' : some w = some v := by
-          simpa [hov] using hval
-        injection hval' with hv
-        subst hv
-        simpa [hov] using hovcompat
-  · rw [RuntimeObjectCoreWithNext.heap_declareObjectStateWithNext_other
-          (σ := σ) (τ := τ) (x := x) (ov := ov)
-          (aNext := aNext) (a := a) ha] at hheap
+  · -- 1. a = σ.next (新しく作られたオブジェクト) の場合
+    subst ha
+    -- setNext はヒープに影響を与えないことを simp で解消
+    simp [setNext] at hheap
+    -- これで hheap は (declareObjectStateCore σ τ x ov).heap σ.next = some c になる
+    subst hheap
+    -- これでゴールが ValueCompat v { ty := τ, value := ov, alive := true }.ty
+    -- つまり ValueCompat v τ になる
+    simp at hval
+    simp
+    -- hval : ov = some v となったので、hovcompat の ov を置き換える
+    rw [hval] at hovcompat
+    exact hovcompat
+  · -- 他のアドレスの場合も同様に「heap が変わらない」事実を先に作る
+    have h_other : (setNext (declareObjectStateCore σ τ x ov) aNext).heap a = σ.heap a := by
+      simp [setNext]
+      cases σ.scopes <;> simp [ ha]
+
+    rw [h_other] at hheap
     exact hσ.heapStoredValuesTyped a c v hheap hval
 
 /-! =========================================================
@@ -379,7 +384,6 @@ theorem declareObject_concrete_state_of_decomposition
   · exact declareObject_preserves_nextFreshAgainstOwned hσ hfresh hdecl
   · intro k y υ a j hbind hjk
     exact declareObject_preserves_refTargetsAvoidInnerOwned hσ hfresh hdecl hbind hjk
-
 
 theorem declares_object_preserves_scoped_typed_state_concrete
     {Γ : TypeEnv} {σ σ' : State}
