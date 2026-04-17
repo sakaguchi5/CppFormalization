@@ -12,8 +12,7 @@ namespace Cpp
 
 に分かれる。
 
-initializedValuesTyped 系は legacy placeholder (`∨ True`) なので保留する。
-また、old object/ref realizer の完全 preservation と
+old object/ref realizer の完全 preservation と
 shadowing / ownership の一部は、top-frame transport の細部がまだ重いので
 今回は残す。
 -/
@@ -236,14 +235,10 @@ theorem declareRef_preserves_refBindingSound
           · subst hy
             have hs : some (Binding.ref τ a) = some (.ref υ b) := by
               simpa using hb
-            -- 1. injection で Binding.ref の中身を取り出す
             injection hs with h_inner
-            -- 2. さらに injection で τ = υ と a = b を取り出す
             injection h_inner with hτ_eq hab_eq
-            -- 3. これで subst が使えるようになります
             subst hτ_eq
             subst hab_eq
-            -- 4. あとは declareRef_realizes_new_top_ref 補題などを使って解決
             refine ⟨c, ?_, hty, halive⟩
             simpa [heapLiveTypedAt, declareRefState, bindTopBinding, hsc] using hheap
           · have hbindOld : runtimeFrameBindsRef σ 0 y υ b := by
@@ -379,15 +374,6 @@ axiom declareRef_preserves_allOwnedAddressesNamed
     DeclaresRef σ τ x a σ' →
     allOwnedAddressesNamed σ'
 
-axiom declareRef_preserves_initializedValuesTyped
-    {Γ : TypeEnv} {σ σ' : State}
-    {x : Ident} {τ : CppType} {a0 : Nat} :
-    ScopedTypedStateConcrete Γ σ →
-    DeclaresRef σ τ x a0 σ' →
-    ∀ {k y υ a},
-      runtimeFrameBindsObject σ' k y υ a →
-      heapInitializedTypedAt σ' a υ ∨ True
-
 theorem declareRefState_heap_eq
     (σ : State) (τ : CppType) (x : Ident) (a0 : Nat) :
     (declareRefState σ τ x a0).heap = σ.heap := by
@@ -478,7 +464,6 @@ theorem declareRef_concrete_state_of_decomposition
       ownedDisjoint := ?_
       ownedNamed := ?_
       heapStoredValuesTyped := ?_
-      initializedValuesTyped := ?_
       nextFresh := ?_
       refTargetsAvoidInnerOwned := ?_ }
 
@@ -498,8 +483,6 @@ theorem declareRef_concrete_state_of_decomposition
   · exact declareRef_preserves_ownedDisjointAcrossFrames hσ hdecl
   · exact declareRef_preserves_allOwnedAddressesNamed hσ hdecl
   · exact declareRef_preserves_heapStoredValuesTyped hσ hdecl
-  · intro k y υ a hbind
-    exact declareRef_preserves_initializedValuesTyped hσ hdecl hbind
   · exact declareRef_preserves_nextFreshAgainstOwned hσ hdecl
   · intro k y υ a j hbind hjk
     exact declareRef_preserves_refTargetsAvoidInnerOwned hσ hfresh hdecl hbind hjk

@@ -7,7 +7,7 @@ namespace Cpp
 # Closure.Foundation.StateInvariantConcreteFullAssembly
 
 `ScopedTypedStateConcreteOwnership` の bundle assembly の上に、
-`kernel`・`heapStoredValuesTyped`・legacy placeholder を足して
+`kernel` と `heapStoredValuesTyped` を足して
 full `ScopedTypedStateConcrete` を再構成する層。
 
 今回の方針:
@@ -15,6 +15,7 @@ full `ScopedTypedStateConcrete` を再構成する層。
 - `frameDepth` / `shadowing` / `declRealized` は declaration ごとに transport する。
 - object 宣言では新しい owner / heap cell をその場で作る。
 - ref 宣言では ownership は変えず、new ref decl の live target だけを外部仮定で受ける。
+- recomputed-cursor object 宣言でも、full state は strong fields だけで組み立てる。
 -/
 --緊急で修正したのでリファクタリング対象
 section TypeEnvLocalLemmas
@@ -139,15 +140,11 @@ theorem objectBindingSound_declareObjectState_new
     (hnew : k = 0 ∧ y = x ∧ υ = τ ∧ a = σ.next) :
     runtimeFrameOwnsAddress (declareObjectState σ τ x ov) k a ∧
     heapLiveTypedAt (declareObjectState σ τ x ov) a υ := by
-  -- ここで rfl を使わず、等式として扱う
   rcases hnew with ⟨hk, hxy, hυτ, hanext⟩
   constructor
-  · -- ゴールにある k や a を、hk や hanext を使って書き換える
-    rw [hk, hanext]
-    -- 引数を指定せず _ に任せることで名前の消失を回避
+  · rw [hk, hanext]
     exact runtimeFrameOwnsAddress_declareObjectState_zero_next (σ := σ) (ov := ov) (x := _) (τ := _)
-  · -- υ を τ に、a を σ.next に書き換える
-    rw [hυτ, hanext]
+  · rw [hυτ, hanext]
     exact heapLiveTypedAt_declareObjectState_self (σ := σ) (ov := ov) (x := _) (τ := _)
 
 theorem kernel_after_declareObjectState
@@ -227,7 +224,6 @@ theorem kernel_after_declareObjectState
         heapInitializedValuesTyped_declareObjectState_of_optionCompat
           (σ := σ) (τ := τ) (x := x) (ov := ov)
           h.concrete.heapStoredValuesTyped hov
-      initializedValuesTyped := objectBindingsInitializedTypedWeak_trivial _
       nextFresh := hown.nextFresh
       refTargetsAvoidInnerOwned := hown.refTargetsAvoidInnerOwned }
 
@@ -305,7 +301,6 @@ theorem kernel_after_declareRefState
       heapStoredValuesTyped :=
         (heapInitializedValuesTyped_declareRefState
           (σ := σ) (τ := τ) (x := x) (a := a)).2 h.concrete.heapStoredValuesTyped
-      initializedValuesTyped := objectBindingsInitializedTypedWeak_trivial _
       nextFresh := hown.nextFresh
       refTargetsAvoidInnerOwned := hown.refTargetsAvoidInnerOwned }
 
@@ -400,7 +395,6 @@ theorem concrete_after_declareObjectStateWithNext
       ownedDisjoint := hown.ownedDisjoint
       ownedNamed := hown.ownedNamed
       heapStoredValuesTyped := hheapNew
-      initializedValuesTyped := objectBindingsInitializedTypedWeak_trivial _
       nextFresh := hown.nextFresh
       refTargetsAvoidInnerOwned := hown.refTargetsAvoidInnerOwned }
 

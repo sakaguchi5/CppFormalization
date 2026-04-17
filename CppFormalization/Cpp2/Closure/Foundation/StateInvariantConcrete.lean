@@ -56,12 +56,6 @@ def refBindingsNeverOwned (σ : State) : Prop :=
   ∀ (k : Nat) (fr : ScopeFrame) (x : Ident) (τ : CppType) (a : Nat),
     σ.scopes[k]? = some fr → fr.binds x = some (.ref τ a) → a ∈ fr.locals → ∃ y υ, fr.binds y = some (.object υ a)
 
-def ObjectBindingsInitializedTypedWeak (σ : State) : Prop :=
-  ∀ {k x τ a}, runtimeFrameBindsObject σ k x τ a → heapInitializedTypedAt σ a τ ∨ True
-
-@[simp] theorem objectBindingsInitializedTypedWeak_trivial (σ : State) : ObjectBindingsInitializedTypedWeak σ := by
-  intro k x τ a hbind; exact Or.inr trivial
-
 structure ScopedTypedStateConcreteKernel (Γ : TypeEnv) (σ : State) : Prop where
   frameDepth : frameDepthAgreement Γ σ
   shadowing : shadowingCompatible Γ σ
@@ -94,7 +88,6 @@ structure ScopedTypedStateConcrete (Γ : TypeEnv) (σ : State) : Prop where
   ownedDisjoint : ownedAddressesDisjointAcrossFrames σ
   ownedNamed : allOwnedAddressesNamed σ
   heapStoredValuesTyped : heapInitializedValuesTyped σ
-  initializedValuesTyped : ObjectBindingsInitializedTypedWeak σ
   nextFresh : nextFreshAgainstOwned σ
   refTargetsAvoidInnerOwned : ∀ {k x τ a j}, runtimeFrameBindsRef σ k x τ a → j < k → ¬ runtimeFrameOwnsAddress σ j a
 
@@ -119,7 +112,6 @@ def ownership {Γ : TypeEnv} {σ : State} (h : ScopedTypedStateConcrete Γ σ) :
     refTargetsAvoidInnerOwned := h.refTargetsAvoidInnerOwned }
 
 def initStrong {Γ : TypeEnv} {σ : State} (h : ScopedTypedStateConcrete Γ σ) : heapInitializedValuesTyped σ := h.heapStoredValuesTyped
-def initWeak {Γ : TypeEnv} {σ : State} (h : ScopedTypedStateConcrete Γ σ) : ObjectBindingsInitializedTypedWeak σ := h.initializedValuesTyped
 
 end ScopedTypedStateConcrete
 end Cpp

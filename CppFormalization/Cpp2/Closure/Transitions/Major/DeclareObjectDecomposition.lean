@@ -72,35 +72,30 @@ theorem declareObject_preserves_shadowingCompatible
     shadowingCompatible (declareTypeObject Γ x τ) σ' := by
   intro hσ hfresh hdecl y d hlookup
   rcases hdecl with ⟨aNext, σcore, hpayload, hpolicy⟩
-  rcases hpayload with ⟨hobjTy, hsfresh, hheap0, hovcompat, hcore⟩
+  rcases hpayload with ⟨hobjTy, hsfresh, hheapNone, hovcompat, hcore⟩
   rcases hpolicy with ⟨hcursorFresh, hσ'⟩
   subst σcore
   subst hσ'
   by_cases hy : y = x
-  · -- case pos (y = x)
+  ·
     subst hy
-    -- 1. 型環境側の lookup を確定させる
     rw [lookupDecl_declareTypeObject_self] at hlookup
-    injection hlookup with hd; subst hd -- d = .object τ
+    injection hlookup with hd; subst hd
 
-    -- 2. 状態側の lookupBinding を計算する
     exists Binding.object τ σ.next
     constructor
     · simp [setNext, declareObjectStateCore, bindTopBinding, lookupBinding]
       cases hsc : σ.scopes <;> simp [lookupBindingFrames]
-    · simp [DeclMatchesBinding] -- オブジェクト型とアドレスが一致することを確認
+    · simp [DeclMatchesBinding]
 
-  · -- case neg (y ≠ x)
-    -- 1. 型環境側の lookup を元の Γ に戻す
+  ·
     rw [lookupDecl_declareTypeObject_other _ _ _ _ hy] at hlookup
 
-    -- 2. 状態側の lookupBinding も元の σ に戻ることを示す
     have hlookup_bound : lookupBinding (setNext (declareObjectStateCore σ τ x ov) aNext) y = lookupBinding σ y := by
       simp [setNext, declareObjectStateCore, bindTopBinding, lookupBinding]
       cases hsc : σ.scopes <;> simp [lookupBindingFrames,  hy]
 
     rw [hlookup_bound]
-    -- 3. 元の状態の健全性 hσ.shadowingCompatible を適用
     exact hσ.shadowing y d hlookup
 
 /-! =========================================================
@@ -247,16 +242,6 @@ theorem declareObject_preserves_refBindingSound
               (σ := σ) (τ := τ) (x := x) (ov := ov) (aNext := aNext)
               (a := a) (υ := υ) ha hliveOld
 
-axiom declareObject_preserves_initializedValuesTyped
-    {Γ : TypeEnv} {σ σ' : State}
-    {x : Ident} {τ : CppType} {ov : Option Value} :
-    ScopedTypedStateConcrete Γ σ →
-    currentTypeScopeFresh Γ x →
-    DeclaresObject σ τ x ov σ' →
-    ∀ {k y υ a},
-      runtimeFrameBindsObject σ' k y υ a →
-      heapInitializedTypedAt σ' a υ ∨ True
-
 theorem declareObject_preserves_nextFreshAgainstOwned
     {Γ : TypeEnv} {σ σ' : State}
     {x : Ident} {τ : CppType} {ov : Option Value} :
@@ -377,7 +362,6 @@ theorem declareObject_concrete_state_of_decomposition
       ownedDisjoint := ?_
       ownedNamed := ?_
       heapStoredValuesTyped := ?_
-      initializedValuesTyped := ?_
       nextFresh := ?_
       refTargetsAvoidInnerOwned := ?_ }
 
@@ -397,8 +381,6 @@ theorem declareObject_concrete_state_of_decomposition
   · exact declareObject_preserves_ownedDisjointAcrossFrames hσ hfresh hdecl
   · exact declareObject_preserves_allOwnedAddressesNamed hσ hfresh hdecl
   · exact declareObject_preserves_heapInitializedValuesTyped hσ hfresh hdecl
-  · intro k y τ_obj addr hbind
-    exact declareObject_preserves_initializedValuesTyped hσ hfresh hdecl hbind
   · exact declareObject_preserves_nextFreshAgainstOwned hσ hfresh hdecl
   · intro k y υ a j hbind hjk
     exact declareObject_preserves_refTargetsAvoidInnerOwned hσ hfresh hdecl hbind hjk
