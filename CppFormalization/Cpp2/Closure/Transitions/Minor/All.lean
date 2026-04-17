@@ -1,0 +1,3 @@
+import CppFormalization.Cpp2.Closure.Transitions.Minor.AssignDecomposition
+import CppFormalization.Cpp2.Closure.Transitions.Minor.OpenScopeDecomposition
+import CppFormalization.Cpp2.Closure.Transitions.Minor.StateUpdateRoadmap

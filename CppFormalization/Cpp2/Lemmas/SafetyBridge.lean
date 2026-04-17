@@ -36,12 +36,16 @@ namespace Cpp
   intro h
   exact h
 
-@[simp] theorem declaresObject_eq
+@[simp] theorem declaresObject_eq_setNext_core
     {σ σ' : State} {τ : CppType} {x : Ident} {ov : Option Value} :
     DeclaresObject σ τ x ov σ' →
-    σ' = declareObjectState σ τ x ov := by
+    ∃ aNext, σ' = setNext (declareObjectStateCore σ τ x ov) aNext := by
   intro h
-  exact h.2.2.2.2
+  rcases h with ⟨aNext, σcore, hpayload, hpolicy⟩
+  rcases hpayload with ⟨_, _, _, _, hcore⟩
+  rcases hpolicy with ⟨_, hσ'⟩
+  subst hcore
+  exact ⟨aNext, hσ'⟩
 
 @[simp] theorem declaresRef_eq
     {σ σ' : State} {τ : CppType} {x : Ident} {a : Nat} :

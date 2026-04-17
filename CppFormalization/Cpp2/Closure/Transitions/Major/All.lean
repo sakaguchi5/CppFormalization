@@ -1,0 +1,3 @@
+import CppFormalization.Cpp2.Closure.Transitions.Major.CloseScopeDecomposition
+import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectDecomposition
+import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareRefDecomposition
