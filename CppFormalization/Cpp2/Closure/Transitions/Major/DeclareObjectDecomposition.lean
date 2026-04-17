@@ -48,13 +48,60 @@ theorem declareObject_preserves_frameDepthAgreement
             declareObjectStateWithNext, setNext, declareObjectStateCore,
             recordLocal, writeHeap, bindTopBinding, hσs] using hσ.frameDepth
 
-axiom declareObject_preserves_shadowingCompatible
+private theorem lookupDecl_declareTypeObject_self
+    (Γ : TypeEnv) (x : Ident) (τ : CppType) :
+    lookupDecl (declareTypeObject Γ x τ) x = some (.object τ) := by
+  unfold lookupDecl
+  cases hsc : Γ.scopes <;>
+    simp [lookupDeclFrames, declareTypeObject, insertTopDecl, hsc]
+
+private theorem lookupDecl_declareTypeObject_other
+    (Γ : TypeEnv) (x y : Ident) (τ : CppType)
+    (hy : y ≠ x) :
+    lookupDecl (declareTypeObject Γ x τ) y = lookupDecl Γ y := by
+  unfold lookupDecl
+  cases hsc : Γ.scopes <;>
+    simp [lookupDeclFrames, declareTypeObject, insertTopDecl, hsc, hy]
+
+theorem declareObject_preserves_shadowingCompatible
     {Γ : TypeEnv} {σ σ' : State}
     {x : Ident} {τ : CppType} {ov : Option Value} :
     ScopedTypedStateConcrete Γ σ →
     currentTypeScopeFresh Γ x →
     DeclaresObject σ τ x ov σ' →
-    shadowingCompatible (declareTypeObject Γ x τ) σ'
+    shadowingCompatible (declareTypeObject Γ x τ) σ' := by
+  intro hσ hfresh hdecl y d hlookup
+  rcases hdecl with ⟨aNext, σcore, hpayload, hpolicy⟩
+  rcases hpayload with ⟨hobjTy, hsfresh, hheap0, hovcompat, hcore⟩
+  rcases hpolicy with ⟨hcursorFresh, hσ'⟩
+  subst σcore
+  subst hσ'
+  by_cases hy : y = x
+  · -- case pos (y = x)
+    subst hy
+    -- 1. 型環境側の lookup を確定させる
+    rw [lookupDecl_declareTypeObject_self] at hlookup
+    injection hlookup with hd; subst hd -- d = .object τ
+
+    -- 2. 状態側の lookupBinding を計算する
+    exists Binding.object τ σ.next
+    constructor
+    · simp [setNext, declareObjectStateCore, bindTopBinding, lookupBinding]
+      cases hsc : σ.scopes <;> simp [lookupBindingFrames]
+    · simp [DeclMatchesBinding] -- オブジェクト型とアドレスが一致することを確認
+
+  · -- case neg (y ≠ x)
+    -- 1. 型環境側の lookup を元の Γ に戻す
+    rw [lookupDecl_declareTypeObject_other _ _ _ _ hy] at hlookup
+
+    -- 2. 状態側の lookupBinding も元の σ に戻ることを示す
+    have hlookup_bound : lookupBinding (setNext (declareObjectStateCore σ τ x ov) aNext) y = lookupBinding σ y := by
+      simp [setNext, declareObjectStateCore, bindTopBinding, lookupBinding]
+      cases hsc : σ.scopes <;> simp [lookupBindingFrames,  hy]
+
+    rw [hlookup_bound]
+    -- 3. 元の状態の健全性 hσ.shadowingCompatible を適用
+    exact hσ.shadowing y d hlookup
 
 /-! =========================================================
     2. binding soundness
