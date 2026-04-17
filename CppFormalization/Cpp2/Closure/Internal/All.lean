@@ -31,5 +31,6 @@ import CppFormalization.Cpp2.Closure.Internal.StmtNormalCompatCases
 import CppFormalization.Cpp2.Closure.Internal.TypingCINormalExclusion
 import CppFormalization.Cpp2.Closure.Internal.TypingCISeparation
 import CppFormalization.Cpp2.Closure.Internal.Transport.All
+import CppFormalization.Cpp2.Closure.Internal.WhileBodyClassCI
 import CppFormalization.Cpp2.Closure.Internal.WhileFunctionClosureKernelCI
 import CppFormalization.Cpp2.Closure.Internal.WhileNormalPreservation

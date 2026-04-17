@@ -2,9 +2,9 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapConcrete
+import CppFormalization.Cpp2.Closure.Internal.WhileBodyClassCI
 import CppFormalization.Cpp2.Closure.Internal.WhileNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.CurrentShellCI
-import CppFormalization.Cpp2.Closure.Internal.WhileFunctionClosureKernelCI
 import CppFormalization.Cpp2.Boundary.FunctionBody
 
 namespace Cpp
@@ -259,13 +259,54 @@ def whileTailBoundaryKitCI_of_replay_stable_primitive
     exfalso
     exact replay_stable_primitive_stmt_no_continue hstable hstep
 
+/-- Replay-stable primitive body/cond yields a while-body class. -/
+def replay_stable_primitive_whileBodyClassCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hstable : ReplayStablePrimitiveStmt body)
+    (hcstable : ReplayStableCondExpr c)
+    (htyWhile : HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ)
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
+    (hloop : LoopBodyBoundaryCI Γ σ body) :
+    WhileBodyClassCI Γ σ c body :=
+  { loopBoundary := hloop
+    bodyProgressOrDiverges := loop_body_function_progress_or_diverges_ci hloop
+    tailBoundary :=
+      whileTailBoundaryKitCI_of_replay_stable_primitive
+        hstable hcstable htyWhile hentry }
+
 /--
-Replay-stable primitive special case routed through the honest while kernel surface.
+Replay-stable primitive special case routed through the class-based while surface.
 
 重要:
-- ここではもう generic `while_function_body_closure_ci` shell を使わない。
-- 代わりに、loop-body local closure と tail-boundary reconstruction を
-  明示前提にした honest kernel theorem へ落とす。
+- ここでは while に必要な body-local support を
+  `WhileBodyClassCI` として一つに束ねる。
+- したがって、どの body class なら while を閉じられるか、という議論を
+  theorem statement の側で正面化できる。
+-/
+theorem while_function_body_closure_boundary_ci_of_replay_stable_primitive_class
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
+    ReplayStablePrimitiveStmt body →
+    ReplayStableCondExpr c →
+    HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ →
+    BodyClosureBoundaryCI Γ σ (.whileStmt c body) →
+    LoopBodyBoundaryCI Γ σ body →
+    (∀ {σ1 : State},
+      BodyClosureBoundaryCI Γ σ1 (.whileStmt c body) →
+      (∃ ex σ2, BigStepFunctionBody σ1 (.whileStmt c body) ex σ2) ∨
+        BigStepStmtDiv σ1 (.whileStmt c body)) →
+    (∃ ex σ', BigStepFunctionBody σ (.whileStmt c body) ex σ') ∨
+      BigStepStmtDiv σ (.whileStmt c body) := by
+  intro hstable hcstable htyWhile hentry hloop htailClosure
+  exact
+    while_function_body_closure_boundary_ci_of_class
+      htyWhile
+      hentry
+      (replay_stable_primitive_whileBodyClassCI
+        hstable hcstable htyWhile hentry hloop)
+      htailClosure
+
+/--
+Older replay-stable primitive theorem, now factored through the class-based surface.
 -/
 theorem while_function_body_closure_boundary_ci_of_replay_stable_primitive
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
@@ -281,16 +322,10 @@ theorem while_function_body_closure_boundary_ci_of_replay_stable_primitive
         BigStepStmtDiv σ1 (.whileStmt c body)) →
     (∃ ex σ', BigStepFunctionBody σ (.whileStmt c body) ex σ') ∨
       BigStepStmtDiv σ (.whileStmt c body) := by
-  intro hstable hcstable htyWhile hentry hloop hbodyClosure htailClosure
+  intro hstable hcstable htyWhile hentry hloop _hbodyClosure htailClosure
   exact
-    while_function_body_closure_boundary_ci_honest
-      htyWhile
-      hentry
-      hloop
-      hbodyClosure
-      (whileTailBoundaryKitCI_of_replay_stable_primitive
-        hstable hcstable htyWhile hentry)
-      htailClosure
+    while_function_body_closure_boundary_ci_of_replay_stable_primitive_class
+      hstable hcstable htyWhile hentry hloop htailClosure
 
 /--
 BodyReadyCI entry surface から honest while kernel へ降ろす互換 wrapper.
