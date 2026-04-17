@@ -11,54 +11,26 @@ import CppFormalization.Cpp2.Semantics.Divergence
 
 namespace Cpp
 
-/-!
-# Closure.Internal.FunctionBodyCaseSplitCI
-
-`body_*_function_body_progress_or_diverges_by_cases` を一枚板の shell のまま残さず、
-statement 形ごとの honest な shell surface へ分解するための中間層。
-
-設計意図:
-- primitive は theorem-backed なので shell にしない。
-- while は `WhileFunctionClosureKernelCI` 側へ切り出した。
-- block は `BlockBodyClosureCI` 側へ切り出した。
-- このファイルには、なお残る seq / ite の constructor shell だけを置く。
-- `BodyReadyCI` は互換 wrapper として残し、canonical surface は
-  `BodyClosureBoundaryCI` に寄せる。
-
-更新:
-- `seq` の tail-boundary については、post-state の dynamic 部分
-  (`ScopedTypedStateConcrete` と `StmtReadyConcrete`) を theorem-backed にした。
-- したがって残る shell は tail statement の structural / profile / adequacy を
-  current `seq` entry からどう投影するか、という static 側だけである。
--/
-
-/-- canonical result shape for function-body closure statements. -/
 abbrev FunctionBodyClosureResult (σ : State) (st : CppStmt) : Prop :=
   (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st
 
-/--
-Non-dynamic part of a tail statement closure boundary after the left side of a sequence
-has finished normally.
+structure SeqLeftClosureScaffoldCI
+    (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
+  structural : BodyStructuralBoundary Γ st
+  profile : BodyControlProfile Γ st
+  adequacy : BodyAdequacyCI Γ σ st profile
 
-重要:
-- `seq` の theorem-backed 部分は post-state `σ1` の dynamic 再構成である。
-- それでも tail statement `t` の summary/profile/adequacy は自動では出ない。
-- そこで、残る shell は非 dynamic 部分だけを bundle した scaffold に縮める。
--/
 structure SeqTailClosureScaffoldCI
     (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
   structural : BodyStructuralBoundary Γ st
   profile : BodyControlProfile Γ st
   adequacy : BodyAdequacyCI Γ σ st profile
 
-/--
-Sequence tail non-dynamic scaffold after the left statement exits normally.
+axiom seq_left_closure_scaffold_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
+    SeqLeftClosureScaffoldCI Γ σ s
 
-重要:
-- 旧 `seq_tail_closure_boundary_ci_of_left_normal` は full boundary shell だった。
-- いまは dynamic を theorem-backed にしたので、
-  shell は structural / profile / adequacy の非 dynamic 部分だけでよい。
--/
 axiom seq_tail_closure_scaffold_ci_of_left_normal
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
@@ -67,13 +39,21 @@ axiom seq_tail_closure_scaffold_ci_of_left_normal
       BigStepStmt σ s .normal σ1 →
       SeqTailClosureScaffoldCI Θ σ1 t
 
-/--
-Sequence tail-boundary reconstruction after the left statement exits normally.
+def seq_left_dynamic_boundary_of_entry
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
+    BodyDynamicBoundary Γ σ s :=
+  { state := hentry.dynamic.state
+    safe := seq_ready_left hentry.dynamic.safe }
 
-これはもはや full shell ではない。
-post-state の dynamic 部分は theorem-backed で再構成し、
-残る非 dynamic scaffold だけを shell から受け取って assembled boundary を作る。
--/
+noncomputable def seq_left_closure_boundary_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
+    BodyClosureBoundaryCI Γ σ s := by
+  let hs := seq_left_closure_scaffold_ci_of_entry hentry
+  let hd := seq_left_dynamic_boundary_of_entry hentry
+  exact mkBodyClosureBoundaryCI hs.structural hs.profile hd hs.adequacy
+
 noncomputable def seq_tail_closure_boundary_ci_of_left_normal
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
@@ -95,15 +75,6 @@ noncomputable def seq_tail_closure_boundary_ci_of_left_normal
       safe := hreadyRight }
   exact mkBodyClosureBoundaryCI hs.structural hs.profile hd hs.adequacy
 
-/--
-Honest sequence shell.
-
-必要なものを明示する:
-- current entry boundary for the whole sequence
-- left statement 自身の closure
-- left normal 後の tail boundary reconstruction
-- reconstructed tail boundary の下での tail closure
--/
 axiom seq_function_body_closure_boundary_ci_honest
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
@@ -123,13 +94,6 @@ axiom seq_function_body_closure_boundary_ci_honest
         FunctionBodyClosureResult σ1 t) :
     FunctionBodyClosureResult σ (.seq s t)
 
-/--
-Honest if-shell.
-
-必要なのは branch ごとの closure だけである。
-condition evaluation と branch selection は `BodyClosureBoundaryCI` entry に含まれる
-current-state readiness / adequacy から読む想定。
--/
 axiom ite_function_body_closure_boundary_ci_honest
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t))
@@ -141,7 +105,6 @@ axiom ite_function_body_closure_boundary_ci_honest
       FunctionBodyClosureResult σ t) :
     FunctionBodyClosureResult σ (.ite c s t)
 
-/-- `BodyReadyCI` 互換 wrapper for sequence. -/
 theorem seq_function_body_closure_ci_honest
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyReadyCI Γ σ (.seq s t))
@@ -168,7 +131,6 @@ theorem seq_function_body_closure_ci_honest
       (fun hty hstep htailBoundary =>
         tailClosure hty hstep htailBoundary.toBodyReadyCI)
 
-/-- `BodyReadyCI` 互換 wrapper for if. -/
 theorem ite_function_body_closure_ci_honest
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyReadyCI Γ σ (.ite c s t))
