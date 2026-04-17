@@ -4,6 +4,7 @@ import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureConcreteRefined
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapConcrete
 import CppFormalization.Cpp2.Closure.Internal.WhileNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.CurrentShellCI
+import CppFormalization.Cpp2.Closure.Internal.WhileFunctionClosureKernelCI
 import CppFormalization.Cpp2.Boundary.FunctionBody
 
 namespace Cpp
@@ -305,63 +306,89 @@ def bodyClosureBoundaryCI_while_after_body_normal_of_replay_stable_primitive
       hstable hcstable htyWhile hready.toBodyReadyCI hbodyStep).toClosureBoundary
 
 /--
-Connect the replay-stable primitive while theorem-backed tail boundary into the CI while case.
-
-改善点:
-- generic CI while axiom が要求する continue branch は、replay-stable primitive body では
-  contradiction で閉じる。
-- normal branch では theorem-backed に tail `BodyReadyCI` を再構成して recursive closure
-  hypothesis へ渡せる。
+Replay-stable primitive body / cond から構成される tail-boundary reconstruction kit.
+`continue` branch は primitive replay-stable body では矛盾で閉じる。
 -/
-theorem while_function_body_closure_ci_of_replay_stable_primitive
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
-    ReplayStablePrimitiveStmt body →
-    ReplayStableCondExpr c →
-    HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ →
-    BodyReadyCI Γ σ (.whileStmt c body) →
-    (∀ {σ'},
-      BigStepStmt σ body .normal σ' →
-      BodyReadyCI Γ σ' (.whileStmt c body) →
-      (∃ ex σ'', BigStepFunctionBody σ' (.whileStmt c body) ex σ'') ∨
-        BigStepStmtDiv σ' (.whileStmt c body)) →
-    (∃ ex σ', BigStepFunctionBody σ (.whileStmt c body) ex σ') ∨
-      BigStepStmtDiv σ (.whileStmt c body) := by
-  intro hstable hcstable htyWhile hready htail
-  refine while_function_body_closure_ci hready ?_ ?_
-  · intro σ' hbodyStep _
+def whileTailBoundaryKitCI_of_replay_stable_primitive
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hstable : ReplayStablePrimitiveStmt body)
+    (hcstable : ReplayStableCondExpr c)
+    (htyWhile : HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ)
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) :
+    WhileTailBoundaryKitCI Γ σ c body := by
+  refine
+    { afterNormal := ?_
+      afterContinue := ?_ }
+  · intro σ1 hstep
     exact
-      htail hbodyStep
-        (bodyReadyCI_while_after_body_normal_of_replay_stable_primitive
-          hstable hcstable htyWhile hready hbodyStep)
-  · intro σ' hbodyStep _
+      bodyClosureBoundaryCI_while_after_body_normal_of_replay_stable_primitive
+        hstable hcstable htyWhile hentry hstep
+  · intro σ1 hstep
     exfalso
-    exact replay_stable_primitive_stmt_no_continue hstable hbodyStep
+    exact replay_stable_primitive_stmt_no_continue hstable hstep
 
-/-- replay-stable primitive while closure theorem. -/
-theorem while_function_body_closure_ci_of_replay_stable_primitive_body_closure
+/--
+Replay-stable primitive special case routed through the honest while kernel surface.
+
+重要:
+- ここではもう generic `while_function_body_closure_ci` shell を使わない。
+- 代わりに、loop-body local closure と tail-boundary reconstruction を
+  明示前提にした honest kernel theorem へ落とす。
+-/
+theorem while_function_body_closure_boundary_ci_of_replay_stable_primitive
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
     ReplayStablePrimitiveStmt body →
     ReplayStableCondExpr c →
     HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ →
     BodyClosureBoundaryCI Γ σ (.whileStmt c body) →
-    (∀ {σ'},
-      BigStepStmt σ body .normal σ' →
-      BodyClosureBoundaryCI Γ σ' (.whileStmt c body) →
-      (∃ ex σ'', BigStepFunctionBody σ' (.whileStmt c body) ex σ'') ∨
-        BigStepStmtDiv σ' (.whileStmt c body)) →
+    LoopBodyBoundaryCI Γ σ body →
+    ((∃ ctrl σ1, BigStepStmt σ body ctrl σ1) ∨ BigStepStmtDiv σ body) →
+    (∀ {σ1 : State},
+      BodyClosureBoundaryCI Γ σ1 (.whileStmt c body) →
+      (∃ ex σ2, BigStepFunctionBody σ1 (.whileStmt c body) ex σ2) ∨
+        BigStepStmtDiv σ1 (.whileStmt c body)) →
     (∃ ex σ', BigStepFunctionBody σ (.whileStmt c body) ex σ') ∨
       BigStepStmtDiv σ (.whileStmt c body) := by
-  intro hstable hcstable htyWhile hready htail
+  intro hstable hcstable htyWhile hentry hloop hbodyClosure htailClosure
   exact
-    while_function_body_closure_ci_of_replay_stable_primitive
-      hstable hcstable htyWhile hready.toBodyReadyCI
-      (fun hstep htailReadyOld =>
-        htail hstep htailReadyOld.toClosureBoundary)
+    while_function_body_closure_boundary_ci_honest
+      htyWhile
+      hentry
+      hloop
+      hbodyClosure
+      (whileTailBoundaryKitCI_of_replay_stable_primitive
+        hstable hcstable htyWhile hentry)
+      htailClosure
+
+/--
+BodyReadyCI entry surface から honest while kernel へ降ろす互換 wrapper.
+
+この theorem は旧 `while_function_body_closure_ci_of_replay_stable_primitive` と違い、
+loop-body boundary と local body closure を明示前提に持つ。
+-/
+theorem while_function_body_closure_ci_of_replay_stable_primitive_honest
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
+    ReplayStablePrimitiveStmt body →
+    ReplayStableCondExpr c →
+    HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ →
+    BodyReadyCI Γ σ (.whileStmt c body) →
+    LoopBodyBoundaryCI Γ σ body →
+    ((∃ ctrl σ1, BigStepStmt σ body ctrl σ1) ∨ BigStepStmtDiv σ body) →
+    (∀ {σ1 : State},
+      BodyReadyCI Γ σ1 (.whileStmt c body) →
+      (∃ ex σ2, BigStepFunctionBody σ1 (.whileStmt c body) ex σ2) ∨
+        BigStepStmtDiv σ1 (.whileStmt c body)) →
+    (∃ ex σ', BigStepFunctionBody σ (.whileStmt c body) ex σ') ∨
+      BigStepStmtDiv σ (.whileStmt c body) := by
+  intro hstable hcstable htyWhile hentry hloop hbodyClosure htailClosure
+  exact
+    while_function_body_closure_boundary_ci_of_replay_stable_primitive
+      hstable hcstable htyWhile hentry.toClosureBoundary hloop hbodyClosure
+      (fun {σ1} htailBoundary =>
+        htailClosure (σ1 := σ1) htailBoundary.toBodyReadyCI)
 
 /-
 Current live CI shell axioms were moved to `CurrentShellCI.lean`.
-
-axiom while_function_body_closure_ci ...
 
 axiom body_ready_ci_function_body_progress_or_diverges_by_cases ...
 

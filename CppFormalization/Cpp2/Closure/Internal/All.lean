@@ -13,6 +13,7 @@ import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureConcreteRefined
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmap
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapCI
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapConcrete
+import CppFormalization.Cpp2.Closure.Internal.LoopBodyFunctionClosureCI
 import CppFormalization.Cpp2.Closure.Internal.NormalPathTypingBridge
 import CppFormalization.Cpp2.Closure.Internal.PrimitiveStmtNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.ReadinessBoundaryConcrete
@@ -27,4 +28,5 @@ import CppFormalization.Cpp2.Closure.Internal.StmtNormalCompatCases
 import CppFormalization.Cpp2.Closure.Internal.TypingCINormalExclusion
 import CppFormalization.Cpp2.Closure.Internal.TypingCISeparation
 import CppFormalization.Cpp2.Closure.Internal.Transport.All
+import CppFormalization.Cpp2.Closure.Internal.WhileFunctionClosureKernelCI
 import CppFormalization.Cpp2.Closure.Internal.WhileNormalPreservation
