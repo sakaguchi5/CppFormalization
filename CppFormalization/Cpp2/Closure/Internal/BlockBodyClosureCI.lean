@@ -3,6 +3,7 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureConcrete
+import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI
 import CppFormalization.Cpp2.Closure.Transitions.Minor.OpenScopeDecomposition
 import CppFormalization.Cpp2.Semantics.Divergence
 
@@ -20,6 +21,11 @@ CI-centric opened block-body closure layer.
   function-body closure の block 節を支える。
 - `FunctionBodyCaseSplitCI` から block 固有 shell を外し、
   opened block-body 専用 surface をこのファイルへ集約する。
+
+更新:
+- block-body closure と top-level block closure 自体は、
+  既存の concrete refined theorem を経由して theorem-backed にした。
+- 残る shell は opened block-body boundary bridge だけである。
 -/
 
 /-- Forget CI-sensitive block-body fields and recover the existing concrete boundary. -/
@@ -65,33 +71,46 @@ axiom blockBodyClosureBoundaryCI_of_bodyClosureBoundaryCI_opened
 Opened block-body closure target.
 
 ここでは result wrapper も block-body 専用に保つ。
-top-level statement `.block ss` への再包装は別 theorem で行う。
+CI 層では theorem-backed だが、実質的な仕事は concrete refined theorem に委譲する。
 -/
-axiom block_body_function_closure_boundary_ci
+theorem block_body_function_closure_boundary_ci
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock} :
     BlockBodyClosureBoundaryCI Γ σ ss →
-    FunctionBlockBodyClosureResult σ ss
+    FunctionBlockBodyClosureResult σ ss := by
+  intro hentry
+  exact
+    block_body_function_closure_concrete_refined
+      (blockBodyReadyConcrete_of_blockBodyClosureBoundaryCI hentry)
 
 /--
 Honest block-statement closure assembled from opened block-body closure.
 
-必要なものを明示する:
-- current entry boundary for `.block ss`
-- opened state `σ0` での opened-scope witness
-- opened block body の assembled boundary
-- その境界の下での opened block-body closure
+block statement と opened block body を理論上は分けたままにするが、
+CI 層の closure theorem 自体は concrete refined の honest theorem へ落とす。
+したがって、残る shell は opened bridge のみである。
 -/
-axiom block_function_body_closure_boundary_ci_from_opened_body
+--_openedClosure はunusedだが将来のために残しておく
+theorem block_function_body_closure_boundary_ci_direct
+    {Γ : TypeEnv} {σ : State} {ss : StmtBlock} :
+    BodyClosureBoundaryCI Γ σ (.block ss) →
+    (∃ ex σ', BigStepFunctionBody σ (.block ss) ex σ') ∨
+      BigStepStmtDiv σ (.block ss) := by
+  intro hentry
+  exact
+    block_function_body_closure_concrete_refined_honest
+      (bodyReadyConcrete_of_bodyClosureBoundaryCI hentry)
+
+theorem block_function_body_closure_boundary_ci_from_opened_body
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
     (hentry : BodyClosureBoundaryCI Γ σ (.block ss))
-    (openedClosure :
+    (_openedClosure :
       ∀ {σ0 : State},
         OpenScope σ σ0 →
         BlockBodyClosureBoundaryCI Γ σ0 ss →
         FunctionBlockBodyClosureResult σ0 ss) :
     (∃ ex σ', BigStepFunctionBody σ (.block ss) ex σ') ∨
-      BigStepStmtDiv σ (.block ss)
-
+      BigStepStmtDiv σ (.block ss) := by
+  exact block_function_body_closure_boundary_ci_direct hentry
 /-- `BodyReadyCI` 互換 wrapper for the opened-scope bridge. -/
 noncomputable def blockBodyReadyCI_of_bodyReadyCI_opened
     {Γ : TypeEnv} {σ σ' : State} {ss : StmtBlock} :
