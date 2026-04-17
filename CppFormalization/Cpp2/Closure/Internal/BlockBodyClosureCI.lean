@@ -29,10 +29,9 @@ CI-centric opened block-body closure layer.
 更新:
 - block-body closure と top-level block closure 自体は、
   既存の concrete refined theorem を経由して theorem-backed にした。
-- opened block-body boundary bridge についても dynamic だけでなく
-  structural まで theorem-backed にした。
-- 残る shell は opened block body の profile / adequacy を
-  top-level block entry からどう投影するか、という部分だけである。
+- opened block-body boundary bridge についても dynamic / structural に加えて
+  profile まで theorem-backed にした。
+- 残る shell は opened block body adequacy だけである。
 -/
 
 /-- Forget CI-sensitive block-body fields and recover the existing concrete boundary. -/
@@ -61,19 +60,16 @@ abbrev FunctionBlockBodyClosureResult (σ : State) (ss : StmtBlock) : Prop :=
   (∃ ex σ', BigStepFunctionBlockBody σ ss ex σ') ∨ BigStepBlockDiv σ ss
 
 /--
-Non-structural remainder of an opened block-body closure boundary.
+The only remaining shell payload for the opened block-body bridge.
 
 重要:
-- structural は top-level `.block ss` entry から theorem-backed に復元できる。
-- dynamic も concrete opened-body theorem から theorem-backed に復元できる。
-- しかし top-level `.block ss` の summary は opened block body の post-env `Θ`
-  を潰してしまうので、block-body profile / adequacy は自動では復元できない。
-- したがって残る shell は profile / adequacy だけである。
+- structural / profile / dynamic は theorem-backed に復元できる。
+- 残る open obligation は adequacy だけである。
 -/
-structure BlockOpenedProfileAdequacyScaffoldCI
-    (Γ : TypeEnv) (σ : State) (ss : StmtBlock) : Type where
-  profile : BlockBodyControlProfile Γ ss
-  adequacy : BlockBodyAdequacyCI Γ σ ss profile
+structure BlockOpenedAdequacyScaffoldCI
+    (Γ : TypeEnv) (σ : State) (ss : StmtBlock)
+    (P : BlockBodyControlProfile Γ ss) : Type where
+  adequacy : BlockBodyAdequacyCI Γ σ ss P
 
 /--
 Theorem-backed structural projection from a top-level block entry to the opened block body.
@@ -96,19 +92,76 @@ theorem blockBodyStructuralBoundary_of_bodyClosureBoundaryCI
       continueScoped := by
         simpa [ContinueWellScoped, ContinueWellScopedAt] using hentry.structural.continueScoped }
 
+theorem block_normal_payload_exists_ci
+    {Γ Δ : TypeEnv} {ss : StmtBlock}
+    (h : HasTypeStmtCI .normalK Γ (.block ss) Δ) :
+    ∃ Θ, HasTypeBlockCI .normalK (pushTypeScope Γ) ss Θ := by
+  cases h with
+  | block hB =>
+      exact ⟨_, hB⟩
+
+theorem block_return_payload_exists_ci
+    {Γ Δ : TypeEnv} {ss : StmtBlock}
+    (h : HasTypeStmtCI .returnK Γ (.block ss) Δ) :
+    ∃ Θ, HasTypeBlockCI .returnK (pushTypeScope Γ) ss Θ := by
+  cases h with
+  | block hB =>
+      exact ⟨_, hB⟩
+
+
+
 /--
-Opened block-body profile / adequacy scaffold projected from a top-level block entry.
+Project a statement-body summary for `.block ss` to the corresponding opened block-body summary.
+
+重要:
+- `.block ss` の statement summary は payload の中に opened block body typing を持っている。
+- したがって profile 自体は theorem-backed に recover できる。
+- recover できないのは actual opened-body execution に対する adequacy の方である。
+-/
+noncomputable def blockBodySummary_of_stmtBodySummary
+    {Γ : TypeEnv} {ss : StmtBlock} :
+    StmtBodySummary Γ (.block ss) →
+    BlockBodySummary Γ ss
+  | { normalOut := n, returnOut := r } =>
+      { normalOut :=
+          match n with
+          | none => none
+          | some ⟨_, hty⟩ =>
+              let hex : ∃ Θ, HasTypeBlockCI .normalK (pushTypeScope Γ) ss Θ :=
+                block_normal_payload_exists_ci hty
+              some ⟨Classical.choose hex, Classical.choose_spec hex⟩
+        returnOut :=
+          match r with
+          | none => none
+          | some ⟨_, hty⟩ =>
+              let hex : ∃ Θ, HasTypeBlockCI .returnK (pushTypeScope Γ) ss Θ :=
+                block_return_payload_exists_ci hty
+              some ⟨Classical.choose hex, Classical.choose_spec hex⟩ }
+
+/--
+Theorem-backed profile projection from a top-level block entry to the opened block body.
+-/
+noncomputable def blockBodyProfile_of_bodyClosureBoundaryCI
+    {Γ : TypeEnv} {σ : State} {ss : StmtBlock} :
+    BodyClosureBoundaryCI Γ σ (.block ss) →
+    BlockBodyControlProfile Γ ss
+  | hentry =>
+      { summary := blockBodySummary_of_stmtBodySummary hentry.profile.summary }
+
+/--
+Opened block-body adequacy scaffold projected from a top-level block entry.
 
 重要:
 - ここが block bridge に残る唯一の shell である。
-- opened block body の summary / adequacy は `.block ss` statement の top-level
-  summary からは recover できないため、ここでは still-open obligation として残す。
+- opened block body の adequacy は `.block ss` statement の top-level adequacy
+  からは recover できないため、still-open obligation として残す。
 -/
-axiom blockBodyProfileAdequacyScaffoldCI_of_bodyClosureBoundaryCI_opened
-    {Γ : TypeEnv} {σ σ' : State} {ss : StmtBlock} :
-    BodyClosureBoundaryCI Γ σ (.block ss) →
-    OpenScope σ σ' →
-    BlockOpenedProfileAdequacyScaffoldCI Γ σ' ss
+axiom blockBodyAdequacyScaffoldCI_of_bodyClosureBoundaryCI_opened
+    {Γ : TypeEnv} {σ σ' : State} {ss : StmtBlock}
+    (hentry : BodyClosureBoundaryCI Γ σ (.block ss))
+    (hopen : OpenScope σ σ') :
+    BlockOpenedAdequacyScaffoldCI Γ σ' ss
+      (blockBodyProfile_of_bodyClosureBoundaryCI hentry)
 
 /--
 Theorem-backed dynamic opened block-body boundary.
@@ -130,8 +183,8 @@ def blockBodyDynamicBoundary_of_bodyClosureBoundaryCI_opened
 Opened-scope bridge into the assembled CI block-body boundary.
 
 もはや full shell ではない。
-opened body の structural / dynamic は theorem-backed に再構成し、
-残る profile / adequacy scaffold だけを shell から受け取って assembled boundary を作る。
+opened body の structural / profile / dynamic は theorem-backed に再構成し、
+残る adequacy だけを shell から受け取って assembled boundary を作る。
 -/
 noncomputable def blockBodyClosureBoundaryCI_of_bodyClosureBoundaryCI_opened
     {Γ : TypeEnv} {σ σ' : State} {ss : StmtBlock} :
@@ -140,9 +193,10 @@ noncomputable def blockBodyClosureBoundaryCI_of_bodyClosureBoundaryCI_opened
     BlockBodyClosureBoundaryCI Γ σ' ss := by
   intro hentry hopen
   let hs := blockBodyStructuralBoundary_of_bodyClosureBoundaryCI hentry
-  let hp := blockBodyProfileAdequacyScaffoldCI_of_bodyClosureBoundaryCI_opened hentry hopen
+  let hp := blockBodyProfile_of_bodyClosureBoundaryCI hentry
+  let ha := blockBodyAdequacyScaffoldCI_of_bodyClosureBoundaryCI_opened hentry hopen
   let hd := blockBodyDynamicBoundary_of_bodyClosureBoundaryCI_opened hentry hopen
-  exact mkBlockBodyClosureBoundaryCI hs hp.profile hd hp.adequacy
+  exact mkBlockBodyClosureBoundaryCI hs hp hd ha.adequacy
 
 /--
 Opened block-body closure target.
