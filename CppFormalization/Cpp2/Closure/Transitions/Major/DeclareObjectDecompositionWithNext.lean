@@ -21,24 +21,79 @@ because the issue is the logical shape of the semantics relation.
         currentScopeFresh σ x ∧
         σ.heap σ.next = none ∧
         IsValueCompatible ov τ ∧
+        FreshPostCursor (declareObjectStateCore σ τ x ov) aNext ∧
         σ' = declareObjectStateWithNext σ τ x ov aNext := by
   constructor
   · intro h
     rcases h with ⟨aNext, hwith⟩
-    rcases hwith with ⟨hobj, hfresh, hheap, hcompat, rfl⟩
-    exact ⟨aNext, hobj, hfresh, hheap, hcompat, rfl⟩
+    rcases hwith with ⟨σcore, hpayload, hpolicy⟩
+    rcases hpayload with ⟨hobj, hfresh, hheap, hcompat, hcore⟩
+    rcases hpolicy with ⟨hpost, hσ'⟩
+    subst hcore
+    subst hσ'
+    exact ⟨aNext, hobj, hfresh, hheap, hcompat, hpost, rfl⟩
   · intro h
-    rcases h with ⟨aNext, hobj, hfresh, hheap, hcompat, rfl⟩
-    exact ⟨aNext, hobj, hfresh, hheap, hcompat, rfl⟩
+    rcases h with ⟨aNext, hobj, hfresh, hheap, hcompat, hpost, hσ'⟩
+    refine ⟨aNext, ?_⟩
+    refine ⟨declareObjectStateCore σ τ x ov, ?_, ?_⟩
+    · exact ⟨hobj, hfresh, hheap, hcompat, rfl⟩
+    · subst hσ'
+      exact ⟨hpost, rfl⟩
+
+theorem declaresObject_exists_withNext_data_weak
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {σ' : State} :
+    DeclaresObject σ τ x ov σ' →
+      ∃ aNext,
+        ObjectType τ ∧
+        currentScopeFresh σ x ∧
+        σ.heap σ.next = none ∧
+        IsValueCompatible ov τ ∧
+        σ' = declareObjectStateWithNext σ τ x ov aNext := by
+  intro h
+  rcases h with ⟨aNext, hwith⟩
+  rcases hwith with ⟨σcore, hpayload, hpolicy⟩
+  rcases hpayload with ⟨hobj, hfresh, hheap, hcompat, hcore⟩
+  rcases hpolicy with ⟨hpost, hσ'⟩
+  subst hcore
+  subst hσ'
+  exact ⟨aNext, hobj, hfresh, hheap, hcompat, rfl⟩
+
+@[simp] theorem declaresObject_exists_withNext_data_strong
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {σ' : State} :
+    DeclaresObject σ τ x ov σ' ↔
+      ∃ aNext,
+        ObjectType τ ∧
+        currentScopeFresh σ x ∧
+        σ.heap σ.next = none ∧
+        IsValueCompatible ov τ ∧
+        FreshPostCursor (declareObjectStateCore σ τ x ov) aNext ∧
+        σ' = declareObjectStateWithNext σ τ x ov aNext := by
+  constructor
+  · intro h
+    rcases h with ⟨aNext, hwith⟩
+    rcases hwith with ⟨σcore, hpayload, hpolicy⟩
+    rcases hpayload with ⟨hobj, hfresh, hheap, hcompat, hcore⟩
+    rcases hpolicy with ⟨hpost, hσ'⟩
+    subst hcore
+    subst hσ'
+    exact ⟨aNext, hobj, hfresh, hheap, hcompat, hpost, rfl⟩
+  · intro h
+    rcases h with ⟨aNext, hobj, hfresh, hheap, hcompat, hpost, hσ'⟩
+    refine ⟨aNext, ?_⟩
+    refine ⟨declareObjectStateCore σ τ x ov, ?_, ?_⟩
+    · exact ⟨hobj, hfresh, hheap, hcompat, rfl⟩
+    · subst hσ'
+      exact ⟨hpost, rfl⟩
+
 
 @[simp] theorem declaresObject_exists_cursor
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {σ' : State} :
     DeclaresObject σ τ x ov σ' →
       ∃ aNext, σ' = declareObjectStateWithNext σ τ x ov aNext := by
   intro h
-  rcases (declaresObject_exists_withNext_data.mp h) with
-    ⟨aNext, _hobj, _hfresh, _hheap, _hcompat, rfl⟩
-  exact ⟨aNext, rfl⟩
+  rcases (declaresObject_exists_withNext_data_weak h) with
+    ⟨aNext, _hobj, _hfresh, _hheap, _hcompat, hσ'⟩
+  exact ⟨aNext, hσ'⟩
 
 /--
 Transition-side wrapper: from a recomputed ready package we can produce
@@ -67,6 +122,6 @@ theorem declaresObject_cases_withNext
       σ.heap σ.next = none ∧
       IsValueCompatible ov τ ∧
       σ' = declareObjectStateWithNext σ τ x ov aNext :=
-  declaresObject_exists_withNext_data.mp h
+  declaresObject_exists_withNext_data_weak h
 
 end Cpp

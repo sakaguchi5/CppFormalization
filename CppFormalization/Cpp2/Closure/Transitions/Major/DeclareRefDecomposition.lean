@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
+import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcretePreservation
 
 namespace Cpp
 
@@ -12,9 +12,12 @@ namespace Cpp
 
 に分かれる。
 
-old object/ref realizer の完全 preservation と
-shadowing / ownership の一部は、top-frame transport の細部がまだ重いので
-今回は残す。
+今回の段階では、
+- old object/ref realizer
+- shadowingCompatible
+
+を theorem 化した。
+ownership 系の一部は、top-frame transport の切り出しをもう一段進めてから詰める。
 -/
 
 /-! =========================================================
@@ -79,32 +82,157 @@ theorem typeFrameDeclRef_declareTypeRef_cases
           · simpa [typeFrameDeclRef, declareTypeRef, insertTopDecl, hsc] using hk
           · simpa [declareTypeRef, insertTopDecl, hsc] using hdecl
 
+private theorem typeFrameDeclObject_declareTypeRef_keep
+    {Γ : TypeEnv} {x : Ident} {τ : CppType}
+    {k : Nat} {y : Ident} {υ : CppType} :
+    typeFrameDeclObject (declareTypeRef Γ x τ) k y υ →
+    k ≠ 0 ∨ y ≠ x := by
+  intro hty
+  cases k with
+  | zero =>
+      -- k = 0 なので y ≠ x (右側) を示す必要がある
+      right
+      rcases hty with ⟨fr, hk, hdecl⟩
+      intro hy  -- y = x を仮定して矛盾を導く
+      subst hy
+      cases hsc : Γ.scopes <;> {
+        simp [declareTypeRef, insertTopDecl, hsc] at hk hdecl
+        simp [← hk] at hdecl
+      }
+  | succ j =>
+      left
+      simp
+
+private theorem typeFrameDeclRef_keep_of_fresh
+    {Γ : TypeEnv} {x : Ident}
+    {k : Nat} {y : Ident} {υ : CppType} :
+    currentTypeScopeFresh Γ x →
+    typeFrameDeclRef Γ k y υ →
+    k ≠ 0 ∨ y ≠ x := by
+  intro hfresh hty
+  cases k with
+  | zero =>
+      right
+      intro hy
+      subst hy
+      rcases hty with ⟨fr, hk, hdecl⟩
+      -- Γ.scopes の形でケース分けして hfresh の定義を展開する
+      cases hsc : Γ.scopes with
+      | nil =>
+          -- currentTypeScopeFresh Γ x が [] のとき False なので矛盾
+          simp [currentTypeScopeFresh, hsc] at hfresh
+      | cons fr0 frs =>
+          -- hfresh は fr0.decls x = none となる
+          simp [currentTypeScopeFresh, hsc] at hfresh
+          -- hk : Γ.scopes.get? 0 = some fr より、fr は fr0 であることがわかる
+          simp [hsc] at hk
+          subst hk
+          -- これで hfresh : fr.decls x = none となり、hdecl と矛盾する
+          rw [hfresh] at hdecl
+          simp at hdecl
+  | succ j =>
+      left
+      simp
+
+private theorem lookupDecl_declareTypeRef_self
+    (Γ : TypeEnv) (x : Ident) (τ : CppType) :
+    lookupDecl (declareTypeRef Γ x τ) x = some (.ref τ) := by
+  unfold lookupDecl
+  cases hsc : Γ.scopes <;>
+    simp [lookupDeclFrames, declareTypeRef, insertTopDecl, hsc]
+
+private theorem lookupDecl_declareTypeRef_other
+    (Γ : TypeEnv) (x y : Ident) (τ : CppType)
+    (hy : y ≠ x) :
+    lookupDecl (declareTypeRef Γ x τ) y = lookupDecl Γ y := by
+  unfold lookupDecl
+  cases hsc : Γ.scopes <;>
+    simp [lookupDeclFrames, declareTypeRef, insertTopDecl, hsc, hy]
+
 /-! =========================================================
-    2. 実現子の分解
+    2. runtime transport
     ========================================================= -/
 
-axiom declareRef_preserves_old_object_realizers
-    {Γ : TypeEnv} {σ σ' : State}
-    {x : Ident} {τ : CppType} {a : Nat} :
-    ScopedTypedStateConcrete Γ σ →
-    DeclaresRef σ τ x a σ' →
-    ∀ {k y υ},
-      typeFrameDeclObject Γ k y υ →
-      ∃ b,
-        runtimeFrameBindsObject σ' k y υ b ∧
-        runtimeFrameOwnsAddress σ' k b ∧
-        heapLiveTypedAt σ' b υ
+theorem declareRefState_heap_eq
+    (σ : State) (τ : CppType) (x : Ident) (a0 : Nat) :
+    (declareRefState σ τ x a0).heap = σ.heap := by
+  unfold declareRefState bindTopBinding
+  split <;> rfl
 
-axiom declareRef_preserves_old_ref_realizers
-    {Γ : TypeEnv} {σ σ' : State}
-    {x : Ident} {τ : CppType} {a : Nat} :
-    ScopedTypedStateConcrete Γ σ →
-    DeclaresRef σ τ x a σ' →
-    ∀ {k y υ},
-      typeFrameDeclRef Γ k y υ →
-      ∃ b,
-        runtimeFrameBindsRef σ' k y υ b ∧
-        heapLiveTypedAt σ' b υ
+private theorem heapLiveTypedAt_declareRefState_forward
+    {σ : State} {τ : CppType} {x : Ident} {a0 b : Nat} {υ : CppType} :
+    heapLiveTypedAt σ b υ →
+    heapLiveTypedAt (declareRefState σ τ x a0) b υ := by
+  intro hlive
+  rcases hlive with ⟨c, hheap, hty, halive⟩
+  refine ⟨c, ?_, hty, halive⟩
+  simpa [declareRefState_heap_eq (σ := σ) (τ := τ) (x := x) (a0 := a0)] using hheap
+
+private theorem runtimeFrameBindsObject_declareRefState_forward_of_keep
+    {σ : State} {τ : CppType} {x : Ident} {a : Nat}
+    {k : Nat} {y : Ident} {υ : CppType} {b : Nat} :
+    runtimeFrameBindsObject σ k y υ b →
+    (k ≠ 0 ∨ y ≠ x) →
+    runtimeFrameBindsObject (declareRefState σ τ x a) k y υ b := by
+  intro hbind hkeep
+  rcases hbind with ⟨fr, hk, hb⟩
+  cases hsc : σ.scopes with
+  | nil =>
+      cases k with
+      | zero =>
+          simp [ hsc] at hk
+      | succ j =>
+          simp [ hsc] at hk
+  | cons fr0 frs =>
+      cases k with
+      | zero =>
+          have hfr : fr = fr0 := by
+            simpa [hsc] using hk.symm
+          subst fr
+          rcases hkeep with hk_ne | hy
+          · contradiction
+          · refine ⟨{ fr0 with binds := fun z => if z = x then some (.ref τ a) else fr0.binds z }, ?_, ?_⟩
+            · simp [ declareRefState, bindTopBinding, hsc]
+            · simpa [hy] using hb
+      | succ j =>
+          refine ⟨fr, ?_, ?_⟩
+          · simpa [runtimeFrameBindsObject, declareRefState, bindTopBinding, hsc] using hk
+          · simpa [runtimeFrameBindsObject, declareRefState, bindTopBinding, hsc] using hb
+
+private theorem runtimeFrameBindsRef_declareRefState_forward_of_keep
+    {σ : State} {τ : CppType} {x : Ident} {a : Nat}
+    {k : Nat} {y : Ident} {υ : CppType} {b : Nat} :
+    runtimeFrameBindsRef σ k y υ b →
+    (k ≠ 0 ∨ y ≠ x) →
+    runtimeFrameBindsRef (declareRefState σ τ x a) k y υ b := by
+  intro hbind hkeep
+  rcases hbind with ⟨fr, hk, hb⟩
+  cases hsc : σ.scopes with
+  | nil =>
+      cases k with
+      | zero =>
+          simp [ hsc] at hk
+      | succ j =>
+          simp [ hsc] at hk
+  | cons fr0 frs =>
+      cases k with
+      | zero =>
+          have hfr : fr = fr0 := by
+            simpa [hsc] using hk.symm
+          subst fr
+          rcases hkeep with hk_ne | hy
+          · contradiction
+          · refine ⟨{ fr0 with binds := fun z => if z = x then some (.ref τ a) else fr0.binds z }, ?_, ?_⟩
+            · simp [ declareRefState, bindTopBinding, hsc]
+            · simpa [hy] using hb
+      | succ j =>
+          refine ⟨fr, ?_, ?_⟩
+          · simpa [runtimeFrameBindsRef, declareRefState, bindTopBinding, hsc] using hk
+          · simpa [runtimeFrameBindsRef, declareRefState, bindTopBinding, hsc] using hb
+
+/-! =========================================================
+    3. 実現子の分解
+    ========================================================= -/
 
 theorem declareRef_realizes_new_top_ref
     {Γ : TypeEnv} {σ σ' : State}
@@ -139,8 +267,20 @@ theorem declareRef_objectDeclRealized_of_decomposition
         runtimeFrameOwnsAddress σ' k b ∧
         heapLiveTypedAt σ' b υ := by
   intro hσ hdecl k y υ hty
-  exact declareRef_preserves_old_object_realizers hσ hdecl
-    (typeFrameDeclObject_declareTypeRef_inv hty)
+  rcases hσ.objectDeclRealized (typeFrameDeclObject_declareTypeRef_inv hty) with
+    ⟨b, hbindOld, hownOld, hliveOld⟩
+  rcases hdecl with ⟨_, _, _, _, _, rfl⟩
+  have hkeep : k ≠ 0 ∨ y ≠ x :=
+    typeFrameDeclObject_declareTypeRef_keep hty
+  refine ⟨b, ?_, ?_, ?_⟩
+  · exact runtimeFrameBindsObject_declareRefState_forward_of_keep
+      (σ := σ) (τ := τ) (x := x) (a := a)
+      (k := k) (y := y) (υ := υ) (b := b)
+      hbindOld hkeep
+  · exact runtimeFrameOwnsAddress_declareRefState_forward
+      (σ := σ) (τ := τ) (x := x) (a := a) (addr := b) (k := k) hownOld
+  · exact heapLiveTypedAt_declareRefState_forward
+      (σ := σ) (τ := τ) (x := x) (a0 := a) (b := b) (υ := υ) hliveOld
 
 theorem declareRef_refDeclRealized_of_decomposition
     {Γ : TypeEnv} {σ σ' : State}
@@ -161,10 +301,20 @@ theorem declareRef_refDeclRealized_of_decomposition
     subst hυ
     rcases declareRef_realizes_new_top_ref hσ hfresh hdecl with ⟨hbind, hlive⟩
     exact ⟨a, hbind, hlive⟩
-  · exact declareRef_preserves_old_ref_realizers hσ hdecl hold
+  · rcases hσ.refDeclRealized hold with ⟨b, hbindOld, hliveOld⟩
+    rcases hdecl with ⟨_, _, _, _, _, rfl⟩
+    have hkeep : k ≠ 0 ∨ y ≠ x :=
+      typeFrameDeclRef_keep_of_fresh hfresh hold
+    refine ⟨b, ?_, ?_⟩
+    · exact runtimeFrameBindsRef_declareRefState_forward_of_keep
+        (σ := σ) (τ := τ) (x := x) (a := a)
+        (k := k) (y := y) (υ := υ) (b := b)
+        hbindOld hkeep
+    · exact heapLiveTypedAt_declareRefState_forward
+        (σ := σ) (τ := τ) (x := x) (a0 := a) (b := b) (υ := υ) hliveOld
 
 /-! =========================================================
-    3. binding-soundness
+    4. binding-soundness
     ========================================================= -/
 
 theorem declareRef_preserves_objectBindingSound
@@ -251,7 +401,7 @@ theorem declareRef_preserves_refBindingSound
           simpa [heapLiveTypedAt, declareRefState, bindTopBinding, hsc] using hσ.refBindingSound hbindOld
 
 /-! =========================================================
-    4. 構造 field の preservation
+    5. 構造 field の preservation
     ========================================================= -/
 
 theorem declareRef_preserves_frameDepthAgreement
@@ -274,13 +424,33 @@ theorem declareRef_preserves_frameDepthAgreement
           simpa [frameDepthAgreement, declareTypeRef, insertTopDecl, hΓ,
             declareRefState, bindTopBinding, hσs] using hσ.frameDepth
 
-axiom declareRef_preserves_shadowingCompatible
+theorem declareRef_preserves_shadowingCompatible
     {Γ : TypeEnv} {σ σ' : State}
     {x : Ident} {τ : CppType} {a : Nat} :
     ScopedTypedStateConcrete Γ σ →
     currentTypeScopeFresh Γ x →
     DeclaresRef σ τ x a σ' →
-    shadowingCompatible (declareTypeRef Γ x τ) σ'
+    shadowingCompatible (declareTypeRef Γ x τ) σ' := by
+  intro hσ hfresh hdecl y d hlookup
+  rcases hdecl with ⟨hsfresh, c, hheap, hty, halive, rfl⟩
+  cases hsc : σ.scopes with
+  | nil =>
+      simp [currentScopeFresh, hsc] at hsfresh
+  | cons fr frs =>
+      by_cases hy : y = x
+      · subst hy
+        have hd : d = .ref τ := by
+          rw [lookupDecl_declareTypeRef_self] at hlookup
+          exact (Option.some.inj hlookup).symm
+        subst hd
+        refine ⟨.ref τ a, ?_, ?_⟩
+        · simp
+        · simp [DeclMatchesBinding]
+      · have hlookupOld : lookupDecl Γ y = some d := by
+          simpa [lookupDecl_declareTypeRef_other (Γ := Γ) (x := x) (y := y) (τ := τ) hy] using hlookup
+        rcases hσ.shadowing y d hlookupOld with ⟨b, hb, hmatch⟩
+        refine ⟨b, ?_, hmatch⟩
+        simpa [declareRefState, hy] using hb
 
 axiom declareRef_preserves_ownedAddressNamed
     {Γ : TypeEnv} {σ σ' : State}
@@ -374,12 +544,6 @@ axiom declareRef_preserves_allOwnedAddressesNamed
     DeclaresRef σ τ x a σ' →
     allOwnedAddressesNamed σ'
 
-theorem declareRefState_heap_eq
-    (σ : State) (τ : CppType) (x : Ident) (a0 : Nat) :
-    (declareRefState σ τ x a0).heap = σ.heap := by
-  unfold declareRefState bindTopBinding
-  split <;> rfl
-
 theorem declareRef_preserves_heapStoredValuesTyped
     {Γ : TypeEnv} {σ σ' : State}
     {x : Ident} {τ : CppType} {a0 : Nat} :
@@ -439,7 +603,7 @@ axiom declareRef_preserves_refTargetsAvoidInnerOwned
       ¬ runtimeFrameOwnsAddress σ' j a
 
 /-! =========================================================
-    5. 最終組み立て
+    6. 最終組み立て
     ========================================================= -/
 
 theorem declareRef_concrete_state_of_decomposition
