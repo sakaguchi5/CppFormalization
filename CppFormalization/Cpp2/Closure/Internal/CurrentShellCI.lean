@@ -19,7 +19,9 @@ Current live high-level CI shell axioms.
 - generic な `while_function_body_closure_ci` shell はここから外した。
   while の責務は
   `LoopBodyFunctionClosureCI` の local shell と
-  `WhileFunctionClosureKernelCI` の honest kernel surface へ分解する。
+  `WhileFunctionClosureKernelCI` の honest kernel surface へ分解した。
+- seq / ite / block の constructor shell も
+  `FunctionBodyCaseSplitCI` へ切り出した。
 - このファイルには、なお残っている master case-driver shell だけを置く。
 -/
 
