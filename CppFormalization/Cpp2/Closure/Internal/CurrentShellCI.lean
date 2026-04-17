@@ -20,8 +20,8 @@ Current live high-level CI shell axioms.
   while の責務は
   `LoopBodyFunctionClosureCI` の local shell と
   `WhileFunctionClosureKernelCI` の honest kernel surface へ分解した。
-- seq / ite / block の constructor shell も
-  `FunctionBodyCaseSplitCI` へ切り出した。
+- seq / ite の constructor shell は `FunctionBodyCaseSplitCI` へ切り出した。
+- block の constructor shell は `BlockBodyClosureCI` へ切り出した。
 - このファイルには、なお残っている master case-driver shell だけを置く。
 -/
 
