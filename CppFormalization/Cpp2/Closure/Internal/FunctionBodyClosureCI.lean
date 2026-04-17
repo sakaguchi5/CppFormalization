@@ -28,6 +28,8 @@ CI-centric function-body closure layer.
 - `BigStepStmt` は mutual inductive なので、while-return の否定は
   `termination_by` つきの直接再帰ではなく、導出 recursor に motive を与える形で処理する。
   これは `StmtControlPreservation.lean` の bundle+recursor の軽量版である。
+- live な master shell は canonical `BodyClosureBoundaryCI` surface だけに残す。
+  `BodyReadyCI` entry theorem は forgetful map `toClosureBoundary` から導く。
 -/
 
 /-- Forget the CI-sensitive fields and recover the existing refined concrete boundary. -/
@@ -388,21 +390,10 @@ theorem while_function_body_closure_ci_of_replay_stable_primitive_honest
         htailClosure (σ1 := σ1) htailBoundary.toBodyReadyCI)
 
 /-
-Current live CI shell axioms were moved to `CurrentShellCI.lean`.
-
-axiom body_ready_ci_function_body_progress_or_diverges_by_cases ...
+Current live CI shell axiom was moved to `CurrentShellCI.lean`.
 
 axiom body_closure_ci_function_body_progress_or_diverges_by_cases ...
 -/
-
-/-- CI-boundary master theorem target. -/
-theorem body_ready_ci_function_body_progress_or_diverges
-    {Γ : TypeEnv} {σ : State} {st : CppStmt} :
-    CoreBigStepFragment st →
-    BodyReadyCI Γ σ st →
-    (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
-  intro hfrag hready
-  exact body_ready_ci_function_body_progress_or_diverges_by_cases hfrag hready
 
 /-- canonical entry theorem for function-body closure. -/
 theorem body_closure_ci_function_body_progress_or_diverges
@@ -412,5 +403,17 @@ theorem body_closure_ci_function_body_progress_or_diverges
     (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
   intro hfrag hready
   exact body_closure_ci_function_body_progress_or_diverges_by_cases hfrag hready
+
+/--
+`BodyReadyCI` entry theorem is no longer a separate shell.
+It is derived from the canonical closure-boundary theorem via `toClosureBoundary`.
+-/
+theorem body_ready_ci_function_body_progress_or_diverges
+    {Γ : TypeEnv} {σ : State} {st : CppStmt} :
+    CoreBigStepFragment st →
+    BodyReadyCI Γ σ st →
+    (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
+  intro hfrag hready
+  exact body_closure_ci_function_body_progress_or_diverges hfrag hready.toClosureBoundary
 
 end Cpp

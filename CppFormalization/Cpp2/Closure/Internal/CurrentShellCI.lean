@@ -22,14 +22,11 @@ Current live high-level CI shell axioms.
   `WhileFunctionClosureKernelCI` の honest kernel surface へ分解した。
 - seq / ite の constructor shell は `FunctionBodyCaseSplitCI` へ切り出した。
 - block の constructor shell は `BlockBodyClosureCI` へ切り出した。
-- このファイルには、なお残っている master case-driver shell だけを置く。
+- `BodyReadyCI` 版 master shell も外した。
+  canonical surface は `BodyClosureBoundaryCI` なので、
+  `BodyReadyCI` entry theorem は closure-boundary theorem から導く。
+- このファイルには、最後に残る canonical master case-driver shell だけを置く。
 -/
-
-axiom body_ready_ci_function_body_progress_or_diverges_by_cases
-    {Γ : TypeEnv} {σ : State} {st : CppStmt} :
-    CoreBigStepFragment st →
-    BodyReadyCI Γ σ st →
-    (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st
 
 axiom body_closure_ci_function_body_progress_or_diverges_by_cases
     {Γ : TypeEnv} {σ : State} {st : CppStmt} :
