@@ -2,7 +2,7 @@ import CppFormalization.Cpp2.Boundary.FunctionBody
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseSplitCI
-import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureCI
+import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI
 import CppFormalization.Cpp2.Closure.Internal.WhileFunctionClosureKernelCI
 import CppFormalization.Cpp2.Closure.Internal.LoopBodyFunctionClosureCI
 
@@ -79,7 +79,7 @@ theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body
             IH (st := s) hfragS hleftBoundary)
           (fun hty hstep =>
             seq_tail_closure_boundary_ci_of_left_normal hentry hty hstep)
-          (fun hty hstep htailBoundary =>
+          (fun _hty _hstep htailBoundary =>
             IH (st := t) hfragT htailBoundary)
   | ite c s t =>
       have hfragST : CoreBigStepFragment s ∧ CoreBigStepFragment t := by
@@ -108,7 +108,7 @@ theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body
       exact
         block_function_body_closure_boundary_ci_from_opened_body
           hentry
-          (fun {σ0} hopen hopenedBoundary =>
+          (fun {σ0} _hopen hopenedBoundary =>
             block_body_function_closure_boundary_ci hopenedBoundary)
   | breakStmt =>
       exact

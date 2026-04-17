@@ -2,6 +2,7 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Boundary.FunctionBody
 import CppFormalization.Cpp2.Core.Syntax
 import CppFormalization.Cpp2.Semantics.Divergence
+import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverCI
 
 namespace Cpp
 
@@ -25,13 +26,15 @@ Current live high-level CI shell axioms.
 - `BodyReadyCI` 版 master shell も外した。
   canonical surface は `BodyClosureBoundaryCI` なので、
   `BodyReadyCI` entry theorem は closure-boundary theorem から導く。
-- このファイルには、最後に残る canonical master case-driver shell だけを置く。
+- したがって、残る本丸は constructor case split 自体ではなく、
+  same-syntax while tail に対して case-driver body を一貫して回してよいという
+  global recursion principle だけである。
+- このファイルには、その最小の global recursion shell だけを置く。
 -/
 
-axiom body_closure_ci_function_body_progress_or_diverges_by_cases
-    {Γ : TypeEnv} {σ : State} {st : CppStmt} :
-    CoreBigStepFragment st →
-    BodyClosureBoundaryCI Γ σ st →
-    (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st
+
+/-- A global recursive hypothesis that is intended to close the constructor-level driver body. -/
+axiom body_closure_ci_function_body_global_recursion :
+    FunctionBodyCaseDriverIH
 
 end Cpp

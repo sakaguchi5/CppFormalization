@@ -1,6 +1,6 @@
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
-import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureConcreteRefined
+import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapConcrete
 import CppFormalization.Cpp2.Closure.Internal.WhileNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.CurrentShellCI
@@ -28,81 +28,11 @@ CI-centric function-body closure layer.
 - `BigStepStmt` は mutual inductive なので、while-return の否定は
   `termination_by` つきの直接再帰ではなく、導出 recursor に motive を与える形で処理する。
   これは `StmtControlPreservation.lean` の bundle+recursor の軽量版である。
-- live な master shell は canonical `BodyClosureBoundaryCI` surface だけに残す。
+- live な shell は canonical `BodyClosureBoundaryCI` surface の
+  global recursion principle だけに縮めた。
   `BodyReadyCI` entry theorem は forgetful map `toClosureBoundary` から導く。
 -/
 
-/-- Forget the CI-sensitive fields and recover the existing refined concrete boundary. -/
-theorem bodyReadyConcrete_of_bodyReadyCI
-    {Γ : TypeEnv} {σ : State} {st : CppStmt} :
-    BodyReadyCI Γ σ st → BodyReadyConcrete Γ σ st := by
-  intro h
-  exact {
-    wf := h.wf
-    typed := h.typed0
-    breakScoped := h.breakScoped
-    continueScoped := h.continueScoped
-    state := h.state
-    safe := h.safe
-  }
-
-/-- forgetful map from the new assembled boundary to the refined concrete boundary. -/
-theorem bodyReadyConcrete_of_bodyClosureBoundaryCI
-    {Γ : TypeEnv} {σ : State} {st : CppStmt} :
-    BodyClosureBoundaryCI Γ σ st → BodyReadyConcrete Γ σ st := by
-  intro h
-  exact bodyReadyConcrete_of_bodyReadyCI h.toBodyReadyCI
-
-/-- Primitive case already follows from the refined concrete layer once we forget CI extras. -/
-theorem primitive_stmt_function_body_step_or_diverges_ci
-    {Γ : TypeEnv} {σ : State} {st : CppStmt} :
-    PrimitiveCoreStmtConcrete st →
-    BodyReadyCI Γ σ st →
-    (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
-  intro hprim hready
-  exact
-    primitive_stmt_function_body_step_or_diverges_concrete_refined
-      hprim (bodyReadyConcrete_of_bodyReadyCI hready)
-
-/-- entry version of the primitive case. -/
-theorem primitive_stmt_function_body_step_or_diverges_body_closure
-    {Γ : TypeEnv} {σ : State} {st : CppStmt} :
-    PrimitiveCoreStmtConcrete st →
-    BodyClosureBoundaryCI Γ σ st →
-    (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
-  intro hprim hready
-  exact
-    primitive_stmt_function_body_step_or_diverges_concrete_refined
-      hprim (bodyReadyConcrete_of_bodyClosureBoundaryCI hready)
-
-/-
-Dead candidate moved out of the live CI surface.
-
-axiom seq_function_body_closure_ci
-    {Γ : TypeEnv} {σ : State} {s t : CppStmt} :
-    BodyReadyCI Γ σ (.seq s t) →
-    (∀ {σ'},
-      BigStepStmt σ s .normal σ' →
-      BodyReadyCI Γ σ' t →
-      (∃ ex σ'', BigStepFunctionBody σ' t ex σ'') ∨ BigStepStmtDiv σ' t) →
-    (∃ ex σ', BigStepFunctionBody σ (.seq s t) ex σ') ∨ BigStepStmtDiv σ (.seq s t)
-
-axiom ite_function_body_closure_ci
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt} :
-    BodyReadyCI Γ σ (.ite c s t) →
-    (BodyReadyCI Γ σ s →
-      (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨ BigStepStmtDiv σ s) →
-    (BodyReadyCI Γ σ t →
-      (∃ ex σ', BigStepFunctionBody σ t ex σ') ∨ BigStepStmtDiv σ t) →
-    (∃ ex σ', BigStepFunctionBody σ (.ite c s t) ex σ') ∨
-      BigStepStmtDiv σ (.ite c s t)
-
-axiom block_function_body_closure_ci
-    {Γ : TypeEnv} {σ : State} {ss : StmtBlock} :
-    BodyReadyCI Γ σ (.block ss) →
-    (∃ ex σ', BigStepFunctionBody σ (.block ss) ex σ') ∨
-      BigStepStmtDiv σ (.block ss)
--/
 
 /-! ## theorem-backed replay-stable primitive while tail boundary -/
 
@@ -390,9 +320,7 @@ theorem while_function_body_closure_ci_of_replay_stable_primitive_honest
         htailClosure (σ1 := σ1) htailBoundary.toBodyReadyCI)
 
 /-
-Current live CI shell axiom was moved to `CurrentShellCI.lean`.
-
-axiom body_closure_ci_function_body_progress_or_diverges_by_cases ...
+Current live shell was shrunk to a global recursion principle in `CurrentShellCI.lean`.
 -/
 
 /-- canonical entry theorem for function-body closure. -/
@@ -401,8 +329,19 @@ theorem body_closure_ci_function_body_progress_or_diverges
     CoreBigStepFragment st →
     BodyClosureBoundaryCI Γ σ st →
     (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
-  intro hfrag hready
-  exact body_closure_ci_function_body_progress_or_diverges_by_cases hfrag hready
+  intro hfrag hentry
+  exact body_closure_ci_function_body_global_recursion hfrag hentry
+
+theorem body_closure_ci_function_body_progress_or_diverges_via_case_driver_body
+    {Γ : TypeEnv} {σ : State} {st : CppStmt} :
+    CoreBigStepFragment st →
+    BodyClosureBoundaryCI Γ σ st →
+    (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
+  intro hfrag hentry
+  exact
+    body_closure_ci_function_body_progress_or_diverges_case_driver_body
+      body_closure_ci_function_body_global_recursion
+      hfrag hentry
 
 /--
 `BodyReadyCI` entry theorem is no longer a separate shell.
