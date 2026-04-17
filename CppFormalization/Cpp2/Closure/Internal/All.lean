@@ -6,6 +6,7 @@ import CppFormalization.Cpp2.Closure.Internal.BlockBodyNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.ConditionReplayKernel
 import CppFormalization.Cpp2.Closure.Internal.ConditionalNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.CurrentShellCI
+import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseSplitCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosure
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureCI

@@ -35,6 +35,42 @@ structure WhileTailBoundaryKitCI
       BodyClosureBoundaryCI Γ σ1 (.whileStmt c body)
 
 /--
+Generic while-entry support extracted from a top-level `while` closure boundary.
+
+重要:
+- 旧 generic while shell を直接残さず、
+  `while` case-driver が本当に必要とする support だけを分離する。
+- ここには
+  * closed-at-start normal typing witness
+  * current iteration の loop-body local boundary
+  * current iteration の local progress/divergence
+  * tail-boundary reconstruction kit
+  が入る。
+-/
+structure WhileEntrySupportCI
+    (Γ : TypeEnv) (σ : State) (c : ValExpr) (body : CppStmt) : Type where
+  typing :
+    HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ
+  loopBoundary :
+    LoopBodyBoundaryCI Γ σ body
+  bodyProgressOrDiverges :
+    (∃ ctrl σ1, BigStepStmt σ body ctrl σ1) ∨ BigStepStmtDiv σ body
+  tailBoundary :
+    WhileTailBoundaryKitCI Γ σ c body
+
+/--
+Generic support shell from top-level `while` entry boundary.
+
+この axiom は旧 `while_function_body_closure_ci` よりかなり小さい。
+`while` の current entry から body-local support だけを取り出し、
+while 全体の closure assembly は別 theorem に委ねる。
+-/
+axiom whileEntrySupportCI_of_bodyClosureBoundaryCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
+    BodyClosureBoundaryCI Γ σ (.whileStmt c body) →
+    WhileEntrySupportCI Γ σ c body
+
+/--
 Honest while case theorem.
 
 必要なものを明示する:

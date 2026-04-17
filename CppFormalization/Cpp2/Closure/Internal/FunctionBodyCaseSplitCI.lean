@@ -25,6 +25,23 @@ abbrev FunctionBodyClosureResult (σ : State) (st : CppStmt) : Prop :=
   (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st
 
 /--
+Sequence tail-boundary reconstruction after the left statement exits normally.
+
+重要:
+- これは `.seq s t` entry boundary から tail statement `t` の
+  top-level closure boundary へ移る最小 shell.
+- `HasTypeStmtCI .normalK Γ s Δ` を明示前提に持つのは、
+  path-sensitive post-environment `Δ` を caller 側で決めるためである。
+-/
+axiom seq_tail_closure_boundary_ci_of_left_normal
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
+    ∀ {Δ : TypeEnv} {σ1 : State},
+      HasTypeStmtCI .normalK Γ s Δ →
+      BigStepStmt σ s .normal σ1 →
+      BodyClosureBoundaryCI Δ σ1 t
+
+/--
 Honest sequence shell.
 
 必要なものを明示する:
