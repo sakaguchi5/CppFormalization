@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcretePreservation
+import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteOwnershipTransport
 
 namespace Cpp
 
@@ -15,9 +15,20 @@ namespace Cpp
 今回の段階では、
 - old object/ref realizer
 - shadowingCompatible
+- allObjectBindingsOwned
+- refTargetsAvoidInnerOwned
 
 を theorem 化した。
-ownership 系の一部は、top-frame transport の切り出しをもう一段進めてから詰める。
+
+remaining wall:
+- `ownedAddressNamed`
+- `allOwnedAddressesNamed`
+- `refBindingsNeverOwned`
+
+は `declareRefState` 下の forward transport に
+`topFrameBindingFresh σ x` を要する。
+現状の `ScopedTypedStateConcrete` だけではそれを導けないので、
+ここは strengthening をどう本線へ繋ぐかが次の論点になる。
 -/
 
 /-! =========================================================
@@ -90,10 +101,9 @@ private theorem typeFrameDeclObject_declareTypeRef_keep
   intro hty
   cases k with
   | zero =>
-      -- k = 0 なので y ≠ x (右側) を示す必要がある
       right
       rcases hty with ⟨fr, hk, hdecl⟩
-      intro hy  -- y = x を仮定して矛盾を導く
+      intro hy
       subst hy
       cases hsc : Γ.scopes <;> {
         simp [declareTypeRef, insertTopDecl, hsc] at hk hdecl
@@ -116,18 +126,13 @@ private theorem typeFrameDeclRef_keep_of_fresh
       intro hy
       subst hy
       rcases hty with ⟨fr, hk, hdecl⟩
-      -- Γ.scopes の形でケース分けして hfresh の定義を展開する
       cases hsc : Γ.scopes with
       | nil =>
-          -- currentTypeScopeFresh Γ x が [] のとき False なので矛盾
           simp [currentTypeScopeFresh, hsc] at hfresh
       | cons fr0 frs =>
-          -- hfresh は fr0.decls x = none となる
           simp [currentTypeScopeFresh, hsc] at hfresh
-          -- hk : Γ.scopes.get? 0 = some fr より、fr は fr0 であることがわかる
           simp [hsc] at hk
           subst hk
-          -- これで hfresh : fr.decls x = none となり、hdecl と矛盾する
           rw [hfresh] at hdecl
           simp at hdecl
   | succ j =>
@@ -180,9 +185,9 @@ private theorem runtimeFrameBindsObject_declareRefState_forward_of_keep
   | nil =>
       cases k with
       | zero =>
-          simp [ hsc] at hk
+          simp [hsc] at hk
       | succ j =>
-          simp [ hsc] at hk
+          simp [hsc] at hk
   | cons fr0 frs =>
       cases k with
       | zero =>
@@ -192,7 +197,7 @@ private theorem runtimeFrameBindsObject_declareRefState_forward_of_keep
           rcases hkeep with hk_ne | hy
           · contradiction
           · refine ⟨{ fr0 with binds := fun z => if z = x then some (.ref τ a) else fr0.binds z }, ?_, ?_⟩
-            · simp [ declareRefState, bindTopBinding, hsc]
+            · simp [declareRefState, bindTopBinding, hsc]
             · simpa [hy] using hb
       | succ j =>
           refine ⟨fr, ?_, ?_⟩
@@ -211,9 +216,9 @@ private theorem runtimeFrameBindsRef_declareRefState_forward_of_keep
   | nil =>
       cases k with
       | zero =>
-          simp [ hsc] at hk
+          simp [hsc] at hk
       | succ j =>
-          simp [ hsc] at hk
+          simp [hsc] at hk
   | cons fr0 frs =>
       cases k with
       | zero =>
@@ -223,7 +228,7 @@ private theorem runtimeFrameBindsRef_declareRefState_forward_of_keep
           rcases hkeep with hk_ne | hy
           · contradiction
           · refine ⟨{ fr0 with binds := fun z => if z = x then some (.ref τ a) else fr0.binds z }, ?_, ?_⟩
-            · simp [ declareRefState, bindTopBinding, hsc]
+            · simp [declareRefState, bindTopBinding, hsc]
             · simpa [hy] using hb
       | succ j =>
           refine ⟨fr, ?_, ?_⟩
@@ -331,7 +336,7 @@ theorem declareRef_preserves_objectBindingSound
   | nil =>
       rcases hbind with ⟨fr, hk, hb⟩
       cases k <;>
-        simp [ declareRefState, bindTopBinding, hsc] at hk hb
+        simp [declareRefState, bindTopBinding, hsc] at hk hb
       subst hk
       simp at hb
   | cons fr0 frs =>
@@ -468,12 +473,16 @@ axiom declareRef_preserves_refBindingsNeverOwned
     DeclaresRef σ τ x a σ' →
     refBindingsNeverOwned σ'
 
-axiom declareRef_preserves_allObjectBindingsOwned
+theorem declareRef_preserves_allObjectBindingsOwned
     {Γ : TypeEnv} {σ σ' : State}
     {x : Ident} {τ : CppType} {a : Nat} :
     ScopedTypedStateConcrete Γ σ →
     DeclaresRef σ τ x a σ' →
-    allObjectBindingsOwned σ'
+    allObjectBindingsOwned σ' := by
+  intro hσ hdecl
+  rcases hdecl with ⟨_, _, _, _, _, rfl⟩
+  exact allObjectBindingsOwned_declareRefState
+    (σ := σ) (τ := τ) (x := x) (a := a) hσ.objectsOwned
 
 theorem declareRef_preserves_ownedNoDupPerFrame
     {Γ : TypeEnv} {σ σ' : State}
@@ -591,7 +600,7 @@ theorem declareRef_preserves_nextFreshAgainstOwned
           simp [declareRefState, bindTopBinding, hsc]
           exact hnext_locals (j + 1) fr (by simpa [hsc] using hk)
 
-axiom declareRef_preserves_refTargetsAvoidInnerOwned
+theorem declareRef_preserves_refTargetsAvoidInnerOwned
     {Γ : TypeEnv} {σ σ' : State}
     {x : Ident} {τ : CppType} {a0 : Nat} :
     ScopedTypedStateConcrete Γ σ →
@@ -600,7 +609,14 @@ axiom declareRef_preserves_refTargetsAvoidInnerOwned
     ∀ {k y υ a j},
       runtimeFrameBindsRef σ' k y υ a →
       j < k →
-      ¬ runtimeFrameOwnsAddress σ' j a
+      ¬ runtimeFrameOwnsAddress σ' j a := by
+  intro hσ _ hdecl
+  rcases hdecl with ⟨_, _, _, _, _, rfl⟩
+  exact refTargetsAvoidInnerOwned_declareRefState
+    (σ := σ) (τ := τ) (x := x) (r := a0)
+    (havoid := by
+      intro k y υ a j href hjk
+      exact hσ.refTargetsAvoidInnerOwned href hjk)
 
 /-! =========================================================
     6. 最終組み立て
