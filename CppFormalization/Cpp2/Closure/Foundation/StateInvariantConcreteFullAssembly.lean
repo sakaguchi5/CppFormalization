@@ -16,7 +16,7 @@ full `ScopedTypedStateConcrete` を再構成する層。
 - object 宣言では新しい owner / heap cell をその場で作る。
 - ref 宣言では ownership は変えず、new ref decl の live target だけを外部仮定で受ける。
 -/
-
+--緊急で修正したのでリファクタリング対象
 section TypeEnvLocalLemmas
 
 @[simp] theorem lookupDecl_insertTopDecl_self
@@ -131,7 +131,26 @@ section TypeEnvLocalLemmas
 end TypeEnvLocalLemmas
 
 namespace DeclareObjectReadyStrong
- theorem kernel_after_declareObjectState
+
+theorem objectBindingSound_declareObjectState_new
+    {σ : State} {x : Ident}
+    {τ : CppType} {ov : Option Value}
+    {k : Nat} {y : Ident} {υ : CppType} {a : Nat}
+    (hnew : k = 0 ∧ y = x ∧ υ = τ ∧ a = σ.next) :
+    runtimeFrameOwnsAddress (declareObjectState σ τ x ov) k a ∧
+    heapLiveTypedAt (declareObjectState σ τ x ov) a υ := by
+  -- ここで rfl を使わず、等式として扱う
+  rcases hnew with ⟨hk, hxy, hυτ, hanext⟩
+  constructor
+  · -- ゴールにある k や a を、hk や hanext を使って書き換える
+    rw [hk, hanext]
+    -- 引数を指定せず _ に任せることで名前の消失を回避
+    exact runtimeFrameOwnsAddress_declareObjectState_zero_next (σ := σ) (ov := ov) (x := _) (τ := _)
+  · -- υ を τ に、a を σ.next に書き換える
+    rw [hυτ, hanext]
+    exact heapLiveTypedAt_declareObjectState_self (σ := σ) (ov := ov) (x := _) (τ := _)
+
+theorem kernel_after_declareObjectState
     {Γ : TypeEnv} {σ : State} {x : Ident}
     (h : DeclareObjectReadyStrong Γ σ x)
     {Γfr : TypeFrame}
@@ -146,7 +165,37 @@ namespace DeclareObjectReadyStrong
       objectDeclRealized := objectDeclRealized_after_declareObjectState
         (h := h) (hΓ0 := hΓ0) (τ := τ) (ov := ov)
       refDeclRealized := refDeclRealized_after_declareObjectState
-        (h := h) (hΓ0 := hΓ0) (τ := τ) (ov := ov) }
+        (h := h) (hΓ0 := hΓ0) (τ := τ) (ov := ov)
+      objectBindingSound := by
+        intro k y υ a hbind
+        rcases runtimeFrameBindsObject_declareObjectState_cases
+            (σ := σ) (τ := τ) (x := x) (ov := ov) hbind with
+          hnew | hold
+        ·
+          exact objectBindingSound_declareObjectState_new  hnew
+        · rcases h.concrete.objectBindingSound hold with ⟨hownOld, hliveOld⟩
+          have hane : a ≠ σ.next :=
+            runtimeFrameOwnsAddress_ne_next_of_nextFresh
+              (σ := σ) (k := k) (a := a) h.concrete.nextFresh hownOld
+          exact ⟨
+            runtimeFrameOwnsAddress_declareObjectState_forward
+              (σ := σ) (τ := τ) (x := x) (ov := ov) hownOld,
+            heapLiveTypedAt_declareObjectState_of_ne
+              (σ := σ) (τ := τ) (x := x) (ov := ov) (a := a) (υ := υ) hane hliveOld⟩
+      refBindingSound := by
+        intro k y υ a hbind
+        have hbindOld :
+            runtimeFrameBindsRef σ k y υ a :=
+          runtimeFrameBindsRef_declareObjectState_backward
+            (σ := σ) (τ := τ) (x := x) (ov := ov) hbind
+        have hliveOld : heapLiveTypedAt σ a υ :=
+          h.concrete.refBindingSound hbindOld
+        have hane : a ≠ σ.next :=
+          heapLiveTypedAt_ne_next_of_nextFresh
+            (σ := σ) (a := a) (τ := υ) h.concrete.nextFresh hliveOld
+        exact
+          heapLiveTypedAt_declareObjectState_of_ne
+            (σ := σ) (τ := τ) (x := x) (ov := ov) (a := a) (υ := υ) hane hliveOld }
 
  theorem concrete_after_declareObjectState
     {Γ : TypeEnv} {σ : State} {x : Ident}
@@ -172,6 +221,8 @@ namespace DeclareObjectReadyStrong
       ownedNoDupPerFrame := hown.ownedNoDupPerFrame
       ownedDisjoint := hown.ownedDisjoint
       ownedNamed := hown.ownedNamed
+      objectBindingSound := hker.objectBindingSound
+      refBindingSound := hker.refBindingSound
       heapStoredValuesTyped :=
         heapInitializedValuesTyped_declareObjectState_of_optionCompat
           (σ := σ) (τ := τ) (x := x) (ov := ov)
@@ -200,7 +251,31 @@ theorem kernel_after_declareRefState
       objectDeclRealized := objectDeclRealized_after_declareRefState
         (h := h) (hΓ0 := hΓ0) (τ := τ) (a := a)
       refDeclRealized := refDeclRealized_after_declareRefState
-        (h := h) (hΓ0 := hΓ0) (τ := τ) (a := a) haLive }
+        (h := h) (hΓ0 := hΓ0) (τ := τ) (a := a) haLive
+      objectBindingSound := by
+        intro k y υ addr hbind
+        have hbindOld :
+            runtimeFrameBindsObject σ k y υ addr :=
+          runtimeFrameBindsObject_declareRefState_backward
+            (σ := σ) (τ := τ) (x := x) (a := a) hbind
+        rcases h.concrete.objectBindingSound hbindOld with ⟨hownOld, hliveOld⟩
+        exact ⟨
+          runtimeFrameOwnsAddress_declareRefState_forward
+            (σ := σ) (τ := τ) (x := x) (a := a) hownOld,
+          (heapLiveTypedAt_declareRefState_iff
+            (σ := σ) (τ := τ) (x := x) (r := a) (a := addr) (υ := υ)).2 hliveOld⟩
+      refBindingSound := by
+        intro k y υ addr hbind
+        rcases runtimeFrameBindsRef_declareRefState_cases
+            (σ := σ) (τ := τ) (x := x) (a := a) hbind with
+          hnew | hold
+        · rcases hnew with ⟨rfl, rfl, rfl, rfl⟩
+          exact (heapLiveTypedAt_declareRefState_iff (σ := σ)).2 haLive
+        · have hliveOld : heapLiveTypedAt σ addr υ :=
+            h.concrete.refBindingSound hold
+          exact
+            (heapLiveTypedAt_declareRefState_iff
+              (σ := σ) (τ := τ) (x := x) (r := a) (a := addr) (υ := υ)).2 hliveOld }
 
  theorem concrete_after_declareRefState
     {Γ : TypeEnv} {σ : State} {x : Ident}
@@ -225,6 +300,8 @@ theorem kernel_after_declareRefState
       ownedNoDupPerFrame := hown.ownedNoDupPerFrame
       ownedDisjoint := hown.ownedDisjoint
       ownedNamed := hown.ownedNamed
+      objectBindingSound := hker.objectBindingSound
+      refBindingSound := hker.refBindingSound
       heapStoredValuesTyped :=
         (heapInitializedValuesTyped_declareRefState
           (σ := σ) (τ := τ) (x := x) (a := a)).2 h.concrete.heapStoredValuesTyped
@@ -239,6 +316,7 @@ end Cpp
 namespace Cpp
 
 namespace DeclareObjectReadyRecomputed
+
 theorem kernel_after_declareObjectStateWithNext
     {Γ : TypeEnv} {σ : State} {x : Ident}
     {Γfr : TypeFrame}
@@ -265,7 +343,23 @@ theorem kernel_after_declareObjectStateWithNext
           (h := h) (hΓ0 := hΓ0)
       refDeclRealized :=
         refDeclRealized_after_declareObjectStateWithNext
-          (h := h) (hΓ0 := hΓ0) }
+          (h := h) (hΓ0 := hΓ0)
+      objectBindingSound := by
+        intro k y υ a hbind
+        have hbindOld :
+            runtimeFrameBindsObject (declareObjectState σ τ x ov) k y υ a := by
+          simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_old] using hbind
+        rcases hold.objectBindingSound hbindOld with ⟨hownOld, hliveOld⟩
+        refine ⟨?_, ?_⟩
+        · simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_old] using hownOld
+        · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_old] using hliveOld
+      refBindingSound := by
+        intro k y υ a hbind
+        have hbindOld :
+            runtimeFrameBindsRef (declareObjectState σ τ x ov) k y υ a := by
+          simpa [runtimeFrameBindsRef, scopes_declareObjectStateWithNext_eq_old] using hbind
+        simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_old] using
+          (hold.refBindingSound hbindOld) }
 
 theorem concrete_after_declareObjectStateWithNext
     {Γ : TypeEnv} {σ : State} {x : Ident}
@@ -297,6 +391,8 @@ theorem concrete_after_declareObjectStateWithNext
       shadowing := hker.shadowing
       objectDeclRealized := hker.objectDeclRealized
       refDeclRealized := hker.refDeclRealized
+      objectBindingSound := hker.objectBindingSound
+      refBindingSound := hker.refBindingSound
       ownedAddressNamed := hown.ownedAddressNamed
       refsNotOwned := hown.refsNotOwned
       objectsOwned := hown.objectsOwned
