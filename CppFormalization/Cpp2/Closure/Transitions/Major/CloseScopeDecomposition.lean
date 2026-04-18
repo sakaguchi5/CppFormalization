@@ -1,4 +1,5 @@
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
+import CppFormalization.Cpp2.Closure.Transitions.OpenCloseLowLevelTheorems
 
 namespace Cpp
 
@@ -17,55 +18,6 @@ namespace Cpp
 このファイルでは object/ref binding soundness を theorem 化する。
 full concrete-state assembly はまだ重いので最後は axiom のまま残す。
 -/
-
-/-! =========================================================
-    1. close-scope transport axioms
-    ========================================================= -/
-
-/-- post の lower object binding は pre の lower object binding に対応する。 -/
-axiom closeScope_reflects_lower_object_bindings
-    {Γ : TypeEnv} {σ σ' : State} :
-    ScopedTypedStateConcrete (pushTypeScope Γ) σ →
-    CloseScope σ σ' →
-    ∀ {k x τ a},
-      runtimeFrameBindsObject σ' k x τ a →
-      runtimeFrameBindsObject σ (k + 1) x τ a
-
-/-- post の lower ref binding は pre の lower ref binding に対応する。 -/
-axiom closeScope_reflects_lower_ref_bindings
-    {Γ : TypeEnv} {σ σ' : State} :
-    ScopedTypedStateConcrete (pushTypeScope Γ) σ →
-    CloseScope σ σ' →
-    ∀ {k x τ a},
-      runtimeFrameBindsRef σ' k x τ a →
-      runtimeFrameBindsRef σ (k + 1) x τ a
-
-/-- pre の lower ownership は post へ降りる。 -/
-axiom closeScope_preserves_lower_ownership
-    {Γ : TypeEnv} {σ σ' : State} :
-    ScopedTypedStateConcrete (pushTypeScope Γ) σ →
-    CloseScope σ σ' →
-    ∀ {k a},
-      runtimeFrameOwnsAddress σ (k + 1) a →
-      runtimeFrameOwnsAddress σ' k a
-
-/-- lower-owned address は top-owned ではない。 -/
-axiom lower_owned_not_top_owned
-    {Γ : TypeEnv} {σ : State} :
-    ScopedTypedStateConcrete (pushTypeScope Γ) σ →
-    ∀ {k a},
-      runtimeFrameOwnsAddress σ (k + 1) a →
-      ¬ runtimeFrameOwnsAddress σ 0 a
-
-/-- top-owned 以外の live cell は closeScope 後も live のまま残る。 -/
-axiom closeScope_kills_only_top_owned
-    {Γ : TypeEnv} {σ σ' : State} :
-    ScopedTypedStateConcrete (pushTypeScope Γ) σ →
-    CloseScope σ σ' →
-    ∀ {a τ},
-      ¬ runtimeFrameOwnsAddress σ 0 a →
-      heapLiveTypedAt σ a τ →
-      heapLiveTypedAt σ' a τ
 
 /-! =========================================================
     2. binding soundness

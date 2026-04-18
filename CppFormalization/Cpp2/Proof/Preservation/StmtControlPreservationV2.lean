@@ -82,10 +82,12 @@ theorem stmt_control_preserves_scoped_typed_state_of_compatible_core
            hfresh hsc hdecl
   · -- declareRef
     intro Γ σ σ' τ x p hfresh hp hstep hsc hready
-    cases hstep with
-    | declareRef hplace hdecl =>
-      exact declares_ref_preserves_scoped_typed_state_concrete
-        hfresh hsc hdecl
+    exact
+      primitive_stmt_normal_preserves_scoped_typed_state_concrete
+        (st := .declareRef τ x p)
+        (by simp)
+        (HasTypeStmtCI.declareRef hfresh hp)
+        hsc hready hstep
   · -- breakStmt
     intro _ _ Γ σ hsc hready
     simpa using hsc

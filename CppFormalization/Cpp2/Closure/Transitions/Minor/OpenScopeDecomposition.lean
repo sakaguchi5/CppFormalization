@@ -1,4 +1,5 @@
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
+import CppFormalization.Cpp2.Closure.Transitions.OpenCloseLowLevelTheorems
 
 namespace Cpp
 
@@ -38,7 +39,4 @@ theorem openScope_preserves_refBindingSound
         simpa [runtimeFrameBindsRef, pushScope] using hbind
       simpa [heapLiveTypedAt, pushScope] using hσ.refBindingSound hbind_old
 
-axiom openScope_preserves_scoped_typed_state_concrete
-    {Γ : TypeEnv} {σ σ' : State} :
-    ScopedTypedStateConcrete Γ σ → OpenScope σ σ' → ScopedTypedStateConcrete (pushTypeScope Γ) σ'
 end Cpp
