@@ -2,6 +2,7 @@
 import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
 import CppFormalization.Cpp2.Closure.Transitions.Minor.OpenScopeDecomposition
+import CppFormalization.Cpp2.Closure.Transitions.Major.CloseScopeTopFrameExtension
 
 namespace Cpp
 
@@ -60,14 +61,6 @@ axiom block_normal_data
       OpenScope σ σ0 ∧
       BigStepBlock σ0 ss .normal σ1 ∧
       CloseScope σ1 σ'
-
-axiom closeScope_preserves_outer_from_topFrameExtension
-    {Γ Θ : TypeEnv} {σ σ' : State} :
-    TopFrameExtensionOf Γ Θ →
-    ScopedTypedStateConcrete Θ σ →
-    CloseScope σ σ' →
-    ScopedTypedStateConcrete Γ σ'
-
 
 /- =========================================================
    3. generic theorem

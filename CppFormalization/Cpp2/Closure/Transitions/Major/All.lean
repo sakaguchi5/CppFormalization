@@ -1,4 +1,5 @@
 import CppFormalization.Cpp2.Closure.Transitions.Major.CloseScopeDecomposition
+import CppFormalization.Cpp2.Closure.Transitions.Major.CloseScopeTopFrameExtension
 import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectDecomposition
 import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectDecompositionWithNext
 import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectOwnership
