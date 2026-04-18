@@ -169,6 +169,18 @@ private theorem assigned_addr_ne_next
 
 end WriteHeapHelpers
 
+private theorem framewiseDeclBindingExact_writeHeap
+    {Γ : TypeEnv} {σ : State} {a : Nat} {c : Cell} :
+    framewiseDeclBindingExact Γ (writeHeap σ a c) ↔
+      framewiseDeclBindingExact Γ σ := by
+  constructor <;> intro h k Γfr σfr hΓ hσfr
+  · have hσold : σ.scopes[k]? = some σfr := by
+      simpa [writeHeap] using hσfr
+    exact h k Γfr σfr hΓ hσold
+  · have hσnew : (writeHeap σ a c).scopes[k]? = some σfr := by
+      simpa [writeHeap] using hσfr
+    exact h k Γfr σfr hΓ hσnew
+
 theorem assigns_preserves_scoped_typed_state_concrete
     {Γ : TypeEnv} {σ σ' : State} {p : PlaceExpr} {τ : CppType} {v : Value} :
     ScopedTypedStateConcrete Γ σ → HasPlaceType Γ p τ → PlaceReadyConcrete Γ σ p τ →
@@ -178,6 +190,9 @@ theorem assigns_preserves_scoped_typed_state_concrete
   refine
     { frameDepth := by
         simpa [frameDepthAgreement, writeHeap] using hσ.frameDepth
+      namesExact := by
+        exact (framewiseDeclBindingExact_writeHeap (Γ := Γ) (σ := σ)
+          (a := a0) (c := { c0 with value := some v })).2 hσ.namesExact
       shadowing := by
         intro x d hdecl
         rcases hσ.shadowing x d hdecl with ⟨b, hb, hmatch⟩

@@ -129,6 +129,16 @@ section TypeEnvLocalLemmas
     refine ⟨b, ?_, hmatch⟩
     simpa [lookupBinding_declareRefState_other (σ := σ) (τ := τ) (x := x) (y := y) (a := a) hy] using hb
 
+
+theorem framewiseDeclBindingExact_declareTypeObject_declareObjectState
+    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {ov : Option Value} :
+    framewiseDeclBindingExact Γ σ →
+    -- 追加の前提（topFrameBindingFresh など）が必要になる場合があります
+    framewiseDeclBindingExact (declareTypeObject Γ x τ) (declareObjectState σ τ x ov) := by
+  -- ここに証明を記述
+  sorry
+
+
 end TypeEnvLocalLemmas
 
 namespace DeclareObjectReadyStrong
@@ -159,6 +169,7 @@ theorem kernel_after_declareObjectState
         (Γ := Γ) (σ := σ) (x := x) (τ := τ) (ov := ov) h.concrete.frameDepth
       shadowing := shadowingCompatible_declareTypeObject_declareObjectState
         (Γ := Γ) (σ := σ) (x := x) (τ := τ) (ov := ov) h.concrete.shadowing
+      --namesExact := hker.namesExact
       objectDeclRealized := objectDeclRealized_after_declareObjectState
         (h := h) (hΓ0 := hΓ0) (τ := τ) (ov := ov)
       refDeclRealized := refDeclRealized_after_declareObjectState
@@ -210,6 +221,7 @@ theorem kernel_after_declareObjectState
   refine
     { frameDepth := hker.frameDepth
       shadowing := hker.shadowing
+      namesExact := hker.namesExact
       objectDeclRealized := hker.objectDeclRealized
       refDeclRealized := hker.refDeclRealized
       ownedAddressNamed := hown.ownedAddressNamed
@@ -384,6 +396,7 @@ theorem concrete_after_declareObjectStateWithNext
   refine
     { frameDepth := hker.frameDepth
       shadowing := hker.shadowing
+      namesExact := hker.namesExact
       objectDeclRealized := hker.objectDeclRealized
       refDeclRealized := hker.refDeclRealized
       objectBindingSound := hker.objectBindingSound

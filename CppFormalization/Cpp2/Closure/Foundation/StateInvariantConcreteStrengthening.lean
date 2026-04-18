@@ -18,31 +18,12 @@ namespace Cpp
 - 名前の問題は `Γ` と `σ` の対応理論で解く。
 - address / lifetime の問題は ref target の live 性で解く。
 - そのうえで declaration-ready な support structure にまとめる。
+
+注意:
+- `frameDeclBindingExactAt` / `framewiseDeclBindingExact` の定義本体は
+  `StateInvariantConcrete` 本体へ昇格した。
+- このファイルはそれらを使って declaration-ready side condition を取り出す層に徹する。
 -/
-
-/--
-1 個の type frame と 1 個の runtime frame が、名前集合について双方向に一致する。
-
-forward:
-- type decl があれば matching runtime binding がある
-
-backward:
-- runtime binding があれば matching type decl がある
--/
-def frameDeclBindingExactAt (Γfr : TypeFrame) (σfr : ScopeFrame) : Prop :=
-  (∀ x d,
-      Γfr.decls x = some d →
-      ∃ b, σfr.binds x = some b ∧ DeclMatchesBinding d b) ∧
-  (∀ x b,
-      σfr.binds x = some b →
-      ∃ d, Γfr.decls x = some d ∧ DeclMatchesBinding d b)
-
-/-- 各深さで frame-local exactness が成り立つ。 -/
-def framewiseDeclBindingExact (Γ : TypeEnv) (σ : State) : Prop :=
-  ∀ (k : Nat) Γfr σfr,
-    Γ.scopes[k]? = some Γfr →
-    σ.scopes[k]? = some σfr →
-    frameDeclBindingExactAt Γfr σfr
 
 /-- current type frame では名前 `x` がまだ宣言されていない。 -/
 def currentTypeFrameFresh (Γ : TypeEnv) (x : Ident) : Prop :=
@@ -129,11 +110,11 @@ theorem nextNotTargetOfInnerRefs_of_allRuntimeRefBindingsLive
 中間解の strengthening package.
 
 `ScopedTypedStateConcrete` 自体は宣言入力 `x` を持ち込まず、
-ここで名前 exactness と runtime ref-live を別 package として追加する。
+ここでは runtime-global な ref-live 性だけを別 package として追加する。
+name exactness は本体 invariant 側の語彙として扱う。
 -/
 structure ScopedTypedStateConcreteStrengthening
     (Γ : TypeEnv) (σ : State) : Prop where
-  namesExact : framewiseDeclBindingExact Γ σ
   runtimeRefsLive : allRuntimeRefBindingsLive σ
 
 /--
@@ -162,7 +143,7 @@ theorem topFrameFresh
     (hΓ0 : Γ.scopes[0]? = some Γfr) :
     topFrameBindingFresh σ x := by
   exact topFrameBindingFresh_of_framewiseExact_and_currentTypeFrameFresh
-    (hexact := h.strengthening.namesExact)
+    (hexact := h.concrete.namesExact)
     (hΓ0 := hΓ0)
     (hfresh := h.typeFresh)
 

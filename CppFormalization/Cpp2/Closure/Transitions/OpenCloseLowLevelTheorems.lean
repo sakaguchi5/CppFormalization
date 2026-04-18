@@ -94,6 +94,30 @@ private theorem heapLiveTypedAt_pushScope_iff
 
 end PushScopeHelpers
 
+private theorem frameDeclBindingExactAt_pushScope_zero:
+    frameDeclBindingExactAt emptyTypeFrame emptyScopeFrame := by
+  constructor
+  · intro x d hdecl
+    simp [emptyTypeFrame] at hdecl
+  · intro x b hbind
+    simp [emptyScopeFrame] at hbind
+
+private theorem framewiseDeclBindingExact_pushScope
+    {Γ : TypeEnv} {σ : State} :
+    framewiseDeclBindingExact Γ σ →
+    framewiseDeclBindingExact (pushTypeScope Γ) (pushScope σ) := by
+  intro hexact k Γfr σfr hΓk hσk
+  cases k with
+  | zero =>
+      -- インデックス 0 の場合: push によって入った空フレーム同士
+      simp [pushTypeScope, pushScope] at hΓk hσk
+      subst Γfr; subst σfr
+      exact frameDeclBindingExactAt_pushScope_zero
+  | succ k' =>
+      -- インデックス k + 1 の場合: 元の Γ.scopes[k'] と σ.scopes[k'] に帰着
+      simp [pushTypeScope, pushScope] at hΓk hσk
+      exact hexact k' Γfr σfr hΓk hσk
+
 theorem openScope_preserves_scoped_typed_state_concrete
     {Γ : TypeEnv} {σ σ' : State} :
     ScopedTypedStateConcrete Γ σ → OpenScope σ σ' → ScopedTypedStateConcrete (pushTypeScope Γ) σ' := by
@@ -102,6 +126,8 @@ theorem openScope_preserves_scoped_typed_state_concrete
   refine
     { frameDepth := by
         exact (frameDepthAgreement_pushScope (Γ := Γ) (σ := σ)).2 hσ.frameDepth
+      namesExact := by
+        exact framewiseDeclBindingExact_pushScope (Γ := Γ) (σ := σ) hσ.namesExact
       shadowing := by
         intro x d hdecl
         have hdeclOld : lookupDecl Γ x = some d := by simpa [lookupDecl_pushTypeScope] using hdecl
