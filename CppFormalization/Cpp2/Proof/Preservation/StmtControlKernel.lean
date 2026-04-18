@@ -141,7 +141,7 @@ private theorem stmt_control_goal
         exact
           primitive_stmt_normal_preserves_scoped_typed_state_concrete
             (st := .exprStmt _)
-            (by simp [PrimitiveNormalStmt])
+            (by simp)
             (HasTypeStmtCI.exprStmt hv)
             hσ hready hstep
 
@@ -151,7 +151,7 @@ private theorem stmt_control_goal
         exact
           primitive_stmt_normal_preserves_scoped_typed_state_concrete
             (st := .assign _ _)
-            (by simp [PrimitiveNormalStmt])
+            (by simp)
             (HasTypeStmtCI.assign hp hv)
             hσ hready hstep
 
@@ -161,7 +161,7 @@ private theorem stmt_control_goal
         exact
           primitive_stmt_normal_preserves_scoped_typed_state_concrete
             (st := .declareObj _ _ none)
-            (by simp [PrimitiveNormalStmt])
+            (by simp)
             (HasTypeStmtCI.declareObjNone hfresh hobj)
             hσ hready hstep
 
@@ -171,7 +171,7 @@ private theorem stmt_control_goal
         exact
           primitive_stmt_normal_preserves_scoped_typed_state_concrete
             (st := .declareObj _ _ (some _))
-            (by simp [PrimitiveNormalStmt])
+            (by simp)
             (HasTypeStmtCI.declareObjSome hfresh hobj hv)
             hσ hready hstep
 
@@ -181,7 +181,7 @@ private theorem stmt_control_goal
         exact
           primitive_stmt_normal_preserves_scoped_typed_state_concrete
             (st := .declareRef _ _ _)
-            (by simp [PrimitiveNormalStmt])
+            (by simp)
             (HasTypeStmtCI.declareRef hfresh hp)
             hσ hready hstep
 

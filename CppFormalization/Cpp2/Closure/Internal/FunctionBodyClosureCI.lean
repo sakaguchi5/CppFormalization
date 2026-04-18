@@ -194,8 +194,7 @@ def bodyReadyCI_while_after_body_normal_of_replay_stable_primitive
   rcases while_typing_data htyWhile with ⟨_, _, hN, _, _⟩
   have hreadyBody : StmtReadyConcrete Γ σ body :=
     while_ready_body_data hready.safe
-  have hprim : PrimitiveNormalStmt body :=
-    replay_stable_primitive_stmt_is_primitive_normal hstable
+  have hprim := replay_stable_primitive_stmt_is_primitive_normal hstable
   have hσ' : ScopedTypedStateConcrete Γ σ' :=
     primitive_stmt_normal_preserves_scoped_typed_state_concrete
       hprim hN hready.state hreadyBody hbodyStep
@@ -238,7 +237,7 @@ def bodyClosureBoundaryCI_while_after_body_normal_of_replay_stable_primitive
       hstable hcstable htyWhile hready.toBodyReadyCI hbodyStep).toClosureBoundary
 
 /--
-Replay-stable primitive body / cond から構成される tail-boundary reconstruction kit.
+Replay-stable primitive body / cond から構成される tail-boundary reconstruction kit。
 `continue` branch は primitive replay-stable body では矛盾で閉じる。
 -/
 def whileTailBoundaryKitCI_of_replay_stable_primitive
@@ -330,7 +329,7 @@ theorem while_function_body_closure_boundary_ci_of_replay_stable_primitive
       hstable hcstable htyWhile hentry hloop htailClosure
 
 /--
-BodyReadyCI entry surface から honest while kernel へ降ろす互換 wrapper.
+BodyReadyCI entry surface から honest while kernel へ降ろす互換 wrapper。
 
 この theorem は旧 `while_function_body_closure_ci_of_replay_stable_primitive` と違い、
 loop-body boundary と local body closure を明示前提に持つ。

@@ -56,7 +56,19 @@ def SeqResidualBoundary
 
 theorem primitive_left_seq_normal_preserves_residual_boundary
     {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
-    PrimitiveNormalStmt s →
+    (match s with
+     | .skip => True
+     | .exprStmt _ => True
+     | .assign _ _ => True
+     | .declareObj _ _ _ => True
+     | .declareRef _ _ _ => True
+     | .breakStmt => False
+     | .continueStmt => False
+     | .returnStmt _ => False
+     | .seq _ _ => False
+     | .ite _ _ _ => False
+     | .whileStmt _ _ => False
+     | .block _ => False) →
     HasTypeStmtCI .normalK Γ (.seq s t) Δ →
     ScopedTypedStateConcrete Γ σ →
     StmtReadyConcrete Γ σ (.seq s t) →
@@ -75,7 +87,19 @@ theorem primitive_left_seq_normal_preserves_residual_boundary
 
 theorem primitive_left_seq_normal_preserves_right_state
     {Γ Δ Θ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
-    PrimitiveNormalStmt s →
+    (match s with
+     | .skip => True
+     | .exprStmt _ => True
+     | .assign _ _ => True
+     | .declareObj _ _ _ => True
+     | .declareRef _ _ _ => True
+     | .breakStmt => False
+     | .continueStmt => False
+     | .returnStmt _ => False
+     | .seq _ _ => False
+     | .ite _ _ _ => False
+     | .whileStmt _ _ => False
+     | .block _ => False) →
     HasTypeStmtCI .normalK Γ (.seq s t) Δ →
     ScopedTypedStateConcrete Γ σ →
     StmtReadyConcrete Γ σ (.seq s t) →
@@ -94,7 +118,19 @@ theorem primitive_left_seq_normal_preserves_right_state
 
 theorem primitive_left_seq_normal_preserves_right_ready
     {Γ Δ Θ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
-    PrimitiveNormalStmt s →
+    (match s with
+     | .skip => True
+     | .exprStmt _ => True
+     | .assign _ _ => True
+     | .declareObj _ _ _ => True
+     | .declareRef _ _ _ => True
+     | .breakStmt => False
+     | .continueStmt => False
+     | .returnStmt _ => False
+     | .seq _ _ => False
+     | .ite _ _ _ => False
+     | .whileStmt _ _ => False
+     | .block _ => False) →
     HasTypeStmtCI .normalK Γ (.seq s t) Δ →
     ScopedTypedStateConcrete Γ σ →
     StmtReadyConcrete Γ σ (.seq s t) →

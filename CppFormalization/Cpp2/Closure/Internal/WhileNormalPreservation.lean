@@ -241,25 +241,57 @@ theorem while_normal_preserves_scoped_typed_state_from_loop_boundary_and_tail
 
 theorem primitive_normal_stmt_no_break
     {σ σ' : State} {st : CppStmt} :
-    PrimitiveNormalStmt st →
+    (match st with
+     | .skip => True
+     | .exprStmt _ => True
+     | .assign _ _ => True
+     | .declareObj _ _ _ => True
+     | .declareRef _ _ _ => True
+     | .breakStmt => False
+     | .continueStmt => False
+     | .returnStmt _ => False
+     | .seq _ _ => False
+     | .ite _ _ _ => False
+     | .whileStmt _ _ => False
+     | .block _ => False) →
     ¬ BigStepStmt σ st .breakResult σ' := by
   intro hprim hbreak
-  cases st <;>
-    simp [PrimitiveNormalStmt] at hprim <;>
-    cases hbreak
+  cases st <;> simp at hprim <;> cases hbreak
 
 theorem primitive_normal_stmt_no_continue
     {σ σ' : State} {st : CppStmt} :
-    PrimitiveNormalStmt st →
+    (match st with
+     | .skip => True
+     | .exprStmt _ => True
+     | .assign _ _ => True
+     | .declareObj _ _ _ => True
+     | .declareRef _ _ _ => True
+     | .breakStmt => False
+     | .continueStmt => False
+     | .returnStmt _ => False
+     | .seq _ _ => False
+     | .ite _ _ _ => False
+     | .whileStmt _ _ => False
+     | .block _ => False) →
     ¬ BigStepStmt σ st .continueResult σ' := by
   intro hprim hcont
-  cases st <;>
-    simp [PrimitiveNormalStmt] at hprim <;>
-    cases hcont
+  cases st <;> simp at hprim <;> cases hcont
 
 theorem primitive_body_while_normal_preserves_scoped_typed_state_concrete
     {Γ Δ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
-    PrimitiveNormalStmt body →
+    (match body with
+     | .skip => True
+     | .exprStmt _ => True
+     | .assign _ _ => True
+     | .declareObj _ _ _ => True
+     | .declareRef _ _ _ => True
+     | .breakStmt => False
+     | .continueStmt => False
+     | .returnStmt _ => False
+     | .seq _ _ => False
+     | .ite _ _ _ => False
+     | .whileStmt _ _ => False
+     | .block _ => False) →
     HasTypeStmtCI .normalK Γ (.whileStmt c body) Δ →
     ScopedTypedStateConcrete Γ σ →
     ExprReadyConcrete Γ σ c (.base .bool) →
@@ -290,7 +322,19 @@ theorem primitive_body_while_normal_preserves_scoped_typed_state_concrete
 
 theorem while_normal_preserves_scoped_typed_state_concrete_of_primitive_body
     {Γ Δ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
-    PrimitiveNormalStmt body →
+    (match body with
+     | .skip => True
+     | .exprStmt _ => True
+     | .assign _ _ => True
+     | .declareObj _ _ _ => True
+     | .declareRef _ _ _ => True
+     | .breakStmt => False
+     | .continueStmt => False
+     | .returnStmt _ => False
+     | .seq _ _ => False
+     | .ite _ _ _ => False
+     | .whileStmt _ _ => False
+     | .block _ => False) →
     HasTypeStmtCI .normalK Γ (.whileStmt c body) Δ →
     ScopedTypedStateConcrete Γ σ →
     ExprReadyConcrete Γ σ c (.base .bool) →
@@ -309,9 +353,22 @@ theorem while_normal_preserves_scoped_typed_state_concrete_of_primitive_body
 
 theorem replay_stable_primitive_stmt_is_primitive_normal
     {st : CppStmt} :
-    ReplayStablePrimitiveStmt st → PrimitiveNormalStmt st := by
+    ReplayStablePrimitiveStmt st →
+    (match st with
+     | .skip => True
+     | .exprStmt _ => True
+     | .assign _ _ => True
+     | .declareObj _ _ _ => True
+     | .declareRef _ _ _ => True
+     | .breakStmt => False
+     | .continueStmt => False
+     | .returnStmt _ => False
+     | .seq _ _ => False
+     | .ite _ _ _ => False
+     | .whileStmt _ _ => False
+     | .block _ => False) := by
   intro h
-  cases st <;> simp [ReplayStablePrimitiveStmt, PrimitiveNormalStmt] at h ⊢
+  cases st <;> simp [ReplayStablePrimitiveStmt] at h ⊢
 
 theorem replay_stable_primitive_stmt_no_break
     {σ σ' : State} {st : CppStmt} :
@@ -355,7 +412,7 @@ theorem while_ready_after_body_normal_of_replay_stable_primitive
   have hcondReady' : ExprReadyConcrete Γ σ' c (.base .bool) :=
     replay_stable_cond_expr_ready_after_replay_stable_primitive
       hstable hcstable hσ' hcondReady0 hstepBody
-  rcases while_typing_data htyWhile with ⟨_, hc, _, _, _⟩
+  rcases while_typing_data htyWhile with ⟨_, hc, hN, _, _⟩
   exact StmtReadyConcrete.whileStmt hc hcondReady' hreadyBody'
 
 theorem while_ready_after_body_continue_of_replay_stable_primitive
@@ -390,8 +447,7 @@ theorem replay_stable_primitive_body_while_normal_preserves_scoped_typed_state_c
   · rcases hnorm with ⟨σ1, hbodyStep, htailStep⟩
     have hreadyBody : StmtReadyConcrete Δ σ body :=
       while_ready_body_data hready
-    have hprim : PrimitiveNormalStmt body :=
-      replay_stable_primitive_stmt_is_primitive_normal hstable
+    have hprim := replay_stable_primitive_stmt_is_primitive_normal hstable
     have hσ1 : ScopedTypedStateConcrete Δ σ1 :=
       primitive_stmt_normal_preserves_scoped_typed_state_concrete
         hprim hN hσ hreadyBody hbodyStep

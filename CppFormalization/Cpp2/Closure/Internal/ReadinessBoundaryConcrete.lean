@@ -125,8 +125,7 @@ theorem while_body_normal_preserves_body_ready_concrete_typed_of_replay_stable_p
   rcases while_normal_typing_data htyWhile with ⟨_, _, hN, _, _⟩
   have hreadyBody : StmtReadyConcrete Γ σ body :=
     while_ready_body_data hreadyWhile
-  have hprim : PrimitiveNormalStmt body :=
-    replay_stable_primitive_stmt_is_primitive_normal hstable
+  have hprim := replay_stable_primitive_stmt_is_primitive_normal hstable
   have hσ' : ScopedTypedStateConcrete Γ σ' :=
     primitive_stmt_normal_preserves_scoped_typed_state_concrete
       hprim hN hσ hreadyBody hstepBody

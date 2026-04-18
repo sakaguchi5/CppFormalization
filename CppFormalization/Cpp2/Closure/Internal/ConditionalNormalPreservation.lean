@@ -60,8 +60,32 @@ theorem ite_normal_preserves_scoped_typed_state_from_branches
 
 theorem primitive_branches_ite_normal_preserves_scoped_typed_state_concrete
     {Γ Δ : TypeEnv} {σ σ' : State} {c : ValExpr} {s t : CppStmt} :
-    PrimitiveNormalStmt s →
-    PrimitiveNormalStmt t →
+    (match s with
+     | .skip => True
+     | .exprStmt _ => True
+     | .assign _ _ => True
+     | .declareObj _ _ _ => True
+     | .declareRef _ _ _ => True
+     | .breakStmt => False
+     | .continueStmt => False
+     | .returnStmt _ => False
+     | .seq _ _ => False
+     | .ite _ _ _ => False
+     | .whileStmt _ _ => False
+     | .block _ => False) →
+    (match t with
+     | .skip => True
+     | .exprStmt _ => True
+     | .assign _ _ => True
+     | .declareObj _ _ _ => True
+     | .declareRef _ _ _ => True
+     | .breakStmt => False
+     | .continueStmt => False
+     | .returnStmt _ => False
+     | .seq _ _ => False
+     | .ite _ _ _ => False
+     | .whileStmt _ _ => False
+     | .block _ => False) →
     HasTypeStmtCI .normalK Γ (.ite c s t) Δ →
     ScopedTypedStateConcrete Γ σ →
     StmtReadyConcrete Γ σ (.ite c s t) →
@@ -80,8 +104,32 @@ theorem primitive_branches_ite_normal_preserves_scoped_typed_state_concrete
 
 theorem ite_normal_preserves_scoped_typed_state_concrete_of_primitive_branches
     {Γ Δ : TypeEnv} {σ σ' : State} {c : ValExpr} {s t : CppStmt} :
-    PrimitiveNormalStmt s →
-    PrimitiveNormalStmt t →
+    (match s with
+     | .skip => True
+     | .exprStmt _ => True
+     | .assign _ _ => True
+     | .declareObj _ _ _ => True
+     | .declareRef _ _ _ => True
+     | .breakStmt => False
+     | .continueStmt => False
+     | .returnStmt _ => False
+     | .seq _ _ => False
+     | .ite _ _ _ => False
+     | .whileStmt _ _ => False
+     | .block _ => False) →
+    (match t with
+     | .skip => True
+     | .exprStmt _ => True
+     | .assign _ _ => True
+     | .declareObj _ _ _ => True
+     | .declareRef _ _ _ => True
+     | .breakStmt => False
+     | .continueStmt => False
+     | .returnStmt _ => False
+     | .seq _ _ => False
+     | .ite _ _ _ => False
+     | .whileStmt _ _ => False
+     | .block _ => False) →
     HasTypeStmtCI .normalK Γ (.ite c s t) Δ →
     ScopedTypedStateConcrete Γ σ →
     StmtReadyConcrete Γ σ (.ite c s t) →
