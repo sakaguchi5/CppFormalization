@@ -1,7 +1,9 @@
 import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectRealizers
 import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectOwnership
 import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectTransport
+import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteStrengthening
 import CppFormalization.Cpp2.Lemmas.RuntimeObjectCoreWithNext
+import CppFormalization.Cpp2.Lemmas.RuntimeObjectCore
 
 namespace Cpp
 
@@ -97,6 +99,116 @@ theorem declareObject_preserves_shadowingCompatible
 
     rw [hlookup_bound]
     exact hσ.shadowing y d hlookup
+
+private theorem frameDeclBindingExactAt_insertTop
+    {Γfr : TypeFrame} {σfr : ScopeFrame}
+    {x : Ident} {d : DeclInfo} {b : Binding} :
+    frameDeclBindingExactAt Γfr σfr →
+    Γfr.decls x = none →
+    σfr.binds x = none →
+    DeclMatchesBinding d b →
+    frameDeclBindingExactAt
+      { Γfr with decls := fun y => if y = x then some d else Γfr.decls y }
+      { σfr with binds := fun y => if y = x then some b else σfr.binds y } := by
+  intro hexact hdeclFresh hbindFresh hmatch
+  constructor
+  · intro y d' hdecl
+    by_cases hy : y = x
+    · subst hy
+      have hd' : d' = d := by
+        simpa [hdeclFresh] using hdecl.symm
+      subst hd'
+      exact ⟨b, by simp, hmatch⟩
+    · have hdeclOld : Γfr.decls y = some d' := by
+        simpa [hy] using hdecl
+      rcases frameDeclBindingExactAt_forward hexact hdeclOld with ⟨b', hb', hmatch'⟩
+      exact ⟨b', by simpa [hy] using hb', hmatch'⟩
+  · intro y b' hbind
+    by_cases hy : y = x
+    · subst hy
+      have hb' : b' = b := by
+        simpa [hbindFresh] using hbind.symm
+      subst hb'
+      exact ⟨d, by simp , hmatch⟩
+    · have hbindOld : σfr.binds y = some b' := by
+        simpa [hy] using hbind
+      rcases frameDeclBindingExactAt_backward hexact hbindOld with ⟨d', hdecl', hmatch'⟩
+      exact ⟨d', by simpa [hy] using hdecl', hmatch'⟩
+
+theorem declareObject_preserves_framewiseDeclBindingExact
+    {Γ : TypeEnv} {σ σ' : State}
+    {x : Ident} {τ : CppType} {ov : Option Value} :
+    ScopedTypedStateConcrete Γ σ →
+    currentTypeScopeFresh Γ x →
+    DeclaresObject σ τ x ov σ' →
+    framewiseDeclBindingExact (declareTypeObject Γ x τ) σ' := by
+  intro hσ hfresh hdecl
+  rcases hdecl with ⟨aNext, σcore, hpayload, hpolicy⟩
+  rcases hpayload with ⟨hobjTy, hsfresh, hheap0, hovcompat, hcore⟩
+  rcases hpolicy with ⟨hcursorFresh, hσ'⟩
+  subst σcore
+  subst hσ'
+  cases hΓ : Γ.scopes with
+  | nil =>
+      simp [currentTypeScopeFresh, hΓ] at hfresh
+  | cons Γtop Γrest =>
+      cases hS : σ.scopes with
+      | nil =>
+          have hdepth := hσ.frameDepth
+          unfold frameDepthAgreement at hdepth
+          simp [hΓ, hS] at hdepth
+      | cons σtop σrest =>
+          intro k Γfr σfr hkΓ hkσ
+          cases k with
+          | zero =>
+              -- 1. 現時点のフレーム整合性と、型環境が Fresh である事実を取り出す
+              have hExact0 : frameDeclBindingExactAt Γtop σtop :=
+                hσ.namesExact 0 Γtop σtop (by simp [hΓ]) (by simp [hS])
+              have hTypeFresh0 : Γtop.decls x = none := by
+                simpa [currentTypeScopeFresh, hΓ] using hfresh
+
+              -- 2. 【補題のインライン化】σtop.binds x = none であることを直接証明
+              have hRunFresh0 : σtop.binds x = none := by
+                match hbx : σtop.binds x with
+                | none => rfl
+                | some b =>
+                    -- もし binding が存在したなら、hExact0 の backward 側を使って矛盾を導く
+                    let h_backward := hExact0.right
+                    match h_backward x b hbx with
+                    | ⟨d, h_decl_at_x, _hmatch⟩ =>
+                        -- Γtop.decls x が none かつ some d なので矛盾
+                        rw [hTypeFresh0] at h_decl_at_x
+                        contradiction
+
+              -- 3. 新しいフレームでの整合性 (frameDeclBindingExactAt) を構築
+              have hTop :
+                  frameDeclBindingExactAt
+                    { Γtop with decls := fun y => if y = x then some (.object τ) else Γtop.decls y }
+                    { σtop with
+                      binds := fun y => if y = x then some (.object τ σ.next) else σtop.binds y,
+                      locals := σ.next :: σtop.locals } :=
+                frameDeclBindingExactAt_insertTop
+                  hExact0 hTypeFresh0 hRunFresh0 (by simp [DeclMatchesBinding])
+
+              -- 4. ゴールの Γfr, σfr を具体化して hTop を適用
+              have hΓfr : Γfr = { Γtop with decls := fun y => if y = x then some (.object τ) else Γtop.decls y } := by
+                simpa [declareTypeObject, insertTopDecl, hΓ] using hkΓ.symm
+
+              have hσfr : σfr = { σtop with
+                  binds := fun y => if y = x then some (.object τ σ.next) else σtop.binds y,
+                  locals := σ.next :: σtop.locals } := by
+                -- setNext aNext は σ.next の更新を反映
+                simpa [setNext, declareObjectStateCore, recordLocal, writeHeap, bindTopBinding, hS] using hkσ.symm
+
+              rw [hΓfr, hσfr]
+              exact hTop
+          | succ j =>
+              have hkΓOld : Γ.scopes[(j + 1)]? = some Γfr := by
+                simpa [declareTypeObject, insertTopDecl, hΓ] using hkΓ
+              have hkσOld : σ.scopes[(j + 1)]? = some σfr := by
+                simpa [scopes_declareObjectStateWithNext_eq_old, declareObjectState,
+                  recordLocal, bindTopBinding, writeHeap, hS] using hkσ
+              exact hσ.namesExact (j + 1) Γfr σfr hkΓOld hkσOld
 
 /-! =========================================================
     2. binding soundness
@@ -350,6 +462,7 @@ theorem declareObject_concrete_state_of_decomposition
   intro hfresh hσ hdecl
   refine
     { frameDepth := ?_
+      namesExact := ?_
       shadowing := ?_
       objectDeclRealized := ?_
       refDeclRealized := ?_
@@ -366,6 +479,7 @@ theorem declareObject_concrete_state_of_decomposition
       refTargetsAvoidInnerOwned := ?_ }
 
   · exact declareObject_preserves_frameDepthAgreement hσ hfresh hdecl
+  · exact declareObject_preserves_framewiseDeclBindingExact hσ hfresh hdecl
   · exact declareObject_preserves_shadowingCompatible hσ hfresh hdecl
   · intro k y υ hty
     exact declareObject_objectDeclRealized_of_decomposition hfresh hσ hdecl hty
