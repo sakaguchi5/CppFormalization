@@ -618,6 +618,92 @@ theorem declareRef_preserves_refTargetsAvoidInnerOwned
       intro k y υ a j href hjk
       exact hσ.refTargetsAvoidInnerOwned href hjk)
 
+private theorem frameDeclBindingExactAt_insertTopRef
+    {Γfr : TypeFrame} {σfr : ScopeFrame}
+    {x : Ident} {τ : CppType} {a : Nat}
+    (hexact : frameDeclBindingExactAt Γfr σfr)
+    (hfresh : Γfr.decls x = none) :
+    frameDeclBindingExactAt
+      { decls := fun y => if y = x then some (.ref τ) else Γfr.decls y }
+      { binds := fun y => if y = x then some (.ref τ a) else σfr.binds y
+        locals := σfr.locals } := by
+  constructor
+  · intro y d hdecl
+    by_cases hy : y = x
+    · subst hy
+      simp at hdecl
+      subst d
+      exact ⟨.ref τ a, by simp, by simp [DeclMatchesBinding]⟩
+    · have hdeclOld : Γfr.decls y = some d := by
+        simpa [hy] using hdecl
+      rcases hexact.1 y d hdeclOld with ⟨b, hb, hmatch⟩
+      exact ⟨b, by simpa [hy] using hb, hmatch⟩
+  · intro y b hbind
+    by_cases hy : y = x
+    · subst hy
+      simp at hbind
+      subst b
+      exact ⟨.ref τ, by simp, by simp [DeclMatchesBinding]⟩
+    · have hbindOld : σfr.binds y = some b := by
+        simpa [hy] using hbind
+      rcases hexact.2 y b hbindOld with ⟨d, hd, hmatch⟩
+      exact ⟨d, by simpa [hy] using hd, hmatch⟩
+
+private theorem framewiseDeclBindingExact_declareTypeRef_declareRefState
+    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {a : Nat} :
+    ScopedTypedStateConcrete Γ σ →
+    currentTypeScopeFresh Γ x →
+    framewiseDeclBindingExact (declareTypeRef Γ x τ) (declareRefState σ τ x a) := by
+  intro hσ hfresh
+  intro k Γfr σfr hkΓ hkσ
+  cases hG : Γ.scopes with
+  | nil =>
+      simp [currentTypeScopeFresh, hG] at hfresh
+  | cons Γtop Γrest =>
+      cases hS : σ.scopes with
+      | nil =>
+          have hdepth := hσ.frameDepth
+          unfold frameDepthAgreement at hdepth
+          simp [hG, hS] at hdepth
+      | cons σtop σrest =>
+          cases k with
+          | zero =>
+              have hΓfr :
+                  Γfr =
+                    { decls := fun y => if y = x then some (.ref τ) else Γtop.decls y } := by
+                simpa [declareTypeRef, insertTopDecl, hG] using hkΓ.symm
+              have hσfr :
+                  σfr =
+                    { binds := fun y => if y = x then some (.ref τ a) else σtop.binds y
+                      locals := σtop.locals } := by
+                simpa [declareRefState, bindTopBinding, hS] using hkσ.symm
+              subst hΓfr
+              subst hσfr
+              have hExact0 : frameDeclBindingExactAt Γtop σtop :=
+                hσ.namesExact 0 Γtop σtop (by simp [hG]) (by simp [hS])
+              have hTopFresh : Γtop.decls x = none := by
+                simpa [currentTypeScopeFresh, hG] using hfresh
+              exact frameDeclBindingExactAt_insertTopRef
+                (Γfr := Γtop) (σfr := σtop) (x := x) (τ := τ) (a := a) hExact0 hTopFresh
+          | succ j =>
+              have hkΓ_old : Γ.scopes[j.succ]? = some Γfr := by
+                simpa [declareTypeRef, insertTopDecl, hG] using hkΓ
+              have hkσ_old : σ.scopes[j.succ]? = some σfr := by
+                simpa [declareRefState, bindTopBinding, hS] using hkσ
+              exact hσ.namesExact (j + 1) Γfr σfr hkΓ_old hkσ_old
+
+theorem declareRef_preserves_framewiseDeclBindingExact
+    {Γ : TypeEnv} {σ σ' : State}
+    {x : Ident} {τ : CppType} {a : Nat} :
+    ScopedTypedStateConcrete Γ σ →
+    currentTypeScopeFresh Γ x →
+    DeclaresRef σ τ x a σ' →
+    framewiseDeclBindingExact (declareTypeRef Γ x τ) σ' := by
+  intro hσ hfresh hdecl
+  rcases hdecl with ⟨_, _, _, _, _, rfl⟩
+  exact framewiseDeclBindingExact_declareTypeRef_declareRefState
+    (Γ := Γ) (σ := σ) (x := x) (τ := τ) (a := a) hσ hfresh
+
 /-! =========================================================
     6. 最終組み立て
     ========================================================= -/
@@ -632,6 +718,7 @@ theorem declareRef_concrete_state_of_decomposition
   intro hfresh hσ hdecl
   refine
     { frameDepth := ?_
+      namesExact := ?_
       shadowing := ?_
       objectDeclRealized := ?_
       refDeclRealized := ?_
@@ -648,6 +735,7 @@ theorem declareRef_concrete_state_of_decomposition
       refTargetsAvoidInnerOwned := ?_ }
 
   · exact declareRef_preserves_frameDepthAgreement hσ hfresh hdecl
+  · exact declareRef_preserves_framewiseDeclBindingExact hσ hfresh hdecl
   · exact declareRef_preserves_shadowingCompatible hσ hfresh hdecl
   · intro k y υ hty
     exact declareRef_objectDeclRealized_of_decomposition hσ hdecl hty
