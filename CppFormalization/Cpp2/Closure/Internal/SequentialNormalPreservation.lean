@@ -13,32 +13,46 @@ namespace Cpp
 - `HasTypeStmtCI .normalK Γ (.seq s t) Δ` の分解
 - `StmtReadyConcrete Γ σ (.seq s t)` から左 ready を取り出すこと
 - 左が normal 実行されたあと、右側の ready を再構成すること
-を axiomatize し、
-primitive な左文について residual boundary を theorem として束ねる。
+を整理する。
+
+注意:
+- `seq_typing_data` と `seq_ready_left` は純粋な inversion なので theorem 化した。
+- `seq_ready_right_after_left_normal` は見た目は decomposition だが、
+  実際には residual readiness / replay の核であり、まだ honest に lower replay
+  kernel を要求する段階にある。
 -/
+
 
 /- =========================================================
    1. seq の typing / readiness 分解
    ========================================================= -/
 
-axiom seq_typing_data
+theorem seq_typing_data
     {Γ Δ : TypeEnv} {s t : CppStmt} :
-    HasTypeStmtCI .normalK Γ (.seq s t) Δ →
+    HasTypeStmtCI .normalK Γ (.seq s t) Δ ->
     ∃ Θ,
       HasTypeStmtCI .normalK Γ s Θ ∧
-      HasTypeStmtCI .normalK Θ t Δ
+      HasTypeStmtCI .normalK Θ t Δ := by
+  intro h
+  cases h with
+  | seq_normal hs ht =>
+      exact ⟨_, hs, ht⟩
 
-axiom seq_ready_left
+theorem seq_ready_left
     {Γ : TypeEnv} {σ : State} {s t : CppStmt} :
-    StmtReadyConcrete Γ σ (.seq s t) →
-    StmtReadyConcrete Γ σ s
+    StmtReadyConcrete Γ σ (.seq s t) ->
+    StmtReadyConcrete Γ σ s := by
+  intro h
+  cases h with
+  | seq hs _ =>
+      exact hs
 
 axiom seq_ready_right_after_left_normal
     {Γ Θ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
-    HasTypeStmtCI .normalK Γ s Θ →
-    ScopedTypedStateConcrete Θ σ' →
-    StmtReadyConcrete Γ σ (.seq s t) →
-    BigStepStmt σ s .normal σ' →
+    HasTypeStmtCI .normalK Γ s Θ ->
+    ScopedTypedStateConcrete Θ σ' ->
+    StmtReadyConcrete Γ σ (.seq s t) ->
+    BigStepStmt σ s .normal σ' ->
     StmtReadyConcrete Θ σ' t
 
 
@@ -68,11 +82,11 @@ theorem primitive_left_seq_normal_preserves_residual_boundary
      | .seq _ _ => False
      | .ite _ _ _ => False
      | .whileStmt _ _ => False
-     | .block _ => False) →
-    HasTypeStmtCI .normalK Γ (.seq s t) Δ →
-    ScopedTypedStateConcrete Γ σ →
-    StmtReadyConcrete Γ σ (.seq s t) →
-    BigStepStmt σ s .normal σ' →
+     | .block _ => False) ->
+    HasTypeStmtCI .normalK Γ (.seq s t) Δ ->
+    ScopedTypedStateConcrete Γ σ ->
+    StmtReadyConcrete Γ σ (.seq s t) ->
+    BigStepStmt σ s .normal σ' ->
     SeqResidualBoundary Δ σ' t := by
   intro hprim htySeq hσ hreadySeq hstepLeft
   rcases seq_typing_data htySeq with ⟨Θ, htyLeft, htyRight⟩
@@ -99,13 +113,13 @@ theorem primitive_left_seq_normal_preserves_right_state
      | .seq _ _ => False
      | .ite _ _ _ => False
      | .whileStmt _ _ => False
-     | .block _ => False) →
-    HasTypeStmtCI .normalK Γ (.seq s t) Δ →
-    ScopedTypedStateConcrete Γ σ →
-    StmtReadyConcrete Γ σ (.seq s t) →
-    BigStepStmt σ s .normal σ' →
-    HasTypeStmtCI .normalK Θ t Δ →
-    (∀ {Θ'}, HasTypeStmtCI .normalK Θ' t Δ → Θ' = Θ) →
+     | .block _ => False) ->
+    HasTypeStmtCI .normalK Γ (.seq s t) Δ ->
+    ScopedTypedStateConcrete Γ σ ->
+    StmtReadyConcrete Γ σ (.seq s t) ->
+    BigStepStmt σ s .normal σ' ->
+    HasTypeStmtCI .normalK Θ t Δ ->
+    (∀ {Θ'}, HasTypeStmtCI .normalK Θ' t Δ -> Θ' = Θ) ->
     ScopedTypedStateConcrete Θ σ' := by
   intro hprim htySeq hσ hreadySeq hstepLeft htyRight huniq
   rcases primitive_left_seq_normal_preserves_residual_boundary
@@ -130,13 +144,13 @@ theorem primitive_left_seq_normal_preserves_right_ready
      | .seq _ _ => False
      | .ite _ _ _ => False
      | .whileStmt _ _ => False
-     | .block _ => False) →
-    HasTypeStmtCI .normalK Γ (.seq s t) Δ →
-    ScopedTypedStateConcrete Γ σ →
-    StmtReadyConcrete Γ σ (.seq s t) →
-    BigStepStmt σ s .normal σ' →
-    HasTypeStmtCI .normalK Θ t Δ →
-    (∀ {Θ'}, HasTypeStmtCI .normalK Θ' t Δ → Θ' = Θ) →
+     | .block _ => False) ->
+    HasTypeStmtCI .normalK Γ (.seq s t) Δ ->
+    ScopedTypedStateConcrete Γ σ ->
+    StmtReadyConcrete Γ σ (.seq s t) ->
+    BigStepStmt σ s .normal σ' ->
+    HasTypeStmtCI .normalK Θ t Δ ->
+    (∀ {Θ'}, HasTypeStmtCI .normalK Θ' t Δ -> Θ' = Θ) ->
     StmtReadyConcrete Θ σ' t := by
   intro hprim htySeq hσ hreadySeq hstepLeft htyRight huniq
   rcases primitive_left_seq_normal_preserves_residual_boundary
