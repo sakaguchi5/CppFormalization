@@ -1,5 +1,6 @@
 import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
+import CppFormalization.Cpp2.Closure.Internal.AssignTransportKernel
 import CppFormalization.Cpp2.Closure.Internal.ReadinessReplayPrimitive
 import CppFormalization.Cpp2.Semantics.Stmt
 
@@ -19,17 +20,9 @@ while 条件の replay で本当に必要なのは、
 - `PtrValueReadyAt` / aliasing kernel が未整備なので `deref` は除外する
 - `load` / `addrOf` は replay-stable read place に限る
 - theorem の中心は `HasValueType` ではなく `ExprReadyConcrete` witness の輸送
-- `skip` / `exprStmt` は theorem、`assign` の核だけを axiom に切る
+- `skip` / `exprStmt` は theorem、`assign` の核は `AssignTransportKernel` へ移した
 -/
 
-/--
-post-state でも ready witness を輸送しやすい read-place の最小核。
-現段階では variable place のみを許す。
-`deref` は pointer-ready / aliasing kernel が未整備なので除外する。
--/
-inductive ReplayStableReadPlace : PlaceExpr → Prop where
-  | var {x : Ident} :
-      ReplayStableReadPlace (.var x)
 
 /--
 while 条件を構成する値式のうち、replay kernel の対象に含める最小 fragment。
@@ -124,37 +117,7 @@ theorem replay_stable_cond_expr_ready_after_exprStmt
 
 
 /- =========================================================
-   2. assign replay kernel
-
-   `assign` の後でも condition-ready が残る本質は二つに分かれる。
-
-   (a) read-place 自体が post-state でも ready であること
-   (b) `load` に必要な readable witness が post-state でも再構成できること
-
-   (a) と (b) を分けておくと、expr 側は `load` case だけでこの kernel を使えばよい。
-   ========================================================= -/
-
-axiom replay_stable_read_place_ready_after_assign
-    {Γ : TypeEnv} {σ σ' : State}
-    {p q : PlaceExpr} {e : ValExpr} {τ : CppType} :
-    ReplayStableReadPlace p →
-    ScopedTypedStateConcrete Γ σ' →
-    PlaceReadyConcrete Γ σ p τ →
-    BigStepStmt σ (.assign q e) .normal σ' →
-    PlaceReadyConcrete Γ σ' p τ
-
-axiom replay_stable_load_readable_after_assign
-    {Γ : TypeEnv} {σ σ' : State}
-    {p q : PlaceExpr} {e : ValExpr} {τ : CppType} :
-    ReplayStableReadPlace p →
-    ScopedTypedStateConcrete Γ σ' →
-    (∃ a, BigStepPlace σ p a ∧ CellReadableTyped σ a τ) →
-    BigStepStmt σ (.assign q e) .normal σ' →
-    (∃ a, BigStepPlace σ' p a ∧ CellReadableTyped σ' a τ)
-
-
-/- =========================================================
-   3. assign 後の condition-ready replay
+   2. assign 後の condition-ready replay
    ========================================================= -/
 
 theorem replay_stable_cond_expr_ready_after_assign
@@ -221,7 +184,7 @@ theorem replay_stable_cond_expr_ready_after_assign
 
 
 /- =========================================================
-   4. replay-stable primitive 文に束ねる
+   3. replay-stable primitive 文に束ねる
    ========================================================= -/
 
 theorem replay_stable_cond_expr_ready_after_replay_stable_primitive

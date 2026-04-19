@@ -57,6 +57,7 @@ axiom seq_ready_right_after_left_normal
     StmtReadyConcrete Θ σ' t
 
 
+
 /- =========================================================
    2. residual boundary の抽出
    ========================================================= -/
