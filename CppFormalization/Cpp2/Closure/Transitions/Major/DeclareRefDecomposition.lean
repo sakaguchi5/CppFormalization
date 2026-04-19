@@ -457,21 +457,49 @@ theorem declareRef_preserves_shadowingCompatible
         refine ⟨b, ?_, hmatch⟩
         simpa [declareRefState, hy] using hb
 
-axiom declareRef_preserves_ownedAddressNamed
+private theorem topFrameBindingFresh_of_currentScopeFresh
+    {σ : State} {x : Ident} :
+    currentScopeFresh σ x →
+    topFrameBindingFresh σ x := by
+  intro hfresh fr h0
+  cases hsc : σ.scopes with
+  | nil =>
+      simp [currentScopeFresh, hsc] at hfresh
+  | cons fr0 frs =>
+      have hEq : fr = fr0 := by
+        simpa [hsc] using h0.symm
+      subst fr
+      simpa [currentScopeFresh, hsc] using hfresh
+
+theorem declareRef_preserves_ownedAddressNamed
     {Γ : TypeEnv} {σ σ' : State}
     {x : Ident} {τ : CppType} {a0 : Nat} :
     ScopedTypedStateConcrete Γ σ →
     DeclaresRef σ τ x a0 σ' →
     ∀ {k a},
       runtimeFrameOwnsAddress σ' k a →
-      ∃ y υ, runtimeFrameBindsObject σ' k y υ a
+      ∃ y υ, runtimeFrameBindsObject σ' k y υ a := by
+  intro hσ hdecl
+  rcases hdecl with ⟨hsfresh, _c, _hheap, _hty, _halive, rfl⟩
+  have htopFresh : topFrameBindingFresh σ x :=
+    topFrameBindingFresh_of_currentScopeFresh hsfresh
+  exact allOwnedAddressesNamed_declareRefState_of_topFresh
+    (σ := σ) (τ := τ) (x := x) (a := a0)
+    hσ.ownedNamed htopFresh
 
-axiom declareRef_preserves_refBindingsNeverOwned
+theorem declareRef_preserves_refBindingsNeverOwned
     {Γ : TypeEnv} {σ σ' : State}
     {x : Ident} {τ : CppType} {a : Nat} :
     ScopedTypedStateConcrete Γ σ →
     DeclaresRef σ τ x a σ' →
-    refBindingsNeverOwned σ'
+    refBindingsNeverOwned σ' := by
+  intro hσ hdecl
+  rcases hdecl with ⟨hsfresh, _c, _hheap, _hty, _halive, rfl⟩
+  have htopFresh : topFrameBindingFresh σ x :=
+    topFrameBindingFresh_of_currentScopeFresh hsfresh
+  exact refBindingsNeverOwned_declareRefState_of_topFresh
+    (σ := σ) (τ := τ) (x := x) (a := a)
+    hσ.ownedNamed htopFresh
 
 theorem declareRef_preserves_allObjectBindingsOwned
     {Γ : TypeEnv} {σ σ' : State}
@@ -546,12 +574,14 @@ theorem declareRef_preserves_ownedDisjointAcrossFrames
               exact hσ.ownedDisjoint (i' + 1) (j' + 1) fi fj addr hij
                 (by simpa [hsc] using hi) (by simpa [hsc] using hj)
 
-axiom declareRef_preserves_allOwnedAddressesNamed
+theorem declareRef_preserves_allOwnedAddressesNamed
     {Γ : TypeEnv} {σ σ' : State}
     {x : Ident} {τ : CppType} {a : Nat} :
     ScopedTypedStateConcrete Γ σ →
     DeclaresRef σ τ x a σ' →
-    allOwnedAddressesNamed σ'
+    allOwnedAddressesNamed σ' := by
+  intro hσ hdecl k addr h_owns
+  exact declareRef_preserves_ownedAddressNamed hσ hdecl h_owns
 
 theorem declareRef_preserves_heapStoredValuesTyped
     {Γ : TypeEnv} {σ σ' : State}
@@ -583,7 +613,7 @@ theorem declareRef_preserves_nextFreshAgainstOwned
       cases k with
       | zero =>
           simp at hk
-          subst hk
+          subst fr
           simp [declareRefState, bindTopBinding, hsc]
       | succ j =>
           simp at hk
