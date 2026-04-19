@@ -22,13 +22,16 @@ namespace Cpp
    1. operational 分解
    ========================================================= -/
 
-axiom seq_normal_data
+theorem seq_normal_data
     {σ σ' : State} {s t : CppStmt} :
     BigStepStmt σ (.seq s t) .normal σ' →
     ∃ σ1,
       BigStepStmt σ s .normal σ1 ∧
-      BigStepStmt σ1 t .normal σ'
-
+      BigStepStmt σ1 t .normal σ' := by
+  intro h
+  cases h with
+  | seqNormal hs ht =>
+      exact ⟨_, hs, ht⟩
 
 /- =========================================================
    2. 左右の subproof から全体 preservation を組み立てる
@@ -62,7 +65,6 @@ theorem seq_normal_preserves_scoped_typed_state_from_subproofs
   have hreadyRight : StmtReadyConcrete Θ σ1 t :=
     seq_ready_right_after_left_normal htyLeft hσ1 hreadySeq hleftStep
   exact hright htyRight hσ1 hreadyRight hrightStep
-
 
 /- =========================================================
    3. statement 全体の normal preservation を仮定した簡約版
