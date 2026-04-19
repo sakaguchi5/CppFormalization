@@ -2,6 +2,7 @@
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
+import CppFormalization.Cpp2.Closure.Internal.ReadinessResidualBoundary
 
 namespace Cpp
 
@@ -18,6 +19,7 @@ head が `.normal` で終わったあとに
 tail へ渡す境界を再構成できること。
 そのために block-level の typing / readiness / operational 分解を置く。
 -/
+
 
 /- =========================================================
    1. block typing / readiness / operational data
@@ -83,6 +85,29 @@ theorem cons_block_normal_data
   | consNormal hs hss =>
       exact ⟨_, hs, hss⟩
 
+theorem cons_head_normal_preserves_residual_boundary
+    {Γ Θ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock} :
+    HasTypeBlockCI .normalK Γ (.cons s ss) Θ ->
+    ScopedTypedStateConcrete Γ σ ->
+    BlockReadyConcrete Γ σ (.cons s ss) ->
+    BigStepStmt σ s .normal σ' ->
+    (∀ {Ξ : TypeEnv} {σ1 : State},
+      HasTypeStmtCI .normalK Γ s Ξ ->
+      ScopedTypedStateConcrete Γ σ ->
+      StmtReadyConcrete Γ σ s ->
+      BigStepStmt σ s .normal σ1 ->
+      ScopedTypedStateConcrete Ξ σ1) ->
+    ConsResidualBoundary Θ σ' ss := by
+  intro hty hσ hready hstep hhead
+  rcases cons_block_typing_data hty with ⟨Ξ, htyHead, htyTail⟩
+  have hreadyHead : StmtReadyConcrete Γ σ s :=
+    cons_block_ready_head hready
+  have hσ' : ScopedTypedStateConcrete Ξ σ' :=
+    hhead htyHead hσ hreadyHead hstep
+  have hreadyTail : BlockReadyConcrete Ξ σ' ss :=
+    cons_block_ready_tail_after_head_normal htyHead hσ' hready hstep
+  exact ⟨Ξ, htyTail, hσ', hreadyTail⟩
+
 
 /- =========================================================
    3. block body の normal preservation
@@ -122,14 +147,10 @@ theorem cons_block_normal_preserves_scoped_typed_state_from_head_and_tail
       ScopedTypedStateConcrete Θ σ2) ->
     ScopedTypedStateConcrete Θ σ' := by
   intro hty hσ hready hstep hhead htail
-  rcases cons_block_typing_data hty with ⟨Ξ, htyHead, htyTail⟩
   rcases cons_block_normal_data hstep with ⟨σ1, hheadStep, htailStep⟩
-  have hreadyHead : StmtReadyConcrete Γ σ s :=
-    cons_block_ready_head hready
-  have hσ1 : ScopedTypedStateConcrete Ξ σ1 :=
-    hhead htyHead hσ hreadyHead hheadStep
-  have hreadyTail : BlockReadyConcrete Ξ σ1 ss :=
-    cons_block_ready_tail_after_head_normal htyHead hσ1 hready hheadStep
+  rcases cons_head_normal_preserves_residual_boundary
+      hty hσ hready hheadStep hhead with
+    ⟨Ξ, htyTail, hσ1, hreadyTail⟩
   exact htail htyTail hσ1 hreadyTail htailStep
 
 end Cpp

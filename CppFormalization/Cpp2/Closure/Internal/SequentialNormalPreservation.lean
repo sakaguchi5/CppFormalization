@@ -1,6 +1,7 @@
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
+import CppFormalization.Cpp2.Closure.Internal.ReadinessResidualBoundary
 import CppFormalization.Cpp2.Closure.Internal.PrimitiveStmtNormalPreservation
 
 namespace Cpp
@@ -59,14 +60,6 @@ axiom seq_ready_right_after_left_normal
 /- =========================================================
    2. residual boundary の抽出
    ========================================================= -/
-
-def SeqResidualBoundary
-    (Δ : TypeEnv) (σ' : State) (t : CppStmt) : Prop :=
-  ∃ Θ,
-    HasTypeStmtCI .normalK Θ t Δ ∧
-    ScopedTypedStateConcrete Θ σ' ∧
-    StmtReadyConcrete Θ σ' t
-
 
 theorem primitive_left_seq_normal_preserves_residual_boundary
     {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
