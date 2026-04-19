@@ -1,9 +1,10 @@
---import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 import CppFormalization.Cpp2.Closure.Foundation.Readiness
+import CppFormalization.Cpp2.Closure.Foundation.ReadinessSemanticsBridge
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
 import CppFormalization.Cpp2.Closure.Transitions.Minor.AssignDecomposition
-import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareRefStrengtheningConnection
+import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareRefDecomposition
 import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectDecomposition
+import CppFormalization.Cpp2.Lemmas.ExprTypeUniqueness
 
 namespace Cpp
 
@@ -16,28 +17,39 @@ primitive 文の normal-path preservation。
 - 以前の `PrimitiveNormalStmt` は削除した。
 - ただしこのファイルの定理自体は依然として「primitive case 専用」である。
 - したがって aggregate theorem には、外部定義ではなく inline な構文制約を置く。
-- declareRef は weak route ではなく strong route を通す。
+- declareRef は namesExact を含む本線 invariant の上で、weak ではなく
+  decomposition theorem へ直接落とす。
 -/
 
 /- =========================================================
    1. primitive normal 文の operational bridge
    ========================================================= -/
 
-axiom skip_stmt_normal_data
+theorem skip_stmt_normal_data
     {Γ Δ : TypeEnv} {σ σ' : State} :
     HasTypeStmtCI .normalK Γ .skip Δ →
     StmtReadyConcrete Γ σ .skip →
     BigStepStmt σ .skip .normal σ' →
-    Δ = Γ ∧ σ' = σ
+    Δ = Γ ∧ σ' = σ := by
+  intro hty hready hstep
+  cases hty
+  cases hready
+  cases hstep
+  exact ⟨rfl, rfl⟩
 
-axiom exprStmt_normal_data
+theorem exprStmt_normal_data
     {Γ Δ : TypeEnv} {σ σ' : State} {e : ValExpr} :
     HasTypeStmtCI .normalK Γ (.exprStmt e) Δ →
     StmtReadyConcrete Γ σ (.exprStmt e) →
     BigStepStmt σ (.exprStmt e) .normal σ' →
-    Δ = Γ ∧ σ' = σ
+    Δ = Γ ∧ σ' = σ := by
+  intro hty hready hstep
+  cases hty
+  cases hready
+  cases hstep
+  exact ⟨rfl, rfl⟩
 
-axiom assign_stmt_normal_data
+theorem assign_stmt_normal_data
     {Γ Δ : TypeEnv} {σ σ' : State}
     {p : PlaceExpr} {e : ValExpr} :
     HasTypeStmtCI .normalK Γ (.assign p e) Δ →
@@ -48,9 +60,28 @@ axiom assign_stmt_normal_data
       HasPlaceType Γ p τ ∧
       PlaceReadyConcrete Γ σ p τ ∧
       ValueCompat v τ ∧
-      Assigns σ p v σ'
+      Assigns σ p v σ' := by
+  intro hty hready hstep
+  -- 1. hty から静的な型情報を出す
+  cases hty with
+  | assign hpty hvty =>
+      -- 2. hready から動的な（実行時の）型情報を取り出す
+      cases hready with
+      | assign hpty_rd hpready hvty_rd heready =>
+          -- ここで hpty_rd と hpty の型が同じであることを証明し、subst で同期させる
+          have heq := hasPlaceType_unique hpty hpty_rd
+          subst heq
+          -- 3. hstep から値と実行の証拠を取り出す
+          cases hstep with
+          | assign h_bs_val h_assigns =>
+              -- 型変数 τ✝ に名前を付けておくと確実です
+              rename_i τ_val v_val
+              -- ∃ τ v なので、τ に τ_val を、v に v_val を指定
+              exists τ_val, v_val
+              -- ⟨Δ=Γ, HasPlaceType, PlaceReady, ValueCompat, Assigns⟩
+              exact ⟨rfl, hpty, hpready, expr_ready_eval_compat heready h_bs_val, h_assigns⟩
 
-axiom declareObj_stmt_normal_data
+theorem declareObj_stmt_normal_data
     {Γ Δ : TypeEnv} {σ σ' : State}
     {τ : CppType} {x : Ident} {oe : Option ValExpr} :
     HasTypeStmtCI .normalK Γ (.declareObj τ x oe) Δ →
@@ -59,9 +90,24 @@ axiom declareObj_stmt_normal_data
     ∃ ov : Option Value,
       Δ = declareTypeObject Γ x τ ∧
       currentTypeScopeFresh Γ x ∧
-      DeclaresObject σ τ x ov σ'
+      DeclaresObject σ τ x ov σ' := by
+  intro hty hready hstep
+  cases hty with
+  | declareObjNone hfresh hobj =>
+      cases hready with
+      | declareObjNone _ _ =>
+          cases hstep with
+          | declareObjNone hdecl =>
+              exact ⟨none, rfl, hfresh, hdecl⟩
+  | declareObjSome hfresh hobj hvty =>
+      cases hready with
+      | declareObjSome _ _ _ hre =>
+          cases hstep with
+          | declareObjSome h_bs_val hdecl =>
+              rename_i v_val
+              exists (some v_val)
 
-axiom declareRef_stmt_normal_data_strong
+theorem declareRef_stmt_normal_data
     {Γ Δ : TypeEnv} {σ σ' : State}
     {τ : CppType} {x : Ident} {p : PlaceExpr} :
     HasTypeStmtCI .normalK Γ (.declareRef τ x p) Δ →
@@ -69,8 +115,20 @@ axiom declareRef_stmt_normal_data_strong
     BigStepStmt σ (.declareRef τ x p) .normal σ' →
     ∃ a,
       Δ = declareTypeRef Γ x τ ∧
-      DeclareRefReadyStrong.Ready Γ σ x ∧
-      DeclaresRef σ τ x a σ'
+      currentTypeScopeFresh Γ x ∧
+      HasPlaceType Γ p τ ∧
+      PlaceReadyConcrete Γ σ p τ ∧
+      DeclaresRef σ τ x a σ' := by
+  intro hty hready hstep
+  cases hty with
+  | declareRef hfresh hpty =>
+      cases hready with
+      | declareRef _ hpty_rd hpready =>  -- hpty_rd を取り出しておくと型安全
+          cases hstep with
+          | declareRef h_bs_p hdecl =>
+              -- BigStepPlace のインデックスに隠れているアドレス a を a_val として拾う
+              rename_i a_val
+              exists a_val
 
 /- =========================================================
    2. constructor ごとの preservation
@@ -141,11 +199,11 @@ theorem declareRef_stmt_normal_preserves_scoped_typed_state_concrete
     BigStepStmt σ (.declareRef τ x p) .normal σ' →
     ScopedTypedStateConcrete Δ σ' := by
   intro hty hσ hready hstep
-  rcases declareRef_stmt_normal_data_strong hty hready hstep with
-    ⟨a, hΔ, hreadyStrong, hdecl⟩
+  rcases declareRef_stmt_normal_data hty hready hstep with
+    ⟨a, hΔ, hfresh, hpty, hpready, hdecl⟩
   subst hΔ
-  exact declares_ref_preserves_scoped_typed_state_concrete_strong
-    hreadyStrong hdecl
+  exact declares_ref_preserves_scoped_typed_state_concrete
+    hfresh hσ hdecl
 
 /- =========================================================
    3. aggregate theorem for primitive constructors only
