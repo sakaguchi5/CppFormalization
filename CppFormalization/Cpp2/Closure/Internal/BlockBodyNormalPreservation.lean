@@ -1,3 +1,4 @@
+
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
@@ -22,47 +23,65 @@ tail へ渡す境界を再構成できること。
    1. block typing / readiness / operational data
    ========================================================= -/
 
-axiom empty_block_typing_data
+theorem empty_block_typing_data
     {Γ Θ : TypeEnv} :
-    HasTypeBlockCI .normalK Γ .nil Θ →
-    Θ = Γ
+    HasTypeBlockCI .normalK Γ .nil Θ ->
+    Θ = Γ := by
+  intro h
+  cases h
+  rfl
 
-axiom empty_block_ready_trivial
+theorem empty_block_ready_trivial
     {Γ : TypeEnv} {σ : State} :
-    BlockReadyConcrete Γ σ .nil
+    BlockReadyConcrete Γ σ .nil :=
+  BlockReadyConcrete.nil
 
-axiom empty_block_normal_data
+theorem empty_block_normal_data
     {σ σ' : State} :
-    BigStepBlock σ .nil .normal σ' →
-    σ' = σ
+    BigStepBlock σ .nil .normal σ' ->
+    σ' = σ := by
+  intro h
+  cases h
+  rfl
 
-axiom cons_block_typing_data
+theorem cons_block_typing_data
     {Γ Θ : TypeEnv} {s : CppStmt} {ss : StmtBlock} :
-    HasTypeBlockCI .normalK Γ (.cons s ss) Θ →
+    HasTypeBlockCI .normalK Γ (.cons s ss) Θ ->
     ∃ Ξ,
       HasTypeStmtCI .normalK Γ s Ξ ∧
-      HasTypeBlockCI .normalK Ξ ss Θ
+      HasTypeBlockCI .normalK Ξ ss Θ := by
+  intro h
+  cases h with
+  | cons_normal hs hss =>
+      exact ⟨_, hs, hss⟩
 
-axiom cons_block_ready_head
+theorem cons_block_ready_head
     {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock} :
-    BlockReadyConcrete Γ σ (.cons s ss) →
-    StmtReadyConcrete Γ σ s
+    BlockReadyConcrete Γ σ (.cons s ss) ->
+    StmtReadyConcrete Γ σ s := by
+  intro h
+  cases h with
+  | cons hs _ =>
+      exact hs
 
 axiom cons_block_ready_tail_after_head_normal
     {Γ Ξ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock} :
-    HasTypeStmtCI .normalK Γ s Ξ →
-    ScopedTypedStateConcrete Ξ σ' →
-    BlockReadyConcrete Γ σ (.cons s ss) →
-    BigStepStmt σ s .normal σ' →
+    HasTypeStmtCI .normalK Γ s Ξ ->
+    ScopedTypedStateConcrete Ξ σ' ->
+    BlockReadyConcrete Γ σ (.cons s ss) ->
+    BigStepStmt σ s .normal σ' ->
     BlockReadyConcrete Ξ σ' ss
 
-axiom cons_block_normal_data
+theorem cons_block_normal_data
     {σ σ' : State} {s : CppStmt} {ss : StmtBlock} :
-    BigStepBlock σ (.cons s ss) .normal σ' →
+    BigStepBlock σ (.cons s ss) .normal σ' ->
     ∃ σ1,
       BigStepStmt σ s .normal σ1 ∧
-      BigStepBlock σ1 ss .normal σ'
-
+      BigStepBlock σ1 ss .normal σ' := by
+  intro h
+  cases h with
+  | consNormal hs hss =>
+      exact ⟨_, hs, hss⟩
 
 
 /- =========================================================
@@ -71,10 +90,10 @@ axiom cons_block_normal_data
 
 theorem empty_block_normal_preserves_scoped_typed_state_concrete
     {Γ Θ : TypeEnv} {σ σ' : State} :
-    HasTypeBlockCI .normalK Γ .nil Θ →
-    ScopedTypedStateConcrete Γ σ →
-    BlockReadyConcrete Γ σ .nil →
-    BigStepBlock σ .nil .normal σ' →
+    HasTypeBlockCI .normalK Γ .nil Θ ->
+    ScopedTypedStateConcrete Γ σ ->
+    BlockReadyConcrete Γ σ .nil ->
+    BigStepBlock σ .nil .normal σ' ->
     ScopedTypedStateConcrete Θ σ' := by
   intro hty hσ hready hstep
   rcases empty_block_typing_data hty with hΘ
@@ -85,22 +104,22 @@ theorem empty_block_normal_preserves_scoped_typed_state_concrete
 
 theorem cons_block_normal_preserves_scoped_typed_state_from_head_and_tail
     {Γ Θ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock} :
-    HasTypeBlockCI .normalK Γ (.cons s ss) Θ →
-    ScopedTypedStateConcrete Γ σ →
-    BlockReadyConcrete Γ σ (.cons s ss) →
-    BigStepBlock σ (.cons s ss) .normal σ' →
+    HasTypeBlockCI .normalK Γ (.cons s ss) Θ ->
+    ScopedTypedStateConcrete Γ σ ->
+    BlockReadyConcrete Γ σ (.cons s ss) ->
+    BigStepBlock σ (.cons s ss) .normal σ' ->
     (∀ {Ξ : TypeEnv} {σ1 : State},
-      HasTypeStmtCI .normalK Γ s Ξ →
-      ScopedTypedStateConcrete Γ σ →
-      StmtReadyConcrete Γ σ s →
-      BigStepStmt σ s .normal σ1 →
-      ScopedTypedStateConcrete Ξ σ1) →
+      HasTypeStmtCI .normalK Γ s Ξ ->
+      ScopedTypedStateConcrete Γ σ ->
+      StmtReadyConcrete Γ σ s ->
+      BigStepStmt σ s .normal σ1 ->
+      ScopedTypedStateConcrete Ξ σ1) ->
     (∀ {Ξ : TypeEnv} {σ1 σ2 : State},
-      HasTypeBlockCI .normalK Ξ ss Θ →
-      ScopedTypedStateConcrete Ξ σ1 →
-      BlockReadyConcrete Ξ σ1 ss →
-      BigStepBlock σ1 ss .normal σ2 →
-      ScopedTypedStateConcrete Θ σ2) →
+      HasTypeBlockCI .normalK Ξ ss Θ ->
+      ScopedTypedStateConcrete Ξ σ1 ->
+      BlockReadyConcrete Ξ σ1 ss ->
+      BigStepBlock σ1 ss .normal σ2 ->
+      ScopedTypedStateConcrete Θ σ2) ->
     ScopedTypedStateConcrete Θ σ' := by
   intro hty hσ hready hstep hhead htail
   rcases cons_block_typing_data hty with ⟨Ξ, htyHead, htyTail⟩
@@ -112,6 +131,5 @@ theorem cons_block_normal_preserves_scoped_typed_state_from_head_and_tail
   have hreadyTail : BlockReadyConcrete Ξ σ1 ss :=
     cons_block_ready_tail_after_head_normal htyHead hσ1 hready hheadStep
   exact htail htyTail hσ1 hreadyTail htailStep
-
 
 end Cpp
