@@ -100,22 +100,37 @@ theorem assign_head_decl_block_ready_after_assign
     htransport hσ' hready hstep
 
 /--
-Axiomatic statement-level bridge for block bodies.
+Statement-level replay bridge for block bodies.
 
-Current declaration-aware stmt transportability does not yet include `.block`,
-and the existing block replay theorem only transports raw block tails
-`BlockReadyConcrete Γ σ ss`.
-This bridge exposes the statement-level `.block ss` replay surface needed by
-while-body reentry theorems.
+The raw block transport theorem already exists in the declaration-aware fragment.
+What was missing was the pushed-scope bridge connecting that raw block replay to
+`StmtReadyConcrete Γ σ (.block ss)`.
 -/
-axiom assign_head_decl_block_stmt_ready_after_assign
+theorem assign_head_decl_block_stmt_ready_after_assign
     {Γ : TypeEnv} {σ σ' : State}
     {q : PlaceExpr} {rhs : ValExpr} {ss : StmtBlock} :
     AssignHeadTransportableBlockDecl Γ σ q rhs ss →
     ScopedTypedStateConcrete Γ σ' →
     StmtReadyConcrete Γ σ (.block ss) →
     BigStepStmt σ (.assign q rhs) .normal σ' →
-    StmtReadyConcrete Γ σ' (.block ss)
+    StmtReadyConcrete Γ σ' (.block ss) := by
+  intro htransport hσ' hready hstep
+  cases hready with
+  | block hreadyBlock =>
+      have htransportPush :
+          AssignHeadTransportableBlockDecl (pushTypeScope Γ) (pushScope σ) q rhs ss :=
+        assign_head_transportable_decl_block_pushScope htransport
+      have hσ'Push :
+          ScopedTypedStateConcrete (pushTypeScope Γ) (pushScope σ') :=
+        scoped_typed_state_concrete_pushScope hσ'
+      have hstepPush :
+          BigStepStmt (pushScope σ) (.assign q rhs) .normal (pushScope σ') :=
+        bigStepStmt_assign_pushScope hstep
+      have hreadyBlock' :
+          BlockReadyConcrete (pushTypeScope Γ) (pushScope σ') ss :=
+        assign_head_transportable_decl_block_ready_after_assign_head
+          htransportPush hσ'Push hreadyBlock hstepPush
+      exact StmtReadyConcrete.block hreadyBlock'
 
 theorem assign_head_block_stmt_ready_after_assign
     {Γ : TypeEnv} {σ σ' : State}

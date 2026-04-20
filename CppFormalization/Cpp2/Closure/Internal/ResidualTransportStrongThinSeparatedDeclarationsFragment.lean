@@ -109,6 +109,28 @@ axiom strongThinSeparatedCondExpr_pushScope
     StrongThinSeparatedCondExpr Γ σ q rhs e τ →
     StrongThinSeparatedCondExpr (pushTypeScope Γ) (pushScope σ) q rhs e τ
 
+/--
+Pushing an empty runtime/type scope preserves the concrete scoped typing package.
+
+This is the semantic bridge needed to replay a raw block tail as the body of
+a statement-level `.block ss`.
+-/
+axiom scoped_typed_state_concrete_pushScope
+    {Γ : TypeEnv} {σ : State} :
+    ScopedTypedStateConcrete Γ σ →
+    ScopedTypedStateConcrete (pushTypeScope Γ) (pushScope σ)
+
+/--
+The fixed head assignment commutes with pushing an empty runtime scope.
+
+This is the operational bridge needed to replay an assign-headed block body
+inside the pushed runtime state used by `StmtReadyConcrete.block`.
+-/
+axiom bigStepStmt_assign_pushScope
+    {σ σ' : State} {q : PlaceExpr} {rhs : ValExpr} :
+    BigStepStmt σ (.assign q rhs) .normal σ' →
+    BigStepStmt (pushScope σ) (.assign q rhs) .normal (pushScope σ')
+
 mutual
 
 theorem assign_head_transportable_decl_stmt_pushScope
