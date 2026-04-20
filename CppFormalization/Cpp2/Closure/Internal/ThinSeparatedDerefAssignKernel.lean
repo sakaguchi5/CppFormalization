@@ -3,6 +3,7 @@ import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 import CppFormalization.Cpp2.Closure.Internal.AssignTransportKernel
 import CppFormalization.Cpp2.Closure.Internal.DerefAssignLocalInterfaces
 import CppFormalization.Cpp2.Lemmas.ExprDeterminism
+import CppFormalization.Cpp2.Lemmas.AssignWriteFootprint
 
 namespace Cpp
 
@@ -39,6 +40,13 @@ A thin concrete witness for separation-side deref transport.
 `ptrType` / `srcStable` describe the pointer expression side.
 `targetSeparated` states that the assignment target is apart from any address
 that the pointer expression can evaluate to.
+
+Important limitation:
+for `e = .load p`, `targetSeparated` only separates the head write target from
+the *loaded pointer value* address, not from the address of the source pointer
+cell itself. So this witness is already strong enough to theoremize the
+`addrOf` case and off-target heap preservation, but not yet strong enough to
+eliminate the remaining `load` case.
 -/
 structure ThinSeparatedWitness
     (Γ : TypeEnv) (σ : State)
@@ -101,14 +109,6 @@ structure ThinSeparatedDerefAssignKernel : Type 1 where
    4. Small bridge lemmas used by the abstract adapter
    ========================================================= -/
 
-private theorem cellLiveTyped_of_cellReadableTyped
-    {σ : State} {a : Nat} {τ : CppType} :
-    CellReadableTyped σ a τ →
-    CellLiveTyped σ a τ := by
-  intro h
-  rcases h with ⟨c, v, hheap, hty, halive, hval, hcompat⟩
-  exact ⟨c, hheap, hty, halive⟩
-
 private theorem bigStepPlace_deref_of_ptrValueReadyAt_and_cellReadable
     {Γ : TypeEnv} {σ : State} {e : ValExpr} {τ : CppType} {a : Nat} :
     PtrValueReadyAt Γ σ e τ a →
@@ -118,22 +118,51 @@ private theorem bigStepPlace_deref_of_ptrValueReadyAt_and_cellReadable
   rcases hread with ⟨c, v, hheap, hty, halive, hval, hcompat⟩
   exact BigStepPlace.deref (ptrValueReadyAt_bigStepValue hptr) hheap halive
 
-private theorem cellReadableTyped_at_ptrAddr_of_derefReadable
+private theorem thinSeparatedWitness_writeAddr_ne_of_ptrValueReadyAt
     {Γ : TypeEnv} {σ : State}
+    {q : PlaceExpr} {rhs : ValExpr}
     {e : ValExpr} {τ : CppType} {a : Nat}
+    (w : ThinSeparatedWitness Γ σ q rhs e τ)
+    (hptr : PtrValueReadyAt Γ σ e τ a) :
+    w.writeAddr ≠ a := by
+  exact w.targetSeparated (ptrValueReadyAt_bigStepValue hptr)
+
+private theorem thinSeparatedWitness_heapCell_preserved_off_target
+    {Γ : TypeEnv} {σ σ' : State}
+    {q : PlaceExpr} {rhs : ValExpr}
+    {e : ValExpr} {τ : CppType} {a : Nat} {c : Cell}
+    (w : ThinSeparatedWitness Γ σ q rhs e τ)
     (hptr : PtrValueReadyAt Γ σ e τ a)
-    (hread : ∃ b, BigStepPlace σ (.deref e) b ∧ CellReadableTyped σ b τ) :
-    CellReadableTyped σ a τ := by
-  rcases hread with ⟨b, hplace, hcell⟩
-  cases hplace with
-  | deref hval hheap halive =>
-      have hEqVal :
-          Value.addr a = Value.addr b := by
-        exact bigStepValue_deterministic
-          (ptrValueReadyAt_bigStepValue hptr) hval
-      injection hEqVal with hab
-      subst hab
-      exact hcell
+    (hheap : σ.heap a = some c)
+    (hstep : BigStepStmt σ (.assign q rhs) .normal σ') :
+    σ'.heap a = some c := by
+  have hneqW : w.writeAddr ≠ a :=
+    thinSeparatedWitness_writeAddr_ne_of_ptrValueReadyAt w hptr
+  have hneq : a ≠ w.writeAddr := by
+    intro ha
+    apply hneqW
+    simp [ha]
+  exact bigStepStmt_assign_heap_unchanged_off_target
+    w.writesQ hneq hheap hstep
+
+private theorem ptrValue_addrOf_preserved_of_thinSeparatedWitness
+    {Γ : TypeEnv} {σ σ' : State}
+    {q : PlaceExpr} {rhs : ValExpr}
+    {p : PlaceExpr} {τ : CppType} {a : Nat}
+    (w : ThinSeparatedWitness Γ σ q rhs (.addrOf p) τ)
+    (hptr : PtrValueReadyAt Γ σ (.addrOf p) τ a)
+    (hstep : BigStepStmt σ (.assign q rhs) .normal σ') :
+    PtrValueReadyAt Γ σ' (.addrOf p) τ a := by
+  have hpstable : ReplayStableReadPlace p := by
+    cases w.srcStable with
+    | addrOf hp =>
+        exact hp
+  rcases hptr with ⟨hty, hval⟩
+  cases hval with
+  | addrOf hplace =>
+      have hplace' : BigStepPlace σ' p a :=
+        bigStepPlace_replayStableReadPlace_after_assign hpstable hplace hstep
+      exact ⟨w.ptrType, BigStepValue.addrOf hplace'⟩
 
 
 /- =========================================================
@@ -143,31 +172,21 @@ private theorem cellReadableTyped_at_ptrAddr_of_derefReadable
 /--
 A refined separation-side kernel.
 
-Compared to `ThinSeparatedDerefAssignKernel`, this version does not assume one
-monolithic `ptrValue_preserved`. It splits that obligation into the two source
-forms already present in `ReplayStablePtrExpr`.
+Compared to `ThinSeparatedDerefAssignKernel`, this version no longer treats
+off-target heap preservation or the `addrOf` case as axiomatic. Those are now
+theorems from the concrete witness plus the assignment semantics.
 
-It also lowers cell preservation to a single off-target heap-cell lemma.
+What really remains open is the `load` case:
+to preserve `PtrValueReadyAt Γ σ (.load p) τ a`, one needs a stronger source-cell
+separation fact than the current `ThinSeparatedWitness` provides.
 -/
 structure ThinSeparatedDerefAssignKernelRefined : Type 1 where
   /--
-  `addrOf`-based pointer expressions survive the assignment.
-  This is the lighter separation-style case.
-  -/
-  ptrValue_addrOf_preserved :
-    ∀ {Γ : TypeEnv} {σ σ' : State}
-      {q : PlaceExpr} {rhs : ValExpr}
-      {p : PlaceExpr} {τ : CppType} {a : Nat},
-      ThinSeparatedWitness Γ σ q rhs (.addrOf p) τ →
-      ScopedTypedStateConcrete Γ σ' →
-      PtrValueReadyAt Γ σ (.addrOf p) τ a →
-      BigStepStmt σ (.assign q rhs) .normal σ' →
-      PtrValueReadyAt Γ σ' (.addrOf p) τ a
-
-  /--
   `load`-based pointer expressions survive the assignment.
-  This is the heavier case because it depends on preserving the pointer cell's
-  stored address value.
+
+  This is the genuinely heavier case, because it depends on preserving the
+  pointer cell's stored address value. The current witness does not yet expose
+  enough source-cell separation to make this a theorem.
   -/
   ptrValue_load_preserved :
     ∀ {Γ : TypeEnv} {σ σ' : State}
@@ -179,35 +198,10 @@ structure ThinSeparatedDerefAssignKernelRefined : Type 1 where
       BigStepStmt σ (.assign q rhs) .normal σ' →
       PtrValueReadyAt Γ σ' (.load p) τ a
 
-  /--
-  Primitive off-target heap stability:
-  if `a` is one of the pointer expression's possible target addresses, then the
-  heap cell at `a` is preserved verbatim across the assignment.
-  -/
-  heapCell_preserved_off_target :
-    ∀ {Γ : TypeEnv} {σ σ' : State}
-      {q : PlaceExpr} {rhs : ValExpr}
-      {e : ValExpr} {τ : CppType} {a : Nat} {c : Cell},
-      ThinSeparatedWitness Γ σ q rhs e τ →
-      ScopedTypedStateConcrete Γ σ' →
-      PtrValueReadyAt Γ σ e τ a →
-      σ.heap a = some c →
-      BigStepStmt σ (.assign q rhs) .normal σ' →
-      σ'.heap a = some c
-
 
 /- =========================================================
    6. Derived theorems from the refined kernel
    ========================================================= -/
-
-private theorem thinSeparatedWitness_writeAddr_ne_of_ptrValueReadyAt
-    {Γ : TypeEnv} {σ : State}
-    {q : PlaceExpr} {rhs : ValExpr}
-    {e : ValExpr} {τ : CppType} {a : Nat}
-    (w : ThinSeparatedWitness Γ σ q rhs e τ)
-    (hptr : PtrValueReadyAt Γ σ e τ a) :
-    w.writeAddr ≠ a := by
-  exact w.targetSeparated (ptrValueReadyAt_bigStepValue hptr)
 
 theorem ptrValue_preserved_of_refined
     (K : ThinSeparatedDerefAssignKernelRefined)
@@ -220,16 +214,15 @@ theorem ptrValue_preserved_of_refined
     BigStepStmt σ (.assign q rhs) .normal σ' →
     PtrValueReadyAt Γ σ' e τ a := by
   intro w hσ' hptr hstep
-  cases wsrc : w.srcStable with
+  cases hsrc : w.srcStable with
   | addrOf hp =>
-      simpa [wsrc] using
-        K.ptrValue_addrOf_preserved w hσ' hptr hstep
+      simpa [hsrc] using
+        ptrValue_addrOf_preserved_of_thinSeparatedWitness w hptr hstep
   | load hp =>
-      simpa [wsrc] using
+      simpa [hsrc] using
         K.ptrValue_load_preserved w hσ' hptr hstep
 
 theorem cellLive_off_target_preserved_of_refined
-    (K : ThinSeparatedDerefAssignKernelRefined)
     {Γ : TypeEnv} {σ σ' : State}
     {q : PlaceExpr} {rhs : ValExpr}
     {e : ValExpr} {τ : CppType} {a : Nat} :
@@ -242,11 +235,10 @@ theorem cellLive_off_target_preserved_of_refined
   intro w hσ' hptr hlive hstep
   rcases hlive with ⟨c, hheap, hty, halive⟩
   have hheap' : σ'.heap a = some c :=
-    K.heapCell_preserved_off_target w hσ' hptr hheap hstep
+    thinSeparatedWitness_heapCell_preserved_off_target w hptr hheap hstep
   exact ⟨c, hheap', hty, halive⟩
 
 theorem cellReadable_off_target_preserved_of_refined
-    (K : ThinSeparatedDerefAssignKernelRefined)
     {Γ : TypeEnv} {σ σ' : State}
     {q : PlaceExpr} {rhs : ValExpr}
     {e : ValExpr} {τ : CppType} {a : Nat} :
@@ -259,7 +251,7 @@ theorem cellReadable_off_target_preserved_of_refined
   intro w hσ' hptr hread hstep
   rcases hread with ⟨c, v, hheap, hty, halive, hval, hcompat⟩
   have hheap' : σ'.heap a = some c :=
-    K.heapCell_preserved_off_target w hσ' hptr hheap hstep
+    thinSeparatedWitness_heapCell_preserved_off_target w hptr hheap hstep
   exact ⟨c, v, hheap', hty, halive, hval, hcompat⟩
 
 
@@ -279,11 +271,11 @@ def ThinSeparatedDerefAssignKernelRefined.toThinSeparated
 
   cellLive_off_target_preserved := by
     intro Γ σ σ' q rhs e τ a w hσ' hptr hlive hstep
-    exact cellLive_off_target_preserved_of_refined K w hσ' hptr hlive hstep
+    exact cellLive_off_target_preserved_of_refined w hσ' hptr hlive hstep
 
   cellReadable_off_target_preserved := by
     intro Γ σ σ' q rhs e τ a w hσ' hptr hread hstep
-    exact cellReadable_off_target_preserved_of_refined K w hσ' hptr hread hstep
+    exact cellReadable_off_target_preserved_of_refined w hσ' hptr hread hstep
 
 /--
 The thin concrete kernel yields an instance of the abstract local separation
