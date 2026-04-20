@@ -150,16 +150,214 @@ axiom strongThinSeparatedCondExpr_pushScope
     StrongThinSeparatedCondExpr Γ σ q rhs e τ →
     StrongThinSeparatedCondExpr (pushTypeScope Γ) (pushScope σ) q rhs e τ
 
-/--
-Pushing an empty runtime/type scope preserves the concrete scoped typing package.
 
-This is the semantic bridge needed to replay a raw block tail as the body of
-a statement-level `.block ss`.
--/
-axiom scoped_typed_state_concrete_pushScope
+theorem scoped_typed_state_concrete_pushScope
     {Γ : TypeEnv} {σ : State} :
     ScopedTypedStateConcrete Γ σ →
-    ScopedTypedStateConcrete (pushTypeScope Γ) (pushScope σ)
+    ScopedTypedStateConcrete (pushTypeScope Γ) (pushScope σ) := by
+  intro h
+  refine
+    { frameDepth := by
+        unfold frameDepthAgreement at *
+        simpa [pushTypeScope, pushScope] using congrArg Nat.succ h.frameDepth
+
+      namesExact := by
+        intro k Γfr σfr hkΓ hkσ
+        cases k with
+        | zero =>
+            have hΓfr : Γfr = emptyTypeFrame := by
+              simpa [pushTypeScope, emptyTypeFrame] using hkΓ.symm
+            have hσfr : σfr = emptyScopeFrame := by
+              simpa [pushScope, emptyScopeFrame] using hkσ.symm
+            subst Γfr
+            subst σfr
+            constructor
+            · intro x d hdecl
+              have : False := by
+                simp [emptyTypeFrame] at hdecl
+              exact False.elim this
+            · intro x b hbind
+              have : False := by
+                simp [emptyScopeFrame] at hbind
+              exact False.elim this
+        | succ k =>
+            have hkΓOld : Γ.scopes[k]? = some Γfr := by
+              simpa [pushTypeScope] using hkΓ
+            have hkσOld : σ.scopes[k]? = some σfr := by
+              simpa [pushScope] using hkσ
+            exact h.namesExact k Γfr σfr hkΓOld hkσOld
+
+      shadowing := by
+        intro x d hdecl
+        have hdeclOld : lookupDecl Γ x = some d := by
+          simpa [lookupDecl, lookupDeclFrames, pushTypeScope, emptyTypeFrame] using hdecl
+        rcases h.shadowing x d hdeclOld with ⟨b, hb, hmatch⟩
+        refine ⟨b, ?_, hmatch⟩
+        simpa [lookupBinding, lookupBindingFrames, pushScope, emptyScopeFrame] using hb
+
+      objectDeclRealized := by
+        intro k x τ hdecl
+        cases k with
+        | zero =>
+            have : False := by
+              simp [typeFrameDeclObject, pushTypeScope, emptyTypeFrame] at hdecl
+            exact False.elim this
+        | succ k =>
+            have hdeclOld : typeFrameDeclObject Γ k x τ := by
+              simpa [typeFrameDeclObject, pushTypeScope] using hdecl
+            rcases h.objectDeclRealized hdeclOld with ⟨a, hbind, hown, hlive⟩
+            refine ⟨a, ?_, ?_, ?_⟩
+            · simpa [runtimeFrameBindsObject, pushScope] using hbind
+            · simpa [runtimeFrameOwnsAddress, pushScope] using hown
+            · simpa [heapLiveTypedAt, pushScope] using hlive
+
+      refDeclRealized := by
+        intro k x τ hdecl
+        cases k with
+        | zero =>
+            have : False := by
+              simp [typeFrameDeclRef, pushTypeScope, emptyTypeFrame] at hdecl
+            exact False.elim this
+        | succ k =>
+            have hdeclOld : typeFrameDeclRef Γ k x τ := by
+              simpa [typeFrameDeclRef, pushTypeScope] using hdecl
+            rcases h.refDeclRealized hdeclOld with ⟨a, hbind, hlive⟩
+            refine ⟨a, ?_, ?_⟩
+            · simpa [runtimeFrameBindsRef, pushScope] using hbind
+            · simpa [heapLiveTypedAt, pushScope] using hlive
+
+      objectBindingSound := by
+        intro k x τ a hbind
+        cases k with
+        | zero =>
+            have : False := by
+              simp [runtimeFrameBindsObject, pushScope, emptyScopeFrame] at hbind
+            exact False.elim this
+        | succ k =>
+            have hbindOld : runtimeFrameBindsObject σ k x τ a := by
+              simpa [runtimeFrameBindsObject, pushScope] using hbind
+            rcases h.objectBindingSound hbindOld with ⟨hown, hlive⟩
+            refine ⟨?_, ?_⟩
+            · simpa [runtimeFrameOwnsAddress, pushScope] using hown
+            · simpa [heapLiveTypedAt, pushScope] using hlive
+
+      refBindingSound := by
+        intro k x τ a hbind
+        cases k with
+        | zero =>
+            have : False := by
+              simp [runtimeFrameBindsRef, pushScope, emptyScopeFrame] at hbind
+            exact False.elim this
+        | succ k =>
+            have hbindOld : runtimeFrameBindsRef σ k x τ a := by
+              simpa [runtimeFrameBindsRef, pushScope] using hbind
+            simpa [heapLiveTypedAt, pushScope] using h.refBindingSound hbindOld
+
+      ownedAddressNamed := by
+        intro k a hown
+        cases k with
+        | zero =>
+            have : False := by
+              simp [runtimeFrameOwnsAddress, pushScope, emptyScopeFrame] at hown
+            exact False.elim this
+        | succ k =>
+            have hownOld : runtimeFrameOwnsAddress σ k a := by
+              simpa [runtimeFrameOwnsAddress, pushScope] using hown
+            rcases h.ownedAddressNamed hownOld with ⟨x, τ, hbind⟩
+            exact ⟨x, τ, by simpa [runtimeFrameBindsObject, pushScope] using hbind⟩
+
+      refsNotOwned := by
+        intro k fr x τ a hk hbind hlocal
+        cases k with
+        | zero =>
+            have hfr : fr = emptyScopeFrame := by
+              simpa [pushScope, emptyScopeFrame] using hk.symm
+            subst fr
+            have : False := by
+              simp [emptyScopeFrame] at hbind
+            exact False.elim this
+        | succ k =>
+            have hkOld : σ.scopes[k]? = some fr := by
+              simpa [pushScope] using hk
+            exact h.refsNotOwned k fr x τ a hkOld hbind hlocal
+
+      objectsOwned := by
+        intro k x τ a hbind
+        cases k with
+        | zero =>
+            have : False := by
+              simp [runtimeFrameBindsObject, pushScope, emptyScopeFrame] at hbind
+            exact False.elim this
+        | succ k =>
+            have hbindOld : runtimeFrameBindsObject σ k x τ a := by
+              simpa [runtimeFrameBindsObject, pushScope] using hbind
+
+            -- 修正箇所: 引数 k, x, τ, a を明示的に渡す、または _ で推論させる
+            have hownOld := h.objectsOwned k x τ a hbindOld
+
+            -- あとはこれまでのケースと同様に simpa で pushScope の定義を剥がす
+            simpa [runtimeFrameOwnsAddress, pushScope] using hownOld
+
+      ownedNoDupPerFrame := by
+        intro k fr hk
+        cases k with
+        | zero =>
+            have hfr : fr = emptyScopeFrame := by
+              simpa [pushScope, emptyScopeFrame] using hk.symm
+            subst fr
+            simp [emptyScopeFrame]
+        | succ k =>
+            have hkOld : σ.scopes[k]? = some fr := by
+              simpa [pushScope] using hk
+            exact h.ownedNoDupPerFrame k fr hkOld
+
+      ownedDisjoint := ownedAddressesDisjoint_pushScope h.ownedDisjoint
+
+      ownedNamed := by
+        intro k a hown
+        cases k with
+        | zero =>
+            have : False := by
+              simp [runtimeFrameOwnsAddress, pushScope, emptyScopeFrame] at hown
+            exact False.elim this
+        | succ k =>
+            have hownOld : runtimeFrameOwnsAddress σ k a := by
+              simpa [runtimeFrameOwnsAddress, pushScope] using hown
+
+            -- 修正箇所: 引数 k と a を明示的に渡す
+            rcases h.ownedNamed k a hownOld with ⟨x, τ, hbind⟩
+
+            -- ゴールは pushScope された状態での binds なので simpa で戻す
+            exact ⟨x, τ, by simpa [runtimeFrameBindsObject, pushScope] using hbind⟩
+
+      heapStoredValuesTyped := by
+        simpa [heapInitializedValuesTyped, pushScope] using h.heapStoredValuesTyped
+
+      nextFresh := nextIsFreshForOwnedHeap_pushScope h.nextFresh
+
+      refTargetsAvoidInnerOwned := by
+        intro k x τ a j hbind hj
+        cases k with
+        | zero =>
+            have : False := by
+              simp [runtimeFrameBindsRef, pushScope, emptyScopeFrame] at hbind
+            exact False.elim this
+        | succ k =>
+            cases j with
+            | zero =>
+                intro hown
+                have : False := by
+                  simp [runtimeFrameOwnsAddress, pushScope, emptyScopeFrame] at hown
+                exact False.elim this
+            | succ j =>
+                have hbindOld : runtimeFrameBindsRef σ k x τ a := by
+                  simpa [runtimeFrameBindsRef, pushScope] using hbind
+                have hjOld : j < k := Nat.lt_of_succ_lt_succ hj
+                have havoidOld := h.refTargetsAvoidInnerOwned hbindOld hjOld
+                intro hown
+                have hownOld : runtimeFrameOwnsAddress σ j a := by
+                  simpa [runtimeFrameOwnsAddress, pushScope] using hown
+                exact havoidOld hownOld }
 
 mutual
 
