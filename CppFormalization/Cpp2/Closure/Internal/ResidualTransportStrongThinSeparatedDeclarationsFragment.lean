@@ -86,17 +86,58 @@ inductive AssignHeadTransportableBlockDecl
    1.5 Push-scope stability of the current declaration-aware fragment
    ========================================================= -/
 
-/--
-Typing of value expressions is stable under pushing an empty type scope.
+mutual
 
-This is the minimal weakening bridge needed to transport the current
-assign-headed declaration-aware fragment through block-entry.
--/
-axiom hasValueType_pushTypeScope
+theorem hasPlaceType_pushTypeScope
+    {Γ : TypeEnv} {p : PlaceExpr} {τ : CppType} :
+    HasPlaceType Γ p τ →
+    HasPlaceType (pushTypeScope Γ) p τ := by
+  intro h
+  cases h with
+  | var hlookup =>
+      exact .var (by
+        simpa [lookupDecl, lookupDeclFrames, pushTypeScope, emptyTypeFrame] using hlookup)
+  | deref hv =>
+      exact .deref (hasValueType_pushTypeScope hv)
+
+theorem hasValueType_pushTypeScope
     {Γ : TypeEnv} {e : ValExpr} {τ : CppType} :
     HasValueType Γ e τ →
-    HasValueType (pushTypeScope Γ) e τ
+    HasValueType (pushTypeScope Γ) e τ := by
+  intro h
+  cases h with
+  | litBool =>
+      exact .litBool
+  | litInt =>
+      exact .litInt
+  | load hp =>
+      exact .load (hasPlaceType_pushTypeScope hp)
+  | addrOf hp =>
+      exact .addrOf (hasPlaceType_pushTypeScope hp)
+  | add h1 h2 =>
+      exact .add
+        (hasValueType_pushTypeScope h1)
+        (hasValueType_pushTypeScope h2)
+  | sub h1 h2 =>
+      exact .sub
+        (hasValueType_pushTypeScope h1)
+        (hasValueType_pushTypeScope h2)
+  | mul h1 h2 =>
+      exact .mul
+        (hasValueType_pushTypeScope h1)
+        (hasValueType_pushTypeScope h2)
+  | eq h1 h2 =>
+      exact .eq
+        (hasValueType_pushTypeScope h1)
+        (hasValueType_pushTypeScope h2)
+  | lt h1 h2 =>
+      exact .lt
+        (hasValueType_pushTypeScope h1)
+        (hasValueType_pushTypeScope h2)
+  | not h =>
+      exact .not (hasValueType_pushTypeScope h)
 
+end
 /--
 The strong thin-separated replay witness is stable under pushing an empty
 type/runtime scope.
