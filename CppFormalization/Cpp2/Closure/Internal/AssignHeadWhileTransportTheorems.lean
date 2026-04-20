@@ -82,7 +82,6 @@ theorem while_ready_after_assign_head_of_decl_transportable_seq_body
   exact while_ready_after_assign_head_of_decl_transportable_body
     hc hbody htyWhile hσ' hreadyWhile hstepHead
 
-
 theorem while_ready_after_assign_head_of_decl_transportable_block_body
     {Γ : TypeEnv} {σ σ' : State}
     {q : PlaceExpr} {rhs : ValExpr}
@@ -95,26 +94,19 @@ theorem while_ready_after_assign_head_of_decl_transportable_block_body
     BigStepStmt σ (.assign q rhs) .normal σ' →
     StmtReadyConcrete Γ σ' (.whileStmt c (.block ss)) := by
   intro hc hblock htyWhile hσ' hreadyWhile hstepHead
-  have hreadyBlock0 : BlockReadyConcrete (pushTypeScope Γ) (pushScope σ) ss := by
-    have hreadyBody : StmtReadyConcrete Γ σ (.block ss) :=
-      while_ready_body_data hreadyWhile
-    cases hreadyBody with
-    | block hreadyBlock =>
-        exact hreadyBlock
+  have hreadyBody : StmtReadyConcrete Γ σ (.block ss) :=
+    while_ready_body_data hreadyWhile
+  have hreadyBody' : StmtReadyConcrete Γ σ' (.block ss) :=
+    assign_head_decl_block_stmt_ready_after_assign
+      hblock hσ' hreadyBody hstepHead
   have hcondReady0 : ExprReadyConcrete Γ σ c (.base .bool) :=
     (while_ready_cond_data hreadyWhile).2
   have hcondReady' : ExprReadyConcrete Γ σ' c (.base .bool) :=
     strongThinSeparated_cond_expr_ready_after_assign
       hc hσ' hcondReady0 hstepHead
-  sorry
-  /-
-  have hreadyBlock' : BlockReadyConcrete Γ σ' ss :=
-    assign_head_decl_block_ready_after_assign
-      hblock hσ' hreadyBlock0 hstepHead
-
   rcases while_typing_data htyWhile with ⟨_, hcb, _, _, _⟩
-  exact StmtReadyConcrete.whileStmt hcb hcondReady' (StmtReadyConcrete.block hreadyBlock')
--/
+  exact StmtReadyConcrete.whileStmt hcb hcondReady' hreadyBody'
+
 theorem while_ready_after_assign_head_of_transportable_block_body
     {Γ : TypeEnv} {σ σ' : State}
     {q : PlaceExpr} {rhs : ValExpr}

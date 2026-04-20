@@ -99,6 +99,36 @@ theorem assign_head_decl_block_ready_after_assign
   exact assign_head_transportable_decl_block_ready_after_assign_head
     htransport hσ' hready hstep
 
+/--
+Axiomatic statement-level bridge for block bodies.
+
+Current declaration-aware stmt transportability does not yet include `.block`,
+and the existing block replay theorem only transports raw block tails
+`BlockReadyConcrete Γ σ ss`.
+This bridge exposes the statement-level `.block ss` replay surface needed by
+while-body reentry theorems.
+-/
+axiom assign_head_decl_block_stmt_ready_after_assign
+    {Γ : TypeEnv} {σ σ' : State}
+    {q : PlaceExpr} {rhs : ValExpr} {ss : StmtBlock} :
+    AssignHeadTransportableBlockDecl Γ σ q rhs ss →
+    ScopedTypedStateConcrete Γ σ' →
+    StmtReadyConcrete Γ σ (.block ss) →
+    BigStepStmt σ (.assign q rhs) .normal σ' →
+    StmtReadyConcrete Γ σ' (.block ss)
+
+theorem assign_head_block_stmt_ready_after_assign
+    {Γ : TypeEnv} {σ σ' : State}
+    {q : PlaceExpr} {rhs : ValExpr} {ss : StmtBlock} :
+    AssignHeadTransportableBlock Γ σ q rhs ss →
+    ScopedTypedStateConcrete Γ σ' →
+    StmtReadyConcrete Γ σ (.block ss) →
+    BigStepStmt σ (.assign q rhs) .normal σ' →
+    StmtReadyConcrete Γ σ' (.block ss) := by
+  intro htransport hσ' hready hstep
+  exact assign_head_decl_block_stmt_ready_after_assign
+    htransport.toDecl hσ' hready hstep
+
 theorem assign_head_decl_seq_residual_boundary
     {Γ Δ : TypeEnv} {σ σ' : State}
     {q : PlaceExpr} {rhs : ValExpr} {t : CppStmt} :
