@@ -30,6 +30,7 @@ import CppFormalization.Cpp2.Closure.Internal.StmtControlCompatibility
 import CppFormalization.Cpp2.Closure.Internal.StmtControlKernel
 import CppFormalization.Cpp2.Closure.Internal.StmtControlPreservation
 import CppFormalization.Cpp2.Closure.Internal.StmtNormalCompatCases
+import CppFormalization.Cpp2.Closure.Internal.StrongThinSeparatedDerefTheorems
 import CppFormalization.Cpp2.Closure.Internal.ThinSeparatedDerefAssignKernel
 import CppFormalization.Cpp2.Closure.Internal.TypingCINormalExclusion
 import CppFormalization.Cpp2.Closure.Internal.TypingCISeparation
