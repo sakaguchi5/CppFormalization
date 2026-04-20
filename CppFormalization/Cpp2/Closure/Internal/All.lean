@@ -23,6 +23,9 @@ import CppFormalization.Cpp2.Closure.Internal.NormalPathTypingBridge
 import CppFormalization.Cpp2.Closure.Internal.PrimitiveStmtNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.ReadinessBoundaryConcrete
 import CppFormalization.Cpp2.Closure.Internal.ReadinessReplayPrimitive
+import CppFormalization.Cpp2.Closure.Internal.ResidualTransportableDeclarationsFragment
+import CppFormalization.Cpp2.Closure.Internal.ResidualTransportStableFragment
+import CppFormalization.Cpp2.Closure.Internal.ResidualTransportStrongThinSeparatedFragment
 import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.SequentialStmtNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.StmtAbruptCompatibility
