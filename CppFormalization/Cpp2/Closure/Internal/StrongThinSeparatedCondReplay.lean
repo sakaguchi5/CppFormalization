@@ -132,6 +132,12 @@ inductive StrongThinSeparatedCondExpr
     HasValueType Γ e τ :=
   hasValueType_of_exprReadyConcrete
 
+--
+@[simp] theorem StrongThinSeparatedCondExpr.ready_at_sigma
+    {Γ σ q rhs c τ} (hc : StrongThinSeparatedCondExpr Γ σ q rhs c τ):
+    HasValueType Γ c τ :=
+  hc.hasValueType
+
 /- =========================================================
    2. Replay theorem across the head assignment
    ========================================================= -/
