@@ -1,50 +1,37 @@
 import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 import CppFormalization.Cpp2.Closure.Internal.AssignTransportKernel
+import CppFormalization.Cpp2.Closure.Internal.PtrExprAssignTransportKernel
 
 namespace Cpp
 
 /-!
-After theoremizing the replay-stable primitive fragment and then extending the
-suffix fragment to declaration cases, the remaining honest frontier is no longer
-"seq/block in general". It is the dereference / alias-sensitive part of assign
-transport.
+After splitting off expression-level pointer replay, the remaining honest
+frontier is narrower:
 
-This file does not pretend to solve that frontier. It isolates it.
+- expression-level pointer readiness is handled by
+  `PtrExprAssignTransportKernel`;
+- what still remains here is the pointee-live / dereference-readable part.
 
-The key observation is that the bundled `AssignTransportKernel` already covers:
-- replay of the assigned lhs/rhs pair itself;
-- replay-stable variable-place transport;
-- readable transport for replay-stable variable loads.
-
-What still remains is the assign transport needed for suffixes whose readiness
-depends on dereference-based places.
+This is the genuinely alias-sensitive residue.
 -/
 
 
 /--
-Pointer-valued expression transport needed to replay dereference-based places
-across an assignment step.
+Remaining dereference frontier after separating pointer-expression replay.
 
-This is intentionally phrased at the expression / value / place boundary rather
-than as a blanket statement about arbitrary expressions:
-the missing part of the theory is specifically about preserving pointer
-evaluation and the live/readable cell it points to.
+What is left is no longer "pointer expressions stay ready", but the stronger
+question:
+
+- if a pointer expression previously supported dereference,
+  does it still support dereference after assignment?
+- if `load (.deref e)` was readable before assignment,
+  can that readable witness be reconstructed afterwards?
+
+These are the parts that are plausibly false without additional
+non-interference or stronger pointer invariants, so they stay isolated here.
 -/
 structure DerefAssignTransportKernel : Type where
-  /--
-  A pointer-valued expression that is ready before the assignment remains ready
-  afterwards.
-  -/
-  ptrExpr_after_assign :
-    ∀ {Γ : TypeEnv} {σ σ' : State}
-      {q : PlaceExpr} {rhs : ValExpr}
-      {e : ValExpr} {τ : CppType},
-      ScopedTypedStateConcrete Γ σ' →
-      ExprReadyConcrete Γ σ e (.ptr τ) →
-      BigStepStmt σ (.assign q rhs) .normal σ' →
-      ExprReadyConcrete Γ σ' e (.ptr τ)
-
   /--
   If a pointer expression actually points to some live `τ`-cell before the
   assignment, then after the assignment it still points to some live `τ`-cell.
@@ -75,24 +62,14 @@ structure DerefAssignTransportKernel : Type where
       ∃ a', BigStepPlace σ' (.deref e) a' ∧ CellReadableTyped σ' a' τ
 
 /--
-Current dereference frontier package.
+Current dereference pointee/readable frontier package.
 
-This remains axiomatic for now. The point of introducing it is to make the
-remaining gap explicit and local, instead of leaving it hidden behind the
-general residual-readiness axioms.
+This remains axiomatic for now. The point of the split is that the weaker
+expression-level replay is now exposed separately in
+`PtrExprAssignTransportKernel`, while the genuinely stronger alias-sensitive
+residue stays here.
 -/
 axiom derefAssignTransportKernel : DerefAssignTransportKernel
-
-theorem ptr_expr_ready_after_assign
-    {Γ : TypeEnv} {σ σ' : State}
-    {q : PlaceExpr} {rhs : ValExpr}
-    {e : ValExpr} {τ : CppType} :
-    ScopedTypedStateConcrete Γ σ' →
-    ExprReadyConcrete Γ σ e (.ptr τ) →
-    BigStepStmt σ (.assign q rhs) .normal σ' →
-    ExprReadyConcrete Γ σ' e (.ptr τ) := by
-  intro hσ' hready hstep
-  exact derefAssignTransportKernel.ptrExpr_after_assign hσ' hready hstep
 
 theorem ptr_value_ready_at_after_assign
     {Γ : TypeEnv} {σ σ' : State}
