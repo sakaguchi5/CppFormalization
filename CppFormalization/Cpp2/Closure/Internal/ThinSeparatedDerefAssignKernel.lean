@@ -166,7 +166,7 @@ private theorem ptrValue_addrOf_preserved_of_thinSeparatedWitness
 
 
 /- =========================================================
-   5. Refined kernel: split the true remaining frontier
+   5. Refined kernel: weak witness leaves only the load case open
    ========================================================= -/
 
 /--
@@ -256,7 +256,146 @@ theorem cellReadable_off_target_preserved_of_refined
 
 
 /- =========================================================
-   7. Adapters
+   7. Stronger witness for the remaining load case
+   ========================================================= -/
+
+/--
+A stronger load-specific witness.
+
+The old `ThinSeparatedWitness` for `e = .load p` only separates the head write
+target from the *loaded pointer value* address. To theoremize the load case we
+also need separation from the address of the source pointer cell itself.
+
+`sourceSeparated` expresses exactly that missing fact.
+-/
+structure LoadThinSeparatedWitness
+    (Γ : TypeEnv) (σ : State)
+    (q : PlaceExpr) (rhs : ValExpr)
+    (p : PlaceExpr) (τ : CppType) : Type where
+  base : ThinSeparatedWitness Γ σ q rhs (.load p) τ
+  sourceSeparated :
+    ∀ {aSrc : Nat}, BigStepPlace σ p aSrc → base.writeAddr ≠ aSrc
+
+/--
+load のソースとなるアドレス (aSrc) は、
+書き込み対象 (writeAddr) と分離されているため、代入後もヒープの内容が変化しない。
+-/
+private theorem heap_at_load_source_preserved
+    {Γ : TypeEnv} {σ σ' : State}
+    {q : PlaceExpr} {rhs : ValExpr}
+    {p : PlaceExpr} {τ : CppType} {aSrc : Nat} {cSrc : Cell}
+    (w : LoadThinSeparatedWitness Γ σ q rhs p τ)
+    (hplace : BigStepPlace σ p aSrc)
+    (hheap : σ.heap aSrc = some cSrc)
+    (hstep : BigStepStmt σ (.assign q rhs) .normal σ') :
+    σ'.heap aSrc = some cSrc := by
+  have hneqW : w.base.writeAddr ≠ aSrc := w.sourceSeparated hplace
+  have hneq : aSrc ≠ w.base.writeAddr := Ne.symm hneqW
+  exact bigStepStmt_assign_heap_unchanged_off_target
+    w.base.writesQ hneq hheap hstep
+
+private theorem ptrValue_load_preserved_of_loadThinSeparatedWitness
+    {Γ : TypeEnv} {σ σ' : State}
+    {q : PlaceExpr} {rhs : ValExpr}
+    {p : PlaceExpr} {τ : CppType} {a : Nat}
+    (w : LoadThinSeparatedWitness Γ σ q rhs p τ)
+    (hptr : PtrValueReadyAt Γ σ (.load p) τ a)
+    (hstep : BigStepStmt σ (.assign q rhs) .normal σ') :
+    PtrValueReadyAt Γ σ' (.load p) τ a := by
+  -- 1. srcStable から ReplayStableReadPlace を抽出
+  have hpstable : ReplayStableReadPlace p := by
+    cases w.base.srcStable with
+    | load hp => exact hp
+  -- 2. PtrValueReadyAt を分解
+  rcases hptr with ⟨hty, hval⟩
+  -- 3. BigStepValue.load の中身を明示的に取り出す
+  cases hval with
+  | load hplace hheap halive hval_ptr =>
+      -- 1. p の指す先 (aSrc) が書き込みで変わらないことを証明
+      -- (hpstable と hstep から σ' でも同じ aSrc を指すことを導く)
+      have hplace' : BigStepPlace σ' p _ :=
+        bigStepPlace_replayStableReadPlace_after_assign hpstable hplace hstep
+      -- 2. 補助定理を使ってヒープの不変性を示す
+      -- hheap : σ.heap a_src = some c
+      have hheap' : σ'.heap _ = some _ :=
+        heap_at_load_source_preserved w hplace hheap hstep
+      -- 3. PtrValueReadyAt を再構成
+      -- 構造：⟨型情報, BigStepValue.load ...⟩
+      exact ⟨w.base.ptrType, BigStepValue.load hplace' hheap' halive hval_ptr⟩
+
+/--
+A fully theoremized local separation witness family.
+
+For `addrOf`, the old thin witness is already enough.
+For `load`, we use the stronger load-specific witness above.
+For all other value expressions, the family is empty on purpose.
+-/
+inductive StrongThinSeparatedWitness
+    (Γ : TypeEnv) (σ : State)
+    (q : PlaceExpr) (rhs : ValExpr) :
+    ValExpr → CppType → Type where
+  | addrOf {p : PlaceExpr} {τ : CppType} :
+      ThinSeparatedWitness Γ σ q rhs (.addrOf p) τ →
+      StrongThinSeparatedWitness Γ σ q rhs (.addrOf p) τ
+  | load {p : PlaceExpr} {τ : CppType} :
+      LoadThinSeparatedWitness Γ σ q rhs p τ →
+      StrongThinSeparatedWitness Γ σ q rhs (.load p) τ
+
+def StrongThinSeparatedWitness.toThin
+    {Γ : TypeEnv} {σ : State}
+    {q : PlaceExpr} {rhs : ValExpr}
+    {e : ValExpr} {τ : CppType} :
+    StrongThinSeparatedWitness Γ σ q rhs e τ →
+    ThinSeparatedWitness Γ σ q rhs e τ
+  | .addrOf w => w
+  | .load w => w.base
+
+theorem ptrValue_preserved_of_strongThinSeparatedWitness
+    {Γ : TypeEnv} {σ σ' : State}
+    {q : PlaceExpr} {rhs : ValExpr}
+    {e : ValExpr} {τ : CppType} {a : Nat} :
+    StrongThinSeparatedWitness Γ σ q rhs e τ →
+    PtrValueReadyAt Γ σ e τ a →
+    BigStepStmt σ (.assign q rhs) .normal σ' →
+    PtrValueReadyAt Γ σ' e τ a := by
+  intro w hptr hstep
+  cases w with
+  | addrOf wAddr =>
+      simpa using ptrValue_addrOf_preserved_of_thinSeparatedWitness wAddr hptr hstep
+  | load wLoad =>
+      simpa using ptrValue_load_preserved_of_loadThinSeparatedWitness wLoad hptr hstep
+
+theorem cellLive_off_target_preserved_of_strongThinSeparatedWitness
+    {Γ : TypeEnv} {σ σ' : State}
+    {q : PlaceExpr} {rhs : ValExpr}
+    {e : ValExpr} {τ : CppType} {a : Nat} :
+    StrongThinSeparatedWitness Γ σ q rhs e τ →
+    ScopedTypedStateConcrete Γ σ' →
+    PtrValueReadyAt Γ σ e τ a →
+    CellLiveTyped σ a τ →
+    BigStepStmt σ (.assign q rhs) .normal σ' →
+    CellLiveTyped σ' a τ := by
+  intro w hσ' hptr hlive hstep
+  exact cellLive_off_target_preserved_of_refined
+    w.toThin hσ' hptr hlive hstep
+
+theorem cellReadable_off_target_preserved_of_strongThinSeparatedWitness
+    {Γ : TypeEnv} {σ σ' : State}
+    {q : PlaceExpr} {rhs : ValExpr}
+    {e : ValExpr} {τ : CppType} {a : Nat} :
+    StrongThinSeparatedWitness Γ σ q rhs e τ →
+    ScopedTypedStateConcrete Γ σ' →
+    PtrValueReadyAt Γ σ e τ a →
+    CellReadableTyped σ a τ →
+    BigStepStmt σ (.assign q rhs) .normal σ' →
+    CellReadableTyped σ' a τ := by
+  intro w hσ' hptr hread hstep
+  exact cellReadable_off_target_preserved_of_refined
+    w.toThin hσ' hptr hread hstep
+
+
+/- =========================================================
+   8. Adapters
    ========================================================= -/
 
 /--
@@ -316,5 +455,43 @@ def ThinSeparatedDerefAssignKernelRefined.toSeparated
     (K : ThinSeparatedDerefAssignKernelRefined) :
     SeparatedDerefAssignKernel :=
   K.toThinSeparated.toSeparated
+
+/--
+A completely theoremized abstract local separation interface for the strong
+witness family.
+
+This is the payoff of the split:
+- `addrOf` is handled from the old thin witness;
+- `load` is handled from the stronger load-specific witness;
+- off-target heap/live/readable preservation is already theoremized.
+-/
+def strongThinSeparatedWitnessKernel:
+    SeparatedDerefAssignKernel where
+  SepWitness := StrongThinSeparatedWitness
+
+  ptrValueReadyAt_after_assign := by
+    intro Δ σpre σ' q' rhs' e τ a w hσ' hptr hlive hstep
+    -- The parameters `Δ σpre q' rhs'` are definitionally the fixed ones above.
+    have hptr' : PtrValueReadyAt Δ σ' e τ a :=
+      ptrValue_preserved_of_strongThinSeparatedWitness w hptr hstep
+    have hlive' : CellLiveTyped σ' a τ :=
+      cellLive_off_target_preserved_of_strongThinSeparatedWitness
+        w hσ' hptr hlive hstep
+    exact ⟨a, hptr', hlive'⟩
+
+  derefLoadReadable_after_assign := by
+    intro Δ σpre σ' q' rhs' e τ w hσ' hread hstep
+    rcases hread with ⟨a, hplace, hcell⟩
+    cases hplace with
+    | deref hval hheap halive =>
+        let hptr : PtrValueReadyAt Δ σpre e τ a := ⟨(w.toThin).ptrType, hval⟩
+        have hptr' : PtrValueReadyAt Δ σ' e τ a :=
+          ptrValue_preserved_of_strongThinSeparatedWitness w hptr hstep
+        have hcell' : CellReadableTyped σ' a τ :=
+          cellReadable_off_target_preserved_of_strongThinSeparatedWitness
+            w hσ' hptr hcell hstep
+        have hplace' : BigStepPlace σ' (.deref e) a :=
+          bigStepPlace_deref_of_ptrValueReadyAt_and_cellReadable hptr' hcell'
+        exact ⟨a, hplace', hcell'⟩
 
 end Cpp
