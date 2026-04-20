@@ -161,16 +161,89 @@ axiom scoped_typed_state_concrete_pushScope
     ScopedTypedStateConcrete Γ σ →
     ScopedTypedStateConcrete (pushTypeScope Γ) (pushScope σ)
 
-/--
-The fixed head assignment commutes with pushing an empty runtime scope.
+mutual
 
-This is the operational bridge needed to replay an assign-headed block body
-inside the pushed runtime state used by `StmtReadyConcrete.block`.
--/
-axiom bigStepStmt_assign_pushScope
+theorem bigStepPlace_pushScope
+    {σ : State} {p : PlaceExpr} {a : Nat} :
+    BigStepPlace σ p a →
+    BigStepPlace (pushScope σ) p a := by
+  intro h
+  cases h with
+  | varObject hlookup =>
+      exact .varObject (by
+        simpa [lookupBinding, lookupBindingFrames, pushScope, emptyScopeFrame] using hlookup)
+  | varRef hlookup =>
+      exact .varRef (by
+        simpa [lookupBinding, lookupBindingFrames, pushScope, emptyScopeFrame] using hlookup)
+  | deref hv hheap halive =>
+      exact .deref
+        (bigStepValue_pushScope hv)
+        (by simpa [pushScope] using hheap)
+        halive
+
+theorem bigStepValue_pushScope
+    {σ : State} {e : ValExpr} {v : Value} :
+    BigStepValue σ e v →
+    BigStepValue (pushScope σ) e v := by
+  intro h
+  cases h with
+  | litBool =>
+      exact .litBool
+  | litInt =>
+      exact .litInt
+  | load hp hheap halive hval =>
+      exact .load
+        (bigStepPlace_pushScope hp)
+        (by simpa [pushScope] using hheap)
+        halive
+        hval
+  | addrOf hp =>
+      exact .addrOf (bigStepPlace_pushScope hp)
+  | add h1 h2 =>
+      exact .add
+        (bigStepValue_pushScope h1)
+        (bigStepValue_pushScope h2)
+  | sub h1 h2 =>
+      exact .sub
+        (bigStepValue_pushScope h1)
+        (bigStepValue_pushScope h2)
+  | mul h1 h2 =>
+      exact .mul
+        (bigStepValue_pushScope h1)
+        (bigStepValue_pushScope h2)
+  | eq h1 h2 =>
+      exact .eq
+        (bigStepValue_pushScope h1)
+        (bigStepValue_pushScope h2)
+  | lt h1 h2 =>
+      exact .lt
+        (bigStepValue_pushScope h1)
+        (bigStepValue_pushScope h2)
+  | not h =>
+      exact .not (bigStepValue_pushScope h)
+
+end
+
+theorem assigns_pushScope
+    {σ σ' : State} {p : PlaceExpr} {v : Value} :
+    Assigns σ p v σ' →
+    Assigns (pushScope σ) p v (pushScope σ') := by
+  intro h
+  rcases h with ⟨a, c, hp, hheap, halive, hcompat, rfl⟩
+  refine ⟨a, c, bigStepPlace_pushScope hp, ?_, halive, hcompat, ?_⟩
+  · simpa [pushScope] using hheap
+  · simp [writeHeap, pushScope]
+
+theorem bigStepStmt_assign_pushScope
     {σ σ' : State} {q : PlaceExpr} {rhs : ValExpr} :
     BigStepStmt σ (.assign q rhs) .normal σ' →
-    BigStepStmt (pushScope σ) (.assign q rhs) .normal (pushScope σ')
+    BigStepStmt (pushScope σ) (.assign q rhs) .normal (pushScope σ') := by
+  intro h
+  cases h with
+  | assign hval hassign =>
+      exact .assign
+        (bigStepValue_pushScope hval)
+        (assigns_pushScope hassign)
 
 mutual
 
