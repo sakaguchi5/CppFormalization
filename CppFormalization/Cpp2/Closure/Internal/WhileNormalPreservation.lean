@@ -465,7 +465,7 @@ theorem replay_stable_primitive_body_while_normal_preserves_scoped_typed_state_c
 
 theorem while_ready_after_body_normal_of_strongThinSeparated_assign
     {Γ : TypeEnv} {σ σ' : State}
-    {c q : PlaceExpr} {rhs : ValExpr} :
+    {c : ValExpr} {q : PlaceExpr} {rhs : ValExpr} : -- c を ValExpr に変更
     StrongThinSeparatedCondExpr Γ σ q rhs c (.base .bool) →
     HasTypeStmtCI .normalK Γ (.whileStmt c (.assign q rhs)) Γ →
     ScopedTypedStateConcrete Γ σ' →
@@ -513,12 +513,12 @@ theorem strongThinSeparated_assign_body_while_normal_preserves_scoped_typed_stat
   · subst hstop
     exact hσ
   · rcases hnorm with ⟨σ1, hbodyStep, htailStep⟩
-    have hreadyBody : StmtReadyConcrete Γ σ (.assign q rhs) :=
+    have hreadyBody : StmtReadyConcrete Δ σ (.assign q rhs) :=
       while_ready_body_data hready
-    have hσ1 : ScopedTypedStateConcrete Γ σ1 :=
+    have hσ1 : ScopedTypedStateConcrete Δ σ1 :=
       assign_stmt_normal_preserves_scoped_typed_state_concrete
         hN hσ hreadyBody hbodyStep
-    have hreadyTail : StmtReadyConcrete Γ σ1 (.whileStmt c (.assign q rhs)) :=
+    have hreadyTail : StmtReadyConcrete Δ σ1 (.whileStmt c (.assign q rhs)) :=
       while_ready_after_body_normal_of_strongThinSeparated_assign
         hc htyWhile hσ1 hready hbodyStep
     exact htail hσ1 hreadyTail htailStep
