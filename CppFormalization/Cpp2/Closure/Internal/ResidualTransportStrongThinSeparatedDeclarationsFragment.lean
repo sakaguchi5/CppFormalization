@@ -82,6 +82,95 @@ inductive AssignHeadTransportableBlockDecl
       AssignHeadTransportableBlockDecl Γ σ q rhs ss →
       AssignHeadTransportableBlockDecl Γ σ q rhs (.cons s ss)
 
+/- =========================================================
+   1.5 Push-scope stability of the current declaration-aware fragment
+   ========================================================= -/
+
+/--
+Typing of value expressions is stable under pushing an empty type scope.
+
+This is the minimal weakening bridge needed to transport the current
+assign-headed declaration-aware fragment through block-entry.
+-/
+axiom hasValueType_pushTypeScope
+    {Γ : TypeEnv} {e : ValExpr} {τ : CppType} :
+    HasValueType Γ e τ →
+    HasValueType (pushTypeScope Γ) e τ
+
+/--
+The strong thin-separated replay witness is stable under pushing an empty
+type/runtime scope.
+
+Mathematically this is natural: the new top scope is empty, so it does not
+introduce aliases or invalidate the old replay witness.
+-/
+axiom strongThinSeparatedCondExpr_pushScope
+    {Γ : TypeEnv} {σ : State} {q : PlaceExpr} {rhs e : ValExpr} {τ : CppType} :
+    StrongThinSeparatedCondExpr Γ σ q rhs e τ →
+    StrongThinSeparatedCondExpr (pushTypeScope Γ) (pushScope σ) q rhs e τ
+
+mutual
+
+theorem assign_head_transportable_decl_stmt_pushScope
+    {Γ : TypeEnv} {σ : State} {q : PlaceExpr} {rhs : ValExpr} {st : CppStmt} :
+    AssignHeadTransportableStmtDecl Γ σ q rhs st →
+    AssignHeadTransportableStmtDecl (pushTypeScope Γ) (pushScope σ) q rhs st := by
+  intro h
+  induction h with
+  | skip =>
+      exact .skip
+  | exprStmt hc hty =>
+      exact .exprStmt
+        (strongThinSeparatedCondExpr_pushScope hc)
+        (hasValueType_pushTypeScope hty)
+  | assign hp hc hty =>
+      exact .assign
+        hp
+        (strongThinSeparatedCondExpr_pushScope hc)
+        (hasValueType_pushTypeScope hty)
+  | declareObjNone =>
+      exact .declareObjNone
+  | declareObjSome hc hty =>
+      exact .declareObjSome
+        (strongThinSeparatedCondExpr_pushScope hc)
+        (hasValueType_pushTypeScope hty)
+  | declareRef hp =>
+      exact .declareRef hp
+  | seq hs ht ihs iht =>
+      exact .seq ihs iht
+  | ite hc hs ht ihs iht =>
+      exact .ite
+        (strongThinSeparatedCondExpr_pushScope hc)
+        ihs iht
+  | whileStmt hc hbody ih =>
+      exact .whileStmt
+        (strongThinSeparatedCondExpr_pushScope hc)
+        ih
+  | breakStmt =>
+      exact .breakStmt
+  | continueStmt =>
+      exact .continueStmt
+  | returnNone =>
+      exact .returnNone
+  | returnSome hc hty =>
+      exact .returnSome
+        (strongThinSeparatedCondExpr_pushScope hc)
+        (hasValueType_pushTypeScope hty)
+
+theorem assign_head_transportable_decl_block_pushScope
+    {Γ : TypeEnv} {σ : State} {q : PlaceExpr} {rhs : ValExpr} {ss : StmtBlock} :
+    AssignHeadTransportableBlockDecl Γ σ q rhs ss →
+    AssignHeadTransportableBlockDecl (pushTypeScope Γ) (pushScope σ) q rhs ss := by
+  intro h
+  induction h with
+  | nil =>
+      exact .nil
+  | cons hs hss ih =>
+      exact .cons
+        (assign_head_transportable_decl_stmt_pushScope hs)
+        ih
+
+end
 
 /- =========================================================
    2. Replay across the fixed head assignment
