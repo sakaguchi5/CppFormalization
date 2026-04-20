@@ -6,23 +6,6 @@ import CppFormalization.Cpp2.Lemmas.ExprDeterminism
 
 namespace Cpp
 
-/-!
-A thin concrete refinement of `SeparatedDerefAssignKernel`.
-
-The goal is not to solve the deref/pointee frontier outright, but to make the
-separation-side witness less opaque.
-
-The witness is intentionally small:
-- the pointer expression belongs to a source-stable fragment;
-- the assignment has a concrete write target in the pre-state;
-- that write target is separated from every address that the pointer expression
-  may evaluate to.
-
-What still remains axiomatic is exactly the semantic content we do not yet have:
-- source-stable pointer-value preservation across the assignment;
-- off-target preservation of live/readable cells.
--/
-
 
 /- =========================================================
    1. A thin pointer-expression fragment
@@ -76,7 +59,7 @@ structure ThinSeparatedWitness
 /--
 Concrete separation-side kernel with an explicit witness shape.
 
-What remains axiomatic is now sharper than before:
+What remains axiomatic at this layer:
 - preserve the pointer value for the thin source-stable fragment;
 - preserve live/readable facts away from the written address.
 -/
@@ -115,7 +98,7 @@ structure ThinSeparatedDerefAssignKernel : Type 1 where
 
 
 /- =========================================================
-   4. Small bridge lemmas
+   4. Small bridge lemmas used by the abstract adapter
    ========================================================= -/
 
 private theorem cellLiveTyped_of_cellReadableTyped
@@ -154,8 +137,153 @@ private theorem cellReadableTyped_at_ptrAddr_of_derefReadable
 
 
 /- =========================================================
-   5. Adapter back to the abstract local interface
+   5. Refined kernel: split the true remaining frontier
    ========================================================= -/
+
+/--
+A refined separation-side kernel.
+
+Compared to `ThinSeparatedDerefAssignKernel`, this version does not assume one
+monolithic `ptrValue_preserved`. It splits that obligation into the two source
+forms already present in `ReplayStablePtrExpr`.
+
+It also lowers cell preservation to a single off-target heap-cell lemma.
+-/
+structure ThinSeparatedDerefAssignKernelRefined : Type 1 where
+  /--
+  `addrOf`-based pointer expressions survive the assignment.
+  This is the lighter separation-style case.
+  -/
+  ptrValue_addrOf_preserved :
+    ∀ {Γ : TypeEnv} {σ σ' : State}
+      {q : PlaceExpr} {rhs : ValExpr}
+      {p : PlaceExpr} {τ : CppType} {a : Nat},
+      ThinSeparatedWitness Γ σ q rhs (.addrOf p) τ →
+      ScopedTypedStateConcrete Γ σ' →
+      PtrValueReadyAt Γ σ (.addrOf p) τ a →
+      BigStepStmt σ (.assign q rhs) .normal σ' →
+      PtrValueReadyAt Γ σ' (.addrOf p) τ a
+
+  /--
+  `load`-based pointer expressions survive the assignment.
+  This is the heavier case because it depends on preserving the pointer cell's
+  stored address value.
+  -/
+  ptrValue_load_preserved :
+    ∀ {Γ : TypeEnv} {σ σ' : State}
+      {q : PlaceExpr} {rhs : ValExpr}
+      {p : PlaceExpr} {τ : CppType} {a : Nat},
+      ThinSeparatedWitness Γ σ q rhs (.load p) τ →
+      ScopedTypedStateConcrete Γ σ' →
+      PtrValueReadyAt Γ σ (.load p) τ a →
+      BigStepStmt σ (.assign q rhs) .normal σ' →
+      PtrValueReadyAt Γ σ' (.load p) τ a
+
+  /--
+  Primitive off-target heap stability:
+  if `a` is one of the pointer expression's possible target addresses, then the
+  heap cell at `a` is preserved verbatim across the assignment.
+  -/
+  heapCell_preserved_off_target :
+    ∀ {Γ : TypeEnv} {σ σ' : State}
+      {q : PlaceExpr} {rhs : ValExpr}
+      {e : ValExpr} {τ : CppType} {a : Nat} {c : Cell},
+      ThinSeparatedWitness Γ σ q rhs e τ →
+      ScopedTypedStateConcrete Γ σ' →
+      PtrValueReadyAt Γ σ e τ a →
+      σ.heap a = some c →
+      BigStepStmt σ (.assign q rhs) .normal σ' →
+      σ'.heap a = some c
+
+
+/- =========================================================
+   6. Derived theorems from the refined kernel
+   ========================================================= -/
+
+private theorem thinSeparatedWitness_writeAddr_ne_of_ptrValueReadyAt
+    {Γ : TypeEnv} {σ : State}
+    {q : PlaceExpr} {rhs : ValExpr}
+    {e : ValExpr} {τ : CppType} {a : Nat}
+    (w : ThinSeparatedWitness Γ σ q rhs e τ)
+    (hptr : PtrValueReadyAt Γ σ e τ a) :
+    w.writeAddr ≠ a := by
+  exact w.targetSeparated (ptrValueReadyAt_bigStepValue hptr)
+
+theorem ptrValue_preserved_of_refined
+    (K : ThinSeparatedDerefAssignKernelRefined)
+    {Γ : TypeEnv} {σ σ' : State}
+    {q : PlaceExpr} {rhs : ValExpr}
+    {e : ValExpr} {τ : CppType} {a : Nat} :
+    ThinSeparatedWitness Γ σ q rhs e τ →
+    ScopedTypedStateConcrete Γ σ' →
+    PtrValueReadyAt Γ σ e τ a →
+    BigStepStmt σ (.assign q rhs) .normal σ' →
+    PtrValueReadyAt Γ σ' e τ a := by
+  intro w hσ' hptr hstep
+  cases wsrc : w.srcStable with
+  | addrOf hp =>
+      simpa [wsrc] using
+        K.ptrValue_addrOf_preserved w hσ' hptr hstep
+  | load hp =>
+      simpa [wsrc] using
+        K.ptrValue_load_preserved w hσ' hptr hstep
+
+theorem cellLive_off_target_preserved_of_refined
+    (K : ThinSeparatedDerefAssignKernelRefined)
+    {Γ : TypeEnv} {σ σ' : State}
+    {q : PlaceExpr} {rhs : ValExpr}
+    {e : ValExpr} {τ : CppType} {a : Nat} :
+    ThinSeparatedWitness Γ σ q rhs e τ →
+    ScopedTypedStateConcrete Γ σ' →
+    PtrValueReadyAt Γ σ e τ a →
+    CellLiveTyped σ a τ →
+    BigStepStmt σ (.assign q rhs) .normal σ' →
+    CellLiveTyped σ' a τ := by
+  intro w hσ' hptr hlive hstep
+  rcases hlive with ⟨c, hheap, hty, halive⟩
+  have hheap' : σ'.heap a = some c :=
+    K.heapCell_preserved_off_target w hσ' hptr hheap hstep
+  exact ⟨c, hheap', hty, halive⟩
+
+theorem cellReadable_off_target_preserved_of_refined
+    (K : ThinSeparatedDerefAssignKernelRefined)
+    {Γ : TypeEnv} {σ σ' : State}
+    {q : PlaceExpr} {rhs : ValExpr}
+    {e : ValExpr} {τ : CppType} {a : Nat} :
+    ThinSeparatedWitness Γ σ q rhs e τ →
+    ScopedTypedStateConcrete Γ σ' →
+    PtrValueReadyAt Γ σ e τ a →
+    CellReadableTyped σ a τ →
+    BigStepStmt σ (.assign q rhs) .normal σ' →
+    CellReadableTyped σ' a τ := by
+  intro w hσ' hptr hread hstep
+  rcases hread with ⟨c, v, hheap, hty, halive, hval, hcompat⟩
+  have hheap' : σ'.heap a = some c :=
+    K.heapCell_preserved_off_target w hσ' hptr hheap hstep
+  exact ⟨c, v, hheap', hty, halive, hval, hcompat⟩
+
+
+/- =========================================================
+   7. Adapters
+   ========================================================= -/
+
+/--
+A refined kernel automatically yields the earlier thin separation-side kernel.
+-/
+def ThinSeparatedDerefAssignKernelRefined.toThinSeparated
+    (K : ThinSeparatedDerefAssignKernelRefined) :
+    ThinSeparatedDerefAssignKernel where
+  ptrValue_preserved := by
+    intro Γ σ σ' q rhs e τ a w hσ' hptr hstep
+    exact ptrValue_preserved_of_refined K w hσ' hptr hstep
+
+  cellLive_off_target_preserved := by
+    intro Γ σ σ' q rhs e τ a w hσ' hptr hlive hstep
+    exact cellLive_off_target_preserved_of_refined K w hσ' hptr hlive hstep
+
+  cellReadable_off_target_preserved := by
+    intro Γ σ σ' q rhs e τ a w hσ' hptr hread hstep
+    exact cellReadable_off_target_preserved_of_refined K w hσ' hptr hread hstep
 
 /--
 The thin concrete kernel yields an instance of the abstract local separation
@@ -187,5 +315,14 @@ def ThinSeparatedDerefAssignKernel.toSeparated
             (K.ptrValue_preserved w hσ' hptr hstep)
             hcell'
         exact ⟨a, hplace', hcell'⟩
+
+/--
+Direct adapter from the refined kernel all the way back to the abstract local
+interface.
+-/
+def ThinSeparatedDerefAssignKernelRefined.toSeparated
+    (K : ThinSeparatedDerefAssignKernelRefined) :
+    SeparatedDerefAssignKernel :=
+  K.toThinSeparated.toSeparated
 
 end Cpp
