@@ -6,6 +6,7 @@ import CppFormalization.Cpp2.Closure.Internal.BlockBodyNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.ConditionReplayKernel
 import CppFormalization.Cpp2.Closure.Internal.ConditionalNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.CurrentShellCI
+import CppFormalization.Cpp2.Closure.Internal.DerefAssignLocalInterfaces
 import CppFormalization.Cpp2.Closure.Internal.DerefAssignTransportKernel
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseSplitCI
@@ -29,6 +30,7 @@ import CppFormalization.Cpp2.Closure.Internal.StmtControlCompatibility
 import CppFormalization.Cpp2.Closure.Internal.StmtControlKernel
 import CppFormalization.Cpp2.Closure.Internal.StmtControlPreservation
 import CppFormalization.Cpp2.Closure.Internal.StmtNormalCompatCases
+import CppFormalization.Cpp2.Closure.Internal.ThinSeparatedDerefAssignKernel
 import CppFormalization.Cpp2.Closure.Internal.TypingCINormalExclusion
 import CppFormalization.Cpp2.Closure.Internal.TypingCISeparation
 import CppFormalization.Cpp2.Closure.Internal.Transport.All

@@ -41,6 +41,11 @@ of the pointer expression `e : ptr τ` in the pre-state `σ`.
 This interface does **not** specify what that witness is.
 It only records the theorem shape that a future implementation must provide.
 -/
+
+/-
+「現段階では witness family を Type-valued に固定し、kernel 自身は Type 1 とする。
+universe polymorphism は必要になった時点で導入する」
+-/
 structure SeparatedDerefAssignKernel : Type 1 where
   SepWitness :
     TypeEnv → State → PlaceExpr → ValExpr → ValExpr → CppType → Type
