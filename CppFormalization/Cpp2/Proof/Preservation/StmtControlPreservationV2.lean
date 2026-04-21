@@ -10,7 +10,6 @@ import CppFormalization.Cpp2.Closure.Internal.ConditionalNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.BlockNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyNormalPreservation
 import CppFormalization.Cpp2.Proof.Control.StmtControlCompatibility
-import CppFormalization.Cpp2.Closure.Transitions.Minor.OpenScopeDecomposition
 import CppFormalization.Cpp2.Lemmas.TransitionDeterminism
 import CppFormalization.Cpp2.Lemmas.ExprTypeUniqueness
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlKernelSupport
@@ -210,23 +209,10 @@ theorem stmt_control_preserves_scoped_typed_state_of_compatible_core
       hcompBlk ihBlk
       hsc_in
     intro hready_block
-
-    cases hready_block with
-    | block hreadyBody_old =>
-        have hsc_open : ScopedTypedStateConcrete (pushTypeScope Γ_env) σ_open :=
-          openScope_preserves_scoped_typed_state_concrete hsc_in hopen
-
-        have hreadyBody : BlockReadyConcrete (pushTypeScope Γ_env) σ_open ss_blk :=
-          blockReadyConcrete_of_openScope hreadyBody_old hopen
-
-        have hsc_body : ScopedTypedStateConcrete Θ_env σ_body :=
-          ihBlk hsc_open hreadyBody
-
-        have hExt : TopFrameExtensionOf Γ_env Θ_env :=
-          block_ci_topFrameExtension htyBlk
-
-        exact closeScope_preserves_outer_from_topFrameExtension
-          hExt hsc_body hclose
+    exact
+      blockStmtCase
+        (htyB := htyBlk) (hopen := hopen) (hclose := hclose)
+        ihBlk hsc_in hready_block
   · -- nil
     intro _ _ Γ σ hsc hready
     simpa using hsc

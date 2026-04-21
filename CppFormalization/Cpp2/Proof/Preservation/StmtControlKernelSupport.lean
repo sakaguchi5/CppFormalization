@@ -6,6 +6,7 @@ import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCI
 import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelCI
 import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
 import CppFormalization.Cpp2.Closure.Internal.WhileReentryKernelFacts
+import CppFormalization.Cpp2.Closure.Internal.BlockNormalPreservation
 import CppFormalization.Cpp2.Closure.Foundation.ReadinessSemanticsBridge
 import CppFormalization.Cpp2.Lemmas.ExprTypeUniqueness
 import CppFormalization.Cpp2.Lemmas.TransitionDeterminism
@@ -225,6 +226,30 @@ theorem whileReturnLeafCase
     ScopedTypedStateConcrete Δ σ1 := by
   intro hsc_in hreadyWhile
   exact ihBody hsc_in (while_ready_body_data hreadyWhile)
+
+theorem blockStmtCase
+    {k : ControlKind} {Γ Θ : TypeEnv} {ss : StmtBlock}
+    {σ σ0 σ1 σ2 : State}
+    {htyB : HasTypeBlockCI k (pushTypeScope Γ) ss Θ}
+    {hopen : OpenScope σ σ0}
+    {hclose : CloseScope σ1 σ2}
+    (ihBlk :
+      ScopedTypedStateConcrete (pushTypeScope Γ) σ0 →
+      BlockReadyConcrete (pushTypeScope Γ) σ0 ss →
+      ScopedTypedStateConcrete Θ σ1) :
+    ScopedTypedStateConcrete Γ σ →
+    StmtReadyConcrete Γ σ (.block ss) →
+    ScopedTypedStateConcrete Γ σ2 := by
+  intro hsc_in hready_block
+  have hsc_open : ScopedTypedStateConcrete (pushTypeScope Γ) σ0 :=
+    openScope_preserves_scoped_typed_state_concrete hsc_in hopen
+  have hreadyBody : BlockReadyConcrete (pushTypeScope Γ) σ0 ss :=
+    block_ready_opened_body hready_block hopen
+  have hsc_body : ScopedTypedStateConcrete Θ σ1 :=
+    ihBlk hsc_open hreadyBody
+  have hExt : TopFrameExtensionOf Γ Θ :=
+    block_ci_topFrameExtension htyB
+  exact closeScope_preserves_outer_from_topFrameExtension hExt hsc_body hclose
 
 theorem assign_ready_data
     {Γ : TypeEnv} {σ : State} {p : PlaceExpr} {e : ValExpr} :

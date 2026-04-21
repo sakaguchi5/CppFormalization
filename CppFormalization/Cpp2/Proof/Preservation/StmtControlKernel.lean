@@ -7,7 +7,7 @@ import CppFormalization.Cpp2.Closure.Internal.BlockNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyNormalPreservation
 import CppFormalization.Cpp2.Proof.Control.StmtControlCompatibility
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlWhileCompatShell
-import CppFormalization.Cpp2.Closure.Transitions.Minor.OpenScopeDecomposition
+import CppFormalization.Cpp2.Proof.Preservation.StmtControlKernelSupport
 
 namespace Cpp
 
@@ -221,16 +221,11 @@ private theorem stmt_control_goal
     (htyB := htyB) (hopen := hopen) (hbody := hbody) (hclose := hclose)
     hcompBody =>
     fun hσ hready => by
-      have hσ₀_typed :=
-        openScope_preserves_scoped_typed_state_concrete hσ hopen
-      have hreadyBody :=
-        block_ready_opened_body hready hopen
-      have hσ₁_typed :=
-        block_control_goal hcompBody hσ₀_typed hreadyBody
-      have hExt : TopFrameExtensionOf Γ Θ :=
-        block_ci_topFrameExtension htyB
       exact
-        closeScope_preserves_outer_from_topFrameExtension hExt hσ₁_typed hclose
+        blockStmtCase
+          (htyB := htyB) (hopen := hopen) (hclose := hclose)
+          (block_control_goal hcompBody)
+          hσ hready
 
 private theorem block_control_goal
     {k : ControlKind} {Γ Δ : TypeEnv} {ss : StmtBlock}
