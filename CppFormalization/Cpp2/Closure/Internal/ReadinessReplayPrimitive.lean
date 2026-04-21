@@ -72,6 +72,47 @@ theorem exprStmt_stmt_ready_replay_concrete
    2. assign replay via bundled transport kernel
    ========================================================= -/
 
+theorem assign_stmt_ready_replay_concrete_with_effect
+    {Γ : TypeEnv} {σ σ' : State}
+    {p : PlaceExpr} {e : ValExpr} :
+    ScopedTypedStateConcrete Γ σ' →
+    StmtReadyConcrete Γ σ (.assign p e) →
+    BigStepStmt σ (.assign p e) .normal σ' →
+    ∃ τ v,
+      HasPlaceType Γ p τ ∧
+      HasValueType Γ e τ ∧
+      ValueCompat v τ ∧
+      AssignWriteEffect σ σ' p v ∧
+      StmtReadyConcrete Γ σ' (.assign p e) := by
+  intro hσ' hready hstep
+  cases hready with
+  | assign hpty hpready hvty heready =>
+      let hready0 : StmtReadyConcrete Γ σ (.assign p e) :=
+        StmtReadyConcrete.assign hpty hpready hvty heready
+      have hEff :
+          ∃ τ v,
+            Γ = Γ ∧
+            HasPlaceType Γ p τ ∧
+            PlaceReadyConcrete Γ σ p τ ∧
+            HasValueType Γ e τ ∧
+            ValueCompat v τ ∧
+            AssignWriteEffect σ σ' p v := by
+        simpa using
+          (assign_stmt_normal_write_effect
+            (Γ := Γ) (Δ := Γ) (σ := σ) (σ' := σ')
+            (p := p) (e := e)
+            (HasTypeStmtCI.assign hpty hvty) hready0 hstep)
+      rcases hEff with
+        ⟨τ, v, _hΔ, hpty', _hpready', hvty', hvcompat, hwrite⟩
+      have hτ : τ = _ := hasPlaceType_unique hpty' hpty
+      subst hτ
+      have hpreadyPost : PlaceReadyConcrete Γ σ' p _ :=
+        assign_place_ready_replay_concrete hσ' hpready hstep
+      have hereadyPost : ExprReadyConcrete Γ σ' e _ :=
+        assign_expr_ready_replay_concrete hvty hσ' heready hstep
+      refine ⟨_, v, hpty, hvty, hvcompat, hwrite, ?_⟩
+      exact StmtReadyConcrete.assign hpty hpreadyPost hvty hereadyPost
+
 theorem assign_stmt_ready_replay_concrete
     {Γ : TypeEnv} {σ σ' : State}
     {p : PlaceExpr} {e : ValExpr} :
@@ -80,12 +121,11 @@ theorem assign_stmt_ready_replay_concrete
     BigStepStmt σ (.assign p e) .normal σ' →
     StmtReadyConcrete Γ σ' (.assign p e) := by
   intro hσ' hready hstep
-  cases hready with
-  | assign hpty hpready hvty heready =>
-      refine StmtReadyConcrete.assign hpty ?_ hvty ?_
-      · exact assign_place_ready_replay_concrete hσ' hpready hstep
-      · exact assign_expr_ready_replay_concrete hvty hσ' heready hstep
-
+  rcases assign_stmt_ready_replay_concrete_with_effect
+      (Γ := Γ) (σ := σ) (σ' := σ') (p := p) (e := e)
+      hσ' hready hstep with
+    ⟨_τ, _v, _hpty, _hvty, _hvcompat, _hwrite, hreadyPost⟩
+  exact hreadyPost
 
 /- =========================================================
    3. bundled replay theorem for the stable primitive base
