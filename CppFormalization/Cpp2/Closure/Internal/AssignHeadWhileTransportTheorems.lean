@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Closure.Internal.AssignHeadResidualTransportTheorems
-import CppFormalization.Cpp2.Closure.Internal.WhileNormalPreservation
+import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
 
 namespace Cpp
 
