@@ -2,10 +2,11 @@ import CppFormalization.Cpp2.Closure.Foundation.TypingCI
 import CppFormalization.Cpp2.Closure.Internal.PrimitiveStmtNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.ConditionalNormalPreservation
-import CppFormalization.Cpp2.Closure.Internal.WhileNormalPreservation
+import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
 import CppFormalization.Cpp2.Closure.Internal.BlockNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyNormalPreservation
 import CppFormalization.Cpp2.Proof.Control.StmtControlCompatibility
+import CppFormalization.Cpp2.Proof.Preservation.StmtControlWhileCompatShell
 import CppFormalization.Cpp2.Closure.Transitions.Minor.OpenScopeDecomposition
 
 namespace Cpp
@@ -26,7 +27,7 @@ abrupt control での path-sensitive post-environment を正面から扱う。
   generic kernel としては前提が弱すぎる。
 - 新設計では `LoopBodyBoundaryCI` と `LoopReentryKernelCI` が必要になるので、
   generic compatibility kernel 側では while 4分岐だけを honest obligation
-  として切り出す。
+  として外部 shell に切り出す。
 -/
 
 private def StmtCompatGoal
@@ -48,79 +49,6 @@ private def BlockCompatGoal
   ScopedTypedStateConcrete Γ σ →
   BlockReadyConcrete Γ σ ss →
   ScopedTypedStateConcrete Δ σ'
-
-/-!
-while の generic compatibility 分岐は、新設計では
-- current-state の condition readiness
-- loop-body local boundary
-- reentry kernel
-を必要とする。
-`StmtCompatGoal` はそれを持っていないので、ここでは open obligation として退避する。
--/
-
-private axiom while_true_normal_normal_goal
-    {Γ : TypeEnv} {σ σ₁ σ₂ : State} {c : ValExpr} {body : CppStmt}
-    {hc : HasValueType Γ c (.base .bool)}
-    {hN : HasTypeStmtCI .normalK Γ body Γ}
-    {hB : HasTypeStmtCI .breakK Γ body Γ}
-    {hC : HasTypeStmtCI .continueK Γ body Γ}
-    {hcond : BigStepValue σ c (.bool true)}
-    {hbody : BigStepStmt σ body .normal σ₁}
-    {htail : BigStepStmt σ₁ (.whileStmt c body) .normal σ₂}
-    (hcompBody : StmtControlCompatible hN hbody)
-    (hcompTail : StmtControlCompatible (HasTypeStmtCI.while_normal hc hN hB hC) htail) :
-    ScopedTypedStateConcrete Γ σ →
-    StmtReadyConcrete Γ σ (.whileStmt c body) →
-    ScopedTypedStateConcrete Γ σ₂
-
-private axiom while_true_continue_normal_goal
-    {Γ : TypeEnv} {σ σ₁ σ₂ : State} {c : ValExpr} {body : CppStmt}
-    {hc : HasValueType Γ c (.base .bool)}
-    {hN : HasTypeStmtCI .normalK Γ body Γ}
-    {hB : HasTypeStmtCI .breakK Γ body Γ}
-    {hC : HasTypeStmtCI .continueK Γ body Γ}
-    {hcond : BigStepValue σ c (.bool true)}
-    {hbody : BigStepStmt σ body .continueResult σ₁}
-    {htail : BigStepStmt σ₁ (.whileStmt c body) .normal σ₂}
-    (hcompBody : StmtControlCompatible hC hbody)
-    (hcompTail : StmtControlCompatible (HasTypeStmtCI.while_normal hc hN hB hC) htail) :
-    ScopedTypedStateConcrete Γ σ →
-    StmtReadyConcrete Γ σ (.whileStmt c body) →
-    ScopedTypedStateConcrete Γ σ₂
-
-private axiom while_true_normal_return_goal
-    {Γ Δ : TypeEnv} {σ σ₁ σ₂ : State} {c : ValExpr} {body : CppStmt}
-    {rv : Option Value}
-    {hc : HasValueType Γ c (.base .bool)}
-    {hN : HasTypeStmtCI .normalK Γ body Γ}
-    {hB : HasTypeStmtCI .breakK Γ body Γ}
-    {hC : HasTypeStmtCI .continueK Γ body Γ}
-    {hR : HasTypeStmtCI .returnK Γ body Δ}
-    {hcond : BigStepValue σ c (.bool true)}
-    {hbody : BigStepStmt σ body .normal σ₁}
-    {htail : BigStepStmt σ₁ (.whileStmt c body) (.returnResult rv) σ₂}
-    (hcompBody : StmtControlCompatible hN hbody)
-    (hcompTail : StmtControlCompatible (HasTypeStmtCI.while_return hc hN hB hC hR) htail) :
-    ScopedTypedStateConcrete Γ σ →
-    StmtReadyConcrete Γ σ (.whileStmt c body) →
-    ScopedTypedStateConcrete Δ σ₂
-
-private axiom while_true_continue_return_goal
-    {Γ Δ : TypeEnv} {σ σ₁ σ₂ : State} {c : ValExpr} {body : CppStmt}
-    {rv : Option Value}
-    {hc : HasValueType Γ c (.base .bool)}
-    {hN : HasTypeStmtCI .normalK Γ body Γ}
-    {hB : HasTypeStmtCI .breakK Γ body Γ}
-    {hC : HasTypeStmtCI .continueK Γ body Γ}
-    {hR : HasTypeStmtCI .returnK Γ body Δ}
-    {hcond : BigStepValue σ c (.bool true)}
-    {hbody : BigStepStmt σ body .continueResult σ₁}
-    {htail : BigStepStmt σ₁ (.whileStmt c body) (.returnResult rv) σ₂}
-    (hcompBody : StmtControlCompatible hC hbody)
-    (hcompTail : StmtControlCompatible (HasTypeStmtCI.while_return hc hN hB hC hR) htail) :
-    ScopedTypedStateConcrete Γ σ →
-    StmtReadyConcrete Γ σ (.whileStmt c body) →
-    ScopedTypedStateConcrete Δ σ₂
 
 mutual
 
