@@ -1,3 +1,4 @@
+import CppFormalization.Cpp2.Closure.Internal.AssignHeadPushScopeBridges
 import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.StrongThinSeparatedCondReplay
@@ -86,123 +87,6 @@ end
    1.5 Push-scope stability bridges used by the block case
    ========================================================= -/
 
-mutual
-
-theorem hasPlaceType_pushTypeScope_frag
-    {Γ : TypeEnv} {p : PlaceExpr} {τ : CppType} :
-    HasPlaceType Γ p τ →
-    HasPlaceType (pushTypeScope Γ) p τ := by
-  intro h
-  cases h with
-  | var hlookup =>
-      exact .var (by
-        simpa [lookupDecl, lookupDeclFrames, pushTypeScope, emptyTypeFrame] using hlookup)
-  | deref hv =>
-      exact .deref (hasValueType_pushTypeScope_frag hv)
-
-theorem hasValueType_pushTypeScope_frag
-    {Γ : TypeEnv} {e : ValExpr} {τ : CppType} :
-    HasValueType Γ e τ →
-    HasValueType (pushTypeScope Γ) e τ := by
-  intro h
-  cases h with
-  | litBool =>
-      exact .litBool
-  | litInt =>
-      exact .litInt
-  | load hp =>
-      exact .load (hasPlaceType_pushTypeScope_frag hp)
-  | addrOf hp =>
-      exact .addrOf (hasPlaceType_pushTypeScope_frag hp)
-  | add h1 h2 =>
-      exact .add
-        (hasValueType_pushTypeScope_frag h1)
-        (hasValueType_pushTypeScope_frag h2)
-  | sub h1 h2 =>
-      exact .sub
-        (hasValueType_pushTypeScope_frag h1)
-        (hasValueType_pushTypeScope_frag h2)
-  | mul h1 h2 =>
-      exact .mul
-        (hasValueType_pushTypeScope_frag h1)
-        (hasValueType_pushTypeScope_frag h2)
-  | eq h1 h2 =>
-      exact .eq
-        (hasValueType_pushTypeScope_frag h1)
-        (hasValueType_pushTypeScope_frag h2)
-  | lt h1 h2 =>
-      exact .lt
-        (hasValueType_pushTypeScope_frag h1)
-        (hasValueType_pushTypeScope_frag h2)
-  | not h =>
-      exact .not (hasValueType_pushTypeScope_frag h)
-
-end
-
-mutual
-
-theorem bigStepPlace_pushScope_frag
-    {σ : State} {p : PlaceExpr} {a : Nat} :
-    BigStepPlace σ p a →
-    BigStepPlace (pushScope σ) p a := by
-  intro h
-  cases h with
-  | varObject hlookup =>
-      exact .varObject (by
-        simpa [lookupBinding, lookupBindingFrames, pushScope, emptyScopeFrame] using hlookup)
-  | varRef hlookup =>
-      exact .varRef (by
-        simpa [lookupBinding, lookupBindingFrames, pushScope, emptyScopeFrame] using hlookup)
-  | deref hv hheap halive =>
-      exact .deref
-        (bigStepValue_pushScope_frag hv)
-        (by simpa [pushScope] using hheap)
-        halive
-
-theorem bigStepValue_pushScope_frag
-    {σ : State} {e : ValExpr} {v : Value} :
-    BigStepValue σ e v →
-    BigStepValue (pushScope σ) e v := by
-  intro h
-  cases h with
-  | litBool =>
-      exact .litBool
-  | litInt =>
-      exact .litInt
-  | load hp hheap halive hval =>
-      exact .load
-        (bigStepPlace_pushScope_frag hp)
-        (by simpa [pushScope] using hheap)
-        halive
-        hval
-  | addrOf hp =>
-      exact .addrOf (bigStepPlace_pushScope_frag hp)
-  | add h1 h2 =>
-      exact .add
-        (bigStepValue_pushScope_frag h1)
-        (bigStepValue_pushScope_frag h2)
-  | sub h1 h2 =>
-      exact .sub
-        (bigStepValue_pushScope_frag h1)
-        (bigStepValue_pushScope_frag h2)
-  | mul h1 h2 =>
-      exact .mul
-        (bigStepValue_pushScope_frag h1)
-        (bigStepValue_pushScope_frag h2)
-  | eq h1 h2 =>
-      exact .eq
-        (bigStepValue_pushScope_frag h1)
-        (bigStepValue_pushScope_frag h2)
-  | lt h1 h2 =>
-      exact .lt
-        (bigStepValue_pushScope_frag h1)
-        (bigStepValue_pushScope_frag h2)
-  | not h =>
-      exact .not (bigStepValue_pushScope_frag h)
-
-end
-
-
 def ThinSeparatedWitness.pushScope_frag
     {Γ : TypeEnv} {σ : State}
     {q : PlaceExpr} {rhs : ValExpr}
@@ -210,10 +94,10 @@ def ThinSeparatedWitness.pushScope_frag
     ThinSeparatedWitness Γ σ q rhs e τ →
     ThinSeparatedWitness (pushTypeScope Γ) (pushScope σ) q rhs e τ
   | w =>
-      { ptrType := hasValueType_pushTypeScope_frag w.ptrType
+      { ptrType := hasValueType_pushTypeScope w.ptrType
         srcStable := w.srcStable
         writeAddr := w.writeAddr
-        writesQ := bigStepPlace_pushScope_frag w.writesQ
+        writesQ := bigStepPlace_pushScope w.writesQ
         targetSeparated := by
           intro a hvalPush
           exact w.targetSeparated (bigStepValue_of_pushScope hvalPush) }
@@ -246,244 +130,15 @@ theorem strongThinSeparatedCondExpr_pushScope_frag
   intro h
   induction h with
   | base hbase hty =>
-      exact .base hbase (hasValueType_pushTypeScope_frag hty)
-  | loadDeref hw =>
-      exact .loadDeref hw.pushScope_frag
-  | addrOfDeref hw =>
-      exact .addrOfDeref hw.pushScope_frag
-  | add h1 h2 ih1 ih2 =>
-      exact .add ih1 ih2
-  | sub h1 h2 ih1 ih2 =>
-      exact .sub ih1 ih2
-  | mul h1 h2 ih1 ih2 =>
-      exact .mul ih1 ih2
-  | eq h1 h2 ih1 ih2 =>
-      exact .eq ih1 ih2
-  | lt h1 h2 ih1 ih2 =>
-      exact .lt ih1 ih2
-  | not h ih =>
-      exact .not ih
-
-theorem scoped_typed_state_concrete_pushScope_frag
-    {Γ : TypeEnv} {σ : State} :
-    ScopedTypedStateConcrete Γ σ →
-    ScopedTypedStateConcrete (pushTypeScope Γ) (pushScope σ) := by
-  intro h
-  refine
-    { frameDepth := by
-        unfold frameDepthAgreement at *
-        simpa [pushTypeScope, pushScope] using congrArg Nat.succ h.frameDepth
-
-      namesExact := by
-        intro k Γfr σfr hkΓ hkσ
-        cases k with
-        | zero =>
-            have hΓfr : Γfr = emptyTypeFrame := by
-              simpa [pushTypeScope, emptyTypeFrame] using hkΓ.symm
-            have hσfr : σfr = emptyScopeFrame := by
-              simpa [pushScope, emptyScopeFrame] using hkσ.symm
-            subst Γfr
-            subst σfr
-            constructor
-            · intro x d hdecl
-              have : False := by
-                simp [emptyTypeFrame] at hdecl
-              exact False.elim this
-            · intro x b hbind
-              have : False := by
-                simp [emptyScopeFrame] at hbind
-              exact False.elim this
-        | succ k =>
-            have hkΓOld : Γ.scopes[k]? = some Γfr := by
-              simpa [pushTypeScope] using hkΓ
-            have hkσOld : σ.scopes[k]? = some σfr := by
-              simpa [pushScope] using hkσ
-            exact h.namesExact k Γfr σfr hkΓOld hkσOld
-
-      shadowing := by
-        intro x d hdecl
-        have hdeclOld : lookupDecl Γ x = some d := by
-          simpa [lookupDecl, lookupDeclFrames, pushTypeScope, emptyTypeFrame] using hdecl
-        rcases h.shadowing x d hdeclOld with ⟨b, hb, hmatch⟩
-        refine ⟨b, ?_, hmatch⟩
-        simpa [lookupBinding, lookupBindingFrames, pushScope, emptyScopeFrame] using hb
-
-      objectDeclRealized := by
-        intro k x τ hdecl
-        cases k with
-        | zero =>
-            have : False := by
-              simp [typeFrameDeclObject, pushTypeScope, emptyTypeFrame] at hdecl
-            exact False.elim this
-        | succ k =>
-            have hdeclOld : typeFrameDeclObject Γ k x τ := by
-              simpa [typeFrameDeclObject, pushTypeScope] using hdecl
-            rcases h.objectDeclRealized hdeclOld with ⟨a, hbind, hown, hlive⟩
-            refine ⟨a, ?_, ?_, ?_⟩
-            · simpa [runtimeFrameBindsObject, pushScope] using hbind
-            · simpa [runtimeFrameOwnsAddress, pushScope] using hown
-            · simpa [heapLiveTypedAt, pushScope] using hlive
-
-      refDeclRealized := by
-        intro k x τ hdecl
-        cases k with
-        | zero =>
-            have : False := by
-              simp [typeFrameDeclRef, pushTypeScope, emptyTypeFrame] at hdecl
-            exact False.elim this
-        | succ k =>
-            have hdeclOld : typeFrameDeclRef Γ k x τ := by
-              simpa [typeFrameDeclRef, pushTypeScope] using hdecl
-            rcases h.refDeclRealized hdeclOld with ⟨a, hbind, hlive⟩
-            refine ⟨a, ?_, ?_⟩
-            · simpa [runtimeFrameBindsRef, pushScope] using hbind
-            · simpa [heapLiveTypedAt, pushScope] using hlive
-
-      objectBindingSound := by
-        intro k x τ a hbind
-        cases k with
-        | zero =>
-            have : False := by
-              simp [runtimeFrameBindsObject, pushScope, emptyScopeFrame] at hbind
-            exact False.elim this
-        | succ k =>
-            have hbindOld : runtimeFrameBindsObject σ k x τ a := by
-              simpa [runtimeFrameBindsObject, pushScope] using hbind
-            rcases h.objectBindingSound hbindOld with ⟨hown, hlive⟩
-            refine ⟨?_, ?_⟩
-            · simpa [runtimeFrameOwnsAddress, pushScope] using hown
-            · simpa [heapLiveTypedAt, pushScope] using hlive
-
-      refBindingSound := by
-        intro k x τ a hbind
-        cases k with
-        | zero =>
-            have : False := by
-              simp [runtimeFrameBindsRef, pushScope, emptyScopeFrame] at hbind
-            exact False.elim this
-        | succ k =>
-            have hbindOld : runtimeFrameBindsRef σ k x τ a := by
-              simpa [runtimeFrameBindsRef, pushScope] using hbind
-            simpa [heapLiveTypedAt, pushScope] using h.refBindingSound hbindOld
-
-      ownedAddressNamed := by
-        intro k a hown
-        cases k with
-        | zero =>
-            have : False := by
-              simp [runtimeFrameOwnsAddress, pushScope, emptyScopeFrame] at hown
-            exact False.elim this
-        | succ k =>
-            have hownOld : runtimeFrameOwnsAddress σ k a := by
-              simpa [runtimeFrameOwnsAddress, pushScope] using hown
-            rcases h.ownedAddressNamed hownOld with ⟨x, τ, hbind⟩
-            exact ⟨x, τ, by simpa [runtimeFrameBindsObject, pushScope] using hbind⟩
-
-      refsNotOwned := by
-        intro k fr x τ a hk hbind hlocal
-        cases k with
-        | zero =>
-            have hfr : fr = emptyScopeFrame := by
-              simpa [pushScope, emptyScopeFrame] using hk.symm
-            subst fr
-            have : False := by
-              simp [emptyScopeFrame] at hbind
-            exact False.elim this
-        | succ k =>
-            have hkOld : σ.scopes[k]? = some fr := by
-              simpa [pushScope] using hk
-            exact h.refsNotOwned k fr x τ a hkOld hbind hlocal
-
-      objectsOwned := by
-        intro k x τ a hbind
-        cases k with
-        | zero =>
-            have : False := by
-              simp [runtimeFrameBindsObject, pushScope, emptyScopeFrame] at hbind
-            exact False.elim this
-        | succ k =>
-            have hbindOld : runtimeFrameBindsObject σ k x τ a := by
-              simpa [runtimeFrameBindsObject, pushScope] using hbind
-            have hownOld := h.objectsOwned k x τ a hbindOld
-            simpa [runtimeFrameOwnsAddress, pushScope] using hownOld
-
-      ownedNoDupPerFrame := by
-        intro k fr hk
-        cases k with
-        | zero =>
-            have hfr : fr = emptyScopeFrame := by
-              simpa [pushScope, emptyScopeFrame] using hk.symm
-            subst fr
-            simp [emptyScopeFrame]
-        | succ k =>
-            have hkOld : σ.scopes[k]? = some fr := by
-              simpa [pushScope] using hk
-            exact h.ownedNoDupPerFrame k fr hkOld
-
-      ownedDisjoint := ownedAddressesDisjoint_pushScope h.ownedDisjoint
-
-      ownedNamed := by
-        intro k a hown
-        cases k with
-        | zero =>
-            have : False := by
-              simp [runtimeFrameOwnsAddress, pushScope, emptyScopeFrame] at hown
-            exact False.elim this
-        | succ k =>
-            have hownOld : runtimeFrameOwnsAddress σ k a := by
-              simpa [runtimeFrameOwnsAddress, pushScope] using hown
-            rcases h.ownedNamed k a hownOld with ⟨x, τ, hbind⟩
-            exact ⟨x, τ, by simpa [runtimeFrameBindsObject, pushScope] using hbind⟩
-
-      heapStoredValuesTyped := by
-        simpa [heapInitializedValuesTyped, pushScope] using h.heapStoredValuesTyped
-
-      nextFresh := nextIsFreshForOwnedHeap_pushScope h.nextFresh
-
-      refTargetsAvoidInnerOwned := by
-        intro k x τ a j hbind hj
-        cases k with
-        | zero =>
-            have : False := by
-              simp [runtimeFrameBindsRef, pushScope, emptyScopeFrame] at hbind
-            exact False.elim this
-        | succ k =>
-            cases j with
-            | zero =>
-                intro hown
-                have : False := by
-                  simp [runtimeFrameOwnsAddress, pushScope, emptyScopeFrame] at hown
-                exact False.elim this
-            | succ j =>
-                have hbindOld : runtimeFrameBindsRef σ k x τ a := by
-                  simpa [runtimeFrameBindsRef, pushScope] using hbind
-                have hjOld : j < k := Nat.lt_of_succ_lt_succ hj
-                have havoidOld := h.refTargetsAvoidInnerOwned hbindOld hjOld
-                intro hown
-                have hownOld : runtimeFrameOwnsAddress σ j a := by
-                  simpa [runtimeFrameOwnsAddress, pushScope] using hown
-                exact havoidOld hownOld }
-
-theorem assigns_pushScope_frag
-    {σ σ' : State} {p : PlaceExpr} {v : Value} :
-    Assigns σ p v σ' →
-    Assigns (pushScope σ) p v (pushScope σ') := by
-  intro h
-  rcases h with ⟨a, c, hp, hheap, halive, hcompat, rfl⟩
-  refine ⟨a, c, bigStepPlace_pushScope_frag hp, ?_, halive, hcompat, ?_⟩
-  · simpa [pushScope] using hheap
-  · simp [writeHeap, pushScope]
-
-theorem bigStepStmt_assign_pushScope_frag
-    {σ σ' : State} {q : PlaceExpr} {rhs : ValExpr} :
-    BigStepStmt σ (.assign q rhs) .normal σ' →
-    BigStepStmt (pushScope σ) (.assign q rhs) .normal (pushScope σ') := by
-  intro h
-  cases h with
-  | assign hval hassign =>
-      exact .assign
-        (bigStepValue_pushScope_frag hval)
-        (assigns_pushScope_frag hassign)
+      exact .base hbase (hasValueType_pushTypeScope hty)
+  | loadDeref hw => exact .loadDeref hw.pushScope_frag
+  | addrOfDeref hw => exact .addrOfDeref hw.pushScope_frag
+  | add h1 h2 ih1 ih2 => exact .add ih1 ih2
+  | sub h1 h2 ih1 ih2 => exact .sub ih1 ih2
+  | mul h1 h2 ih1 ih2 => exact .mul ih1 ih2
+  | eq h1 h2 ih1 ih2 => exact .eq ih1 ih2
+  | lt h1 h2 ih1 ih2 => exact .lt ih1 ih2
+  | not h ih => exact .not ih
 
 mutual
 
@@ -492,17 +147,16 @@ theorem assign_head_transportable_stmt_pushScope
     (h : AssignHeadTransportableStmt Γ σ q rhs st) :
     AssignHeadTransportableStmt (pushTypeScope Γ) (pushScope σ) q rhs st := by
   match h with
-  | .skip =>
-      exact .skip
+  | .skip => exact .skip
   | .exprStmt hc hty =>
       exact .exprStmt
         (strongThinSeparatedCondExpr_pushScope_frag hc)
-        (hasValueType_pushTypeScope_frag hty)
+        (hasValueType_pushTypeScope hty)
   | .assign hp hc hty =>
       exact .assign
         hp
         (strongThinSeparatedCondExpr_pushScope_frag hc)
-        (hasValueType_pushTypeScope_frag hty)
+        (hasValueType_pushTypeScope hty)
   | .seq hs ht =>
       exact .seq
         (assign_head_transportable_stmt_pushScope hs)
@@ -517,26 +171,21 @@ theorem assign_head_transportable_stmt_pushScope
         (strongThinSeparatedCondExpr_pushScope_frag hc)
         (assign_head_transportable_stmt_pushScope hbody)
   | .block hblock =>
-      exact .block
-        (assign_head_transportable_block_pushScope hblock)
-  | .breakStmt =>
-      exact .breakStmt
-  | .continueStmt =>
-      exact .continueStmt
-  | .returnNone =>
-      exact .returnNone
+      exact .block (assign_head_transportable_block_pushScope hblock)
+  | .breakStmt => exact .breakStmt
+  | .continueStmt => exact .continueStmt
+  | .returnNone => exact .returnNone
   | .returnSome hc hty =>
       exact .returnSome
         (strongThinSeparatedCondExpr_pushScope_frag hc)
-        (hasValueType_pushTypeScope_frag hty)
+        (hasValueType_pushTypeScope hty)
 
 theorem assign_head_transportable_block_pushScope
     {Γ : TypeEnv} {σ : State} {q : PlaceExpr} {rhs : ValExpr} {ss : StmtBlock}
     (h : AssignHeadTransportableBlock Γ σ q rhs ss) :
     AssignHeadTransportableBlock (pushTypeScope Γ) (pushScope σ) q rhs ss := by
   match h with
-  | .nil =>
-      exact .nil
+  | .nil => exact .nil
   | .cons hs hss =>
       exact .cons
         (assign_head_transportable_stmt_pushScope hs)
@@ -561,16 +210,14 @@ theorem assign_head_transportable_stmt_ready_after_assign_head
     StmtReadyConcrete Γ σ' target := by
   intro hσ' hready hstep
   match htarget with
-  | .skip =>
-      exact .skip
+  | .skip => exact .skip
   | .exprStmt hc hty_hc =>
       match hready with
       | .exprStmt hty_ready heready =>
           have heq := hasValueType_unique hty_ready hty_hc
           subst heq
           exact .exprStmt hty_ready
-            (strongThinSeparated_cond_expr_ready_after_assign
-              hc hσ' heready hstep)
+            (strongThinSeparated_cond_expr_ready_after_assign hc hσ' heready hstep)
   | .assign hp hc hty_hc =>
       match hready with
       | .assign hpty hpready hvty_ready heready =>
@@ -580,54 +227,40 @@ theorem assign_head_transportable_stmt_ready_after_assign_head
             hpty
             (replay_stable_read_place_ready_after_assign hp hσ' hpready hstep)
             hvty_ready
-            (strongThinSeparated_cond_expr_ready_after_assign
-              hc hσ' heready hstep)
+            (strongThinSeparated_cond_expr_ready_after_assign hc hσ' heready hstep)
   | .seq hs ht =>
       match hready with
       | .seq hreadyS hreadyT =>
           exact .seq
-            (assign_head_transportable_stmt_ready_after_assign_head
-              hs hσ' hreadyS hstep)
-            (assign_head_transportable_stmt_ready_after_assign_head
-              ht hσ' hreadyT hstep)
+            (assign_head_transportable_stmt_ready_after_assign_head hs hσ' hreadyS hstep)
+            (assign_head_transportable_stmt_ready_after_assign_head ht hσ' hreadyT hstep)
   | .ite hc hs ht =>
       match hready with
       | .ite hcty hcready hreadyS hreadyT =>
           exact .ite
             hcty
-            (strongThinSeparated_cond_expr_ready_after_assign
-              hc hσ' hcready hstep)
-            (assign_head_transportable_stmt_ready_after_assign_head
-              hs hσ' hreadyS hstep)
-            (assign_head_transportable_stmt_ready_after_assign_head
-              ht hσ' hreadyT hstep)
+            (strongThinSeparated_cond_expr_ready_after_assign hc hσ' hcready hstep)
+            (assign_head_transportable_stmt_ready_after_assign_head hs hσ' hreadyS hstep)
+            (assign_head_transportable_stmt_ready_after_assign_head ht hσ' hreadyT hstep)
   | .whileStmt hc hbody =>
       match hready with
       | .whileStmt hcty hcready hreadyBody =>
           exact .whileStmt
             hcty
-            (strongThinSeparated_cond_expr_ready_after_assign
-              hc hσ' hcready hstep)
-            (assign_head_transportable_stmt_ready_after_assign_head
-              hbody hσ' hreadyBody hstep)
+            (strongThinSeparated_cond_expr_ready_after_assign hc hσ' hcready hstep)
+            (assign_head_transportable_stmt_ready_after_assign_head hbody hσ' hreadyBody hstep)
   | .block hblock =>
       match hready with
       | .block hreadyBlock =>
-          have hσ'Push :
-              ScopedTypedStateConcrete (pushTypeScope Γ) (pushScope σ') :=
-            scoped_typed_state_concrete_pushScope_frag hσ'
-          have hstepPush :
-              BigStepStmt (pushScope σ) (.assign q rhs) .normal (pushScope σ') :=
-            bigStepStmt_assign_pushScope_frag hstep
+          have hσ'Push : ScopedTypedStateConcrete (pushTypeScope Γ) (pushScope σ') :=
+            scoped_typed_state_concrete_pushScope hσ'
+          have hstepPush : BigStepStmt (pushScope σ) (.assign q rhs) .normal (pushScope σ') :=
+            bigStepStmt_assign_pushScope hstep
           exact .block
-            (assign_head_transportable_block_ready_after_assign_head
-              hblock hσ'Push hreadyBlock hstepPush)
-  | .breakStmt =>
-      exact .breakStmt
-  | .continueStmt =>
-      exact .continueStmt
-  | .returnNone =>
-      exact .returnNone
+            (assign_head_transportable_block_ready_after_assign_head hblock hσ'Push hreadyBlock hstepPush)
+  | .breakStmt => exact .breakStmt
+  | .continueStmt => exact .continueStmt
+  | .returnNone => exact .returnNone
   | .returnSome hc hty_hc =>
       match hready with
       | .returnSome hty_ready heready =>
@@ -635,8 +268,7 @@ theorem assign_head_transportable_stmt_ready_after_assign_head
           subst heq
           exact .returnSome
             hty_ready
-            (strongThinSeparated_cond_expr_ready_after_assign
-              hc hσ' heready hstep)
+            (strongThinSeparated_cond_expr_ready_after_assign hc hσ' heready hstep)
 
 theorem assign_head_transportable_block_ready_after_assign_head
     {Γ : TypeEnv} {σ σ' : State}
@@ -648,16 +280,13 @@ theorem assign_head_transportable_block_ready_after_assign_head
     BlockReadyConcrete Γ σ' ss := by
   intro hσ' hready hstep
   match hblock with
-  | .nil =>
-      exact .nil
+  | .nil => exact .nil
   | .cons hs hss =>
       match hready with
       | .cons hreadyS hreadySS =>
           exact .cons
-            (assign_head_transportable_stmt_ready_after_assign_head
-              hs hσ' hreadyS hstep)
-            (assign_head_transportable_block_ready_after_assign_head
-              hss hσ' hreadySS hstep)
+            (assign_head_transportable_stmt_ready_after_assign_head hs hσ' hreadyS hstep)
+            (assign_head_transportable_block_ready_after_assign_head hss hσ' hreadySS hstep)
 
 end
 
@@ -685,8 +314,7 @@ theorem assign_head_transportable_right_seq_normal_preserves_residual_boundary
     SeqResidualBoundary Δ σ' t := by
   intro hright htySeq hσ hreadySeq hstepHead
   rcases seq_typing_data htySeq with ⟨Θ, htyHead, htyRight⟩
-  have hΘ : Θ = Γ := by
-    exact assign_stmt_env_preserving htyHead
+  have hΘ : Θ = Γ := by exact assign_stmt_env_preserving htyHead
   subst hΘ
   have hσ'Γ : ScopedTypedStateConcrete Θ σ' :=
     assign_stmt_normal_preserves_scoped_typed_state_concrete
@@ -707,8 +335,7 @@ theorem assign_head_transportable_tail_cons_head_normal_preserves_residual_bound
     ConsResidualBoundary Θ σ' ss := by
   intro htail hty hσ hready hstep
   rcases cons_block_typing_data hty with ⟨Ξ, htyHead, htyTail⟩
-  have hΞ : Ξ = Γ := by
-    exact assign_stmt_env_preserving htyHead
+  have hΞ : Ξ = Γ := by exact assign_stmt_env_preserving htyHead
   subst hΞ
   have hσ'Γ : ScopedTypedStateConcrete Ξ σ' :=
     assign_stmt_normal_preserves_scoped_typed_state_concrete
