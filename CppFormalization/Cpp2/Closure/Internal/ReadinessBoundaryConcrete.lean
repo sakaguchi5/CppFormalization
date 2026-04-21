@@ -33,14 +33,15 @@ theorem seq_left_normal_preserves_body_ready_concrete
     ScopedTypedStateConcrete Γ σ →
     ScopedTypedStateConcrete Δ σ' ∧ StmtReadyConcrete Δ σ' t := by
   intro htyLeft hreadySeq hstepLeft hσ
-  have hreadyLeft : StmtReadyConcrete Γ σ s :=
-    seq_ready_left hreadySeq
-  have hσ' : ScopedTypedStateConcrete Δ σ' :=
-    stmt_normal_preserves_scoped_typed_state_concrete
-      htyLeft hσ hreadyLeft hstepLeft
-  have hreadyRight : StmtReadyConcrete Δ σ' t :=
-    seq_ready_right_after_left_normal htyLeft hσ' hreadySeq hstepLeft
-  exact ⟨hσ', hreadyRight⟩
+  exact
+    seq_left_normal_preserves_ready_of_left_preservation
+      (Γ := Γ) (Δ := Δ) (σ := σ) (σ' := σ') (s := s) (t := t)
+      (hpres := by
+        intro htyLeft' hσ0 hreadyLeft0 hstepLeft0
+        exact
+          stmt_normal_preserves_scoped_typed_state_concrete
+            htyLeft' hσ0 hreadyLeft0 hstepLeft0)
+      htyLeft hreadySeq hstepLeft hσ
 
 theorem block_head_normal_preserves_block_ready_concrete
     {Γ Δ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock} :

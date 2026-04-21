@@ -16,12 +16,17 @@ namespace Cpp
 - 左 normal 実行後の residual boundary を、左 preservation を引数にして
   再構成する一般形
 - primitive-left case をその一般形の系として回収すること
+- downstream でよく使う「左の post-env が既に決まっている場合」の
+  ready/state 境界を別 theorem として薄く切り出すこと
 を整理する。
 
 重要:
 - `seq_ready_right_after_left_normal` は low-level な residual-ready kernel のまま残す。
 - current mainline が public に使うべき主語は `StmtReadyConcrete Θ σ' t` 単体ではなく、
   `SeqResidualBoundary Δ σ' t` である。
+- ただし downstream の concrete roadmap では、「最終 codomain ではなく
+  左の post-env `Δ` だけを使って右 ready を得たい」局面もある。
+  そのための中間 theorem もここで明示化する。
 -/
 
 /- =========================================================
@@ -100,7 +105,41 @@ theorem seq_left_normal_preserves_residual_boundary_of_left_preservation
 
 
 /- =========================================================
-   3. primitive-left corollaries
+   3. left-typed post boundary の一般定理
+   ========================================================= -/
+
+/--
+When the post-environment of the left statement is already fixed as `Δ`,
+we can reconstruct the concrete state/ready pair for the right statement
+without mentioning the final codomain of the whole `seq`.
+
+This is the right abstraction for downstream concrete roadmap lemmas.
+-/
+theorem seq_left_normal_preserves_ready_of_left_preservation
+    {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt}
+    (hpres :
+      HasTypeStmtCI .normalK Γ s Δ →
+      ScopedTypedStateConcrete Γ σ →
+      StmtReadyConcrete Γ σ s →
+      BigStepStmt σ s .normal σ' →
+      ScopedTypedStateConcrete Δ σ') :
+    HasTypeStmtCI .normalK Γ s Δ →
+    StmtReadyConcrete Γ σ (.seq s t) →
+    BigStepStmt σ s .normal σ' →
+    ScopedTypedStateConcrete Γ σ →
+    ScopedTypedStateConcrete Δ σ' ∧ StmtReadyConcrete Δ σ' t := by
+  intro htyLeft hreadySeq hstepLeft hσ
+  have hreadyLeft : StmtReadyConcrete Γ σ s :=
+    seq_ready_left hreadySeq
+  have hσ' : ScopedTypedStateConcrete Δ σ' :=
+    hpres htyLeft hσ hreadyLeft hstepLeft
+  have hreadyRight : StmtReadyConcrete Δ σ' t :=
+    seq_ready_right_after_left_normal htyLeft hσ' hreadySeq hstepLeft
+  exact ⟨hσ', hreadyRight⟩
+
+
+/- =========================================================
+   4. primitive-left corollaries
    ========================================================= -/
 
 theorem primitive_left_seq_normal_preserves_residual_boundary

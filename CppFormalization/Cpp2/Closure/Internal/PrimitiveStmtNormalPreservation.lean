@@ -4,6 +4,7 @@ import CppFormalization.Cpp2.Closure.Foundation.TypingCI
 import CppFormalization.Cpp2.Closure.Transitions.Minor.AssignDecomposition
 import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareRefDecomposition
 import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectDecomposition
+import CppFormalization.Cpp2.Closure.Internal.AssignTransportKernel
 import CppFormalization.Cpp2.Lemmas.ExprTypeUniqueness
 
 namespace Cpp
@@ -270,5 +271,30 @@ theorem primitive_stmt_normal_preserves_scoped_typed_state_concrete
   intro hprim hty hσ hready hstep
   exact primitive_normal_stmt_preserves_scoped_typed_state_concrete
     hprim hty hσ hready hstep
+
+theorem assign_stmt_normal_write_effect
+    {Γ Δ : TypeEnv} {σ σ' : State}
+    {p : PlaceExpr} {e : ValExpr} :
+    HasTypeStmtCI .normalK Γ (.assign p e) Δ →
+    StmtReadyConcrete Γ σ (.assign p e) →
+    BigStepStmt σ (.assign p e) .normal σ' →
+    ∃ τ v,
+      Δ = Γ ∧
+      HasPlaceType Γ p τ ∧
+      PlaceReadyConcrete Γ σ p τ ∧
+      HasValueType Γ e τ ∧
+      ValueCompat v τ ∧
+      AssignWriteEffect σ σ' p v := by
+  intro hty hready hstep
+  cases hty with
+  | assign hpty hvty =>
+      rcases assign_stmt_normal_data
+          (HasTypeStmtCI.assign hpty hvty) hready hstep with
+        ⟨τ, v, hΔ, hpty', hpready, hvcompat, hassign⟩
+      have hτ : τ = _ := hasPlaceType_unique hpty' hpty
+      subst hτ
+      exact
+        ⟨_, v, hΔ, hpty, hpready, hvty, hvcompat,
+          assignWriteEffect_of_Assigns hassign⟩
 
 end Cpp
