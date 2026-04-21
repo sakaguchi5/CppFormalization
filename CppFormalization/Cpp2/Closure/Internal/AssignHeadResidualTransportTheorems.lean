@@ -115,22 +115,9 @@ theorem assign_head_decl_block_stmt_ready_after_assign
     BigStepStmt σ (.assign q rhs) .normal σ' →
     StmtReadyConcrete Γ σ' (.block ss) := by
   intro htransport hσ' hready hstep
-  cases hready with
-  | block hreadyBlock =>
-      have htransportPush :
-          AssignHeadTransportableBlockDecl (pushTypeScope Γ) (pushScope σ) q rhs ss :=
-        assign_head_transportable_decl_block_pushScope htransport
-      have hσ'Push :
-          ScopedTypedStateConcrete (pushTypeScope Γ) (pushScope σ') :=
-        scoped_typed_state_concrete_pushScope hσ'
-      have hstepPush :
-          BigStepStmt (pushScope σ) (.assign q rhs) .normal (pushScope σ') :=
-        bigStepStmt_assign_pushScope hstep
-      have hreadyBlock' :
-          BlockReadyConcrete (pushTypeScope Γ) (pushScope σ') ss :=
-        assign_head_transportable_decl_block_ready_after_assign_head
-          htransportPush hσ'Push hreadyBlock hstepPush
-      exact StmtReadyConcrete.block hreadyBlock'
+  exact assign_head_transportable_decl_stmt_ready_after_assign_head
+    (.block (assign_head_transportable_decl_block_pushScope htransport))
+    hσ' hready hstep
 
 theorem assign_head_block_stmt_ready_after_assign
     {Γ : TypeEnv} {σ σ' : State}
