@@ -4,7 +4,7 @@ import CppFormalization.Cpp2.Closure.Internal.StmtControlPreservation
 import CppFormalization.Cpp2.Closure.Internal.StmtAbruptCompatibility
 import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyNormalPreservation
-import CppFormalization.Cpp2.Closure.Internal.WhileNormalPreservation
+import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
 import CppFormalization.Cpp2.Closure.Internal.WhileReplayStablePrimitiveFacts
 
 namespace Cpp
@@ -123,7 +123,7 @@ theorem while_body_normal_preserves_body_ready_concrete_typed_of_replay_stable_p
     ScopedTypedStateConcrete Γ σ →
     ScopedTypedStateConcrete Γ σ' ∧ StmtReadyConcrete Γ σ' (.whileStmt c body) := by
   intro hstable hcstable htyWhile hreadyWhile hstepBody hσ
-  rcases while_normal_typing_data htyWhile with ⟨_, _, hN, _, _⟩
+  rcases while_typing_data htyWhile with ⟨_, _, hN, _, _⟩
   have hreadyBody : StmtReadyConcrete Γ σ body :=
     while_ready_body_data hreadyWhile
   have hprim := replay_stable_primitive_stmt_is_primitive_normal hstable
