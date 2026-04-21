@@ -138,17 +138,131 @@ theorem hasValueType_pushTypeScope
       exact .not (hasValueType_pushTypeScope h)
 
 end
-/--
-The strong thin-separated replay witness is stable under pushing an empty
-type/runtime scope.
 
-Mathematically this is natural: the new top scope is empty, so it does not
-introduce aliases or invalidate the old replay witness.
--/
-axiom strongThinSeparatedCondExpr_pushScope
+mutual
+
+theorem bigStepPlace_pushScope
+    {σ : State} {p : PlaceExpr} {a : Nat} :
+    BigStepPlace σ p a →
+    BigStepPlace (pushScope σ) p a := by
+  intro h
+  cases h with
+  | varObject hlookup =>
+      exact .varObject (by
+        simpa [lookupBinding, lookupBindingFrames, pushScope, emptyScopeFrame] using hlookup)
+  | varRef hlookup =>
+      exact .varRef (by
+        simpa [lookupBinding, lookupBindingFrames, pushScope, emptyScopeFrame] using hlookup)
+  | deref hv hheap halive =>
+      exact .deref
+        (bigStepValue_pushScope hv)
+        (by simpa [pushScope] using hheap)
+        halive
+
+theorem bigStepValue_pushScope
+    {σ : State} {e : ValExpr} {v : Value} :
+    BigStepValue σ e v →
+    BigStepValue (pushScope σ) e v := by
+  intro h
+  cases h with
+  | litBool =>
+      exact .litBool
+  | litInt =>
+      exact .litInt
+  | load hp hheap halive hval =>
+      exact .load
+        (bigStepPlace_pushScope hp)
+        (by simpa [pushScope] using hheap)
+        halive
+        hval
+  | addrOf hp =>
+      exact .addrOf (bigStepPlace_pushScope hp)
+  | add h1 h2 =>
+      exact .add
+        (bigStepValue_pushScope h1)
+        (bigStepValue_pushScope h2)
+  | sub h1 h2 =>
+      exact .sub
+        (bigStepValue_pushScope h1)
+        (bigStepValue_pushScope h2)
+  | mul h1 h2 =>
+      exact .mul
+        (bigStepValue_pushScope h1)
+        (bigStepValue_pushScope h2)
+  | eq h1 h2 =>
+      exact .eq
+        (bigStepValue_pushScope h1)
+        (bigStepValue_pushScope h2)
+  | lt h1 h2 =>
+      exact .lt
+        (bigStepValue_pushScope h1)
+        (bigStepValue_pushScope h2)
+  | not h =>
+      exact .not (bigStepValue_pushScope h)
+
+end
+
+
+def ThinSeparatedWitness.pushScope
+    {Γ : TypeEnv} {σ : State}
+    {q : PlaceExpr} {rhs : ValExpr}
+    {e : ValExpr} {τ : CppType} :
+    ThinSeparatedWitness Γ σ q rhs e τ →
+    ThinSeparatedWitness (pushTypeScope Γ) (pushScope σ) q rhs e τ
+  | w =>
+      { ptrType := hasValueType_pushTypeScope w.ptrType
+        srcStable := w.srcStable
+        writeAddr := w.writeAddr
+        writesQ := bigStepPlace_pushScope w.writesQ
+        targetSeparated := by
+          intro a hvalPush
+          exact w.targetSeparated (bigStepValue_of_pushScope hvalPush) }
+
+def LoadThinSeparatedWitness.pushScope
+    {Γ : TypeEnv} {σ : State}
+    {q : PlaceExpr} {rhs : ValExpr}
+    {p : PlaceExpr} {τ : CppType} :
+    LoadThinSeparatedWitness Γ σ q rhs p τ →
+    LoadThinSeparatedWitness (pushTypeScope Γ) (pushScope σ) q rhs p τ
+  | w =>
+      { base := w.base.pushScope
+        sourceSeparated := by
+          intro aSrc hplacePush
+          exact w.sourceSeparated (bigStepPlace_of_pushScope hplacePush) }
+
+def StrongThinSeparatedWitness.pushScope
+    {Γ : TypeEnv} {σ : State}
+    {q : PlaceExpr} {rhs : ValExpr}
+    {e : ValExpr} {τ : CppType} :
+    StrongThinSeparatedWitness Γ σ q rhs e τ →
+    StrongThinSeparatedWitness (pushTypeScope Γ) (pushScope σ) q rhs e τ
+  | .addrOf w => .addrOf w.pushScope
+  | .load w => .load w.pushScope
+
+theorem strongThinSeparatedCondExpr_pushScope
     {Γ : TypeEnv} {σ : State} {q : PlaceExpr} {rhs e : ValExpr} {τ : CppType} :
     StrongThinSeparatedCondExpr Γ σ q rhs e τ →
-    StrongThinSeparatedCondExpr (pushTypeScope Γ) (pushScope σ) q rhs e τ
+    StrongThinSeparatedCondExpr (pushTypeScope Γ) (pushScope σ) q rhs e τ := by
+  intro h
+  induction h with
+  | base hbase hty =>
+      exact .base hbase (hasValueType_pushTypeScope hty)
+  | loadDeref hw =>
+      exact .loadDeref hw.pushScope
+  | addrOfDeref hw =>
+      exact .addrOfDeref hw.pushScope
+  | add h1 h2 ih1 ih2 =>
+      exact .add ih1 ih2
+  | sub h1 h2 ih1 ih2 =>
+      exact .sub ih1 ih2
+  | mul h1 h2 ih1 ih2 =>
+      exact .mul ih1 ih2
+  | eq h1 h2 ih1 ih2 =>
+      exact .eq ih1 ih2
+  | lt h1 h2 ih1 ih2 =>
+      exact .lt ih1 ih2
+  | not h ih =>
+      exact .not ih
 
 
 theorem scoped_typed_state_concrete_pushScope
@@ -359,68 +473,7 @@ theorem scoped_typed_state_concrete_pushScope
                   simpa [runtimeFrameOwnsAddress, pushScope] using hown
                 exact havoidOld hownOld }
 
-mutual
 
-theorem bigStepPlace_pushScope
-    {σ : State} {p : PlaceExpr} {a : Nat} :
-    BigStepPlace σ p a →
-    BigStepPlace (pushScope σ) p a := by
-  intro h
-  cases h with
-  | varObject hlookup =>
-      exact .varObject (by
-        simpa [lookupBinding, lookupBindingFrames, pushScope, emptyScopeFrame] using hlookup)
-  | varRef hlookup =>
-      exact .varRef (by
-        simpa [lookupBinding, lookupBindingFrames, pushScope, emptyScopeFrame] using hlookup)
-  | deref hv hheap halive =>
-      exact .deref
-        (bigStepValue_pushScope hv)
-        (by simpa [pushScope] using hheap)
-        halive
-
-theorem bigStepValue_pushScope
-    {σ : State} {e : ValExpr} {v : Value} :
-    BigStepValue σ e v →
-    BigStepValue (pushScope σ) e v := by
-  intro h
-  cases h with
-  | litBool =>
-      exact .litBool
-  | litInt =>
-      exact .litInt
-  | load hp hheap halive hval =>
-      exact .load
-        (bigStepPlace_pushScope hp)
-        (by simpa [pushScope] using hheap)
-        halive
-        hval
-  | addrOf hp =>
-      exact .addrOf (bigStepPlace_pushScope hp)
-  | add h1 h2 =>
-      exact .add
-        (bigStepValue_pushScope h1)
-        (bigStepValue_pushScope h2)
-  | sub h1 h2 =>
-      exact .sub
-        (bigStepValue_pushScope h1)
-        (bigStepValue_pushScope h2)
-  | mul h1 h2 =>
-      exact .mul
-        (bigStepValue_pushScope h1)
-        (bigStepValue_pushScope h2)
-  | eq h1 h2 =>
-      exact .eq
-        (bigStepValue_pushScope h1)
-        (bigStepValue_pushScope h2)
-  | lt h1 h2 =>
-      exact .lt
-        (bigStepValue_pushScope h1)
-        (bigStepValue_pushScope h2)
-  | not h =>
-      exact .not (bigStepValue_pushScope h)
-
-end
 
 theorem assigns_pushScope
     {σ σ' : State} {p : PlaceExpr} {v : Value} :
