@@ -19,6 +19,7 @@ two layers every time.
 /- =========================================================
    1. Coercion from the non-declaration fragment to the declaration-aware one
    ========================================================= -/
+mutual
 
 def AssignHeadTransportableStmt.toDecl
     {Γ : TypeEnv} {σ : State} {q : PlaceExpr} {rhs : ValExpr} :
@@ -37,6 +38,8 @@ def AssignHeadTransportableStmt.toDecl
       .ite hc hs.toDecl ht.toDecl
   | _, .whileStmt hc hbody =>
       .whileStmt hc hbody.toDecl
+  | _, .block hblock =>
+      .block hblock.toDecl
   | _, .breakStmt =>
       .breakStmt
   | _, .continueStmt =>
@@ -55,6 +58,8 @@ def AssignHeadTransportableBlock.toDecl
       .nil
   | _, .cons hs hss =>
       .cons hs.toDecl hss.toDecl
+
+end
 
 @[simp] theorem AssignHeadTransportableStmt_toDecl_skip
     {Γ : TypeEnv} {σ : State} {q : PlaceExpr} {rhs : ValExpr} :
