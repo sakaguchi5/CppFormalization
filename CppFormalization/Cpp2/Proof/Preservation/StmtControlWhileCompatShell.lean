@@ -26,7 +26,6 @@ axiom while_true_normal_normal_goal
     {hN : HasTypeStmtCI .normalK Γ body Γ}
     {hB : HasTypeStmtCI .breakK Γ body Γ}
     {hC : HasTypeStmtCI .continueK Γ body Γ}
-    {hcond : BigStepValue σ c (.bool true)}
     {hbody : BigStepStmt σ body .normal σ₁}
     {htail : BigStepStmt σ₁ (.whileStmt c body) .normal σ₂}
     (hcompBody : StmtControlCompatible hN hbody)
@@ -41,7 +40,6 @@ axiom while_true_continue_normal_goal
     {hN : HasTypeStmtCI .normalK Γ body Γ}
     {hB : HasTypeStmtCI .breakK Γ body Γ}
     {hC : HasTypeStmtCI .continueK Γ body Γ}
-    {hcond : BigStepValue σ c (.bool true)}
     {hbody : BigStepStmt σ body .continueResult σ₁}
     {htail : BigStepStmt σ₁ (.whileStmt c body) .normal σ₂}
     (hcompBody : StmtControlCompatible hC hbody)
@@ -58,7 +56,6 @@ axiom while_true_normal_return_goal
     {hB : HasTypeStmtCI .breakK Γ body Γ}
     {hC : HasTypeStmtCI .continueK Γ body Γ}
     {hR : HasTypeStmtCI .returnK Γ body Δ}
-    {hcond : BigStepValue σ c (.bool true)}
     {hbody : BigStepStmt σ body .normal σ₁}
     {htail : BigStepStmt σ₁ (.whileStmt c body) (.returnResult rv) σ₂}
     (hcompBody : StmtControlCompatible hN hbody)
@@ -75,7 +72,6 @@ axiom while_true_continue_return_goal
     {hB : HasTypeStmtCI .breakK Γ body Γ}
     {hC : HasTypeStmtCI .continueK Γ body Γ}
     {hR : HasTypeStmtCI .returnK Γ body Δ}
-    {hcond : BigStepValue σ c (.bool true)}
     {hbody : BigStepStmt σ body .continueResult σ₁}
     {htail : BigStepStmt σ₁ (.whileStmt c body) (.returnResult rv) σ₂}
     (hcompBody : StmtControlCompatible hC hbody)
