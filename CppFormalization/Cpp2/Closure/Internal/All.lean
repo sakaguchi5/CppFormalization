@@ -19,6 +19,7 @@ import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureConcrete
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureConcreteRefined
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI
+import CppFormalization.Cpp2.Closure.Internal.FunctionBodyReplayStablePrimitiveWhileFacts
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmap
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapCI
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapConcrete
