@@ -50,3 +50,4 @@ import CppFormalization.Cpp2.Closure.Internal.WhileFunctionClosureKernelCI
 import CppFormalization.Cpp2.Closure.Internal.WhileNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.WhileReentryKernelFacts
 import CppFormalization.Cpp2.Closure.Internal.WhileReplayStablePrimitiveFacts
+import CppFormalization.Cpp2.Closure.Internal.WhileStrongThinSeparatedAssignFacts

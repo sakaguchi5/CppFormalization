@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Closure.Internal.AssignHeadWhileTransportTheorems
-import CppFormalization.Cpp2.Closure.Internal.WhileNormalPreservation
+import CppFormalization.Cpp2.Closure.Internal.WhileStrongThinSeparatedAssignFacts
 
 namespace Cpp
 
