@@ -5,6 +5,7 @@ import CppFormalization.Cpp2.Closure.Internal.StmtAbruptCompatibility
 import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.WhileNormalPreservation
+import CppFormalization.Cpp2.Closure.Internal.WhileReplayStablePrimitiveFacts
 
 namespace Cpp
 

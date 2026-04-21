@@ -47,3 +47,5 @@ import CppFormalization.Cpp2.Closure.Internal.WhileBodyClassCI
 import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
 import CppFormalization.Cpp2.Closure.Internal.WhileFunctionClosureKernelCI
 import CppFormalization.Cpp2.Closure.Internal.WhileNormalPreservation
+import CppFormalization.Cpp2.Closure.Internal.WhileReentryKernelFacts
+import CppFormalization.Cpp2.Closure.Internal.WhileReplayStablePrimitiveFacts

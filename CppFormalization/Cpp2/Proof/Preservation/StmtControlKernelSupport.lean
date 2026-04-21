@@ -4,7 +4,8 @@ import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
 import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCI
 import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelCI
-import CppFormalization.Cpp2.Closure.Internal.WhileNormalPreservation
+import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
+import CppFormalization.Cpp2.Closure.Internal.WhileReentryKernelFacts
 import CppFormalization.Cpp2.Closure.Foundation.ReadinessSemanticsBridge
 import CppFormalization.Cpp2.Lemmas.ExprTypeUniqueness
 import CppFormalization.Cpp2.Lemmas.TransitionDeterminism
