@@ -159,11 +159,7 @@ theorem stmt_control_preserves_scoped_typed_state_of_compatible_core
   · -- while_true_break
     intro Γ σ0 σ1 c body hc hN hB hC hcond hbody hcompBody ihBody hsc_in
     intro hreadyWhile
-
-    have hsc1 : ScopedTypedStateConcrete Γ σ1 :=
-      whileBodyConcrete ihBody hsc_in hreadyWhile
-
-    simpa using hsc1
+    exact whileBreakCase ihBody hsc_in hreadyWhile
 
   · -- while_true_continue_normal
     intro Γ σ0 σ1 σ2 c body hc hN hB hC hcond hbody htail
@@ -207,14 +203,7 @@ theorem stmt_control_preserves_scoped_typed_state_of_compatible_core
   · -- while_true_return
     intro Γ Δ σ0 σ1 c body rv hc hN hB hC hR hcond hbody hcompBody ihBody hsc_in
     intro hreadyWhile
-
-    have hreadyBody : StmtReadyConcrete Γ σ0 body :=
-      while_ready_body_data hreadyWhile
-
-    have hsc1 : ScopedTypedStateConcrete Δ σ1 :=
-      ihBody hsc_in hreadyBody
-
-    simpa using hsc1
+    exact whileReturnLeafCase ihBody hsc_in hreadyWhile
   · -- block
     intro k_blk Γ_env Θ_env ss_blk σ_in σ_open σ_body σ_out ctrl
       htyBlk hopen hbody hclose

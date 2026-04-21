@@ -124,6 +124,18 @@ theorem whileNormalNormalCase
     whileTailReadyNormal mkWhileCtx hc hN hB hC hsc_in hreadyWhile hbody
   exact ihTail hsc1 hreadyTail
 
+theorem whileBreakCase
+    {Γ : TypeEnv} {σ0 σ1 : State} {c : ValExpr} {body : CppStmt}
+    (ihBody :
+      ScopedTypedStateConcrete Γ σ0 →
+      StmtReadyConcrete Γ σ0 body →
+      ScopedTypedStateConcrete Γ σ1) :
+    ScopedTypedStateConcrete Γ σ0 →
+    StmtReadyConcrete Γ σ0 (.whileStmt c body) →
+    ScopedTypedStateConcrete Γ σ1 := by
+  intro hsc_in hreadyWhile
+  exact whileBodyConcrete ihBody hsc_in hreadyWhile
+
 theorem whileContinueNormalCase
     (mkWhileCtx : WhileCtxProvider)
     {Γ : TypeEnv} {σ0 σ1 σ2 : State} {c : ValExpr} {body : CppStmt}
@@ -201,6 +213,18 @@ theorem whileContinueReturnCase
   have hreadyTail : StmtReadyConcrete Γ σ1 (.whileStmt c body) :=
     whileTailReadyContinue mkWhileCtx hc hN hB hC hsc_in hreadyWhile hbody
   exact ihTail hsc1 hreadyTail
+
+theorem whileReturnLeafCase
+    {Γ Δ : TypeEnv} {σ0 σ1 : State} {c : ValExpr} {body : CppStmt}
+    (ihBody :
+      ScopedTypedStateConcrete Γ σ0 →
+      StmtReadyConcrete Γ σ0 body →
+      ScopedTypedStateConcrete Δ σ1) :
+    ScopedTypedStateConcrete Γ σ0 →
+    StmtReadyConcrete Γ σ0 (.whileStmt c body) →
+    ScopedTypedStateConcrete Δ σ1 := by
+  intro hsc_in hreadyWhile
+  exact ihBody hsc_in (while_ready_body_data hreadyWhile)
 
 theorem assign_ready_data
     {Γ : TypeEnv} {σ : State} {p : PlaceExpr} {e : ValExpr} :
