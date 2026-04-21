@@ -1,3 +1,4 @@
+
 import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
 import CppFormalization.Cpp2.Closure.Internal.StmtControlPreservation
@@ -51,14 +52,15 @@ theorem block_head_normal_preserves_block_ready_concrete
     ScopedTypedStateConcrete Γ σ →
     ScopedTypedStateConcrete Δ σ' ∧ BlockReadyConcrete Δ σ' ss := by
   intro htyHead hreadyBlock hstepHead hσ
-  have hreadyHead : StmtReadyConcrete Γ σ s :=
-    cons_block_ready_head hreadyBlock
-  have hσ' : ScopedTypedStateConcrete Δ σ' :=
-    stmt_normal_preserves_scoped_typed_state_concrete
-      htyHead hσ hreadyHead hstepHead
-  have hreadyTail : BlockReadyConcrete Δ σ' ss :=
-    cons_block_ready_tail_after_head_normal htyHead hσ' hreadyBlock hstepHead
-  exact ⟨hσ', hreadyTail⟩
+  exact
+    cons_head_normal_preserves_ready_of_head_preservation
+      (Γ := Γ) (Ξ := Δ) (σ := σ) (σ' := σ') (s := s) (ss := ss)
+      (hpres := by
+        intro htyHead' hσ0 hreadyHead0 hstepHead0
+        exact
+          stmt_normal_preserves_scoped_typed_state_concrete
+            htyHead' hσ0 hreadyHead0 hstepHead0)
+      htyHead hreadyBlock hstepHead hσ
 
 /--
 Typed concrete readiness boundary for the `body .normal` branch of `while`.

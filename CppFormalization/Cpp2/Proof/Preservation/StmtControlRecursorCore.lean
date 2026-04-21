@@ -1,3 +1,4 @@
+
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
 import CppFormalization.Cpp2.Closure.Internal.PrimitiveStmtNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
@@ -213,12 +214,23 @@ private theorem stmt_control_goal_of_handlers
       intro hσ _
       simpa using hσ
 
-  | .seq_normal hcompS hcompT =>
+  | .seq_normal
+      (Γ := Γ) (Θ := Θ) (Δ := Δ) (s := s) (t := t)
+      (σ := σ) (σ₁ := σ₁) (σ₂ := σ₂) (ctrl := ctrl)
+      (htyS := htyS) (htyT := htyT)
+      (hstepS := hstepS) (hstepT := hstepT)
+      hcompS hcompT =>
       intro hσ hready
-      have hreadyS := seq_ready_left hready
-      have hσ₁ := stmt_control_goal_of_handlers H hcompS hσ hreadyS
-      have hreadyT :=
-        seq_ready_right_after_left_normal ‹_› hσ₁ hready ‹_›
+      have hpost :
+          ScopedTypedStateConcrete Θ σ₁ ∧ StmtReadyConcrete Θ σ₁ t := by
+        exact
+          seq_left_normal_preserves_ready_of_left_preservation
+            (Γ := Γ) (Δ := Θ) (σ := σ) (σ' := σ₁) (s := s) (t := t)
+            (hpres := by
+              intro _htyS hσ0 hreadyS0 _hstepS
+              exact stmt_control_goal_of_handlers H hcompS hσ0 hreadyS0)
+            htyS hready hstepS hσ
+      rcases hpost with ⟨hσ₁, hreadyT⟩
       exact stmt_control_goal_of_handlers H hcompT hσ₁ hreadyT
 
   | .seq_break hcompS =>
@@ -340,12 +352,23 @@ private theorem block_control_goal_of_handlers
       intro hσ _
       simpa using hσ
 
-  | .cons_normal hcompS hcompT =>
+  | .cons_normal
+      (k := k) (Γ := Γ) (Θ := Θ) (Δ := Δ) (s := s) (ss := ss)
+      (σ := σ) (σ₁ := σ₁) (σ₂ := σ₂) (ctrl := ctrl)
+      (htyS := htyS) (htyT := htyT)
+      (hstepS := hstepS) (hstepT := hstepT)
+      hcompS hcompT =>
       intro hσ hready
-      have hreadyS := cons_block_ready_head hready
-      have hσ₁ := stmt_control_goal_of_handlers H hcompS hσ hreadyS
-      have hreadyT :=
-        cons_block_ready_tail_after_head_normal ‹_› hσ₁ hready ‹_›
+      have hpost :
+          ScopedTypedStateConcrete Θ σ₁ ∧ BlockReadyConcrete Θ σ₁ ss := by
+        exact
+          cons_head_normal_preserves_ready_of_head_preservation
+            (Γ := Γ) (Ξ := Θ) (σ := σ) (σ' := σ₁) (s := s) (ss := ss)
+            (hpres := by
+              intro _htyS hσ0 hreadyS0 _hstepS
+              exact stmt_control_goal_of_handlers H hcompS hσ0 hreadyS0)
+            htyS hready hstepS hσ
+      rcases hpost with ⟨hσ₁, hreadyT⟩
       exact block_control_goal_of_handlers H hcompT hσ₁ hreadyT
 
   | .cons_break hcompS =>

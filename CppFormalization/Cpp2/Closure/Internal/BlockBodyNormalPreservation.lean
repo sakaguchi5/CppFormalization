@@ -85,6 +85,37 @@ theorem cons_block_normal_data
   | consNormal hs hss =>
       exact ⟨_, hs, hss⟩
 
+/- =========================================================
+   2. head-normal post boundary の一般定理
+   ========================================================= -/
+
+/--
+When the post-environment of the head statement is already fixed as `Ξ`,
+we can reconstruct the concrete state/ready pair for the remaining block tail
+without mentioning the final codomain of the whole block body.
+-/
+theorem cons_head_normal_preserves_ready_of_head_preservation
+    {Γ Ξ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock}
+    (hpres :
+      HasTypeStmtCI .normalK Γ s Ξ ->
+      ScopedTypedStateConcrete Γ σ ->
+      StmtReadyConcrete Γ σ s ->
+      BigStepStmt σ s .normal σ' ->
+      ScopedTypedStateConcrete Ξ σ') :
+    HasTypeStmtCI .normalK Γ s Ξ ->
+    BlockReadyConcrete Γ σ (.cons s ss) ->
+    BigStepStmt σ s .normal σ' ->
+    ScopedTypedStateConcrete Γ σ ->
+    ScopedTypedStateConcrete Ξ σ' ∧ BlockReadyConcrete Ξ σ' ss := by
+  intro htyHead hready hstep hσ
+  have hreadyHead : StmtReadyConcrete Γ σ s :=
+    cons_block_ready_head hready
+  have hσ' : ScopedTypedStateConcrete Ξ σ' :=
+    hpres htyHead hσ hreadyHead hstep
+  have hreadyTail : BlockReadyConcrete Ξ σ' ss :=
+    cons_block_ready_tail_after_head_normal htyHead hσ' hready hstep
+  exact ⟨hσ', hreadyTail⟩
+
 theorem cons_head_normal_preserves_residual_boundary
     {Γ Θ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock} :
     HasTypeBlockCI .normalK Γ (.cons s ss) Θ ->
@@ -100,12 +131,15 @@ theorem cons_head_normal_preserves_residual_boundary
     ConsResidualBoundary Θ σ' ss := by
   intro hty hσ hready hstep hhead
   rcases cons_block_typing_data hty with ⟨Ξ, htyHead, htyTail⟩
-  have hreadyHead : StmtReadyConcrete Γ σ s :=
-    cons_block_ready_head hready
-  have hσ' : ScopedTypedStateConcrete Ξ σ' :=
-    hhead htyHead hσ hreadyHead hstep
-  have hreadyTail : BlockReadyConcrete Ξ σ' ss :=
-    cons_block_ready_tail_after_head_normal htyHead hσ' hready hstep
+  have hpost : ScopedTypedStateConcrete Ξ σ' ∧ BlockReadyConcrete Ξ σ' ss := by
+    exact
+      cons_head_normal_preserves_ready_of_head_preservation
+        (Γ := Γ) (Ξ := Ξ) (σ := σ) (σ' := σ') (s := s) (ss := ss)
+        (hpres := by
+          intro htyHead' hσ0 hreadyHead0 hstep0
+          exact hhead htyHead' hσ0 hreadyHead0 hstep0)
+        htyHead hready hstep hσ
+  rcases hpost with ⟨hσ', hreadyTail⟩
   exact ⟨Ξ, htyTail, hσ', hreadyTail⟩
 
 
