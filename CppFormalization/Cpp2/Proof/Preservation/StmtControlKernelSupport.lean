@@ -16,7 +16,8 @@ namespace Cpp
 /-!
 # Proof.Preservation.StmtControlKernelSupport
 
-`StmtControlKernel` で使う while / assign / block-open-scope の補助層。
+`StmtControlKernel` / `StmtControlPreservationV2` で使う while / assign /
+block-open-scope の補助層。
 main recursor から support obligations を分離して、
 compatibility recursion 本体を読みやすく保つ。
 -/
@@ -96,6 +97,110 @@ theorem whileTailReadyContinue
     wctx.condReady
     wctx.bodyBoundary
     hbody
+
+theorem whileNormalNormalCase
+    (mkWhileCtx : WhileCtxProvider)
+    {Γ : TypeEnv} {σ0 σ1 σ2 : State} {c : ValExpr} {body : CppStmt}
+    (hc : HasValueType Γ c (.base .bool))
+    (hN : HasTypeStmtCI .normalK Γ body Γ)
+    (hB : HasTypeStmtCI .breakK Γ body Γ)
+    (hC : HasTypeStmtCI .continueK Γ body Γ)
+    (hbody : BigStepStmt σ0 body .normal σ1)
+    (ihBody :
+      ScopedTypedStateConcrete Γ σ0 →
+      StmtReadyConcrete Γ σ0 body →
+      ScopedTypedStateConcrete Γ σ1)
+    (ihTail :
+      ScopedTypedStateConcrete Γ σ1 →
+      StmtReadyConcrete Γ σ1 (.whileStmt c body) →
+      ScopedTypedStateConcrete Γ σ2) :
+    ScopedTypedStateConcrete Γ σ0 →
+    StmtReadyConcrete Γ σ0 (.whileStmt c body) →
+    ScopedTypedStateConcrete Γ σ2 := by
+  intro hsc_in hreadyWhile
+  have hsc1 : ScopedTypedStateConcrete Γ σ1 :=
+    whileBodyConcrete ihBody hsc_in hreadyWhile
+  have hreadyTail : StmtReadyConcrete Γ σ1 (.whileStmt c body) :=
+    whileTailReadyNormal mkWhileCtx hc hN hB hC hsc_in hreadyWhile hbody
+  exact ihTail hsc1 hreadyTail
+
+theorem whileContinueNormalCase
+    (mkWhileCtx : WhileCtxProvider)
+    {Γ : TypeEnv} {σ0 σ1 σ2 : State} {c : ValExpr} {body : CppStmt}
+    (hc : HasValueType Γ c (.base .bool))
+    (hN : HasTypeStmtCI .normalK Γ body Γ)
+    (hB : HasTypeStmtCI .breakK Γ body Γ)
+    (hC : HasTypeStmtCI .continueK Γ body Γ)
+    (hbody : BigStepStmt σ0 body .continueResult σ1)
+    (ihBody :
+      ScopedTypedStateConcrete Γ σ0 →
+      StmtReadyConcrete Γ σ0 body →
+      ScopedTypedStateConcrete Γ σ1)
+    (ihTail :
+      ScopedTypedStateConcrete Γ σ1 →
+      StmtReadyConcrete Γ σ1 (.whileStmt c body) →
+      ScopedTypedStateConcrete Γ σ2) :
+    ScopedTypedStateConcrete Γ σ0 →
+    StmtReadyConcrete Γ σ0 (.whileStmt c body) →
+    ScopedTypedStateConcrete Γ σ2 := by
+  intro hsc_in hreadyWhile
+  have hsc1 : ScopedTypedStateConcrete Γ σ1 :=
+    whileBodyConcrete ihBody hsc_in hreadyWhile
+  have hreadyTail : StmtReadyConcrete Γ σ1 (.whileStmt c body) :=
+    whileTailReadyContinue mkWhileCtx hc hN hB hC hsc_in hreadyWhile hbody
+  exact ihTail hsc1 hreadyTail
+
+theorem whileNormalReturnCase
+    (mkWhileCtx : WhileCtxProvider)
+    {Γ Δ : TypeEnv} {σ0 σ1 σ2 : State} {c : ValExpr} {body : CppStmt}
+    (hc : HasValueType Γ c (.base .bool))
+    (hN : HasTypeStmtCI .normalK Γ body Γ)
+    (hB : HasTypeStmtCI .breakK Γ body Γ)
+    (hC : HasTypeStmtCI .continueK Γ body Γ)
+    (hbody : BigStepStmt σ0 body .normal σ1)
+    (ihBody :
+      ScopedTypedStateConcrete Γ σ0 →
+      StmtReadyConcrete Γ σ0 body →
+      ScopedTypedStateConcrete Γ σ1)
+    (ihTail :
+      ScopedTypedStateConcrete Γ σ1 →
+      StmtReadyConcrete Γ σ1 (.whileStmt c body) →
+      ScopedTypedStateConcrete Δ σ2) :
+    ScopedTypedStateConcrete Γ σ0 →
+    StmtReadyConcrete Γ σ0 (.whileStmt c body) →
+    ScopedTypedStateConcrete Δ σ2 := by
+  intro hsc_in hreadyWhile
+  have hsc1 : ScopedTypedStateConcrete Γ σ1 :=
+    whileBodyConcrete ihBody hsc_in hreadyWhile
+  have hreadyTail : StmtReadyConcrete Γ σ1 (.whileStmt c body) :=
+    whileTailReadyNormal mkWhileCtx hc hN hB hC hsc_in hreadyWhile hbody
+  exact ihTail hsc1 hreadyTail
+
+theorem whileContinueReturnCase
+    (mkWhileCtx : WhileCtxProvider)
+    {Γ Δ : TypeEnv} {σ0 σ1 σ2 : State} {c : ValExpr} {body : CppStmt}
+    (hc : HasValueType Γ c (.base .bool))
+    (hN : HasTypeStmtCI .normalK Γ body Γ)
+    (hB : HasTypeStmtCI .breakK Γ body Γ)
+    (hC : HasTypeStmtCI .continueK Γ body Γ)
+    (hbody : BigStepStmt σ0 body .continueResult σ1)
+    (ihBody :
+      ScopedTypedStateConcrete Γ σ0 →
+      StmtReadyConcrete Γ σ0 body →
+      ScopedTypedStateConcrete Γ σ1)
+    (ihTail :
+      ScopedTypedStateConcrete Γ σ1 →
+      StmtReadyConcrete Γ σ1 (.whileStmt c body) →
+      ScopedTypedStateConcrete Δ σ2) :
+    ScopedTypedStateConcrete Γ σ0 →
+    StmtReadyConcrete Γ σ0 (.whileStmt c body) →
+    ScopedTypedStateConcrete Δ σ2 := by
+  intro hsc_in hreadyWhile
+  have hsc1 : ScopedTypedStateConcrete Γ σ1 :=
+    whileBodyConcrete ihBody hsc_in hreadyWhile
+  have hreadyTail : StmtReadyConcrete Γ σ1 (.whileStmt c body) :=
+    whileTailReadyContinue mkWhileCtx hc hN hB hC hsc_in hreadyWhile hbody
+  exact ihTail hsc1 hreadyTail
 
 theorem assign_ready_data
     {Γ : TypeEnv} {σ : State} {p : PlaceExpr} {e : ValExpr} :
