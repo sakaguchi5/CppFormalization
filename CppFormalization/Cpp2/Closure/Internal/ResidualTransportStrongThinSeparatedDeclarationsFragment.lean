@@ -25,62 +25,69 @@ So this is the honest "assign-headed + deref-aware + declarations" fragment.
    1. Assignment-headed transportable suffix fragment with declarations
    ========================================================= -/
 
-inductive AssignHeadTransportableStmtDecl
-    (Γ : TypeEnv) (σ : State) (q : PlaceExpr) (rhs : ValExpr) :
-    CppStmt → Prop where
-  | skip :
+mutual
+
+inductive AssignHeadTransportableStmtDecl :
+    TypeEnv → State → PlaceExpr → ValExpr → CppStmt → Prop where
+  | skip {Γ σ q rhs} :
       AssignHeadTransportableStmtDecl Γ σ q rhs .skip
-  | exprStmt {e : ValExpr} {τ : CppType} :
+  | exprStmt {Γ σ q rhs e τ} :
       StrongThinSeparatedCondExpr Γ σ q rhs e τ →
       HasValueType Γ e τ →
       AssignHeadTransportableStmtDecl Γ σ q rhs (.exprStmt e)
-  | assign {p : PlaceExpr} {e : ValExpr} {τ : CppType} :
+  | assign {Γ σ q rhs p e τ} :
       ReplayStableReadPlace p →
       StrongThinSeparatedCondExpr Γ σ q rhs e τ →
       HasValueType Γ e τ →
       AssignHeadTransportableStmtDecl Γ σ q rhs (.assign p e)
-  | declareObjNone {τ : CppType} {x : Ident} :
+  | declareObjNone {Γ σ q rhs τ x} :
       AssignHeadTransportableStmtDecl Γ σ q rhs (.declareObj τ x none)
-  | declareObjSome {τobj : CppType} {x : Ident} {e : ValExpr} {τe : CppType} :
+  | declareObjSome {Γ σ q rhs τobj x e τe} :
       StrongThinSeparatedCondExpr Γ σ q rhs e τe →
       HasValueType Γ e τe →
       AssignHeadTransportableStmtDecl Γ σ q rhs (.declareObj τobj x (some e))
-  | declareRef {τ : CppType} {x : Ident} {p : PlaceExpr} :
+  | declareRef {Γ σ q rhs τ x p} :
       ReplayStableReadPlace p →
       AssignHeadTransportableStmtDecl Γ σ q rhs (.declareRef τ x p)
-  | seq {s t : CppStmt} :
+  | seq {Γ σ q rhs s t} :
       AssignHeadTransportableStmtDecl Γ σ q rhs s →
       AssignHeadTransportableStmtDecl Γ σ q rhs t →
       AssignHeadTransportableStmtDecl Γ σ q rhs (.seq s t)
-  | ite {c : ValExpr} {s t : CppStmt} :
+  | ite {Γ σ q rhs c s t} :
       StrongThinSeparatedCondExpr Γ σ q rhs c (.base .bool) →
       AssignHeadTransportableStmtDecl Γ σ q rhs s →
       AssignHeadTransportableStmtDecl Γ σ q rhs t →
       AssignHeadTransportableStmtDecl Γ σ q rhs (.ite c s t)
-  | whileStmt {c : ValExpr} {body : CppStmt} :
+  | whileStmt {Γ σ q rhs c body} :
       StrongThinSeparatedCondExpr Γ σ q rhs c (.base .bool) →
       AssignHeadTransportableStmtDecl Γ σ q rhs body →
       AssignHeadTransportableStmtDecl Γ σ q rhs (.whileStmt c body)
-  | breakStmt :
+  | block {Γ σ q rhs ss} :
+      AssignHeadTransportableBlockDecl (pushTypeScope Γ) (pushScope σ) q rhs ss →
+      AssignHeadTransportableStmtDecl Γ σ q rhs (.block ss)
+  | breakStmt {Γ σ q rhs} :
       AssignHeadTransportableStmtDecl Γ σ q rhs .breakStmt
-  | continueStmt :
+  | continueStmt {Γ σ q rhs} :
       AssignHeadTransportableStmtDecl Γ σ q rhs .continueStmt
-  | returnNone :
+  | returnNone {Γ σ q rhs} :
       AssignHeadTransportableStmtDecl Γ σ q rhs (.returnStmt none)
-  | returnSome {e : ValExpr} {τ : CppType} :
+  | returnSome {Γ σ q rhs e τ} :
       StrongThinSeparatedCondExpr Γ σ q rhs e τ →
       HasValueType Γ e τ →
       AssignHeadTransportableStmtDecl Γ σ q rhs (.returnStmt (some e))
 
-inductive AssignHeadTransportableBlockDecl
-    (Γ : TypeEnv) (σ : State) (q : PlaceExpr) (rhs : ValExpr) :
-    StmtBlock → Prop where
-  | nil :
+inductive AssignHeadTransportableBlockDecl :
+    TypeEnv → State → PlaceExpr → ValExpr → StmtBlock → Prop where
+  | nil {Γ σ q rhs} :
       AssignHeadTransportableBlockDecl Γ σ q rhs .nil
-  | cons {s : CppStmt} {ss : StmtBlock} :
+  | cons {Γ σ q rhs s ss} :
       AssignHeadTransportableStmtDecl Γ σ q rhs s →
       AssignHeadTransportableBlockDecl Γ σ q rhs ss →
       AssignHeadTransportableBlockDecl Γ σ q rhs (.cons s ss)
+
+end
+
+
 
 /- =========================================================
    1.5 Push-scope stability of the current declaration-aware fragment
@@ -499,178 +506,187 @@ theorem bigStepStmt_assign_pushScope
 mutual
 
 theorem assign_head_transportable_decl_stmt_pushScope
-    {Γ : TypeEnv} {σ : State} {q : PlaceExpr} {rhs : ValExpr} {st : CppStmt} :
-    AssignHeadTransportableStmtDecl Γ σ q rhs st →
+    {Γ : TypeEnv} {σ : State} {q : PlaceExpr} {rhs : ValExpr} {st : CppStmt}
+    (h : AssignHeadTransportableStmtDecl Γ σ q rhs st) :
     AssignHeadTransportableStmtDecl (pushTypeScope Γ) (pushScope σ) q rhs st := by
-  intro h
-  induction h with
-  | skip =>
-      exact .skip
-  | exprStmt hc hty =>
-      exact .exprStmt
-        (strongThinSeparatedCondExpr_pushScope hc)
-        (hasValueType_pushTypeScope hty)
-  | assign hp hc hty =>
-      exact .assign
-        hp
-        (strongThinSeparatedCondExpr_pushScope hc)
-        (hasValueType_pushTypeScope hty)
-  | declareObjNone =>
-      exact .declareObjNone
-  | declareObjSome hc hty =>
-      exact .declareObjSome
-        (strongThinSeparatedCondExpr_pushScope hc)
-        (hasValueType_pushTypeScope hty)
-  | declareRef hp =>
-      exact .declareRef hp
-  | seq hs ht ihs iht =>
-      exact .seq ihs iht
-  | ite hc hs ht ihs iht =>
-      exact .ite
-        (strongThinSeparatedCondExpr_pushScope hc)
-        ihs iht
-  | whileStmt hc hbody ih =>
-      exact .whileStmt
-        (strongThinSeparatedCondExpr_pushScope hc)
-        ih
-  | breakStmt =>
-      exact .breakStmt
-  | continueStmt =>
-      exact .continueStmt
-  | returnNone =>
-      exact .returnNone
-  | returnSome hc hty =>
-      exact .returnSome
-        (strongThinSeparatedCondExpr_pushScope hc)
-        (hasValueType_pushTypeScope hty)
+  match h with -- matchを使うとインデックスの型一致がスムーズに解決されます
+  | .skip => exact .skip
+  | .exprStmt hc hty =>
+      exact .exprStmt (strongThinSeparatedCondExpr_pushScope hc) (hasValueType_pushTypeScope hty)
+  | .assign hp hc hty =>
+      exact .assign hp (strongThinSeparatedCondExpr_pushScope hc) (hasValueType_pushTypeScope hty)
+  | .declareObjNone => exact .declareObjNone
+  | .declareObjSome hc hty =>
+      exact .declareObjSome (strongThinSeparatedCondExpr_pushScope hc) (hasValueType_pushTypeScope hty)
+  | .declareRef hp => exact .declareRef hp
+  | .seq hs ht =>
+      exact .seq (assign_head_transportable_decl_stmt_pushScope hs) (assign_head_transportable_decl_stmt_pushScope ht)
+  | .ite hc hs ht =>
+      exact .ite (strongThinSeparatedCondExpr_pushScope hc)
+                 (assign_head_transportable_decl_stmt_pushScope hs)
+                 (assign_head_transportable_decl_stmt_pushScope ht)
+  | .whileStmt hc hbody =>
+      exact .whileStmt (strongThinSeparatedCondExpr_pushScope hc) (assign_head_transportable_decl_stmt_pushScope hbody)
+  | .block hblock =>
+      exact .block (assign_head_transportable_decl_block_pushScope hblock)
+  | .breakStmt => exact .breakStmt
+  | .continueStmt => exact .continueStmt
+  | .returnNone => exact .returnNone
+  | .returnSome hc hty =>
+      exact .returnSome (strongThinSeparatedCondExpr_pushScope hc) (hasValueType_pushTypeScope hty)
 
 theorem assign_head_transportable_decl_block_pushScope
-    {Γ : TypeEnv} {σ : State} {q : PlaceExpr} {rhs : ValExpr} {ss : StmtBlock} :
-    AssignHeadTransportableBlockDecl Γ σ q rhs ss →
+    {Γ : TypeEnv} {σ : State} {q : PlaceExpr} {rhs : ValExpr} {ss : StmtBlock}
+    (h : AssignHeadTransportableBlockDecl Γ σ q rhs ss) :
     AssignHeadTransportableBlockDecl (pushTypeScope Γ) (pushScope σ) q rhs ss := by
-  intro h
-  induction h with
-  | nil =>
-      exact .nil
-  | cons hs hss ih =>
-      exact .cons
-        (assign_head_transportable_decl_stmt_pushScope hs)
-        ih
+  match h with
+  | .nil => exact .nil
+  | .cons hs hss =>
+      exact .cons (assign_head_transportable_decl_stmt_pushScope hs) (assign_head_transportable_decl_block_pushScope hss)
 
 end
 
 /- =========================================================
    2. Replay across the fixed head assignment
    ========================================================= -/
+mutual
 
 theorem assign_head_transportable_decl_stmt_ready_after_assign_head
     {Γ : TypeEnv} {σ σ' : State}
-    {q : PlaceExpr} {rhs : ValExpr} {target : CppStmt} :
-    AssignHeadTransportableStmtDecl Γ σ q rhs target →
+    {q : PlaceExpr} {rhs : ValExpr} {target : CppStmt}
+    (htarget : AssignHeadTransportableStmtDecl Γ σ q rhs target) :
     ScopedTypedStateConcrete Γ σ' →
     StmtReadyConcrete Γ σ target →
     BigStepStmt σ (.assign q rhs) .normal σ' →
     StmtReadyConcrete Γ σ' target := by
-  intro htarget hσ' hready hstep
-  induction htarget generalizing σ' with
-  | skip =>
-      exact StmtReadyConcrete.skip
-  | exprStmt hc hty_hc =>
-      cases hready with
-      | exprStmt hty_ready heready =>
+  intro hσ' hready hstep
+  match htarget with
+  | .skip =>
+      exact .skip
+
+  | .exprStmt hc hty_hc =>
+      match hready with
+      | .exprStmt hty_ready heready =>
           have heq := hasValueType_unique hty_ready hty_hc
           subst heq
-          exact StmtReadyConcrete.exprStmt hty_ready
+          exact .exprStmt hty_ready
             (strongThinSeparated_cond_expr_ready_after_assign
               hc hσ' heready hstep)
-  | assign hp hc hty_hc =>
-      cases hready with
-      | assign hpty hpready hvty_ready heready =>
+
+  | .assign hp hc hty_hc =>
+      match hready with
+      | .assign hpty hpready hvty_ready heready =>
           have heq := hasValueType_unique hvty_ready hty_hc
           subst heq
-          exact StmtReadyConcrete.assign
+          exact .assign
             hpty
             (replay_stable_read_place_ready_after_assign hp hσ' hpready hstep)
             hvty_ready
             (strongThinSeparated_cond_expr_ready_after_assign
               hc hσ' heready hstep)
-  | declareObjNone =>
-      cases hready with
-      | declareObjNone hfresh hobj =>
-          exact StmtReadyConcrete.declareObjNone hfresh hobj
-  | declareObjSome hc hty_hc =>
-      cases hready with
-      | declareObjSome hfresh hobj hty_ready heready =>
+
+  | .declareObjNone =>
+      match hready with
+      | .declareObjNone hfresh hobj =>
+          exact .declareObjNone hfresh hobj
+
+  | .declareObjSome hc hty_hc =>
+      match hready with
+      | .declareObjSome hfresh hobj hty_ready heready =>
           have heq := hasValueType_unique hty_ready hty_hc
           subst heq
-          exact StmtReadyConcrete.declareObjSome
+          exact .declareObjSome
             hfresh hobj hty_ready
             (strongThinSeparated_cond_expr_ready_after_assign
               hc hσ' heready hstep)
-  | declareRef hp =>
-      cases hready with
-      | declareRef hfresh hpty hpready =>
-          exact StmtReadyConcrete.declareRef
+
+  | .declareRef hp =>
+      match hready with
+      | .declareRef hfresh hpty hpready =>
+          exact .declareRef
             hfresh hpty
             (replay_stable_read_place_ready_after_assign hp hσ' hpready hstep)
-  | seq hs ht ihS ihT =>
-      cases hready with
-      | seq hreadyS hreadyT =>
-          exact StmtReadyConcrete.seq
-            (ihS hσ' hreadyS hstep)
-            (ihT hσ' hreadyT hstep)
-  | ite hc hs ht ihS ihT =>
-      cases hready with
-      | ite hcty hcready hreadyS hreadyT =>
-          exact StmtReadyConcrete.ite
+
+  | .seq hs ht =>
+      match hready with
+      | .seq hreadyS hreadyT =>
+          exact .seq
+            (assign_head_transportable_decl_stmt_ready_after_assign_head hs hσ' hreadyS hstep)
+            (assign_head_transportable_decl_stmt_ready_after_assign_head ht hσ' hreadyT hstep)
+
+  | .ite hc hs ht =>
+      match hready with
+      | .ite hcty hcready hreadyS hreadyT =>
+          exact .ite
             hcty
             (strongThinSeparated_cond_expr_ready_after_assign
               hc hσ' hcready hstep)
-            (ihS hσ' hreadyS hstep)
-            (ihT hσ' hreadyT hstep)
-  | whileStmt hc hbody ihBody =>
-      cases hready with
-      | whileStmt hcty hcready hreadyBody =>
-          exact StmtReadyConcrete.whileStmt
+            (assign_head_transportable_decl_stmt_ready_after_assign_head hs hσ' hreadyS hstep)
+            (assign_head_transportable_decl_stmt_ready_after_assign_head ht hσ' hreadyT hstep)
+
+  | .whileStmt hc hbody =>
+      match hready with
+      | .whileStmt hcty hcready hreadyBody =>
+          exact .whileStmt
             hcty
             (strongThinSeparated_cond_expr_ready_after_assign
               hc hσ' hcready hstep)
-            (ihBody hσ' hreadyBody hstep)
-  | breakStmt =>
-      exact StmtReadyConcrete.breakStmt
-  | continueStmt =>
-      exact StmtReadyConcrete.continueStmt
-  | returnNone =>
-      exact StmtReadyConcrete.returnNone
-  | returnSome hc hty_hc =>
-      cases hready with
-      | returnSome hty_ready heready =>
+            (assign_head_transportable_decl_stmt_ready_after_assign_head hbody hσ' hreadyBody hstep)
+
+  | .block hblock =>
+      match hready with
+      | .block hreadyBlock =>
+          have hσ'Push :
+              ScopedTypedStateConcrete (pushTypeScope Γ) (pushScope σ') :=
+            scoped_typed_state_concrete_pushScope hσ'
+          have hstepPush :
+              BigStepStmt (pushScope σ) (.assign q rhs) .normal (pushScope σ') :=
+            bigStepStmt_assign_pushScope hstep
+          exact .block
+            (assign_head_transportable_decl_block_ready_after_assign_head
+              hblock hσ'Push hreadyBlock hstepPush)
+
+  | .breakStmt =>
+      exact .breakStmt
+
+  | .continueStmt =>
+      exact .continueStmt
+
+  | .returnNone =>
+      exact .returnNone
+
+  | .returnSome hc hty_hc =>
+      match hready with
+      | .returnSome hty_ready heready =>
           have heq := hasValueType_unique hty_ready hty_hc
           subst heq
-          exact StmtReadyConcrete.returnSome
+          exact .returnSome
             hty_ready
             (strongThinSeparated_cond_expr_ready_after_assign
               hc hσ' heready hstep)
 
 theorem assign_head_transportable_decl_block_ready_after_assign_head
     {Γ : TypeEnv} {σ σ' : State}
-    {q : PlaceExpr} {rhs : ValExpr} {ss : StmtBlock} :
-    AssignHeadTransportableBlockDecl Γ σ q rhs ss →
+    {q : PlaceExpr} {rhs : ValExpr} {ss : StmtBlock}
+    (hblock : AssignHeadTransportableBlockDecl Γ σ q rhs ss) :
     ScopedTypedStateConcrete Γ σ' →
     BlockReadyConcrete Γ σ ss →
     BigStepStmt σ (.assign q rhs) .normal σ' →
     BlockReadyConcrete Γ σ' ss := by
-  intro hblock hσ' hready hstep
-  induction hblock generalizing σ' with
-  | nil =>
-      exact BlockReadyConcrete.nil
-  | cons hs hss ih =>
-      cases hready with
-      | cons hreadyS hreadySS =>
-          exact BlockReadyConcrete.cons
+  intro hσ' hready hstep
+  match hblock with
+  | .nil =>
+      exact .nil
+  | .cons hs hss =>
+      match hready with
+      | .cons hreadyS hreadySS =>
+          exact .cons
             (assign_head_transportable_decl_stmt_ready_after_assign_head
               hs hσ' hreadyS hstep)
-            (ih hσ' hreadySS hstep)
+            (assign_head_transportable_decl_block_ready_after_assign_head
+              hss hσ' hreadySS hstep)
+
+end
 
 
 /- =========================================================
