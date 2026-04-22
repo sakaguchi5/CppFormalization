@@ -79,6 +79,42 @@ axiom whileCurrentEntryKitCI_of_bodyClosureBoundaryCI
     WhileCurrentEntryKitCI Γ σ c body
 
 /--
+Current-entry typing extracted from a top-level `while` closure boundary.
+
+`WhileCurrentEntryKitCI` を経由せず、debt を個別の slot に露出するための
+より細い shell.
+-/
+axiom whileTypingCI_of_bodyClosureBoundaryCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
+    BodyClosureBoundaryCI Γ σ (.whileStmt c body) →
+    HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ
+
+/--
+Current iteration の loop-body local boundary extracted from a top-level `while`
+closure boundary.
+
+これにより current-entry の local boundary を bundle ではなく個別に扱える。
+-/
+axiom whileLoopBoundaryCI_of_bodyClosureBoundaryCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
+    BodyClosureBoundaryCI Γ σ (.whileStmt c body) →
+    LoopBodyBoundaryCI Γ σ body
+
+/--
+Local body progress/divergence extracted from a top-level `while` closure boundary.
+
+これは独立な shell ではなく、loop-body boundary からの導出として置く。
+-/
+theorem whileBodyProgressOrDiverges_of_bodyClosureBoundaryCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
+    BodyClosureBoundaryCI Γ σ (.whileStmt c body) →
+    (∃ ctrl σ1, BigStepStmt σ body ctrl σ1) ∨ BigStepStmtDiv σ body := by
+  intro hentry
+  exact
+    loop_body_function_progress_or_diverges_ci
+      (whileLoopBoundaryCI_of_bodyClosureBoundaryCI hentry)
+
+/--
 Tail-boundary reconstruction shell extracted from a top-level `while` closure boundary.
 
 normal / continue の 1 iteration 後に、tail `while` へ渡す top-level closure

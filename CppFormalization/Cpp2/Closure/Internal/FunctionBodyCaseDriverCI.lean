@@ -93,16 +93,21 @@ theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body
           (fun helseBoundary =>
             IH (st := t) hfragT helseBoundary)
   | whileStmt c body =>
-      let hcur : WhileCurrentEntryKitCI Γ σ c body :=
-        whileCurrentEntryKitCI_of_bodyClosureBoundaryCI hentry
+      have htyWhile : HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ :=
+        whileTypingCI_of_bodyClosureBoundaryCI hentry
+      have hloop : LoopBodyBoundaryCI Γ σ body :=
+        whileLoopBoundaryCI_of_bodyClosureBoundaryCI hentry
+      have hbodyClosure :
+          (∃ ctrl σ1, BigStepStmt σ body ctrl σ1) ∨ BigStepStmtDiv σ body :=
+        whileBodyProgressOrDiverges_of_bodyClosureBoundaryCI hentry
       let htail : WhileTailBoundaryKitCI Γ σ c body :=
         whileTailBoundaryKitCI_of_bodyClosureBoundaryCI hentry
       exact
         while_function_body_closure_boundary_ci_honest
-          hcur.typing
+          htyWhile
           hentry
-          hcur.loopBoundary
-          hcur.bodyProgressOrDiverges
+          hloop
+          hbodyClosure
           htail
           (fun {σ1} htailBoundary =>
             IH (st := .whileStmt c body) hfrag htailBoundary)
