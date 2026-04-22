@@ -8,47 +8,47 @@ namespace Cpp
 namespace InternalClosureRoadmapCI
 
 theorem stmt_normal_preserves_scoped_typed_state
-    (mkWhileCtx : WhileCtxProvider)
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ Δ : TypeEnv} {σ σ' : State} {st : CppStmt}
     (hty : HasTypeStmtCI .normalK Γ st Δ)
     (hready : StmtReadyConcrete Γ σ st)
     (hstep : BigStepStmt σ st .normal σ')
     (hσ : ScopedTypedStateConcrete Γ σ) :
     ScopedTypedStateConcrete Δ σ' :=
-  Cpp.stmt_normal_preserves_scoped_typed_state_concrete mkWhileCtx hty hσ hready hstep
+  Cpp.stmt_normal_preserves_scoped_typed_state_concrete mkWhileReentry hty hσ hready hstep
 
 theorem block_body_normal_preserves_scoped_typed_state
-    (mkWhileCtx : WhileCtxProvider)
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ Δ : TypeEnv} {σ σ' : State} {ss : StmtBlock}
     (hty : HasTypeBlockCI .normalK Γ ss Δ)
     (hready : BlockReadyConcrete Γ σ ss)
     (hstep : BigStepBlock σ ss .normal σ')
     (hσ : ScopedTypedStateConcrete Γ σ) :
     ScopedTypedStateConcrete Δ σ' :=
-  Cpp.block_body_normal_preserves_scoped_typed_state_concrete mkWhileCtx hty hσ hready hstep
+  Cpp.block_body_normal_preserves_scoped_typed_state_concrete mkWhileReentry hty hσ hready hstep
 
 theorem seq_left_normal_preserves_stmt_ready
-    (mkWhileCtx : WhileCtxProvider)
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt}
     (htyS : HasTypeStmtCI .normalK Γ s Δ)
     (hready : StmtReadyConcrete Γ σ (.seq s t))
     (hstepS : BigStepStmt σ s .normal σ')
     (hσ : ScopedTypedStateConcrete Γ σ) :
     StmtReadyConcrete Δ σ' t :=
-  InternalClosureRoadmapConcrete.seq_left_normal_preserves_body_ready mkWhileCtx htyS hready hstepS hσ
+  InternalClosureRoadmapConcrete.seq_left_normal_preserves_body_ready mkWhileReentry htyS hready hstepS hσ
 
 theorem block_head_normal_preserves_block_ready
-    (mkWhileCtx : WhileCtxProvider)
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ Δ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock}
     (htyS : HasTypeStmtCI .normalK Γ s Δ)
     (hready : BlockReadyConcrete Γ σ (.cons s ss))
     (hstepS : BigStepStmt σ s .normal σ')
     (hσ : ScopedTypedStateConcrete Γ σ) :
     BlockReadyConcrete Δ σ' ss :=
-  InternalClosureRoadmapConcrete.block_head_normal_preserves_block_ready mkWhileCtx htyS hready hstepS hσ
+  InternalClosureRoadmapConcrete.block_head_normal_preserves_block_ready mkWhileReentry htyS hready hstepS hσ
 
 theorem while_body_normal_preserves_stmt_ready_typed
-    (mkWhileCtx : WhileCtxProvider)
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
     (hcond : ExprReadyConcrete Γ σ c (.base .bool))
     (hbody : LoopBodyBoundaryCI Γ σ body)
@@ -56,10 +56,10 @@ theorem while_body_normal_preserves_stmt_ready_typed
     (hstepBody : BigStepStmt σ body .normal σ') :
     StmtReadyConcrete Γ σ' (.whileStmt c body) :=
   InternalClosureRoadmapConcrete.while_body_normal_preserves_body_ready_typed
-    mkWhileCtx hcond hbody K hstepBody
+    mkWhileReentry hcond hbody K hstepBody
 
 theorem while_body_continue_preserves_stmt_ready_typed
-    (mkWhileCtx : WhileCtxProvider)
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
     (hcond : ExprReadyConcrete Γ σ c (.base .bool))
     (hbody : LoopBodyBoundaryCI Γ σ body)
@@ -67,7 +67,7 @@ theorem while_body_continue_preserves_stmt_ready_typed
     (hstepBody : BigStepStmt σ body .continueResult σ') :
     StmtReadyConcrete Γ σ' (.whileStmt c body) :=
   InternalClosureRoadmapConcrete.while_body_continue_preserves_body_ready_typed
-    mkWhileCtx hcond hbody K hstepBody
+    mkWhileReentry hcond hbody K hstepBody
 
 theorem body_ready_ci_function_body_progress_or_diverges
     {Γ : TypeEnv} {σ : State} {st : CppStmt} :

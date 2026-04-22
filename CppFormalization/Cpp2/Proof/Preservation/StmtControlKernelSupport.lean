@@ -2,10 +2,8 @@ import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.ReadinessInversions
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
-import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCI
-import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelCI
 import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
-import CppFormalization.Cpp2.Closure.Internal.WhileReentryKernelFacts
+import CppFormalization.Cpp2.Closure.Internal.WhileReentryReadyKernelCI
 import CppFormalization.Cpp2.Closure.Internal.BlockNormalPreservation
 import CppFormalization.Cpp2.Closure.Foundation.ReadinessSemanticsBridge
 import CppFormalization.Cpp2.Lemmas.ExprTypeUniqueness
@@ -23,35 +21,8 @@ main recursor から support obligations を分離して、
 compatibility recursion 本体を読みやすく保つ。
 -/
 
-/-- while compatibility branch が必要とする局所文脈。 -/
-structure WhileCompatCtx
-    (Γ : TypeEnv) (σ : State) (c : ValExpr) (body : CppStmt) : Type where
-  condReady : ExprReadyConcrete Γ σ c (.base .bool)
-  bodyBoundary : LoopBodyBoundaryCI Γ σ body
-  reentry : LoopReentryKernelCI Γ c body
 
-abbrev WhileCtxProvider : Type :=
-  ∀ {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt},
-    HasValueType Γ c (.base .bool) →
-    HasTypeStmtCI .normalK Γ body Γ →
-    HasTypeStmtCI .breakK Γ body Γ →
-    HasTypeStmtCI .continueK Γ body Γ →
-    ScopedTypedStateConcrete Γ σ →
-    StmtReadyConcrete Γ σ (.whileStmt c body) →
-    WhileCompatCtx Γ σ c body
-
-def whileCtxOf
-    (mkWhileCtx : WhileCtxProvider)
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
-    (hc : HasValueType Γ c (.base .bool))
-    (hN : HasTypeStmtCI .normalK Γ body Γ)
-    (hB : HasTypeStmtCI .breakK Γ body Γ)
-    (hC : HasTypeStmtCI .continueK Γ body Γ)
-    (hsc : ScopedTypedStateConcrete Γ σ)
-    (hreadyWhile : StmtReadyConcrete Γ σ (.whileStmt c body)) :
-    WhileCompatCtx Γ σ c body :=
-  mkWhileCtx hc hN hB hC hsc hreadyWhile
-
+/-- body branch IH から 1-step 後の concrete state を得るだけの補助。 -/
 theorem whileBodyConcrete
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
     (ihBody :
@@ -64,7 +35,7 @@ theorem whileBodyConcrete
   exact ihBody hsc (while_ready_body_data hreadyWhile)
 
 theorem whileTailReadyNormal
-    (mkWhileCtx : WhileCtxProvider)
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
     (hc : HasValueType Γ c (.base .bool))
     (hN : HasTypeStmtCI .normalK Γ body Γ)
@@ -74,15 +45,11 @@ theorem whileTailReadyNormal
     (hreadyWhile : StmtReadyConcrete Γ σ (.whileStmt c body))
     (hbody : BigStepStmt σ body .normal σ') :
     StmtReadyConcrete Γ σ' (.whileStmt c body) := by
-  let wctx := whileCtxOf mkWhileCtx hc hN hB hC hsc hreadyWhile
-  exact while_ready_after_body_normal_of_kernel
-    wctx.reentry
-    wctx.condReady
-    wctx.bodyBoundary
-    hbody
+  let K := mkWhileReentry hc hN hB hC hsc hreadyWhile
+  exact whileStmtReady_after_normal hc K hbody
 
 theorem whileTailReadyContinue
-    (mkWhileCtx : WhileCtxProvider)
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
     (hc : HasValueType Γ c (.base .bool))
     (hN : HasTypeStmtCI .normalK Γ body Γ)
@@ -92,15 +59,11 @@ theorem whileTailReadyContinue
     (hreadyWhile : StmtReadyConcrete Γ σ (.whileStmt c body))
     (hbody : BigStepStmt σ body .continueResult σ') :
     StmtReadyConcrete Γ σ' (.whileStmt c body) := by
-  let wctx := whileCtxOf mkWhileCtx hc hN hB hC hsc hreadyWhile
-  exact while_ready_after_body_continue_of_kernel
-    wctx.reentry
-    wctx.condReady
-    wctx.bodyBoundary
-    hbody
+  let K := mkWhileReentry hc hN hB hC hsc hreadyWhile
+  exact whileStmtReady_after_continue hc K hbody
 
 theorem whileNormalNormalCase
-    (mkWhileCtx : WhileCtxProvider)
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ0 σ1 σ2 : State} {c : ValExpr} {body : CppStmt}
     (hc : HasValueType Γ c (.base .bool))
     (hN : HasTypeStmtCI .normalK Γ body Γ)
@@ -122,7 +85,7 @@ theorem whileNormalNormalCase
   have hsc1 : ScopedTypedStateConcrete Γ σ1 :=
     whileBodyConcrete ihBody hsc_in hreadyWhile
   have hreadyTail : StmtReadyConcrete Γ σ1 (.whileStmt c body) :=
-    whileTailReadyNormal mkWhileCtx hc hN hB hC hsc_in hreadyWhile hbody
+    whileTailReadyNormal mkWhileReentry hc hN hB hC hsc_in hreadyWhile hbody
   exact ihTail hsc1 hreadyTail
 
 theorem whileBreakCase
@@ -138,7 +101,7 @@ theorem whileBreakCase
   exact whileBodyConcrete ihBody hsc_in hreadyWhile
 
 theorem whileContinueNormalCase
-    (mkWhileCtx : WhileCtxProvider)
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ0 σ1 σ2 : State} {c : ValExpr} {body : CppStmt}
     (hc : HasValueType Γ c (.base .bool))
     (hN : HasTypeStmtCI .normalK Γ body Γ)
@@ -160,11 +123,11 @@ theorem whileContinueNormalCase
   have hsc1 : ScopedTypedStateConcrete Γ σ1 :=
     whileBodyConcrete ihBody hsc_in hreadyWhile
   have hreadyTail : StmtReadyConcrete Γ σ1 (.whileStmt c body) :=
-    whileTailReadyContinue mkWhileCtx hc hN hB hC hsc_in hreadyWhile hbody
+    whileTailReadyContinue mkWhileReentry hc hN hB hC hsc_in hreadyWhile hbody
   exact ihTail hsc1 hreadyTail
 
 theorem whileNormalReturnCase
-    (mkWhileCtx : WhileCtxProvider)
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ Δ : TypeEnv} {σ0 σ1 σ2 : State} {c : ValExpr} {body : CppStmt}
     (hc : HasValueType Γ c (.base .bool))
     (hN : HasTypeStmtCI .normalK Γ body Γ)
@@ -186,11 +149,11 @@ theorem whileNormalReturnCase
   have hsc1 : ScopedTypedStateConcrete Γ σ1 :=
     whileBodyConcrete ihBody hsc_in hreadyWhile
   have hreadyTail : StmtReadyConcrete Γ σ1 (.whileStmt c body) :=
-    whileTailReadyNormal mkWhileCtx hc hN hB hC hsc_in hreadyWhile hbody
+    whileTailReadyNormal mkWhileReentry hc hN hB hC hsc_in hreadyWhile hbody
   exact ihTail hsc1 hreadyTail
 
 theorem whileContinueReturnCase
-    (mkWhileCtx : WhileCtxProvider)
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ Δ : TypeEnv} {σ0 σ1 σ2 : State} {c : ValExpr} {body : CppStmt}
     (hc : HasValueType Γ c (.base .bool))
     (hN : HasTypeStmtCI .normalK Γ body Γ)
@@ -212,7 +175,7 @@ theorem whileContinueReturnCase
   have hsc1 : ScopedTypedStateConcrete Γ σ1 :=
     whileBodyConcrete ihBody hsc_in hreadyWhile
   have hreadyTail : StmtReadyConcrete Γ σ1 (.whileStmt c body) :=
-    whileTailReadyContinue mkWhileCtx hc hN hB hC hsc_in hreadyWhile hbody
+    whileTailReadyContinue mkWhileReentry hc hN hB hC hsc_in hreadyWhile hbody
   exact ihTail hsc1 hreadyTail
 
 theorem whileReturnLeafCase
