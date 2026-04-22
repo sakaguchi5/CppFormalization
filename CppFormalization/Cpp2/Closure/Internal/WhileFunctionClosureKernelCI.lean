@@ -14,7 +14,8 @@ Honest kernel surface for `while` function-body closure.
 設計意図:
 - `while` 全体の closure と、1 iteration の loop-body local closure を分離する。
 - generic provider を theorem statement に埋め込まず、
-  本当に必要な tail-boundary reconstruction だけを surface に出す。
+  本当に必要な current-entry facts / tail-boundary reconstruction だけを
+  surface に出す。
 - `LoopBodyBoundaryCI` / `LoopReentryKernelCI` は、この shell を後で
   theorem-backed に満たすための internal mechanism として使う。
 -/
@@ -35,19 +36,13 @@ structure WhileTailBoundaryKitCI
       BodyClosureBoundaryCI Γ σ1 (.whileStmt c body)
 
 /--
-Generic while-entry support extracted from a top-level `while` closure boundary.
+Current-entry facts for one `while` iteration.
 
 重要:
-- 旧 generic while shell を直接残さず、
-  `while` case-driver が本当に必要とする support だけを分離する。
-- ここには
-  * closed-at-start normal typing witness
-  * current iteration の loop-body local boundary
-  * current iteration の local progress/divergence
-  * tail-boundary reconstruction kit
-  が入る。
+- ここには「今この state で current iteration を始めるための事実」だけを置く。
+- tail `while` の boundary 再構成は別の `WhileTailBoundaryKitCI` へ分離する。
 -/
-structure WhileEntrySupportCI
+structure WhileCurrentEntryKitCI
     (Γ : TypeEnv) (σ : State) (c : ValExpr) (body : CppStmt) : Type where
   typing :
     HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ
@@ -55,20 +50,27 @@ structure WhileEntrySupportCI
     LoopBodyBoundaryCI Γ σ body
   bodyProgressOrDiverges :
     (∃ ctrl σ1, BigStepStmt σ body ctrl σ1) ∨ BigStepStmtDiv σ body
-  tailBoundary :
-    WhileTailBoundaryKitCI Γ σ c body
 
 /--
-Generic support shell from top-level `while` entry boundary.
+Current-entry support shell extracted from a top-level `while` closure boundary.
 
-この axiom は旧 `while_function_body_closure_ci` よりかなり小さい。
-`while` の current entry から body-local support だけを取り出し、
-while 全体の closure assembly は別 theorem に委ねる。
+旧 `WhileEntrySupportCI` から、tail-boundary reconstruction を切り離した版。
 -/
-axiom whileEntrySupportCI_of_bodyClosureBoundaryCI
+axiom whileCurrentEntryKitCI_of_bodyClosureBoundaryCI
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
     BodyClosureBoundaryCI Γ σ (.whileStmt c body) →
-    WhileEntrySupportCI Γ σ c body
+    WhileCurrentEntryKitCI Γ σ c body
+
+/--
+Tail-boundary reconstruction shell extracted from a top-level `while` closure boundary.
+
+normal / continue の 1 iteration 後に、tail `while` へ渡す top-level closure
+boundary を再構成する責務だけを分離する。
+-/
+axiom whileTailBoundaryKitCI_of_bodyClosureBoundaryCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
+    BodyClosureBoundaryCI Γ σ (.whileStmt c body) →
+    WhileTailBoundaryKitCI Γ σ c body
 
 /--
 Honest while case theorem.

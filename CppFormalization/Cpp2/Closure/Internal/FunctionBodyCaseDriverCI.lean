@@ -22,7 +22,6 @@ constructor-level case-driver body.
   どう与えるか」だけになる。
 -/
 
-
 /-- canonical result shape, re-exported for readability at the driver level. -/
 abbrev FunctionBodyCaseDriverResult (σ : State) (st : CppStmt) : Prop :=
   FunctionBodyClosureResult σ st
@@ -83,26 +82,28 @@ theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body
           (fun _hty _hstep htailBoundary =>
             IH (st := t) hfragT htailBoundary)
   | ite c s t =>
-      have hfragST : CoreBigStepFragment s ∧ CoreBigStepFragment t := by
-        simpa [CoreBigStepFragment, InBigStepFragment] using hfrag
-      rcases hfragST with ⟨hfragS, hfragT⟩
-      exact
-        ite_function_body_closure_boundary_ci_honest
-          hentry
-          (fun hthenBoundary =>
-            IH (st := s) hfragS hthenBoundary)
-          (fun helseBoundary =>
-            IH (st := t) hfragT helseBoundary)
+    have hfragST : CoreBigStepFragment s ∧ CoreBigStepFragment t := by
+      simpa [CoreBigStepFragment, InBigStepFragment] using hfrag
+    rcases hfragST with ⟨hfragS, hfragT⟩
+    exact
+      ite_function_body_closure_boundary_ci_honest
+        hentry
+        (fun hthenBoundary =>
+          IH (st := s) hfragS hthenBoundary)
+        (fun helseBoundary =>
+          IH (st := t) hfragT helseBoundary)
   | whileStmt c body =>
-      let hsupp : WhileEntrySupportCI Γ σ c body :=
-        whileEntrySupportCI_of_bodyClosureBoundaryCI hentry
+      let hcur : WhileCurrentEntryKitCI Γ σ c body :=
+        whileCurrentEntryKitCI_of_bodyClosureBoundaryCI hentry
+      let htail : WhileTailBoundaryKitCI Γ σ c body :=
+        whileTailBoundaryKitCI_of_bodyClosureBoundaryCI hentry
       exact
         while_function_body_closure_boundary_ci_honest
-          hsupp.typing
+          hcur.typing
           hentry
-          hsupp.loopBoundary
-          hsupp.bodyProgressOrDiverges
-          hsupp.tailBoundary
+          hcur.loopBoundary
+          hcur.bodyProgressOrDiverges
+          htail
           (fun {σ1} htailBoundary =>
             IH (st := .whileStmt c body) hfrag htailBoundary)
   | block ss =>

@@ -28,17 +28,6 @@ structure WhileBodyClassCI
   tailBoundary :
     WhileTailBoundaryKitCI Γ σ c body
 
-/-- Forgetful packaging from a while-body class to the generic while-entry support kit. -/
-def WhileBodyClassCI.toEntrySupport
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
-    (htyWhile : HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ)
-    (h : WhileBodyClassCI Γ σ c body) :
-    WhileEntrySupportCI Γ σ c body :=
-  { typing := htyWhile
-    loopBoundary := h.loopBoundary
-    bodyProgressOrDiverges := h.bodyProgressOrDiverges
-    tailBoundary := h.tailBoundary }
-
 /--
 Class-based wrapper around the honest while kernel.
 
