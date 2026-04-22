@@ -23,10 +23,21 @@ structure WhileBodyClassCI
     (Γ : TypeEnv) (σ : State) (c : ValExpr) (body : CppStmt) : Type where
   loopBoundary :
     LoopBodyBoundaryCI Γ σ body
-  bodyProgressOrDiverges :
-    (∃ ctrl σ1, BigStepStmt σ body ctrl σ1) ∨ BigStepStmtDiv σ body
   tailBoundary :
     WhileTailBoundaryKitCI Γ σ c body
+
+namespace WhileBodyClassCI
+
+/--
+Local body progress/divergence is derived from the class boundary itself.
+-/
+theorem bodyProgressOrDiverges
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (K : WhileBodyClassCI Γ σ c body) :
+    (∃ ctrl σ1, BigStepStmt σ body ctrl σ1) ∨ BigStepStmtDiv σ body :=
+  loop_body_function_progress_or_diverges_ci K.loopBoundary
+
+end WhileBodyClassCI
 
 /--
 Class-based wrapper around the honest while kernel.

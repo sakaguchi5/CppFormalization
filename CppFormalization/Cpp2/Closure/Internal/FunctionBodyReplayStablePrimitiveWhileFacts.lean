@@ -198,9 +198,6 @@ def replay_stable_primitive_whileBodyClassCI
     (hloop : LoopBodyBoundaryCI Γ σ body) :
     WhileBodyClassCI Γ σ c body :=
   { loopBoundary := hloop
-    bodyProgressOrDiverges :=
-      replay_stable_primitive_loop_body_function_progress_or_diverges_ci
-        hstable hloop
     tailBoundary :=
       whileTailBoundaryKitCI_of_replay_stable_primitive
         hstable hcstable htyWhile hentry }

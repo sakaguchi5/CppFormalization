@@ -40,6 +40,7 @@ Current-entry facts for one `while` iteration.
 
 重要:
 - ここには「今この state で current iteration を始めるための事実」だけを置く。
+- body の local progress/divergence は `loopBoundary` から回復する。
 - tail `while` の boundary 再構成は別の `WhileTailBoundaryKitCI` へ分離する。
 -/
 structure WhileCurrentEntryKitCI
@@ -48,13 +49,29 @@ structure WhileCurrentEntryKitCI
     HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ
   loopBoundary :
     LoopBodyBoundaryCI Γ σ body
-  bodyProgressOrDiverges :
-    (∃ ctrl σ1, BigStepStmt σ body ctrl σ1) ∨ BigStepStmtDiv σ body
+
+namespace WhileCurrentEntryKitCI
+
+/--
+Local body progress/divergence is derived from the loop-body boundary itself.
+
+current-entry kit はこの fact を field として重複保持しない。
+-/
+theorem bodyProgressOrDiverges
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (K : WhileCurrentEntryKitCI Γ σ c body) :
+    (∃ ctrl σ1, BigStepStmt σ body ctrl σ1) ∨ BigStepStmtDiv σ body :=
+  loop_body_function_progress_or_diverges_ci K.loopBoundary
+
+end WhileCurrentEntryKitCI
 
 /--
 Current-entry support shell extracted from a top-level `while` closure boundary.
 
-旧 `WhileEntrySupportCI` から、tail-boundary reconstruction を切り離した版。
+旧 `WhileEntrySupportCI` から、
+- tail-boundary reconstruction
+- local body progress/divergence
+を切り離した版。
 -/
 axiom whileCurrentEntryKitCI_of_bodyClosureBoundaryCI
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :

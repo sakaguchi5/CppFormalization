@@ -82,16 +82,16 @@ theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body
           (fun _hty _hstep htailBoundary =>
             IH (st := t) hfragT htailBoundary)
   | ite c s t =>
-    have hfragST : CoreBigStepFragment s ∧ CoreBigStepFragment t := by
-      simpa [CoreBigStepFragment, InBigStepFragment] using hfrag
-    rcases hfragST with ⟨hfragS, hfragT⟩
-    exact
-      ite_function_body_closure_boundary_ci_honest
-        hentry
-        (fun hthenBoundary =>
-          IH (st := s) hfragS hthenBoundary)
-        (fun helseBoundary =>
-          IH (st := t) hfragT helseBoundary)
+      have hfragST : CoreBigStepFragment s ∧ CoreBigStepFragment t := by
+        simpa [CoreBigStepFragment, InBigStepFragment] using hfrag
+      rcases hfragST with ⟨hfragS, hfragT⟩
+      exact
+        ite_function_body_closure_boundary_ci_honest
+          hentry
+          (fun hthenBoundary =>
+            IH (st := s) hfragS hthenBoundary)
+          (fun helseBoundary =>
+            IH (st := t) hfragT helseBoundary)
   | whileStmt c body =>
       let hcur : WhileCurrentEntryKitCI Γ σ c body :=
         whileCurrentEntryKitCI_of_bodyClosureBoundaryCI hentry
