@@ -40,6 +40,18 @@ theorem bodyProgressOrDiverges
 end WhileBodyClassCI
 
 /--
+Class shell extracted from a top-level `while` closure boundary.
+
+`while` case-driver の mainline は current-entry の local boundary と
+tail-boundary reconstruction を別々に直接触る代わりに、
+この class object を経由して while-local debt をまとめて扱う。
+-/
+axiom whileBodyClassCI_of_bodyClosureBoundaryCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
+    BodyClosureBoundaryCI Γ σ (.whileStmt c body) →
+    WhileBodyClassCI Γ σ c body
+
+/--
 Class-based wrapper around the honest while kernel.
 
 これにより、while の caller は

@@ -3,7 +3,7 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseSplitCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI
-import CppFormalization.Cpp2.Closure.Internal.WhileFunctionClosureKernelCI
+import CppFormalization.Cpp2.Closure.Internal.WhileBodyClassCI
 import CppFormalization.Cpp2.Closure.Internal.LoopBodyFunctionClosureCI
 
 namespace Cpp
@@ -95,20 +95,13 @@ theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body
   | whileStmt c body =>
       have htyWhile : HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ :=
         whileTypingCI_of_bodyClosureBoundaryCI hentry
-      have hloop : LoopBodyBoundaryCI Γ σ body :=
-        whileLoopBoundaryCI_of_bodyClosureBoundaryCI hentry
-      have hbodyClosure :
-          (∃ ctrl σ1, BigStepStmt σ body ctrl σ1) ∨ BigStepStmtDiv σ body :=
-        whileBodyProgressOrDiverges_of_bodyClosureBoundaryCI hentry
-      let htail : WhileTailBoundaryKitCI Γ σ c body :=
-        whileTailBoundaryKitCI_of_bodyClosureBoundaryCI hentry
+      let K : WhileBodyClassCI Γ σ c body :=
+        whileBodyClassCI_of_bodyClosureBoundaryCI hentry
       exact
-        while_function_body_closure_boundary_ci_honest
+        while_function_body_closure_boundary_ci_of_class
           htyWhile
           hentry
-          hloop
-          hbodyClosure
-          htail
+          K
           (fun {σ1} htailBoundary =>
             IH (st := .whileStmt c body) hfrag htailBoundary)
   | block ss =>
