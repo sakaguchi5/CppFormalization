@@ -64,45 +64,33 @@ theorem block_head_normal_preserves_block_ready_concrete
             mkWhileReentry htyHead' hσ0 hreadyHead0 hstepHead0)
       htyHead hreadyBlock hstepHead hσ
 
-/--
-Typed concrete readiness boundary for the `body .normal` branch of `while`.
-
-旧 signature では whole-while typing/readiness しか持っていなかったが、
-新設計では residual readiness reconstruction は
-`LoopBodyBoundaryCI` + `LoopReentryKernelCI` に委ねる。
--/
-theorem while_body_normal_preserves_body_ready_concrete_typed
+theorem while_body_normal_preserves_entry_ready_concrete_typed
     (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
     ExprReadyConcrete Γ σ c (.base .bool) →
     LoopBodyBoundaryCI Γ σ body →
     LoopReentryKernelCI Γ c body →
     BigStepStmt σ body .normal σ' →
-    ScopedTypedStateConcrete Γ σ' ∧ StmtReadyConcrete Γ σ' (.whileStmt c body) := by
+    ScopedTypedStateConcrete Γ σ' ∧ WhileEntryReadyCI Γ σ' c body := by
   intro hcond hbody K hstepBody
   have hN : HasTypeStmtCI .normalK Γ body Γ :=
     hbody.profile.normalTyping
   have hσ' : ScopedTypedStateConcrete Γ σ' :=
     stmt_normal_preserves_scoped_typed_state_concrete
-    mkWhileReentry
+      mkWhileReentry
       hN hbody.dynamic.state hbody.dynamic.safe hstepBody
-  have hreadyTail : StmtReadyConcrete Γ σ' (.whileStmt c body) :=
-    K.whileReady_after_normal hcond hbody hstepBody
-  exact ⟨hσ', hreadyTail⟩
+  have hentry' : WhileEntryReadyCI Γ σ' c body :=
+    whileEntryReady_after_normal_of_loopReentry hcond hbody K hstepBody
+  exact ⟨hσ', hentry'⟩
 
-/--
-Typed concrete readiness boundary for the `body .continueResult` branch of `while`.
-
-continue branch も同様に、新設計では reentry kernel を明示的に要求する。
--/
-theorem while_body_continue_preserves_body_ready_concrete_typed
+theorem while_body_continue_preserves_entry_ready_concrete_typed
     (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
     ExprReadyConcrete Γ σ c (.base .bool) →
     LoopBodyBoundaryCI Γ σ body →
     LoopReentryKernelCI Γ c body →
     BigStepStmt σ body .continueResult σ' →
-    ScopedTypedStateConcrete Γ σ' ∧ StmtReadyConcrete Γ σ' (.whileStmt c body) := by
+    ScopedTypedStateConcrete Γ σ' ∧ WhileEntryReadyCI Γ σ' c body := by
   intro hcond hbody K hstepBody
   have hC : HasTypeStmtCI .continueK Γ body Γ :=
     hbody.profile.continueTyping
@@ -113,9 +101,38 @@ theorem while_body_continue_preserves_body_ready_concrete_typed
     stmt_continue_preserves_scoped_typed_state_concrete
       mkWhileReentry
       hC hstepBody hcompBody hbody.dynamic.state hbody.dynamic.safe
-  have hreadyTail : StmtReadyConcrete Γ σ' (.whileStmt c body) :=
-    K.whileReady_after_continue hcond hbody hstepBody
-  exact ⟨hσ', hreadyTail⟩
+  have hentry' : WhileEntryReadyCI Γ σ' c body :=
+    whileEntryReady_after_continue_of_loopReentry hcond hbody K hstepBody
+  exact ⟨hσ', hentry'⟩
+
+
+theorem while_body_normal_preserves_body_ready_concrete_typed
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
+    ExprReadyConcrete Γ σ c (.base .bool) →
+    LoopBodyBoundaryCI Γ σ body →
+    LoopReentryKernelCI Γ c body →
+    BigStepStmt σ body .normal σ' →
+    ScopedTypedStateConcrete Γ σ' ∧ StmtReadyConcrete Γ σ' (.whileStmt c body) := by
+  intro hcond hbody K hstepBody
+  rcases while_body_normal_preserves_entry_ready_concrete_typed
+      mkWhileReentry hcond hbody K hstepBody with
+    ⟨hσ', hentry'⟩
+  exact ⟨hσ', stmtReady_of_whileEntryReady K.hc hentry'⟩
+
+theorem while_body_continue_preserves_body_ready_concrete_typed
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
+    ExprReadyConcrete Γ σ c (.base .bool) →
+    LoopBodyBoundaryCI Γ σ body →
+    LoopReentryKernelCI Γ c body →
+    BigStepStmt σ body .continueResult σ' →
+    ScopedTypedStateConcrete Γ σ' ∧ StmtReadyConcrete Γ σ' (.whileStmt c body) := by
+  intro hcond hbody K hstepBody
+  rcases while_body_continue_preserves_entry_ready_concrete_typed
+      mkWhileReentry hcond hbody K hstepBody with
+    ⟨hσ', hentry'⟩
+  exact ⟨hσ', stmtReady_of_whileEntryReady K.hc hentry'⟩
 
 /--
 Step 4 の concrete corollary。

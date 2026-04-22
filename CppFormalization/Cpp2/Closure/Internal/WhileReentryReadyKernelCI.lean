@@ -3,6 +3,7 @@ import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
 import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
+import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelCI
 
 namespace Cpp
 
@@ -74,5 +75,38 @@ theorem whileStmtReady_after_continue
     (hstep : BigStepStmt σ body .continueResult σ') :
     StmtReadyConcrete Γ σ' (.whileStmt c body) := by
   exact stmtReady_of_whileEntryReady hc (K.after_continue hstep)
+
+theorem whileEntryReady_after_normal_of_loopReentry
+    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
+    (hcond : ExprReadyConcrete Γ σ c (.base .bool))
+    (hbody : LoopBodyBoundaryCI Γ σ body)
+    (K : LoopReentryKernelCI Γ c body)
+    (hstep : BigStepStmt σ body .normal σ') :
+    WhileEntryReadyCI Γ σ' c body := by
+  refine ⟨?_, ?_⟩
+  · exact K.cond_after_normal hcond hbody hstep
+  · exact (K.nextBody_after_normal hbody hstep).dynamic.safe
+
+theorem whileEntryReady_after_continue_of_loopReentry
+    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
+    (hcond : ExprReadyConcrete Γ σ c (.base .bool))
+    (hbody : LoopBodyBoundaryCI Γ σ body)
+    (K : LoopReentryKernelCI Γ c body)
+    (hstep : BigStepStmt σ body .continueResult σ') :
+    WhileEntryReadyCI Γ σ' c body := by
+  refine ⟨?_, ?_⟩
+  · exact K.cond_after_continue hcond hbody hstep
+  · exact (K.nextBody_after_continue hbody hstep).dynamic.safe
+
+def WhileReentryReadyAt.of_loopReentry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hcond : ExprReadyConcrete Γ σ c (.base .bool))
+    (hbody : LoopBodyBoundaryCI Γ σ body)
+    (K : LoopReentryKernelCI Γ c body) :
+    WhileReentryReadyAt Γ σ c body where
+  after_normal := fun {_σ'} hstep =>
+    whileEntryReady_after_normal_of_loopReentry hcond hbody K hstep
+  after_continue := fun {_σ'} hstep =>
+    whileEntryReady_after_continue_of_loopReentry hcond hbody K hstep
 
 end Cpp
