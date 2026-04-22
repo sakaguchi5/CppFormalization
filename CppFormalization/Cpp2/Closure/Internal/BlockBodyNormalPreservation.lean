@@ -3,6 +3,7 @@ import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
 import CppFormalization.Cpp2.Closure.Internal.ReadinessResidualBoundary
+import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalCore
 
 namespace Cpp
 
@@ -66,13 +67,21 @@ theorem cons_block_ready_head
   | cons hs _ =>
       exact hs
 
-axiom cons_block_ready_tail_after_head_normal
+/--
+Low-level block-tail ready kernel.
+
+This file no longer owns an axiom for this exact kernel. Instead it is fed from
+`ReadinessTransportNormalCore`, so that the future mutual transport family has a
+single choke point.
+-/
+theorem cons_block_ready_tail_after_head_normal
     {Γ Ξ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock} :
     HasTypeStmtCI .normalK Γ s Ξ ->
     ScopedTypedStateConcrete Ξ σ' ->
     BlockReadyConcrete Γ σ (.cons s ss) ->
     BigStepStmt σ s .normal σ' ->
-    BlockReadyConcrete Ξ σ' ss
+    BlockReadyConcrete Ξ σ' ss :=
+  cons_block_ready_tail_after_head_normal_of_core
 
 theorem cons_block_normal_data
     {σ σ' : State} {s : CppStmt} {ss : StmtBlock} :

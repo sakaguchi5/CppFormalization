@@ -38,7 +38,7 @@ theorem replay_stable_primitive_stmt_is_primitive_normal_local
      | .block _ => False) := by
   intro h
   cases st <;> simp [ReplayStablePrimitiveStmt] at h ⊢
-
+/-
 theorem seq_ready_right
     {Γ : TypeEnv} {σ : State} {s t : CppStmt} :
     StmtReadyConcrete Γ σ (.seq s t) →
@@ -56,7 +56,7 @@ theorem cons_block_ready_tail
   cases h with
   | cons _ htail =>
       exact htail
-
+-/
 theorem replay_stable_read_place_ready_after_replay_stable_primitive
     {Γ : TypeEnv} {σ σ' : State}
     {head : CppStmt} {p : PlaceExpr} {τ : CppType} :

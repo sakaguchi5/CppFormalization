@@ -3,6 +3,7 @@ import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
 import CppFormalization.Cpp2.Closure.Internal.ReadinessResidualBoundary
 import CppFormalization.Cpp2.Closure.Internal.PrimitiveStmtNormalPreservation
+import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalCore
 
 namespace Cpp
 
@@ -21,7 +22,8 @@ namespace Cpp
 を整理する。
 
 重要:
-- `seq_ready_right_after_left_normal` は low-level な residual-ready kernel のまま残す。
+- low-level exact tail-ready kernel は、このファイルで直接 axiom を持たず、
+  `ReadinessTransportNormalCore` から給電する。
 - current mainline が public に使うべき主語は `StmtReadyConcrete Θ σ' t` 単体ではなく、
   `SeqResidualBoundary Δ σ' t` である。
 - ただし downstream の concrete roadmap では、「最終 codomain ではなく
@@ -56,17 +58,18 @@ theorem seq_ready_left
 /--
 Low-level residual-ready projection kernel.
 
-This is intentionally narrower than the public residual-boundary theorem:
-it only says that once a post-environment `Θ` and a post-state proof are already
-available, right-side readiness can be reconstructed.
+This file no longer owns an axiom for this exact kernel. Instead it is fed from
+`ReadinessTransportNormalCore`, so that the future mutual transport family has a
+single choke point.
 -/
-axiom seq_ready_right_after_left_normal
+theorem seq_ready_right_after_left_normal
     {Γ Θ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
     HasTypeStmtCI .normalK Γ s Θ →
     ScopedTypedStateConcrete Θ σ' →
     StmtReadyConcrete Γ σ (.seq s t) →
     BigStepStmt σ s .normal σ' →
-    StmtReadyConcrete Θ σ' t
+    StmtReadyConcrete Θ σ' t :=
+  seq_ready_right_after_left_normal_of_core
 
 
 /- =========================================================
