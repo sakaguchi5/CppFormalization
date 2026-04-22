@@ -1,4 +1,3 @@
-import CppFormalization.Cpp2.Proof.Preservation.StmtControlWhileCompatShell
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlRecursorCore
 
 namespace Cpp
@@ -6,55 +5,55 @@ namespace Cpp
 /-!
 # Proof.Preservation.StmtControlKernel
 
-Lightweight preservation kernel over compatibility derivations.
+Theorem-backed preservation kernel over compatibility derivations.
 
-All theorem-backed structural cases are shared through
-`StmtControlRecursorCore`. The only remaining honest debt is the four open
-recursive `while` branches, supplied here from
-`StmtControlWhileCompatShell`.
+The old shell axioms are gone. The price is explicit: the kernel now requires
+`WhileCtxProvider`, because the recursive `while` branches genuinely need the
+extra local data encoded there.
 -/
 
-def whileCompatHandlers_shell : WhileCompatHandlers where
+def whileCompatHandlers_kernel
+    (mkWhileCtx : WhileCtxProvider) :
+    WhileCompatHandlers where
   normalNormal := by
-    intro Γ σ σ₁ σ₂ c body hc hN hB hC hbody htail
-      hcompBody hcompTail _ihBody _ihTail hσ hready
+    intro Γ σ0 σ1 σ2 c body hc hN hB hC hbody htail
+      _hcompBody _hcompTail ihBody ihTail hsc_in hreadyWhile
     exact
-      while_true_normal_normal_goal
-        (hc := hc) (hN := hN) (hB := hB) (hC := hC)
-        (hbody := hbody) (htail := htail)
-        hcompBody hcompTail hσ hready
+      whileNormalNormalCase
+        mkWhileCtx hc hN hB hC hbody ihBody ihTail
+        hsc_in hreadyWhile
 
   continueNormal := by
-    intro Γ σ σ₁ σ₂ c body hc hN hB hC hbody htail
-      hcompBody hcompTail _ihBody _ihTail hσ hready
+    intro Γ σ0 σ1 σ2 c body hc hN hB hC hbody htail
+      _hcompBody _hcompTail ihBody ihTail hsc_in hreadyWhile
     exact
-      while_true_continue_normal_goal
-        (hc := hc) (hN := hN) (hB := hB) (hC := hC)
-        (hbody := hbody) (htail := htail)
-        hcompBody hcompTail hσ hready
+      whileContinueNormalCase
+        mkWhileCtx hc hN hB hC hbody ihBody ihTail
+        hsc_in hreadyWhile
 
   normalReturn := by
-    intro Γ Δ σ σ₁ σ₂ c body rv hc hN hB hC hR hbody htail
-      hcompBody hcompTail _ihBody _ihTail hσ hready
+    intro Γ Δ σ0 σ1 σ2 c body rv hc hN hB hC hR hbody htail
+      _hcompBody _hcompTail ihBody ihTail hsc_in hreadyWhile
     exact
-      while_true_normal_return_goal
-        (hc := hc) (hN := hN) (hB := hB) (hC := hC) (hR := hR)
-        (hbody := hbody) (htail := htail)
-        hcompBody hcompTail hσ hready
+      whileNormalReturnCase
+        mkWhileCtx hc hN hB hC hbody ihBody ihTail
+        hsc_in hreadyWhile
 
   continueReturn := by
-    intro Γ Δ σ σ₁ σ₂ c body rv hc hN hB hC hR hbody htail
-      hcompBody hcompTail _ihBody _ihTail hσ hready
+    intro Γ Δ σ0 σ1 σ2 c body rv hc hN hB hC hR hbody htail
+      _hcompBody _hcompTail ihBody ihTail hsc_in hreadyWhile
     exact
-      while_true_continue_return_goal
-        (hc := hc) (hN := hN) (hB := hB) (hC := hC) (hR := hR)
-        (hbody := hbody) (htail := htail)
-        hcompBody hcompTail hσ hready
+      whileContinueReturnCase
+        mkWhileCtx hc hN hB hC hbody ihBody ihTail
+        hsc_in hreadyWhile
 
-def stmtBlock_preservation_kernel : StmtBlockPreservationKernel :=
-  stmtBlock_preservation_kernel_of_handlers whileCompatHandlers_shell
+def stmtBlock_preservation_kernel
+    (mkWhileCtx : WhileCtxProvider) :
+    StmtBlockPreservationKernel :=
+  stmtBlock_preservation_kernel_of_handlers (whileCompatHandlers_kernel mkWhileCtx)
 
 theorem stmt_control_preserves_scoped_typed_state_of_compatible
+    (mkWhileCtx : WhileCtxProvider)
     {k : ControlKind} {Γ Δ : TypeEnv} {s : CppStmt}
     {σ : State} {ctrl : CtrlResult} {σ' : State}
     {hty : HasTypeStmtCI k Γ s Δ}
@@ -63,9 +62,10 @@ theorem stmt_control_preserves_scoped_typed_state_of_compatible
     ScopedTypedStateConcrete Γ σ →
     StmtReadyConcrete Γ σ s →
     ScopedTypedStateConcrete Δ σ' :=
-  (stmtBlock_preservation_kernel).stmt hcomp
+  (stmtBlock_preservation_kernel mkWhileCtx).stmt hcomp
 
 theorem block_control_preserves_scoped_typed_state_of_compatible
+    (mkWhileCtx : WhileCtxProvider)
     {k : ControlKind} {Γ Δ : TypeEnv} {ss : StmtBlock}
     {σ : State} {ctrl : CtrlResult} {σ' : State}
     {hty : HasTypeBlockCI k Γ ss Δ}
@@ -74,6 +74,6 @@ theorem block_control_preserves_scoped_typed_state_of_compatible
     ScopedTypedStateConcrete Γ σ →
     BlockReadyConcrete Γ σ ss →
     ScopedTypedStateConcrete Δ σ' :=
-  (stmtBlock_preservation_kernel).block hcomp
+  (stmtBlock_preservation_kernel mkWhileCtx).block hcomp
 
 end Cpp

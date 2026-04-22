@@ -42,6 +42,7 @@ seq / ite / block / while の shell surface へ分配し、
 recursive hypothesis は substatement と while-tail に対してだけ使う。
 -/
 theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body
+    (mkWhileCtx : WhileCtxProvider)
     (IH : FunctionBodyCaseDriverIH)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hfrag : CoreBigStepFragment st)
@@ -78,7 +79,7 @@ theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body
           (fun hleftBoundary =>
             IH (st := s) hfragS hleftBoundary)
           (fun hty hstep =>
-            seq_tail_closure_boundary_ci_of_left_normal hentry hty hstep)
+            seq_tail_closure_boundary_ci_of_left_normal mkWhileCtx hentry hty hstep)
           (fun _hty _hstep htailBoundary =>
             IH (st := t) hfragT htailBoundary)
   | ite c s t =>
@@ -125,6 +126,7 @@ theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body
 
 /-- `BodyReadyCI` entry wrapper for the constructor-level case-driver body. -/
 theorem body_ready_ci_function_body_progress_or_diverges_case_driver_body
+    (mkWhileCtx : WhileCtxProvider)
     (IH : FunctionBodyCaseDriverIH)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hfrag : CoreBigStepFragment st)
@@ -132,6 +134,6 @@ theorem body_ready_ci_function_body_progress_or_diverges_case_driver_body
     FunctionBodyCaseDriverResult σ st := by
   exact
     body_closure_ci_function_body_progress_or_diverges_case_driver_body
-      IH hfrag hentry.toClosureBoundary
+      mkWhileCtx IH hfrag hentry.toClosureBoundary
 
 end Cpp

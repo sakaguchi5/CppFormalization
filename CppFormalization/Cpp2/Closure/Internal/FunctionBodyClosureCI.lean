@@ -37,6 +37,7 @@ theorem body_closure_ci_function_body_progress_or_diverges
   exact body_closure_ci_function_body_global_recursion hfrag hentry
 
 theorem body_closure_ci_function_body_progress_or_diverges_via_case_driver_body
+    (mkWhileCtx : WhileCtxProvider)
     {Γ : TypeEnv} {σ : State} {st : CppStmt} :
     CoreBigStepFragment st →
     BodyClosureBoundaryCI Γ σ st →
@@ -44,6 +45,7 @@ theorem body_closure_ci_function_body_progress_or_diverges_via_case_driver_body
   intro hfrag hentry
   exact
     body_closure_ci_function_body_progress_or_diverges_case_driver_body
+      mkWhileCtx
       body_closure_ci_function_body_global_recursion
       hfrag hentry
 

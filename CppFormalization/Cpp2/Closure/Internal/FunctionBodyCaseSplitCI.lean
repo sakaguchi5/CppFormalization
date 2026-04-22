@@ -55,6 +55,7 @@ noncomputable def seq_left_closure_boundary_ci_of_entry
   exact mkBodyClosureBoundaryCI hs.structural hs.profile hd hs.adequacy
 
 noncomputable def seq_tail_closure_boundary_ci_of_left_normal
+    (mkWhileCtx : WhileCtxProvider)
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
     ∀ {Θ : TypeEnv} {σ1 : State},
@@ -66,7 +67,7 @@ noncomputable def seq_tail_closure_boundary_ci_of_left_normal
     seq_ready_left hentry.dynamic.safe
   have hσ1 : ScopedTypedStateConcrete Θ σ1 :=
     stmt_normal_preserves_scoped_typed_state_concrete
-      htyLeft hentry.dynamic.state hreadyLeft hstepLeft
+     mkWhileCtx  htyLeft hentry.dynamic.state hreadyLeft hstepLeft
   have hreadyRight : StmtReadyConcrete Θ σ1 t :=
     seq_ready_right_after_left_normal htyLeft hσ1 hentry.dynamic.safe hstepLeft
   let hs := seq_tail_closure_scaffold_ci_of_left_normal hentry htyLeft hstepLeft

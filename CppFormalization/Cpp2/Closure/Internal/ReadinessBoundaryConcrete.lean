@@ -27,6 +27,7 @@ full generic な residual readiness にはまだ full generic condition replay k
 -/
 
 theorem seq_left_normal_preserves_body_ready_concrete
+    (mkWhileCtx : WhileCtxProvider)
     {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
     HasTypeStmtCI .normalK Γ s Δ →
     StmtReadyConcrete Γ σ (.seq s t) →
@@ -41,10 +42,11 @@ theorem seq_left_normal_preserves_body_ready_concrete
         intro htyLeft' hσ0 hreadyLeft0 hstepLeft0
         exact
           stmt_normal_preserves_scoped_typed_state_concrete
-            htyLeft' hσ0 hreadyLeft0 hstepLeft0)
+            mkWhileCtx htyLeft' hσ0 hreadyLeft0 hstepLeft0)
       htyLeft hreadySeq hstepLeft hσ
 
 theorem block_head_normal_preserves_block_ready_concrete
+    (mkWhileCtx : WhileCtxProvider)
     {Γ Δ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock} :
     HasTypeStmtCI .normalK Γ s Δ →
     BlockReadyConcrete Γ σ (.cons s ss) →
@@ -59,7 +61,7 @@ theorem block_head_normal_preserves_block_ready_concrete
         intro htyHead' hσ0 hreadyHead0 hstepHead0
         exact
           stmt_normal_preserves_scoped_typed_state_concrete
-            htyHead' hσ0 hreadyHead0 hstepHead0)
+            mkWhileCtx htyHead' hσ0 hreadyHead0 hstepHead0)
       htyHead hreadyBlock hstepHead hσ
 
 /--
@@ -70,6 +72,7 @@ Typed concrete readiness boundary for the `body .normal` branch of `while`.
 `LoopBodyBoundaryCI` + `LoopReentryKernelCI` に委ねる。
 -/
 theorem while_body_normal_preserves_body_ready_concrete_typed
+    (mkWhileCtx : WhileCtxProvider)
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
     ExprReadyConcrete Γ σ c (.base .bool) →
     LoopBodyBoundaryCI Γ σ body →
@@ -81,6 +84,7 @@ theorem while_body_normal_preserves_body_ready_concrete_typed
     hbody.profile.normalTyping
   have hσ' : ScopedTypedStateConcrete Γ σ' :=
     stmt_normal_preserves_scoped_typed_state_concrete
+    mkWhileCtx
       hN hbody.dynamic.state hbody.dynamic.safe hstepBody
   have hreadyTail : StmtReadyConcrete Γ σ' (.whileStmt c body) :=
     K.whileReady_after_normal hcond hbody hstepBody
@@ -92,6 +96,7 @@ Typed concrete readiness boundary for the `body .continueResult` branch of `whil
 continue branch も同様に、新設計では reentry kernel を明示的に要求する。
 -/
 theorem while_body_continue_preserves_body_ready_concrete_typed
+    (mkWhileCtx : WhileCtxProvider)
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
     ExprReadyConcrete Γ σ c (.base .bool) →
     LoopBodyBoundaryCI Γ σ body →
@@ -106,6 +111,7 @@ theorem while_body_continue_preserves_body_ready_concrete_typed
       stmt_normal_control_compatible hC hstepBody
   have hσ' : ScopedTypedStateConcrete Γ σ' :=
     stmt_continue_preserves_scoped_typed_state_concrete
+      mkWhileCtx
       hC hstepBody hcompBody hbody.dynamic.state hbody.dynamic.safe
   have hreadyTail : StmtReadyConcrete Γ σ' (.whileStmt c body) :=
     K.whileReady_after_continue hcond hbody hstepBody

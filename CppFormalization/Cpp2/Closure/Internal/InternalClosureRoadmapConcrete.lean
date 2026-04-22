@@ -16,26 +16,29 @@ without pulling in the lower-level implementation details directly.
 -- Preservation kernel
 
 theorem stmt_normal_preserves_scoped_typed_state
+    (mkWhileCtx : WhileCtxProvider)
     {Γ Δ : TypeEnv} {σ σ' : State} {s : CppStmt}
     (hty : HasTypeStmtCI .normalK Γ s Δ)
     (hready : StmtReadyConcrete Γ σ s)
     (hstep : BigStepStmt σ s .normal σ')
     (hσ : ScopedTypedStateConcrete Γ σ) :
     ScopedTypedStateConcrete Δ σ' :=
-  Cpp.stmt_normal_preserves_scoped_typed_state_concrete hty hσ hready hstep
+  Cpp.stmt_normal_preserves_scoped_typed_state_concrete mkWhileCtx hty hσ hready hstep
 
 theorem block_body_normal_preserves_scoped_typed_state
+    (mkWhileCtx : WhileCtxProvider)
     {Γ Δ : TypeEnv} {σ σ' : State} {ss : StmtBlock}
     (hty : HasTypeBlockCI .normalK Γ ss Δ)
     (hready : BlockReadyConcrete Γ σ ss)
     (hstep : BigStepBlock σ ss .normal σ')
     (hσ : ScopedTypedStateConcrete Γ σ) :
     ScopedTypedStateConcrete Δ σ' :=
-  Cpp.block_body_normal_preserves_scoped_typed_state_concrete hty hσ hready hstep
+  Cpp.block_body_normal_preserves_scoped_typed_state_concrete mkWhileCtx hty hσ hready hstep
 
 -- Residual readiness boundaries
 
 theorem seq_left_normal_preserves_body_ready
+    (mkWhileCtx : WhileCtxProvider)
     {Γ Δ : TypeEnv} {σ σ₁ : State} {s t : CppStmt}
     (htyS : HasTypeStmtCI .normalK Γ s Δ)
     (hready : StmtReadyConcrete Γ σ (.seq s t))
@@ -44,9 +47,10 @@ theorem seq_left_normal_preserves_body_ready
     StmtReadyConcrete Δ σ₁ t := by
   exact
     (Cpp.seq_left_normal_preserves_body_ready_concrete
-      htyS hready hstepS hσ).2
+      mkWhileCtx htyS hready hstepS hσ).2
 
 theorem block_head_normal_preserves_block_ready
+    (mkWhileCtx : WhileCtxProvider)
     {Γ Δ : TypeEnv} {σ σ₁ : State} {s : CppStmt} {ss : StmtBlock}
     (htyS : HasTypeStmtCI .normalK Γ s Δ)
     (hready : BlockReadyConcrete Γ σ (.cons s ss))
@@ -55,12 +59,13 @@ theorem block_head_normal_preserves_block_ready
     BlockReadyConcrete Δ σ₁ ss := by
   exact
     (Cpp.block_head_normal_preserves_block_ready_concrete
-      htyS hready hstepS hσ).2
+      mkWhileCtx htyS hready hstepS hσ).2
 
 -- While: residual readiness now depends on
 -- condition readiness + loop-body local boundary + reentry kernel.
 
 theorem while_body_normal_preserves_body_ready_typed
+    (mkWhileCtx : WhileCtxProvider)
     {Γ : TypeEnv} {σ σ₁ : State} {c : ValExpr} {body : CppStmt}
     (hcond : ExprReadyConcrete Γ σ c (.base .bool))
     (hbody : LoopBodyBoundaryCI Γ σ body)
@@ -69,9 +74,10 @@ theorem while_body_normal_preserves_body_ready_typed
     StmtReadyConcrete Γ σ₁ (.whileStmt c body) := by
   exact
     (Cpp.while_body_normal_preserves_body_ready_concrete_typed
-      hcond hbody K hstepBody).2
+      mkWhileCtx hcond hbody K hstepBody).2
 
 theorem while_body_continue_preserves_body_ready_typed
+    (mkWhileCtx : WhileCtxProvider)
     {Γ : TypeEnv} {σ σ₁ : State} {c : ValExpr} {body : CppStmt}
     (hcond : ExprReadyConcrete Γ σ c (.base .bool))
     (hbody : LoopBodyBoundaryCI Γ σ body)
@@ -80,7 +86,7 @@ theorem while_body_continue_preserves_body_ready_typed
     StmtReadyConcrete Γ σ₁ (.whileStmt c body) := by
   exact
     (Cpp.while_body_continue_preserves_body_ready_concrete_typed
-      hcond hbody K hstepBody).2
+      mkWhileCtx hcond hbody K hstepBody).2
 
 end InternalClosureRoadmapConcrete
 end Cpp
