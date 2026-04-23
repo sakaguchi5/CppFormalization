@@ -19,6 +19,7 @@ Public-route policy after locating the remaining lie:
 /-- Explicit low-level external package. -/
 structure ExternalPiecesV3 (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
   structural : BodyStructuralBoundary Γ st
+  entry : BodyEntryWitness Γ st
   profile : BodyControlProfile Γ st
   dynamic : BodyDynamicBoundary Γ σ st
   core : CoreBigStepFragment st
@@ -29,11 +30,11 @@ def ExternalPiecesV3.toBodyBoundary
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (p : ExternalPiecesV3 Γ σ st) :
     BodyClosureBoundaryCI Γ σ st :=
-  mkBodyClosureBoundaryCI
-    p.structural
-    p.profile
-    p.dynamic
-    p.adequacy
+  { structural := p.structural
+    entry := p.entry
+    profile := p.profile
+    dynamic := p.dynamic
+    adequacy := p.adequacy }
 
 /-- Original low-level route using an explicit glue object. -/
 noncomputable def assembleExternalPiecesV3
@@ -49,9 +50,11 @@ noncomputable def assembleExternalPiecesV3
     ExternalPiecesV3 Γ σ st := by
   let hrun : RuntimePiecesV3 Γ σ st := F.mkRuntime huse hsuppRun
   let hrefl : ReflectionPiecesV3 Γ st := R.mkReflection hgen hsuppRefl
-  let hadeq : BodyAdequacyCI Γ σ st hrefl.profile := G.mkAdequacy huse hsuppRun hgen hsuppRefl hcompat
+  let hadeq : BodyAdequacyCI Γ σ st hrefl.profile :=
+    G.mkAdequacy huse hsuppRun hgen hsuppRefl hcompat
   exact
     { structural := hrefl.structural
+      entry := hrefl.entry
       profile := hrefl.profile
       dynamic := hrun.dynamic
       core := hrefl.core

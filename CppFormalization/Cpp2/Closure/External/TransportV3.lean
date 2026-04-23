@@ -80,6 +80,7 @@ necessary profile-index transport. -/
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     {b₁ b₂ : BodyClosureBoundaryCI Γ σ st}
     (hstruct : b₁.structural = b₂.structural)
+    (hentry : b₁.entry = b₂.entry)
     (hprof : b₁.profile = b₂.profile)
     (hdyn : b₁.dynamic = b₂.dynamic)
     (hadequ : castBodyAdequacy hprof b₁.adequacy = b₂.adequacy) :
@@ -87,6 +88,7 @@ necessary profile-index transport. -/
   cases b₁
   cases b₂
   cases hstruct
+  cases hentry
   cases hprof
   cases hdyn
   simp at hadequ
@@ -143,12 +145,15 @@ comparison yields the same boundary. -/
 theorem mkBodyClosureBoundaryCI_profile_transport
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     {hs : BodyStructuralBoundary Γ st}
+    {he₁ he₂ : BodyEntryWitness Γ st}
     {hd : BodyDynamicBoundary Γ σ st}
     {p q : BodyControlProfile Γ st}
+    (hentry : he₁ = he₂)
     (h : p = q)
     (ha : BodyAdequacyCI Γ σ st p) :
-    mkBodyClosureBoundaryCI hs q hd (transportAdequacy h ha) =
-      mkBodyClosureBoundaryCI hs p hd ha := by
+    mkBodyClosureBoundaryCI hs he₂ q hd (transportAdequacy h ha) =
+      mkBodyClosureBoundaryCI hs he₁ p hd ha := by
+  cases hentry
   cases h
   rfl
 

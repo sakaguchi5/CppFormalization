@@ -40,6 +40,7 @@ noncomputable def externalPiecesV3_of_legacy_external_assumptions
     reflection_fragment_generates_core hgen
   exact
     { structural := hb.structural
+      entry := hb.entry
       profile := hb.profile
       dynamic := hb.dynamic
       core := hc
@@ -81,7 +82,7 @@ theorem externalPiecesV3_of_legacy_external_assumptions_boundary
   let hb : BodyClosureBoundaryCI Γ σ st :=
     fragments_establish_body_closure_boundary
       G huse hdyn hgen hstruct hprof hcompat
-  change mkBodyClosureBoundaryCI hb.structural hb.profile hb.dynamic hb.adequacy = hb
+  change mkBodyClosureBoundaryCI hb.structural hb.entry hb.profile hb.dynamic hb.adequacy = hb
   cases hb
   rfl
 

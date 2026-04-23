@@ -16,6 +16,7 @@ Important design point:
 structure ExternalPieces
     (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
   structural : BodyStructuralBoundary Γ st
+  entry : BodyEntryWitness Γ st
   profile : BodyControlProfile Γ st
   dynamic : BodyDynamicBoundary Γ σ st
   core : CoreBigStepFragment st
@@ -25,11 +26,11 @@ def ExternalPieces.toBodyBoundary
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (p : ExternalPieces Γ σ st) :
     BodyClosureBoundaryCI Γ σ st :=
-  mkBodyClosureBoundaryCI
-    p.structural
-    p.profile
-    p.dynamic
-    p.adequacy
+  { structural := p.structural
+    entry := p.entry
+    profile := p.profile
+    dynamic := p.dynamic
+    adequacy := p.adequacy }
 
 def assembleExternalPieces
     {F : VerifiedStdFragmentV2} {R : VerifiedReflectionFragmentV2}
@@ -42,12 +43,14 @@ def assembleExternalPieces
     ExternalPieces Γ σ st := by
   let hd : BodyDynamicBoundary Γ σ st := F.mkDynamic huse
   let hs : BodyStructuralBoundary Γ st := R.mkStructural hgen
+  let he : BodyEntryWitness Γ st := R.mkEntry hgen
   let hp : BodyControlProfile Γ st := R.mkProfile hgen
   let hc : CoreBigStepFragment st := R.mkCore hgen
   let ha : BodyAdequacyCI Γ σ st hp :=
     G.mkAdequacy hcompat hd hs hp hc
   exact
     { structural := hs
+      entry := he
       profile := hp
       dynamic := hd
       core := hc

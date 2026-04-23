@@ -85,6 +85,16 @@ structure SplitArtifactFamilyV3 where
       (mkReady huse hsuppRun hgen hsuppRefl hcompat).toStructural =
         (mkReflection hgen hsuppRefl).structural
 
+  entry_eq :
+    ∀ {n : RuntimeName} {m : ReflectionMeta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
+      (huse : uses n)
+      (hsuppRun : supportsRuntime n Γ σ st)
+      (hgen : generates m st)
+      (hsuppRefl : supportsReflection m Γ st)
+      (hcompat : compatible n m Γ σ st),
+      (mkReady huse hsuppRun hgen hsuppRefl hcompat).entry =
+        (mkReflection hgen hsuppRefl).entry
+
   profile_eq :
     ∀ {n : RuntimeName} {m : ReflectionMeta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
       (huse : uses n)
@@ -115,6 +125,7 @@ def toReadyAssembly (A : SplitArtifactFamilyV3) :
   mkReady := A.mkReady
   dynamic_eq := A.dynamic_eq
   structural_eq := A.structural_eq
+  entry_eq := A.entry_eq
   profile_eq := A.profile_eq
 
 def mkAdequacy_from_compatible

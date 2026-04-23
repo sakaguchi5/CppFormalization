@@ -52,6 +52,16 @@ structure VerifiedExternalReadyAssemblyV3
       (mkReady huse hsuppRun hgen hsuppRefl hcompat).toStructural =
         (R.mkReflection hgen hsuppRefl).structural
 
+  entry_eq :
+    ∀ {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
+      (huse : F.uses n)
+      (hsuppRun : F.supportsRuntime n Γ σ st)
+      (hgen : R.generates m st)
+      (hsuppRefl : R.supportsReflection m Γ st)
+      (hcompat : compatible n m Γ σ st),
+      (mkReady huse hsuppRun hgen hsuppRefl hcompat).entry =
+        (R.mkReflection hgen hsuppRefl).entry
+
   profile_eq :
     ∀ {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
       (huse : F.uses n)
@@ -79,6 +89,7 @@ def externalPieces_of_ready_v3
   let hrefl : ReflectionPiecesV3 Γ st := R.mkReflection hgen hsuppRefl
   exact
     { structural := hrefl.structural
+      entry := hrefl.entry
       profile := hrefl.profile
       dynamic := hrun.dynamic
       core := hrefl.core
@@ -177,10 +188,11 @@ theorem externalPieces_of_ready_v3_boundary
   unfold BodyReadyCI.toClosureBoundary
   have hdyn := A.dynamic_eq huse hsuppRun hgen hsuppRefl hcompat
   have hstruct := A.structural_eq huse hsuppRun hgen hsuppRefl hcompat
+  have hentry := A.entry_eq huse hsuppRun hgen hsuppRefl hcompat
   have hprof := A.profile_eq huse hsuppRun hgen hsuppRefl hcompat
   cases hdyn
   cases hstruct
-  exact mkBodyClosureBoundaryCI_profile_transport hprof _
+  exact mkBodyClosureBoundaryCI_profile_transport hentry hprof _
 
 
 def assembleBodyBoundary_of_ready_v3

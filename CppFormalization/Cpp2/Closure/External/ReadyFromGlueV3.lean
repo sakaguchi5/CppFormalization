@@ -34,6 +34,10 @@ noncomputable def readyAssembly_of_glue_v3
     intro n m Γ σ st huse hsuppRun hgen hsuppRefl hcompat
     unfold assembleExternalPiecesV3
     rfl
+  entry_eq := by
+    intro n m Γ σ st huse hsuppRun hgen hsuppRefl hcompat
+    unfold assembleExternalPiecesV3
+    rfl
   profile_eq := by
     intro n m Γ σ st huse hsuppRun hgen hsuppRefl hcompat
     unfold assembleExternalPiecesV3

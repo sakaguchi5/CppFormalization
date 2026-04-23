@@ -18,6 +18,10 @@ structure VerifiedReflectionFragmentV2 where
     ∀ {m : Meta} {Γ : TypeEnv} {st : CppStmt},
       generates m st → BodyStructuralBoundary Γ st
 
+  mkEntry :
+    ∀ {m : Meta} {Γ : TypeEnv} {st : CppStmt},
+      generates m st → BodyEntryWitness Γ st
+
   mkProfile :
     ∀ {m : Meta} {Γ : TypeEnv} {st : CppStmt},
       generates m st → BodyControlProfile Γ st

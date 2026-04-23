@@ -42,6 +42,7 @@ def externalPieces_of_ready_v2
   let hc : CoreBigStepFragment st := R.mkCore hgen
   exact
     { structural := hr.toStructural
+      entry   := hr.entry
       profile := hr.toProfile
       dynamic := hr.toDynamic
       core := hc

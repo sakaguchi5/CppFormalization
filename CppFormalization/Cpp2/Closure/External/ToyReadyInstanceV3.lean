@@ -41,6 +41,7 @@ def toyReflectionFragmentV3 : VerifiedReflectionFragmentV3 where
     rcases hsupp with ⟨rfl, rfl⟩
     exact
       { structural := m.ready.toStructural
+        entry := m.ready.entry
         profile := m.ready.toProfile
         core := m.core }
 
@@ -59,6 +60,11 @@ def toyReadyAssemblyV3 :
     rcases hsuppRun with ⟨_, _, _⟩
     rfl
   structural_eq := by
+    intro n m Γ σ st huse hsuppRun hgen hsuppRefl hcompat
+    rcases hcompat with ⟨rfl, rfl, rfl, rfl⟩
+    rcases hsuppRefl with ⟨_, _⟩
+    rfl
+  entry_eq := by
     intro n m Γ σ st huse hsuppRun hgen hsuppRefl hcompat
     rcases hcompat with ⟨rfl, rfl, rfl, rfl⟩
     rcases hsuppRefl with ⟨_, _⟩

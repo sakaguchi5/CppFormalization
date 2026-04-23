@@ -11,7 +11,6 @@ private theorem frame_eq_of_scope_lookup
   apply Option.some.inj
   exact h₁.symm.trans h₂
 
--- 最終的には legacy を外して `scopedTypedState_of_concrete` を mainline にする。
 theorem legacyScopedTypedState_of_concrete
     {Γ : TypeEnv} {σ : State} :
     ScopedTypedStateConcrete Γ σ →
@@ -26,8 +25,7 @@ theorem legacyScopedTypedState_of_concrete
       ownedDisjoint := ?_
       initializedValuesTyped := ?_
       nextFresh := ?_ }
-  ·
-    exact h.frameDepth
+  · exact h.frameDepth
   ·
     intro k Γfr σfr hΓ hσ x d hd
     cases d with
@@ -83,18 +81,10 @@ theorem legacyScopedTypedState_of_concrete
       have hfr : fr' = fr := frame_eq_of_scope_lookup hσ' hσk
       subst hfr
       exact ha
-  ·
-    exact h.ownedDisjoint
-  ·
-    exact h.heapStoredValuesTyped
-  ·
-    exact h.nextFresh
+  · exact h.ownedDisjoint
+  · exact h.heapStoredValuesTyped
+  · exact h.nextFresh
 
-/--
-Backward-compatible alias kept for callers that still use the old name.
-新規コードは `legacyScopedTypedState_of_concrete` ではなく、
-最終的に non-legacy 名へ寄せる想定。
--/
 theorem scopedTypedState_of_concrete
     {Γ : TypeEnv} {σ : State} :
     ScopedTypedStateConcrete Γ σ →
@@ -134,7 +124,7 @@ def BodyReadyCI.toClosureBoundary
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (h : BodyReadyCI Γ σ st) :
     BodyClosureBoundaryCI Γ σ st :=
-  mkBodyClosureBoundaryCI h.toStructural h.toProfile h.toDynamic h.toAdequacy
+  mkBodyClosureBoundaryCI h.toStructural h.entry h.toProfile h.toDynamic h.toAdequacy
 
 def BlockBodyReadyCI.toStructural
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
@@ -166,7 +156,7 @@ def BlockBodyReadyCI.toClosureBoundary
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
     (h : BlockBodyReadyCI Γ σ ss) :
     BlockBodyClosureBoundaryCI Γ σ ss :=
-  mkBlockBodyClosureBoundaryCI h.toStructural h.toProfile h.toDynamic h.toAdequacy
+  mkBlockBodyClosureBoundaryCI h.toStructural h.entry h.toProfile h.toDynamic h.toAdequacy
 
 def BodyClosureBoundaryCI.toBodyReadyCI
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
@@ -175,6 +165,7 @@ def BodyClosureBoundaryCI.toBodyReadyCI
   refine
     { wf := h.structural.wf
       typed0 := h.structural.typed0
+      entry := h.entry
       breakScoped := h.structural.breakScoped
       continueScoped := h.structural.continueScoped
       state := h.dynamic.state
@@ -192,6 +183,7 @@ def BlockBodyClosureBoundaryCI.toBlockBodyReadyCI
   refine
     { wf := h.structural.wf
       typed0 := h.structural.typed0
+      entry := h.entry
       breakScoped := h.structural.breakScoped
       continueScoped := h.structural.continueScoped
       state := h.dynamic.state

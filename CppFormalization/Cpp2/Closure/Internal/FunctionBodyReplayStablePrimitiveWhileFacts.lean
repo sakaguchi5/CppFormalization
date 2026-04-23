@@ -103,6 +103,27 @@ theorem replay_stable_primitive_body_while_no_return
   have hclaim := replay_stable_while_return_claim hstep
   exact hclaim hstable
 
+
+theorem replay_stable_primitive_stmt_is_primitive_shape
+    {st : CppStmt} :
+    ReplayStablePrimitiveStmt st →
+    (match st with
+     | .skip => True
+     | .exprStmt _ => True
+     | .assign _ _ => True
+     | .declareObj _ _ _ => True
+     | .declareRef _ _ _ => True
+     | .breakStmt => False
+     | .continueStmt => False
+     | .returnStmt _ => False
+     | .seq _ _ => False
+     | .ite _ _ _ => False
+     | .whileStmt _ _ => False
+     | .block _ => False) := by
+  intro h
+  cases st <;> simp [ReplayStablePrimitiveStmt] at h ⊢
+
+
 /-
 For replay-stable primitive body + replay-stable condition, a single body-normal step
 reconstructs a full CI boundary for the tail while.
@@ -112,6 +133,28 @@ reconstructs a full CI boundary for the tail while.
 - `summary.returnOut` は `none` でよい。replay-stable primitive body の while は
   raw return を起こさないからである。
 -/
+
+
+theorem replay_stable_primitive_stmt_normal_preserves_scoped_typed_state_concrete
+    {Γ Δ : TypeEnv} {σ σ' : State} {st : CppStmt} :
+    ReplayStablePrimitiveStmt st →
+    HasTypeStmtCI .normalK Γ st Δ →
+    ScopedTypedStateConcrete Γ σ →
+    StmtReadyConcrete Γ σ st →
+    BigStepStmt σ st .normal σ' →
+    ScopedTypedStateConcrete Δ σ' := by
+  intro hstable hty hσ hready hstep
+  cases st <;> simp [ReplayStablePrimitiveStmt] at hstable
+  case skip =>
+    exact skip_stmt_normal_preserves_scoped_typed_state_concrete
+      hty hσ hready hstep
+  case exprStmt e =>
+    exact exprStmt_normal_preserves_scoped_typed_state_concrete
+      hty hσ hready hstep
+  case assign p e =>
+    exact assign_stmt_normal_preserves_scoped_typed_state_concrete
+      hty hσ hready hstep
+
 def bodyReadyCI_while_after_body_normal_of_replay_stable_primitive
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
     ReplayStablePrimitiveStmt body →
@@ -124,33 +167,30 @@ def bodyReadyCI_while_after_body_normal_of_replay_stable_primitive
   rcases while_typing_data htyWhile with ⟨_, _, hN, _, _⟩
   have hreadyBody : StmtReadyConcrete Γ σ body :=
     while_ready_body_data hready.safe
-  have hprim := replay_stable_primitive_stmt_is_primitive_normal hstable
   have hσ' : ScopedTypedStateConcrete Γ σ' :=
-    primitive_stmt_normal_preserves_scoped_typed_state_concrete
-      hprim hN hready.state hreadyBody hbodyStep
+    replay_stable_primitive_stmt_normal_preserves_scoped_typed_state_concrete
+      hstable hN hready.state hreadyBody hbodyStep
   have hsafe' : StmtReadyConcrete Γ σ' (.whileStmt c body) :=
     while_ready_after_body_normal_of_replay_stable_primitive
       hstable hcstable htyWhile hσ' hready.safe hbodyStep
-  refine {
-    wf := hready.wf
-    typed0 := hready.typed0
-    breakScoped := hready.breakScoped
-    continueScoped := hready.continueScoped
-    state := hσ'
-    safe := hsafe'
-    summary := {
-      normalOut := some ⟨Γ, htyWhile⟩
-      returnOut := none
-    }
-    normalSound := ?_
-    returnSound := ?_
-  }
+  refine
+    { wf := hready.wf
+      typed0 := hready.typed0
+      breakScoped := hready.breakScoped
+      continueScoped := hready.continueScoped
+      entry := BodyEntryWitness.normal ⟨Γ, htyWhile⟩
+      state := hσ'
+      safe := hsafe'
+      summary := {
+        normalOut := some ⟨Γ, htyWhile⟩
+        returnOut := none
+      }
+      normalSound := ?_
+      returnSound := ?_ }
   · intro σ'' hstepNorm
     exact ⟨⟨Γ, htyWhile⟩, rfl⟩
   · intro rv σ'' hstepRet
-    have hfalse : False :=
-      replay_stable_primitive_body_while_no_return hstable hstepRet
-    exact False.elim hfalse
+    exact (replay_stable_primitive_body_while_no_return hstable hstepRet).elim
 
 /-- wrapper for theorem-backed replay-stable primitive while tail boundary. -/
 def bodyClosureBoundaryCI_while_after_body_normal_of_replay_stable_primitive

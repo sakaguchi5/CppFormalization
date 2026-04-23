@@ -68,6 +68,40 @@ theorem toyGlueExternalPiecesV3_structural
       (hcompat := toyGlue_compatible c)
   simp
 
+theorem toyReflectionFragmentV3_entry_of_supports
+    (c : ToyReadyCertificate)
+    {Γ : TypeEnv} {st : CppStmt}
+    (hgen : toyReflectionFragmentV3.generates c st)
+    -- ここで hsupp を分解して、Γ と st を c.Γ と c.st に一致させる
+    (hsupp : toyReflectionFragmentV3.supportsReflection c Γ st) :
+    (toyReflectionFragmentV3.mkReflection hgen hsupp).entry =
+    by
+      rcases hsupp with ⟨rfl, rfl⟩
+      exact c.ready.entry := by
+  -- 証明の中身
+  rcases hsupp with ⟨rfl, rfl⟩
+  unfold toyReflectionFragmentV3
+  simp
+
+theorem toyGlueExternalPiecesV3_entry
+    (c : ToyReadyCertificate) :
+    (toyGlueExternalPiecesV3 c).entry =
+      by
+        rcases toy_supportsReflection c with ⟨⟩
+        exact c.ready.entry := by
+  refine
+    (assembleExternalPiecesV3_entry
+      (G := toyGlueV3)
+      (huse := toy_uses c)
+      (hsuppRun := toy_supportsRuntime c)
+      (hgen := toy_generates c)
+      (hsuppRefl := toy_supportsReflection c)
+      (hcompat := toyGlue_compatible c)).trans ?_
+  exact toyReflectionFragmentV3_entry_of_supports
+    c
+    (hgen := toy_generates c)
+    (hsupp := toy_supportsReflection c)
+
 theorem toyGlueExternalPiecesV3_dynamic
     (c : ToyReadyCertificate) :
     (toyGlueExternalPiecesV3 c).dynamic = c.ready.toDynamic := by
@@ -102,12 +136,34 @@ theorem toyGlueExternalPiecesV3_boundary_adequacy
       (c.ready.toClosureBoundary).adequacy := by
   cases c
   rfl
+theorem toyGlueExternalPiecesV3_boundary_entry
+    (c : ToyReadyCertificate) :
+    (toyGlueExternalPiecesV3 c).toBodyBoundary.entry =
+      by
+        rcases toy_supportsReflection c with ⟨_, _⟩
+        exact c.ready.entry := by
+  dsimp [ExternalPiecesV3.toBodyBoundary]
+  exact toyGlueExternalPiecesV3_entry c
+
+theorem toyReady_toClosureBoundary_entry
+    (c : ToyReadyCertificate) :
+    c.ready.toClosureBoundary.entry =
+      by
+        rcases toy_supportsReflection c with ⟨_, _⟩
+        exact c.ready.entry := by
+  dsimp [BodyReadyCI.toClosureBoundary]
+  rcases toy_supportsReflection c with ⟨_, _⟩
+  rfl
+
 
 theorem toyGlueExternalPiecesV3_boundary
     (c : ToyReadyCertificate) :
     (toyGlueExternalPiecesV3 c).toBodyBoundary = c.ready.toClosureBoundary := by
   ext
   · exact toyGlueExternalPiecesV3_structural c
+  · exact
+      (toyGlueExternalPiecesV3_boundary_entry c).trans
+        (toyReady_toClosureBoundary_entry c).symm
   · exact toyGlueExternalPiecesV3_profile c
   · exact toyGlueExternalPiecesV3_dynamic c
   · exact toyGlueExternalPiecesV3_boundary_adequacy c

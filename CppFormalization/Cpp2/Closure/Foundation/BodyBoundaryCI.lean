@@ -1,6 +1,7 @@
 import CppFormalization.Cpp2.Closure.Foundation.BodyControlProfile
 import CppFormalization.Cpp2.Closure.Foundation.BodyDynamicBoundary
 import CppFormalization.Cpp2.Closure.Foundation.BodyStructuralBoundary
+import CppFormalization.Cpp2.Closure.Foundation.BodyEntryWitnessCI
 import CppFormalization.Cpp2.Lemmas.ControlExclusion
 
 namespace Cpp
@@ -8,17 +9,18 @@ namespace Cpp
 /-!
 # Closure.Foundation.BodyBoundaryCI
 
-Legacy CI-boundary wrapper.
+Legacy flat CI-boundary wrapper.
 
-役割:
-- old `BodyReadyCI` / `BlockBodyReadyCI` は compatibility surface として残す。
-- control summary の primitive definitions (`BodyExitKind`, `StmtBodySummary`, `BlockBodySummary`)
-  は canonical foundation へ移したので、ここでは再定義しない。
+Update:
+- keep the compatibility wrapper role;
+- thread a canonical CI entry witness through the flat wrapper as well, so that
+  assembled boundaries can preserve shape-specific static payloads.
 -/
 
 structure BodyReadyCI (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
   wf : WellFormedStmt st
   typed0 : WellTypedFrom Γ st
+  entry : BodyEntryWitness Γ st
   breakScoped : BreakWellScoped st
   continueScoped : ContinueWellScoped st
   state : ScopedTypedStateConcrete Γ σ
@@ -37,6 +39,7 @@ structure BodyReadyCI (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
 structure BlockBodyReadyCI (Γ : TypeEnv) (σ : State) (ss : StmtBlock) : Type where
   wf : WellFormedBlock ss
   typed0 : ∃ Δ, HasTypeBlock (pushTypeScope Γ) ss Δ
+  entry : BlockBodyEntryWitness Γ ss
   breakScoped : BreakWellScopedBlockAt 0 ss
   continueScoped : ContinueWellScopedBlockAt 0 ss
   state : ScopedTypedStateConcrete (pushTypeScope Γ) σ

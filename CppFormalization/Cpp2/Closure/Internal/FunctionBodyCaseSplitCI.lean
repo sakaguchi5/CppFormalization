@@ -15,16 +15,18 @@ abbrev FunctionBodyClosureResult (σ : State) (st : CppStmt) : Prop :=
   (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st
 
 structure SeqLeftClosureScaffoldCI
-    (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
-  structural : BodyStructuralBoundary Γ st
-  profile : BodyControlProfile Γ st
-  adequacy : BodyAdequacyCI Γ σ st profile
+    (Γ : TypeEnv) (σ : State) (s : CppStmt) : Type where
+  structural : BodyStructuralBoundary Γ s
+  entry : BodyEntryWitness Γ s
+  profile : BodyControlProfile Γ s
+  adequacy : BodyAdequacyCI Γ σ s profile
 
 structure SeqTailClosureScaffoldCI
-    (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
-  structural : BodyStructuralBoundary Γ st
-  profile : BodyControlProfile Γ st
-  adequacy : BodyAdequacyCI Γ σ st profile
+    (Θ : TypeEnv) (σ1 : State) (t : CppStmt) : Type where
+  structural : BodyStructuralBoundary Θ t
+  entry : BodyEntryWitness Θ t
+  profile : BodyControlProfile Θ t
+  adequacy : BodyAdequacyCI Θ σ1 t profile
 
 axiom seq_left_closure_scaffold_ci_of_entry
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
@@ -52,7 +54,7 @@ noncomputable def seq_left_closure_boundary_ci_of_entry
     BodyClosureBoundaryCI Γ σ s := by
   let hs := seq_left_closure_scaffold_ci_of_entry hentry
   let hd := seq_left_dynamic_boundary_of_entry hentry
-  exact mkBodyClosureBoundaryCI hs.structural hs.profile hd hs.adequacy
+  exact mkBodyClosureBoundaryCI hs.structural hs.entry hs.profile hd hs.adequacy
 
 noncomputable def seq_tail_closure_boundary_ci_of_left_normal
     (mkWhileReentry : WhileReentryReadyProvider)
@@ -67,14 +69,14 @@ noncomputable def seq_tail_closure_boundary_ci_of_left_normal
     seq_ready_left hentry.dynamic.safe
   have hσ1 : ScopedTypedStateConcrete Θ σ1 :=
     stmt_normal_preserves_scoped_typed_state_concrete
-     mkWhileReentry  htyLeft hentry.dynamic.state hreadyLeft hstepLeft
+      mkWhileReentry htyLeft hentry.dynamic.state hreadyLeft hstepLeft
   have hreadyRight : StmtReadyConcrete Θ σ1 t :=
     seq_ready_right_after_left_normal htyLeft hσ1 hentry.dynamic.safe hstepLeft
   let hs := seq_tail_closure_scaffold_ci_of_left_normal hentry htyLeft hstepLeft
   let hd : BodyDynamicBoundary Θ σ1 t :=
     { state := hσ1
       safe := hreadyRight }
-  exact mkBodyClosureBoundaryCI hs.structural hs.profile hd hs.adequacy
+  exact mkBodyClosureBoundaryCI hs.structural hs.entry hs.profile hd hs.adequacy
 
 axiom seq_function_body_closure_boundary_ci_honest
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}

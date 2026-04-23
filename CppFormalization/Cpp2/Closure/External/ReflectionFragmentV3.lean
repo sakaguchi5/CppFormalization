@@ -14,6 +14,7 @@ Stage 2A redesign:
 
 structure ReflectionPiecesV3 (Γ : TypeEnv) (st : CppStmt) : Type where
   structural : BodyStructuralBoundary Γ st
+  entry : BodyEntryWitness Γ st
   profile : BodyControlProfile Γ st
   core : CoreBigStepFragment st
 

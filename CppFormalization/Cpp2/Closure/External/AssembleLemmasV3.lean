@@ -27,6 +27,21 @@ theorem assembleExternalPiecesV3_structural
   unfold assembleExternalPiecesV3
   rfl
 
+theorem assembleExternalPiecesV3_entry
+    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
+    (G : VerifiedExternalGlueV3 F R)
+    {n : F.Name} {m : R.Meta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : F.uses n)
+    (hsuppRun : F.supportsRuntime n Γ σ st)
+    (hgen : R.generates m st)
+    (hsuppRefl : R.supportsReflection m Γ st)
+    (hcompat : G.compatible n m Γ σ st) :
+    (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).entry =
+      (R.mkReflection hgen hsuppRefl).entry := by
+  --unfold assembleExternalPiecesV3
+  rfl
+
 theorem assembleExternalPiecesV3_profile
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (G : VerifiedExternalGlueV3 F R)
@@ -126,11 +141,15 @@ theorem assembleExternalPiecesV3_toBodyBoundary
     (hgen : R.generates m st)
     (hsuppRefl : R.supportsReflection m Γ st)
     (hcompat : G.compatible n m Γ σ st) :
+    let hrun := F.mkRuntime huse hsuppRun
+    let hrefl := R.mkReflection hgen hsuppRefl
     (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).toBodyBoundary =
-      { structural := (R.mkReflection hgen hsuppRefl).structural
-        profile := (R.mkReflection hgen hsuppRefl).profile
-        dynamic := (F.mkRuntime huse hsuppRun).dynamic
-        adequacy := G.mkAdequacy huse hsuppRun hgen hsuppRefl hcompat } := by
+      mkBodyClosureBoundaryCI
+        hrefl.structural
+        hrefl.entry
+        hrefl.profile
+        hrun.dynamic
+        (G.mkAdequacy huse hsuppRun hgen hsuppRefl hcompat) := by
   rfl
 
 end Cpp

@@ -30,6 +30,7 @@ structure ToySplitReflectionArtifactV3 where
   Γ : TypeEnv
   st : CppStmt
   structural : BodyStructuralBoundary Γ st
+  entry : BodyEntryWitness Γ st
   profile : BodyControlProfile Γ st
   core : CoreBigStepFragment st
 
@@ -42,6 +43,7 @@ def ToyReadyCertificate.toSplitReflectionArtifact
   { Γ := c.Γ
     st := c.st
     structural := c.ready.toStructural
+    entry := c.ready.entry
     profile := c.ready.toProfile
     core := c.core }
 
@@ -54,6 +56,7 @@ def toySplitMkReflection
   rcases hsupp with ⟨rfl, rfl⟩
   exact
     { structural := m.structural
+      entry := m.entry
       profile := m.profile
       core := m.core }
 
@@ -85,6 +88,15 @@ def toySplitMkReflection
       subst st
       simp [toySplitMkReflection]
 
+@[simp] theorem toySplitMkReflection_entry_heq
+    (m : ToySplitReflectionArtifactV3)
+    {Γ : TypeEnv} {st : CppStmt}
+    (hgen : st = m.st)
+    (hsupp : Γ = m.Γ ∧ st = m.st) :
+    HEq (toySplitMkReflection m hgen hsupp).entry m.entry := by
+  rcases hsupp with ⟨rfl, rfl⟩
+  rfl
+
 def toySplitFamilyV3 : SplitArtifactFamilyV3 where
   RuntimeName := ToySplitRuntimeArtifactV3
   ReflectionMeta := ToySplitReflectionArtifactV3
@@ -109,18 +121,18 @@ def toySplitFamilyV3 : SplitArtifactFamilyV3 where
   compatible := fun n m Γ σ st =>
     n.Γ = Γ ∧ n.σ = σ ∧ n.st = st ∧
     m.Γ = Γ ∧ m.st = st ∧
-    -- ∃ を使わず、推移律から導かれるはずの直接の等式を書く
     HEq n.ready.toStructural m.structural ∧
+    HEq n.ready.entry m.entry ∧
     HEq n.ready.toProfile m.profile
 
   mkReady := by
     intro n m Γ σ st _ _ _ _ hcompat
-    rcases hcompat with ⟨rfl, rfl, rfl, _, _, _, _⟩
+    rcases hcompat with ⟨rfl, rfl, rfl, _, _, _, _, _⟩
     exact n.ready
 
   dynamic_eq := by
     intro n m Γ σ st huse hsuppRun hgen hsuppRefl hcompat
-    rcases hcompat with ⟨rfl, rfl, rfl, _, _, _, _⟩
+    rcases hcompat with ⟨rfl, rfl, rfl, _, _, _, _, _⟩
     rcases hsuppRun with ⟨_, _, _⟩
     rfl
 
@@ -128,13 +140,24 @@ def toySplitFamilyV3 : SplitArtifactFamilyV3 where
     intro n m Γ σ st huse hsuppRun hgen hsuppRefl hcompat
     rcases hsuppRun with ⟨rfl, rfl, rfl⟩
     rcases hsuppRefl with ⟨_, _⟩
-    rcases hcompat with ⟨_, _, _, _, _, hstruct, _⟩
+    rcases hcompat with ⟨_, _, _, _, _, hstruct, _, _⟩
     simp
+
+  entry_eq := by
+    intro n m Γ σ st huse hsuppRun hgen hsuppRefl hcompat
+    rcases hsuppRun with ⟨rfl, rfl, rfl⟩
+    rcases hcompat with ⟨_, _, _, _, _, _, hentry, _⟩
+    have hmk :
+        HEq (toySplitMkReflection m hgen hsuppRefl).entry m.entry :=
+      toySplitMkReflection_entry_heq m hgen hsuppRefl
+    change n.ready.entry =
+      (toySplitMkReflection m hgen hsuppRefl).entry
+    exact eq_of_heq (HEq.trans hentry (HEq.symm hmk))
 
   profile_eq := by
     intro n m Γ σ st huse hsuppRun hgen hsuppRefl hcompat
     rcases hsuppRun with ⟨rfl, rfl, rfl⟩
-    rcases hcompat with ⟨_, _, _, _, _, _, hprof⟩
+    rcases hcompat with ⟨_, _, _, _, _, _, _, hprof⟩
     have hmk :
         HEq (toySplitMkReflection m hgen hsuppRefl).profile m.profile :=
       toySplitMkReflection_profile_heq m hgen hsuppRefl
@@ -259,7 +282,7 @@ theorem toySplitFamilyV3_mkReady_eq (c : ToyReadyCertificate) :
       (toySplit_compatible c)
       = c.ready
   unfold toySplitFamilyV3
-  rcases toySplit_compatible c with ⟨_, _, _, _, _, _, _⟩
+  rcases toySplit_compatible c with ⟨_, _, _, _, _, _, _, _⟩
   rfl
 
 /-- Split Family の readyExternalPieces が提供する境界の正当性 -/

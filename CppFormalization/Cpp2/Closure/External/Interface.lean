@@ -9,6 +9,7 @@ structure RuntimePiecesLegacy (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type 
 /-- Legacy reflection-side package: keep structural and profile chosen together. -/
 structure ReflectionPiecesLegacy (Γ : TypeEnv) (st : CppStmt) : Type where
   structural : BodyStructuralBoundary Γ st
+  entry : BodyEntryWitness Γ st
   profile : BodyControlProfile Γ st
 
 /--
@@ -109,6 +110,7 @@ noncomputable def fragments_establish_body_closure_boundary
   exact
     mkBodyClosureBoundaryCI
       hrefl.structural
+      hrefl.entry
       hrefl.profile
       hrun.dynamic
       hadeq

@@ -179,6 +179,36 @@ def blockBodyDynamicBoundary_of_bodyClosureBoundaryCI_opened
   { state := hopened.state
     safe := hopened.safe }
 
+
+
+theorem blockBodyEntryWitness_nonempty_of_bodyEntryWitness
+    {Γ : TypeEnv} {ss : StmtBlock}
+    (e : BodyEntryWitness Γ (.block ss)) :
+    Nonempty (BlockBodyEntryWitness Γ ss) := by
+  cases e with
+  | normal out =>
+      rcases out with ⟨Δ, hty⟩
+      cases hty with
+      | block hB =>
+          exact ⟨BlockBodyEntryWitness.normal ⟨_, hB⟩⟩
+  | returned out =>
+      rcases out with ⟨Δ, hty⟩
+      cases hty with
+      | block hB =>
+          exact ⟨BlockBodyEntryWitness.returned ⟨_, hB⟩⟩
+
+noncomputable def blockBodyEntryWitness_of_bodyEntryWitness
+    {Γ : TypeEnv} {ss : StmtBlock}
+    (e : BodyEntryWitness Γ (.block ss)) :
+    BlockBodyEntryWitness Γ ss :=
+  Classical.choice (blockBodyEntryWitness_nonempty_of_bodyEntryWitness e)
+
+noncomputable def blockBodyEntryWitness_of_bodyClosureBoundaryCI
+    {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
+    (h : BodyClosureBoundaryCI Γ σ (.block ss)) :
+    BlockBodyEntryWitness Γ ss :=
+  blockBodyEntryWitness_of_bodyEntryWitness h.entry
+
 /--
 Opened-scope bridge into the assembled CI block-body boundary.
 
@@ -193,10 +223,11 @@ noncomputable def blockBodyClosureBoundaryCI_of_bodyClosureBoundaryCI_opened
     BlockBodyClosureBoundaryCI Γ σ' ss := by
   intro hentry hopen
   let hs := blockBodyStructuralBoundary_of_bodyClosureBoundaryCI hentry
+  let he := blockBodyEntryWitness_of_bodyClosureBoundaryCI hentry
   let hp := blockBodyProfile_of_bodyClosureBoundaryCI hentry
   let ha := blockBodyAdequacyScaffoldCI_of_bodyClosureBoundaryCI_opened hentry hopen
   let hd := blockBodyDynamicBoundary_of_bodyClosureBoundaryCI_opened hentry hopen
-  exact mkBlockBodyClosureBoundaryCI hs hp hd ha.adequacy
+  exact mkBlockBodyClosureBoundaryCI hs he hp hd ha.adequacy
 
 /--
 Opened block-body closure target.
