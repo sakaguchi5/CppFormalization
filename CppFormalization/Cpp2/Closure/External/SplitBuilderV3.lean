@@ -85,25 +85,15 @@ structure SplitArtifactFamilyV3 where
       (mkReady huse hsuppRun hgen hsuppRefl hcompat).toStructural =
         (mkReflection hgen hsuppRefl).structural
 
-  entry_eq :
+  static_eq :
     ∀ {n : RuntimeName} {m : ReflectionMeta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
       (huse : uses n)
       (hsuppRun : supportsRuntime n Γ σ st)
       (hgen : generates m st)
       (hsuppRefl : supportsReflection m Γ st)
       (hcompat : compatible n m Γ σ st),
-      (mkReady huse hsuppRun hgen hsuppRefl hcompat).entry =
-        (mkReflection hgen hsuppRefl).entry
-
-  profile_eq :
-    ∀ {n : RuntimeName} {m : ReflectionMeta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
-      (huse : uses n)
-      (hsuppRun : supportsRuntime n Γ σ st)
-      (hgen : generates m st)
-      (hsuppRefl : supportsReflection m Γ st)
-      (hcompat : compatible n m Γ σ st),
-      (mkReady huse hsuppRun hgen hsuppRefl hcompat).toProfile =
-        (mkReflection hgen hsuppRefl).profile
+      (mkReady huse hsuppRun hgen hsuppRefl hcompat).static =
+        (mkReflection hgen hsuppRefl).static
 
 namespace SplitArtifactFamilyV3
 
@@ -125,8 +115,9 @@ def toReadyAssembly (A : SplitArtifactFamilyV3) :
   mkReady := A.mkReady
   dynamic_eq := A.dynamic_eq
   structural_eq := A.structural_eq
-  entry_eq := A.entry_eq
-  profile_eq := A.profile_eq
+  static_eq := A.static_eq
+
+
 
 def mkAdequacy_from_compatible
     (A : SplitArtifactFamilyV3)
@@ -137,10 +128,10 @@ def mkAdequacy_from_compatible
     (hgen : A.generates m st)
     (hsuppRefl : A.supportsReflection m Γ st)
     (hcompat : A.compatible n m Γ σ st) :
-    BodyAdequacyCI Γ σ st ((A.mkReflection hgen hsuppRefl).profile) :=
+    BodyAdequacyCI Γ σ st ((A.mkReflection hgen hsuppRefl).static.profile) :=
   let hready := A.mkReady huse hsuppRun hgen hsuppRefl hcompat
-  let hprof := A.profile_eq huse hsuppRun hgen hsuppRefl hcompat
-  match (A.mkReflection hgen hsuppRefl).profile, hprof with
+  let hstatic := A.static_eq huse hsuppRun hgen hsuppRefl hcompat
+  match (A.mkReflection hgen hsuppRefl).static, hstatic with
   | _, rfl => hready.toAdequacy
 
 def toGlue (A : SplitArtifactFamilyV3) :

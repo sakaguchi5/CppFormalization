@@ -6,11 +6,10 @@ namespace Cpp
 structure RuntimePiecesLegacy (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
   dynamic : BodyDynamicBoundary Γ σ st
 
-/-- Legacy reflection-side package: keep structural and profile chosen together. -/
+/-- Legacy reflection-side package: structural + assembled static package. -/
 structure ReflectionPiecesLegacy (Γ : TypeEnv) (st : CppStmt) : Type where
   structural : BodyStructuralBoundary Γ st
-  entry : BodyEntryWitness Γ st
-  profile : BodyControlProfile Γ st
+  static : BodyStaticBoundaryCI Γ st
 
 /--
 Legacy std fragment interface.
@@ -41,13 +40,13 @@ structure VerifiedReflectionFragment where
   Meta : Type
   generates : Meta → CppStmt → Prop
   establishesStructural : Meta → TypeEnv → CppStmt → Prop
-  establishesProfile : Meta → TypeEnv → CppStmt → Prop
+  establishesStatic : Meta → TypeEnv → CppStmt → Prop
 
   mkReflection :
     ∀ {m : Meta} {Γ : TypeEnv} {st : CppStmt},
       generates m st →
       establishesStructural m Γ st →
-      establishesProfile m Γ st →
+      establishesStatic m Γ st →
       ReflectionPiecesLegacy Γ st
 
 /--
@@ -66,10 +65,10 @@ structure VerifiedExternalGlueLegacy
       (hdyn : F.establishesDynamic n Γ σ st) →
       (hgen : R.generates m st) →
       (hstruct : R.establishesStructural m Γ st) →
-      (hprof : R.establishesProfile m Γ st) →
+      (hstatic : R.establishesStatic m Γ st) →
       (hcompat : compatible n m Γ σ st) →
       BodyAdequacyCI Γ σ st
-        ((R.mkReflection (m := m) (Γ := Γ) (st := st) hgen hstruct hprof).profile)
+        ((R.mkReflection (m := m) (Γ := Γ) (st := st) hgen hstruct hstatic).static.profile)
 
 /--
 Still keep this as the remaining core-membership bridge for the legacy interface.
@@ -98,21 +97,22 @@ noncomputable def fragments_establish_body_closure_boundary
     (hdyn : F.establishesDynamic n Γ σ st)
     (hgen : R.generates m st)
     (hstruct : R.establishesStructural m Γ st)
-    (hprof : R.establishesProfile m Γ st)
+    (hstatic : R.establishesStatic m Γ st)
     (hcompat : G.compatible n m Γ σ st) :
     BodyClosureBoundaryCI Γ σ st := by
-  let hrun : RuntimePiecesLegacy Γ σ st :=
-    F.mkRuntime huse hdyn
-  let hrefl : ReflectionPiecesLegacy Γ st :=
-    R.mkReflection hgen hstruct hprof
-  let hadeq : BodyAdequacyCI Γ σ st hrefl.profile :=
-    G.mkAdequacy huse hdyn hgen hstruct hprof hcompat
-  exact
+  let rt : RuntimePiecesLegacy Γ σ st :=
+    F.mkRuntime (n := n) (Γ := Γ) (σ := σ) (st := st) huse hdyn
+  let rf : ReflectionPiecesLegacy Γ st :=
+    R.mkReflection (m := m) (Γ := Γ) (st := st) hgen hstruct hstatic
+  refine
     mkBodyClosureBoundaryCI
-      hrefl.structural
-      hrefl.entry
-      hrefl.profile
-      hrun.dynamic
-      hadeq
+      rf.structural
+      rf.static
+      rt.dynamic
+      ?_
+  simpa [rf] using
+    (G.mkAdequacy
+      (n := n) (m := m) (Γ := Γ) (σ := σ) (st := st)
+      huse hdyn hgen hstruct hstatic hcompat)
 
 end Cpp

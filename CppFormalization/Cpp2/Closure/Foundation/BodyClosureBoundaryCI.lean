@@ -1,8 +1,7 @@
 import CppFormalization.Cpp2.Closure.Foundation.BodyStructuralBoundary
-import CppFormalization.Cpp2.Closure.Foundation.BodyControlProfile
+import CppFormalization.Cpp2.Closure.Foundation.BodyStaticBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyDynamicBoundary
 import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
-import CppFormalization.Cpp2.Closure.Foundation.BodyEntryWitnessCI
 import CppFormalization.Cpp2.Lemmas.ControlExclusion
 
 namespace Cpp
@@ -10,55 +9,48 @@ namespace Cpp
 /-!
 # Closure.Foundation.BodyClosureBoundaryCI
 
-Four-layer assembled CI boundary.
+Assembled CI boundary after the static-layer redesign.
 
-Update:
-- keep `structural / profile / dynamic / adequacy` split;
-- additionally thread one canonical CI entry witness through the assembled
-  boundary itself;
-- this avoids polluting `BodyStructuralBoundary` while making shape-specific
-  entry decomposition (notably `while`) theorem-backed.
+Canonical split:
+- structural : shape / scopedness only
+- static     : coarse typing + CI summary + root witness coherence
+- dynamic    : concrete entry state/readiness
+- adequacy   : soundness against the static profile
 -/
 
 structure BodyClosureBoundaryCI (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
   structural : BodyStructuralBoundary Γ st
-  entry : BodyEntryWitness Γ st
-  profile : BodyControlProfile Γ st
+  static : BodyStaticBoundaryCI Γ st
   dynamic : BodyDynamicBoundary Γ σ st
-  adequacy : BodyAdequacyCI Γ σ st profile
+  adequacy : BodyAdequacyCI Γ σ st static.profile
 
 structure BlockBodyClosureBoundaryCI (Γ : TypeEnv) (σ : State) (ss : StmtBlock) : Type where
   structural : BlockBodyStructuralBoundary Γ ss
-  entry : BlockBodyEntryWitness Γ ss
-  profile : BlockBodyControlProfile Γ ss
+  static : BlockBodyStaticBoundaryCI Γ ss
   dynamic : BlockBodyDynamicBoundary Γ σ ss
-  adequacy : BlockBodyAdequacyCI Γ σ ss profile
+  adequacy : BlockBodyAdequacyCI Γ σ ss static.profile
 
 def mkBodyClosureBoundaryCI
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hs : BodyStructuralBoundary Γ st)
-    (he : BodyEntryWitness Γ st)
-    (hp : BodyControlProfile Γ st)
+    (hst : BodyStaticBoundaryCI Γ st)
     (hd : BodyDynamicBoundary Γ σ st)
-    (ha : BodyAdequacyCI Γ σ st hp) :
+    (ha : BodyAdequacyCI Γ σ st hst.profile) :
     BodyClosureBoundaryCI Γ σ st :=
   { structural := hs
-    entry := he
-    profile := hp
+    static := hst
     dynamic := hd
     adequacy := ha }
 
 def mkBlockBodyClosureBoundaryCI
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
     (hs : BlockBodyStructuralBoundary Γ ss)
-    (he : BlockBodyEntryWitness Γ ss)
-    (hp : BlockBodyControlProfile Γ ss)
+    (hst : BlockBodyStaticBoundaryCI Γ ss)
     (hd : BlockBodyDynamicBoundary Γ σ ss)
-    (ha : BlockBodyAdequacyCI Γ σ ss hp) :
+    (ha : BlockBodyAdequacyCI Γ σ ss hst.profile) :
     BlockBodyClosureBoundaryCI Γ σ ss :=
   { structural := hs
-    entry := he
-    profile := hp
+    static := hst
     dynamic := hd
     adequacy := ha }
 

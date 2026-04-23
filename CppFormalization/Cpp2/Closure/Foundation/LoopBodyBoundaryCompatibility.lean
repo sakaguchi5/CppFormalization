@@ -122,13 +122,10 @@ namespace LoopBodyStructuralBoundary
 def toWhileStructural
     {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
     (h : LoopBodyStructuralBoundary Γ body)
-    (hc : HasValueType Γ c (.base .bool))
-    (hwfCond : WellFormedValue c)
-    (hp : LoopBodyControlProfile Γ body) :
+    (hwfCond : WellFormedValue c):
     BodyStructuralBoundary Γ (.whileStmt c body) :=
   { wf := by
       exact And.intro hwfCond h.wf
-    typed0 := hp.whileTyped0 hc
     breakScoped := h.toWhileBreakScoped
     continueScoped := h.toWhileContinueScoped }
 
@@ -153,10 +150,9 @@ def toWhileEntry
 def toWhileStructural
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (h : LoopBodyBoundaryCI Γ σ body)
-    (hc : HasValueType Γ c (.base .bool))
     (hwfCond : WellFormedValue c) :
     BodyStructuralBoundary Γ (.whileStmt c body) :=
-  h.structural.toWhileStructural hc hwfCond h.profile
+  h.structural.toWhileStructural hwfCond
 
 end LoopBodyBoundaryCI
 

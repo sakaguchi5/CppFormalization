@@ -25,12 +25,12 @@ theorem bodyReadyConcrete_of_bodyReadyCI
     BodyReadyCI Γ σ st → BodyReadyConcrete Γ σ st := by
   intro h
   exact {
-    wf := h.wf
-    typed := h.typed0
-    breakScoped := h.breakScoped
-    continueScoped := h.continueScoped
-    state := h.state
-    safe := h.safe
+    wf := h.structural.wf
+    typed := h.static.typed0
+    breakScoped := h.structural.breakScoped
+    continueScoped := h.structural.continueScoped
+    state := h.dynamic.state
+    safe := h.dynamic.safe
   }
 
 /-- forgetful map from the new assembled boundary to the refined concrete boundary. -/

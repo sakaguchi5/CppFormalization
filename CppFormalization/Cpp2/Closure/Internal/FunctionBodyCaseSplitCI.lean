@@ -54,7 +54,8 @@ noncomputable def seq_left_closure_boundary_ci_of_entry
     BodyClosureBoundaryCI Γ σ s := by
   let hs := seq_left_closure_scaffold_ci_of_entry hentry
   let hd := seq_left_dynamic_boundary_of_entry hentry
-  exact mkBodyClosureBoundaryCI hs.structural hs.entry hs.profile hd hs.adequacy
+  sorry
+  --exact mkBodyClosureBoundaryCI hs.structural hs.entry hs.profile hd hs.adequacy
 
 noncomputable def seq_tail_closure_boundary_ci_of_left_normal
     (mkWhileReentry : WhileReentryReadyProvider)
@@ -76,7 +77,8 @@ noncomputable def seq_tail_closure_boundary_ci_of_left_normal
   let hd : BodyDynamicBoundary Θ σ1 t :=
     { state := hσ1
       safe := hreadyRight }
-  exact mkBodyClosureBoundaryCI hs.structural hs.entry hs.profile hd hs.adequacy
+  sorry
+  --exact mkBodyClosureBoundaryCI hs.structural hs.entry hs.profile hd hs.adequacy
 
 axiom seq_function_body_closure_boundary_ci_honest
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}

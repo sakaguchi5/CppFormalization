@@ -91,133 +91,155 @@ theorem scopedTypedState_of_concrete
     ScopedTypedState Γ σ :=
   legacyScopedTypedState_of_concrete
 
-def BodyReadyCI.toStructural
+namespace BodyReadyCI
+
+def toStructural
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (h : BodyReadyCI Γ σ st) :
     BodyStructuralBoundary Γ st :=
-  { wf := h.wf
-    typed0 := h.typed0
-    breakScoped := h.breakScoped
-    continueScoped := h.continueScoped }
+  h.structural
 
-def BodyReadyCI.toProfile
+def toStatic
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (h : BodyReadyCI Γ σ st) :
+    BodyStaticBoundaryCI Γ st :=
+  h.static
+
+def toTyped0
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (h : BodyReadyCI Γ σ st) :
+    WellTypedFrom Γ st :=
+  h.static.typed0
+
+def toProfile
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (h : BodyReadyCI Γ σ st) :
     BodyControlProfile Γ st :=
-  { summary := { normalOut := h.summary.normalOut, returnOut := h.summary.returnOut } }
+  h.static.profile
 
-def BodyReadyCI.toDynamic
+def toEntry
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (h : BodyReadyCI Γ σ st) :
+    BodyEntryWitness Γ st :=
+  h.static.root
+
+def toDynamic
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (h : BodyReadyCI Γ σ st) :
     BodyDynamicBoundary Γ σ st :=
-  { state := h.state, safe := h.safe }
+  h.dynamic
 
-def BodyReadyCI.toAdequacy
+def toAdequacy
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (h : BodyReadyCI Γ σ st) :
-    BodyAdequacyCI Γ σ st h.toProfile := by
-  refine { normalSound := ?_, returnSound := ?_ }
-  · intro σ' hstep; exact h.normalSound hstep
-  · intro rv σ' hstep; exact h.returnSound hstep
+    BodyAdequacyCI Γ σ st h.static.profile :=
+  h.adequacy
 
-def BodyReadyCI.toClosureBoundary
+def toClosureBoundary
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (h : BodyReadyCI Γ σ st) :
     BodyClosureBoundaryCI Γ σ st :=
-  mkBodyClosureBoundaryCI h.toStructural h.entry h.toProfile h.toDynamic h.toAdequacy
+  mkBodyClosureBoundaryCI h.structural h.static h.dynamic h.adequacy
 
-def BlockBodyReadyCI.toStructural
+end BodyReadyCI
+
+namespace BlockBodyReadyCI
+
+def toStructural
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
     (h : BlockBodyReadyCI Γ σ ss) :
     BlockBodyStructuralBoundary Γ ss :=
-  { wf := h.wf, typed0 := h.typed0, breakScoped := h.breakScoped, continueScoped := h.continueScoped }
+  h.structural
 
-def BlockBodyReadyCI.toProfile
+def toStatic
+    {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
+    (h : BlockBodyReadyCI Γ σ ss) :
+    BlockBodyStaticBoundaryCI Γ ss :=
+  h.static
+
+def toProfile
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
     (h : BlockBodyReadyCI Γ σ ss) :
     BlockBodyControlProfile Γ ss :=
-  { summary := { normalOut := h.summary.normalOut, returnOut := h.summary.returnOut } }
+  h.static.profile
 
-def BlockBodyReadyCI.toDynamic
+def toEntry
+    {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
+    (h : BlockBodyReadyCI Γ σ ss) :
+    BlockBodyEntryWitness Γ ss :=
+  h.static.root
+
+def toDynamic
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
     (h : BlockBodyReadyCI Γ σ ss) :
     BlockBodyDynamicBoundary Γ σ ss :=
-  { state := h.state, safe := h.safe }
+  h.dynamic
 
-def BlockBodyReadyCI.toAdequacy
+def toAdequacy
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
     (h : BlockBodyReadyCI Γ σ ss) :
-    BlockBodyAdequacyCI Γ σ ss h.toProfile := by
-  refine { normalSound := ?_, returnSound := ?_ }
-  · intro σ' hstep; exact h.normalSound hstep
-  · intro rv σ' hstep; exact h.returnSound hstep
+    BlockBodyAdequacyCI Γ σ ss h.static.profile :=
+  h.adequacy
 
-def BlockBodyReadyCI.toClosureBoundary
+def toClosureBoundary
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
     (h : BlockBodyReadyCI Γ σ ss) :
     BlockBodyClosureBoundaryCI Γ σ ss :=
-  mkBlockBodyClosureBoundaryCI h.toStructural h.entry h.toProfile h.toDynamic h.toAdequacy
+  mkBlockBodyClosureBoundaryCI h.structural h.static h.dynamic h.adequacy
 
-def BodyClosureBoundaryCI.toBodyReadyCI
+end BlockBodyReadyCI
+
+namespace BodyClosureBoundaryCI
+
+def toBodyReadyCI
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (h : BodyClosureBoundaryCI Γ σ st) :
-    BodyReadyCI Γ σ st := by
-  refine
-    { wf := h.structural.wf
-      typed0 := h.structural.typed0
-      entry := h.entry
-      breakScoped := h.structural.breakScoped
-      continueScoped := h.structural.continueScoped
-      state := h.dynamic.state
-      safe := h.dynamic.safe
-      summary := { normalOut := h.profile.summary.normalOut, returnOut := h.profile.summary.returnOut }
-      normalSound := ?_
-      returnSound := ?_ }
-  · intro σ' hstep; simpa using h.adequacy.normalSound hstep
-  · intro rv σ' hstep; simpa using h.adequacy.returnSound hstep
+    BodyReadyCI Γ σ st :=
+  { structural := h.structural
+    static := h.static
+    dynamic := h.dynamic
+    adequacy := h.adequacy }
 
-def BlockBodyClosureBoundaryCI.toBlockBodyReadyCI
+end BodyClosureBoundaryCI
+
+namespace BlockBodyClosureBoundaryCI
+
+def toBlockBodyReadyCI
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
     (h : BlockBodyClosureBoundaryCI Γ σ ss) :
-    BlockBodyReadyCI Γ σ ss := by
-  refine
-    { wf := h.structural.wf
-      typed0 := h.structural.typed0
-      entry := h.entry
-      breakScoped := h.structural.breakScoped
-      continueScoped := h.structural.continueScoped
-      state := h.dynamic.state
-      safe := h.dynamic.safe
-      summary := { normalOut := h.profile.summary.normalOut, returnOut := h.profile.summary.returnOut }
-      normalSound := ?_
-      returnSound := ?_ }
-  · intro σ' hstep; simpa using h.adequacy.normalSound hstep
-  · intro rv σ' hstep; simpa using h.adequacy.returnSound hstep
+    BlockBodyReadyCI Γ σ ss :=
+  { structural := h.structural
+    static := h.static
+    dynamic := h.dynamic
+    adequacy := h.adequacy }
 
-def legacyStmtReady_of_structural_dynamic
+end BlockBodyClosureBoundaryCI
+
+def legacyStmtReady_of_static_dynamic
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (hs : BodyStructuralBoundary Γ st)
+    (hs : BodyStaticBoundaryCI Γ st)
     (hd : BodyDynamicBoundary Γ σ st) :
     StmtReady Γ σ st :=
   ⟨hs.typed0, noUninit_of_stmtReadyConcrete hd.safe, noInvalidRef_of_stmtReadyConcrete hd.safe⟩
 
-def mkLegacyBodyReadyOfStructuralDynamic
+def mkLegacyBodyReadyOfStructuralStaticDynamic
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hs : BodyStructuralBoundary Γ st)
+    (hst : BodyStaticBoundaryCI Γ st)
     (hd : BodyDynamicBoundary Γ σ st) :
     BodyReady Γ σ st :=
   { wf := hs.wf
-    typed := hs.typed0
+    typed := hst.typed0
     breakScoped := hs.breakScoped
     continueScoped := hs.continueScoped
     state := legacyScopedTypedState_of_concrete hd.state
-    safe := legacyStmtReady_of_structural_dynamic hs hd }
+    safe := legacyStmtReady_of_static_dynamic hst hd }
 
 def BodyClosureBoundaryCI.toBodyReady
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (h : BodyClosureBoundaryCI Γ σ st) :
     BodyReady Γ σ st :=
-  mkLegacyBodyReadyOfStructuralDynamic h.structural h.dynamic
+  mkLegacyBodyReadyOfStructuralStaticDynamic h.structural h.static h.dynamic
 
 def BodyReadyCI.toBodyReadyViaClosure
     {Γ : TypeEnv} {σ : State} {st : CppStmt}

@@ -9,12 +9,11 @@ namespace Cpp
 
 Canonical current-entry boundary for a top-level `while`.
 
-Role:
-- isolate exactly the static/dynamic facts that belong to the current header
-  entry;
-- do *not* include loop-body local adequacy or post-step reentry laws;
-- make `while` entry decomposition theorem-backed from the assembled boundary,
-  once a canonical CI entry witness is threaded through that boundary.
+Redesign:
+- read static information from `BodyStaticBoundaryCI`,
+  not from an ad hoc `entry/profile` split;
+- carry the optional body-return channel explicitly;
+- keep reentry laws out of this object.
 -/
 
 structure WhileEntryBoundaryCI
@@ -23,20 +22,19 @@ structure WhileEntryBoundaryCI
   hN : HasTypeStmtCI .normalK Γ body Γ
   hB : HasTypeStmtCI .breakK Γ body Γ
   hC : HasTypeStmtCI .continueK Γ body Γ
+  hR? : Option {Δ : TypeEnv // HasTypeStmtCI .returnK Γ body Δ}
   state : ScopedTypedStateConcrete Γ σ
   condReady : ExprReadyConcrete Γ σ c (.base .bool)
   bodyReady : StmtReadyConcrete Γ σ body
 
 namespace WhileEntryBoundaryCI
 
-/-- Forget the local `while` header entry back to ordinary statement readiness. -/
 @[simp] theorem stmtReady
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (h : WhileEntryBoundaryCI Γ σ c body) :
     StmtReadyConcrete Γ σ (.whileStmt c body) := by
   exact StmtReadyConcrete.whileStmt h.hc h.condReady h.bodyReady
 
-/-- The dynamic loop-body entry induced by a `while` header entry. -/
 def toLoopBodyDynamic
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (h : WhileEntryBoundaryCI Γ σ c body) :
@@ -44,7 +42,6 @@ def toLoopBodyDynamic
   { state := h.state
     safe := h.bodyReady }
 
-/-- The closed-at-start loop-body profile induced by a `while` header entry. -/
 def toLoopBodyProfile
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (h : WhileEntryBoundaryCI Γ σ c body) :
@@ -54,7 +51,7 @@ def toLoopBodyProfile
         { normalOut := some ⟨Γ, h.hN⟩
           breakOut := some ⟨Γ, h.hB⟩
           continueOut := some ⟨Γ, h.hC⟩
-          returnOut := none }
+          returnOut := h.hR? }
       normalClosed := ?_
       breakClosed := ?_
       continueClosed := ?_ }
@@ -64,14 +61,14 @@ def toLoopBodyProfile
 
 end WhileEntryBoundaryCI
 
-private theorem while_entry_static_of_bodyEntry
+private theorem while_entry_static_of_root
     {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
-    (e : BodyEntryWitness Γ (.whileStmt c body)) :
+    (r : BodyEntryWitness Γ (.whileStmt c body)) :
     HasValueType Γ c (.base .bool) ∧
     HasTypeStmtCI .normalK Γ body Γ ∧
     HasTypeStmtCI .breakK Γ body Γ ∧
     HasTypeStmtCI .continueK Γ body Γ := by
-  cases e with
+  cases r with
   | normal out =>
       rcases while_normal_typing_data out.2 with ⟨_, hc, hN, hB, hC⟩
       exact ⟨hc, hN, hB, hC⟩
@@ -82,18 +79,28 @@ private theorem while_entry_static_of_bodyEntry
           | while_return hc hN hB hC _ =>
               exact ⟨hc, hN, hB, hC⟩
 
-/-- Canonical decomposition of an assembled top-level `while` entry. -/
+private def while_body_returnOut?_of_static
+    {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
+    (s : BodyStaticBoundaryCI Γ (.whileStmt c body)) :
+    Option {Δ : TypeEnv // HasTypeStmtCI .returnK Γ body Δ} :=
+  match s.profile.summary.returnOut with
+  | none => none
+  | some out =>
+      let ⟨hN, hB, hC, hR⟩ := while_return_typing_data out.2
+      some ⟨out.1, hR⟩
+
 def whileEntryBoundaryCI_of_bodyClosureBoundaryCI
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
     BodyClosureBoundaryCI Γ σ (.whileStmt c body) →
     WhileEntryBoundaryCI Γ σ c body := by
   intro h
-  rcases while_entry_static_of_bodyEntry h.entry with ⟨hc, hN, hB, hC⟩
+  rcases while_entry_static_of_root h.static.root with ⟨hc, hN, hB, hC⟩
   refine
     { hc := hc
       hN := hN
       hB := hB
       hC := hC
+      hR? := while_body_returnOut?_of_static h.static
       state := h.dynamic.state
       condReady := ?_
       bodyReady := ?_ }

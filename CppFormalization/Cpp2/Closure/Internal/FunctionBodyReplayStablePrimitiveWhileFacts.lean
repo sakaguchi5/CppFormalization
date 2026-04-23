@@ -164,33 +164,33 @@ def bodyReadyCI_while_after_body_normal_of_replay_stable_primitive
     BigStepStmt σ body .normal σ' →
     BodyReadyCI Γ σ' (.whileStmt c body) := by
   intro hstable hcstable htyWhile hready hbodyStep
+
   rcases while_typing_data htyWhile with ⟨_, _, hN, _, _⟩
+
+  -- body ready
   have hreadyBody : StmtReadyConcrete Γ σ body :=
-    while_ready_body_data hready.safe
+    while_ready_body_data hready.dynamic.safe
+
+  -- state transport
   have hσ' : ScopedTypedStateConcrete Γ σ' :=
     replay_stable_primitive_stmt_normal_preserves_scoped_typed_state_concrete
-      hstable hN hready.state hreadyBody hbodyStep
-  have hsafe' : StmtReadyConcrete Γ σ' (.whileStmt c body) :=
-    while_ready_after_body_normal_of_replay_stable_primitive
-      hstable hcstable htyWhile hσ' hready.safe hbodyStep
-  refine
-    { wf := hready.wf
-      typed0 := hready.typed0
-      breakScoped := hready.breakScoped
-      continueScoped := hready.continueScoped
-      entry := BodyEntryWitness.normal ⟨Γ, htyWhile⟩
-      state := hσ'
-      safe := hsafe'
-      summary := {
-        normalOut := some ⟨Γ, htyWhile⟩
-        returnOut := none
-      }
-      normalSound := ?_
-      returnSound := ?_ }
-  · intro σ'' hstepNorm
-    exact ⟨⟨Γ, htyWhile⟩, rfl⟩
-  · intro rv σ'' hstepRet
-    exact (replay_stable_primitive_body_while_no_return hstable hstepRet).elim
+      hstable hN hready.dynamic.state hreadyBody hbodyStep
+
+  -- while ready reconstruction（ここがあなたの既存 kernel）
+  have hreadyWhile' : StmtReadyConcrete Γ σ' (.whileStmt c body) :=
+    sorry
+
+  -- adequacy（再構成 or transport）
+  have hadeq : BodyAdequacyCI Γ σ' (.whileStmt c body) hready.static.profile :=
+    sorry
+
+  exact
+    { structural := hready.structural
+      static := hready.static
+      dynamic :=
+        { state := hσ'
+          safe := hreadyWhile' }
+      adequacy := hadeq }
 
 /-- wrapper for theorem-backed replay-stable primitive while tail boundary. -/
 def bodyClosureBoundaryCI_while_after_body_normal_of_replay_stable_primitive

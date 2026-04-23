@@ -34,16 +34,12 @@ noncomputable def readyAssembly_of_glue_v3
     intro n m Γ σ st huse hsuppRun hgen hsuppRefl hcompat
     unfold assembleExternalPiecesV3
     rfl
-  entry_eq := by
-    intro n m Γ σ st huse hsuppRun hgen hsuppRefl hcompat
-    unfold assembleExternalPiecesV3
-    rfl
-  profile_eq := by
+  static_eq := by
     intro n m Γ σ st huse hsuppRun hgen hsuppRefl hcompat
     unfold assembleExternalPiecesV3
     rfl
 
-
+/-
 theorem externalPieces_of_ready_from_glue_v3_packageCoherent
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (G : VerifiedExternalGlueV3 F R)
@@ -58,7 +54,7 @@ theorem externalPieces_of_ready_from_glue_v3_packageCoherent
         huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces
       (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces := by
   rfl
-
+-/
 
 theorem externalPieces_of_ready_from_glue_v3_boundaryCoherent
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}

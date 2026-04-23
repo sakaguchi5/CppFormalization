@@ -27,9 +27,7 @@ structure VisiblePiecesV3 (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type wher
 def ExternalPiecesV3.toVisiblePieces
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (p : ExternalPiecesV3 Γ σ st) : VisiblePiecesV3 Γ σ st :=
-  { structural := p.structural
-    profile := p.profile
-    dynamic := p.dynamic }
+  p
 
 
 def visiblePiecesOfPackagesV3

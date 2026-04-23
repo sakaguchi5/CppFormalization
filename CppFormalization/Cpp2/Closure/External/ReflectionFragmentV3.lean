@@ -5,18 +5,32 @@ namespace Cpp
 /-!
 # Closure.External.ReflectionFragmentV3
 
-Stage 2A redesign:
-- the reflection side returns one target-indexed package,
-- structural boundary, control profile, and core membership are chosen together,
-- this removes the old split between `supportsStructural` and `supportsProfile`
-  that caused coherence to be lost in the glue route.
+Redesign:
+- reflection returns `(structural, static, core)`;
+- `entry/profile` are no longer independent external outputs;
+- they are projections from the canonical static CI package.
 -/
 
 structure ReflectionPiecesV3 (Γ : TypeEnv) (st : CppStmt) : Type where
   structural : BodyStructuralBoundary Γ st
-  entry : BodyEntryWitness Γ st
-  profile : BodyControlProfile Γ st
+  static : BodyStaticBoundaryCI Γ st
   core : CoreBigStepFragment st
+
+namespace ReflectionPiecesV3
+
+def entry
+    {Γ : TypeEnv} {st : CppStmt}
+    (p : ReflectionPiecesV3 Γ st) :
+    BodyEntryWitness Γ st :=
+  p.static.root
+
+def profile
+    {Γ : TypeEnv} {st : CppStmt}
+    (p : ReflectionPiecesV3 Γ st) :
+    BodyControlProfile Γ st :=
+  p.static.profile
+
+end ReflectionPiecesV3
 
 structure VerifiedReflectionFragmentV3 where
   Meta : Type
