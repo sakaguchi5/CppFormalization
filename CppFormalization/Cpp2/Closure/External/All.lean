@@ -1,6 +1,5 @@
 import CppFormalization.Cpp2.Closure.External.AlignmentV3
 import CppFormalization.Cpp2.Closure.External.AssembleLemmasV3
-import CppFormalization.Cpp2.Closure.External.AssembleV2
 import CppFormalization.Cpp2.Closure.External.AssembleV3
 import CppFormalization.Cpp2.Closure.External.BuilderV3
 import CppFormalization.Cpp2.Closure.External.CanonicityV3
@@ -11,9 +10,7 @@ import CppFormalization.Cpp2.Closure.External.Interface
 import CppFormalization.Cpp2.Closure.External.InterfaceV2
 import CppFormalization.Cpp2.Closure.External.InterfaceV3
 import CppFormalization.Cpp2.Closure.External.LegacyBuilderV3
-import CppFormalization.Cpp2.Closure.External.ReadyAssemblyV2
 import CppFormalization.Cpp2.Closure.External.ReadyAssemblyV3
-import CppFormalization.Cpp2.Closure.External.ReadyFromGlueV2
 import CppFormalization.Cpp2.Closure.External.ReadyFromGlueV3
 import CppFormalization.Cpp2.Closure.External.ReflectionFragmentV2
 import CppFormalization.Cpp2.Closure.External.ReflectionFragmentV3

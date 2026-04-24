@@ -1,13 +1,13 @@
 import CppFormalization.Cpp2.Closure.External.StdFragmentV2
 import CppFormalization.Cpp2.Closure.External.ReflectionFragmentV2
 import CppFormalization.Cpp2.Closure.External.GlueV2
-import CppFormalization.Cpp2.Closure.External.AssembleV2
-import CppFormalization.Cpp2.Closure.External.ReadyAssemblyV2
-import CppFormalization.Cpp2.Closure.External.ReadyFromGlueV2
-import CppFormalization.Cpp2.Closure.External.ReadyAssemblyV2
 
 /-!
 # Closure.External.InterfaceV2
 
-Canonical V2 re-export for the explicit external assembly layer.
+Deprecated V2 interface surface.
+
+The live external closure route is V3. This file intentionally re-exports only
+the low-level V2 fragment/glue interfaces and no longer exposes the old V2
+assembly or ready routes.
 -/
