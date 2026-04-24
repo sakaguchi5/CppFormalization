@@ -52,7 +52,7 @@ theorem toy_builder_glue_certificate_closure
   simpa [toyCertificateFamilyV3] using
     (toyCertificateFamilyV3.glue_certificate_closure c)
 
-/-- The builder-generated toy ready/glue routes agree at the visible-package level. -/
+/-- The builder-generated toy ready/glue routes agree at the observable-package level. -/
 theorem toy_builder_ready_vs_glue_packageCoherent
     (c : ToyReadyCertificate) :
     PackageCoherentV3

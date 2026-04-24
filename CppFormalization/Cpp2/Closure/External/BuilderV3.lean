@@ -228,9 +228,7 @@ noncomputable def glueExternalPieces (B : ReadyCertificateFamilyV3) (c : B.Cert)
     (B.supportsReflection_self c)
     (B.glue_compatible_self c)
 
-
-
-/-- The ready-route visible package is definitionally the canonical visible package. -/
+/-- The ready-route observable package is definitionally the canonical observable package. -/
 theorem readyExternalPieces_packageCoherent
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
     PackageCoherentV3
@@ -249,7 +247,7 @@ theorem readyExternalPieces_packageCoherent
       (hsuppRefl := B.supportsReflection_self c)
       (hcompat := B.compatible_self c))
 
-/-- The glue-route visible package agrees with the canonical visible package. -/
+/-- The glue-route observable package agrees with the canonical observable package. -/
 theorem glueExternalPieces_packageCoherent
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
     PackageCoherentV3
@@ -269,7 +267,7 @@ theorem glueExternalPieces_packageCoherent
       (hcompat := B.glue_compatible_self c))
 
 /-- Within a builder-generated family, the direct ready route and direct glue route
-agree at the visible-package level. -/
+agree at the observable-package level. -/
 theorem ready_vs_glue_packageCoherent
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
     PackageCoherentV3
@@ -356,14 +354,7 @@ theorem mkAdequacy_from_compatible_self
       =
       (readyAssembly_profile_self B c) ▸ (B.readyOf c).toAdequacy := by
   apply bodyAdequacy_eq
-@[simp] theorem castBodyAdequacy_eq_transport
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    {p q : BodyControlProfile Γ st}
-    (h : p = q)
-    (ha : BodyAdequacyCI Γ σ st p) :
-    castBodyAdequacy h ha = h ▸ ha := by
-  cases h
-  rfl
+
 
 theorem mkAdequacy_from_compatible_self2
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
@@ -428,60 +419,6 @@ theorem readyAssembly_static_self
       (B.supportsReflection_self c)
       (readyAssembly_compatible_self B c)
   simpa [readyAssembly_mkReady_self B c] using h
-
-@[simp] theorem castBodyAdequacy_rfl
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    {p : BodyControlProfile Γ st}
-    (h : BodyAdequacyCI Γ σ st p) :
-    castBodyAdequacy rfl h = h := by
-  rfl
-
-@[simp] theorem castBodyAdequacy_symm_cast
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    {p q : BodyControlProfile Γ st}
-    (e : p = q)
-    (h : BodyAdequacyCI Γ σ st p) :
-    castBodyAdequacy e.symm (castBodyAdequacy e h) = h := by
-  cases e
-  rfl
-
-theorem castBodyAdequacy_match_static
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    {s₁ s₂ : BodyStaticBoundaryCI Γ st}
-    (ha : BodyAdequacyCI Γ σ st s₁.profile)
-    (h : s₁ = s₂) :
-    castBodyAdequacy
-      (Eq.symm (congrArg BodyStaticBoundaryCI.profile h))
-      (match s₂, h with
-       | _, rfl => ha)
-      =
-      ha := by
-  cases h
-  rfl
-
-theorem castBodyAdequacy_symm
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    {p q : BodyControlProfile Γ st}
-    (ha : BodyAdequacyCI Γ σ st p)
-    (h : p = q) :
-    castBodyAdequacy (Eq.symm h) (castBodyAdequacy h ha) = ha := by
-  cases h
-  rfl
-
-theorem match_toStatic_eq_castBodyAdequacy
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (ready : BodyReadyCI Γ σ st)
-    {s : BodyStaticBoundaryCI Γ st}
-    (h : ready.toStatic = s) :
-    (match s, h with
-     | .(ready.toStatic), rfl => ready.toAdequacy)
-    =
-    castBodyAdequacy
-      (congrArg BodyStaticBoundaryCI.profile h)
-      ready.toAdequacy := by
-  cases h
-  rfl
-
 
 
 theorem mkAdequacy_from_compatible_eq_cast

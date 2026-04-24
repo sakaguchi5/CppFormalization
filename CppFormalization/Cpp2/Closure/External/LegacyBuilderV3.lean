@@ -158,7 +158,7 @@ theorem legacyGlueExternalPiecesV3_boundary_eq_old
       exact legacy_ready_vs_glue_boundaryCoherent c
     _ = c.oldBoundary := legacyReadyExternalPiecesV3_boundary_eq_old c
 
-/-- Visible-package level route coherence for the lifted legacy family. -/
+/-- Observable-package level route coherence for the lifted legacy family. -/
 theorem legacy_ready_vs_glue_packageCoherent
     {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}
     (c : LegacyCertificateV3 F R) :

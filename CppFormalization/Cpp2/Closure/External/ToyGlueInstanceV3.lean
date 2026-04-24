@@ -13,7 +13,7 @@ First concrete inhabited low-level glue instance for the redesigned V3.
 Role in the roadmap:
 - show that the low-level glue route is inhabited on the same toy family,
 - show that the direct ready route and the direct glue route agree at the
-  visible-package level and at the official boundary quotient,
+  observable-package level and at the official boundary quotient,
 - show that the toy family also satisfies the Stage 2C canonicity vocabulary
   in the compatible-relative form that is actually valid for this toy setup.
 -/
@@ -196,7 +196,7 @@ theorem toyGlueExternalPiecesV3_packageCoherent
       (hsuppRefl := toy_supportsReflection c)
       (hcompat := toyGlue_compatible c))
 
-noncomputable def toyGlueVisiblePiecesAt
+noncomputable def toyGlueObservablePiecesAt
     {n : toyStdFragmentV3.Name}
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hsuppRun : toyStdFragmentV3.supportsRuntime n Γ σ st) :
@@ -212,16 +212,16 @@ noncomputable def toyGlueExternalPiecesAt
   rcases hsuppRun with ⟨rfl, rfl, rfl⟩
   exact toyGlueExternalPiecesV3 n
 
-theorem toyGlueExternalPiecesAt_toVisiblePieces
+theorem toyGlueExternalPiecesAt_toObservablePieces
     {n : toyStdFragmentV3.Name}
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hsuppRun : toyStdFragmentV3.supportsRuntime n Γ σ st) :
     (toyGlueExternalPiecesAt hsuppRun).toObservablePieces =
-      toyGlueVisiblePiecesAt hsuppRun := by
+      toyGlueObservablePiecesAt hsuppRun := by
   rcases hsuppRun with ⟨rfl, rfl, rfl⟩
   rfl
 
-theorem toyCanonicalVisiblePiecesV3_packageCoherent_compatible
+theorem toyCanonicalObservablePiecesV3_packageCoherent_compatible
     {n : toyStdFragmentV3.Name} {m : toyReflectionFragmentV3.Meta}
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (huse : toyStdFragmentV3.uses n)
@@ -246,7 +246,7 @@ theorem toyCanonicalVisiblePiecesV3_packageCoherent_compatible
         (toyGlueExternalPiecesV3_packageCoherent
           { Γ := Γ, σ := σ, st := st, ready := ready_n, core := core_n }).symm
 
-theorem toyCanonicalVisiblePiecesV3_wellDefined_compatible_fixed_runtime
+theorem toyCanonicalObservablePiecesV3_wellDefined_compatible_fixed_runtime
     {n : toyStdFragmentV3.Name} {m₁ m₂ : toyReflectionFragmentV3.Meta}
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (huse : toyStdFragmentV3.uses n)
@@ -263,17 +263,17 @@ theorem toyCanonicalVisiblePiecesV3_wellDefined_compatible_fixed_runtime
       canonicalObservablePiecesV3 huse hsuppRun hgen₁ hsuppRefl₁ =
         (toyGlueExternalPiecesAt hsuppRun).toObservablePieces := by
     simpa [PackageCoherentV3] using
-      (toyCanonicalVisiblePiecesV3_packageCoherent_compatible
+      (toyCanonicalObservablePiecesV3_packageCoherent_compatible
         huse hsuppRun hgen₁ hsuppRefl₁ hcompat₁)
   have hcoh₂ :
       canonicalObservablePiecesV3 huse hsuppRun hgen₂ hsuppRefl₂ =
         (toyGlueExternalPiecesAt hsuppRun).toObservablePieces := by
     simpa [PackageCoherentV3] using
-      (toyCanonicalVisiblePiecesV3_packageCoherent_compatible
+      (toyCanonicalObservablePiecesV3_packageCoherent_compatible
         huse hsuppRun hgen₂ hsuppRefl₂ hcompat₂)
   exact hcoh₁.trans hcoh₂.symm
 
-theorem toyCanonicalVisiblePiecesV3_wellDefined_compatible
+theorem toyCanonicalObservablePiecesV3_wellDefined_compatible
     {n₁ n₂ : toyStdFragmentV3.Name} {m₁ m₂ : toyReflectionFragmentV3.Meta}
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hn : n₁ = n₂)
@@ -290,10 +290,10 @@ theorem toyCanonicalVisiblePiecesV3_wellDefined_compatible
     canonicalObservablePiecesV3 huse₁ hsuppRun₁ hgen₁ hsuppRefl₁ =
       canonicalObservablePiecesV3 huse₂ hsuppRun₂ hgen₂ hsuppRefl₂ := by
   cases hn
-  exact toyCanonicalVisiblePiecesV3_wellDefined_compatible_fixed_runtime
+  exact toyCanonicalObservablePiecesV3_wellDefined_compatible_fixed_runtime
     huse₁ hsuppRun₁ hgen₁ hsuppRefl₁ hcompat₁ hgen₂ hsuppRefl₂ hcompat₂
 
-theorem toyCanonicalVisiblePiecesV3_packageCoherent_under_same_runtime
+theorem toyCanonicalObservablePiecesV3_packageCoherent_under_same_runtime
     {n₁ n₂ : toyStdFragmentV3.Name} {m₁ m₂ : toyReflectionFragmentV3.Meta}
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hn : n₁ = n₂)
@@ -311,13 +311,13 @@ theorem toyCanonicalVisiblePiecesV3_packageCoherent_under_same_runtime
       (canonicalObservablePiecesV3 huse₁ hsuppRun₁ hgen₁ hsuppRefl₁)
       (canonicalObservablePiecesV3 huse₂ hsuppRun₂ hgen₂ hsuppRefl₂) := by
   have h :=
-    toyCanonicalVisiblePiecesV3_wellDefined_compatible
+    toyCanonicalObservablePiecesV3_wellDefined_compatible
       hn
       huse₁ hsuppRun₁ hgen₁ hsuppRefl₁ hcompat₁
       huse₂ hsuppRun₂ hgen₂ hsuppRefl₂ hcompat₂
   simpa [PackageCoherentV3] using h
 
-theorem toyCanonicalVisiblePiecesV3_packageCoherent_compatible_fixed_runtime
+theorem toyCanonicalObservablePiecesV3_packageCoherent_compatible_fixed_runtime
     {n : toyStdFragmentV3.Name} {m₁ m₂ : toyReflectionFragmentV3.Meta}
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (huse : toyStdFragmentV3.uses n)
@@ -332,7 +332,7 @@ theorem toyCanonicalVisiblePiecesV3_packageCoherent_compatible_fixed_runtime
       (canonicalObservablePiecesV3 huse hsuppRun hgen₁ hsuppRefl₁)
       (canonicalObservablePiecesV3 huse hsuppRun hgen₂ hsuppRefl₂) := by
   simpa [PackageCoherentV3] using
-    toyCanonicalVisiblePiecesV3_wellDefined_compatible_fixed_runtime
+    toyCanonicalObservablePiecesV3_wellDefined_compatible_fixed_runtime
       huse hsuppRun hgen₁ hsuppRefl₁ hcompat₁
       hgen₂ hsuppRefl₂ hcompat₂
 

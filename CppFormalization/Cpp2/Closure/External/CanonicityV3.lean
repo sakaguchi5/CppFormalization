@@ -158,7 +158,7 @@ theorem canonicalObservablePiecesV3_wellDefined
               hrefl
 
 
-theorem canonicalVisiblePiecesV3_packageCoherent
+theorem canonicalObservablePiecesV3_packageCoherent
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (hrununiq : RuntimePackageUniqueV3 F)
     (hrefluniq : ReflectionPackageUniqueV3 R)

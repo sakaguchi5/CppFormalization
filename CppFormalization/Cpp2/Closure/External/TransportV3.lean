@@ -52,6 +52,64 @@ abbrev castBodyAdequacy
   cases hadequ
   rfl
 
+
+@[simp] theorem castBodyAdequacy_eq_transport
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {p q : BodyControlProfile Γ st}
+    (h : p = q)
+    (ha : BodyAdequacyCI Γ σ st p) :
+    castBodyAdequacy h ha = h ▸ ha := by
+  cases h
+  rfl
+
+@[simp] theorem castBodyAdequacy_symm_cast
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {p q : BodyControlProfile Γ st}
+    (e : p = q)
+    (h : BodyAdequacyCI Γ σ st p) :
+    castBodyAdequacy e.symm (castBodyAdequacy e h) = h := by
+  cases e
+  rfl
+
+theorem castBodyAdequacy_match_static
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {s₁ s₂ : BodyStaticBoundaryCI Γ st}
+    (ha : BodyAdequacyCI Γ σ st s₁.profile)
+    (h : s₁ = s₂) :
+    castBodyAdequacy
+      (Eq.symm (congrArg BodyStaticBoundaryCI.profile h))
+      (match s₂, h with
+       | _, rfl => ha)
+      =
+      ha := by
+  cases h
+  rfl
+
+theorem castBodyAdequacy_symm
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {p q : BodyControlProfile Γ st}
+    (ha : BodyAdequacyCI Γ σ st p)
+    (h : p = q) :
+    castBodyAdequacy (Eq.symm h) (castBodyAdequacy h ha) = ha := by
+  cases h
+  rfl
+
+theorem match_toStatic_eq_castBodyAdequacy
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (ready : BodyReadyCI Γ σ st)
+    {s : BodyStaticBoundaryCI Γ st}
+    (h : ready.toStatic = s) :
+    (match s, h with
+     | .(ready.toStatic), rfl => ready.toAdequacy)
+    =
+    castBodyAdequacy
+      (congrArg BodyStaticBoundaryCI.profile h)
+      ready.toAdequacy := by
+  cases h
+  rfl
+
+
+
 theorem mkBodyClosureBoundaryCI_static_transport
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     {hs : BodyStructuralBoundary Γ st}
