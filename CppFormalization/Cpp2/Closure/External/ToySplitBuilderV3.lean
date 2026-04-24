@@ -313,19 +313,25 @@ theorem toySplit_builder_ready_boundary_eq_handwritten
   rw [toySplitReadyExternalPiecesV3_boundary_eq]
   rw [toyExternalPiecesV3_boundary_eq_ready]
 
+
+
 /-- 補題A: Split版の Glue と Ready の境界は（コヒーレンスにより）一致する -/
 theorem toySplit_glue_boundary_eq_ready_boundary
     (c : ToyReadyCertificate) :
     (toySplitGlueExternalPiecesV3 c).toBodyBoundary =
     (toySplitReadyExternalPiecesV3 c).toBodyBoundary := by
-  symm
-  sorry/-
-  exact toySplitFamilyV3.ready_vs_glue_boundaryCoherent
-    (toySplit_uses c)
-    (toySplit_supportsRuntime c)
-    (toySplit_generates c)
-    (toySplit_supportsReflection c)
-    (toySplit_compatible c)-/
+  -- 1. calc の各ステップを「どの等式を使っているか」がわかる最小限の記述にする
+  calc
+    (toySplitGlueExternalPiecesV3 c).toBodyBoundary
+      = (toySplitFamilyV3.mkReady (toySplit_uses c) (toySplit_supportsRuntime c)
+          (toySplit_generates c) (toySplit_supportsReflection c)
+          (toySplit_compatible c)).toClosureBoundary := by
+        apply toySplitFamilyV3.glueExternalPieces_boundary _ _ _ _ _
+    _ = c.ready.toClosureBoundary := by
+        rw [toySplitFamilyV3_mkReady_eq c]
+    _ = (toySplitReadyExternalPiecesV3 c).toBodyBoundary := by
+        rw [toySplitReadyExternalPiecesV3_boundary_eq c]
+
 
 /-- 補題B: Split版の GlueExternalPieces が提供する境界の正当性 -/
 theorem toySplitGlueExternalPiecesV3_boundary_eq

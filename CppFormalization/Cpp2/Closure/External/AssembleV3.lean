@@ -74,9 +74,6 @@ def toProfileObservablePieces
     (p : ExternalPiecesV3 Γ σ st) :
     ProfileObservablePiecesV3 Γ σ st :=
   p.toObservablePieces.toProfileObservable
-/-
-abbrev VisiblePiecesV3 (Γ : TypeEnv) (σ : State) (st : CppStmt) :=
-  ExternalPiecesV3 Γ σ st-/
 
 end ExternalPiecesV3
 
