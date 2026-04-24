@@ -17,16 +17,14 @@ abbrev FunctionBodyClosureResult (σ : State) (st : CppStmt) : Prop :=
 structure SeqLeftClosureScaffoldCI
     (Γ : TypeEnv) (σ : State) (s : CppStmt) : Type where
   structural : BodyStructuralBoundary Γ s
-  entry : BodyEntryWitness Γ s
-  profile : BodyControlProfile Γ s
-  adequacy : BodyAdequacyCI Γ σ s profile
+  static : BodyStaticBoundaryCI Γ s
+  adequacy : BodyAdequacyCI Γ σ s static.profile
 
 structure SeqTailClosureScaffoldCI
     (Θ : TypeEnv) (σ1 : State) (t : CppStmt) : Type where
   structural : BodyStructuralBoundary Θ t
-  entry : BodyEntryWitness Θ t
-  profile : BodyControlProfile Θ t
-  adequacy : BodyAdequacyCI Θ σ1 t profile
+  static : BodyStaticBoundaryCI Θ t
+  adequacy : BodyAdequacyCI Θ σ1 t static.profile
 
 axiom seq_left_closure_scaffold_ci_of_entry
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
@@ -54,8 +52,7 @@ noncomputable def seq_left_closure_boundary_ci_of_entry
     BodyClosureBoundaryCI Γ σ s := by
   let hs := seq_left_closure_scaffold_ci_of_entry hentry
   let hd := seq_left_dynamic_boundary_of_entry hentry
-  sorry
-  --exact mkBodyClosureBoundaryCI hs.structural hs.entry hs.profile hd hs.adequacy
+  exact mkBodyClosureBoundaryCI hs.structural hs.static hd hs.adequacy
 
 noncomputable def seq_tail_closure_boundary_ci_of_left_normal
     (mkWhileReentry : WhileReentryReadyProvider)
@@ -77,8 +74,7 @@ noncomputable def seq_tail_closure_boundary_ci_of_left_normal
   let hd : BodyDynamicBoundary Θ σ1 t :=
     { state := hσ1
       safe := hreadyRight }
-  sorry
-  --exact mkBodyClosureBoundaryCI hs.structural hs.entry hs.profile hd hs.adequacy
+  exact mkBodyClosureBoundaryCI hs.structural hs.static hd hs.adequacy
 
 axiom seq_function_body_closure_boundary_ci_honest
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
