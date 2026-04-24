@@ -173,26 +173,13 @@ theorem externalPieces_of_ready_v3_packageCoherent
     (hcompat : A.compatible n m Γ σ st) :
     PackageCoherentV3
       (externalPieces_of_ready_v3
-        A huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces
+        A huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces
       (canonicalObservablePiecesV3
         huse hsuppRun hgen hsuppRefl) := by
-  change
-    (externalPieces_of_ready_v3
-      A huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces =
-    (canonicalObservablePiecesV3
-      huse hsuppRun hgen hsuppRefl)
-
-  have hdyn :=
-    A.dynamic_eq huse hsuppRun hgen hsuppRefl hcompat
-  have hstruct :=
-    A.structural_eq huse hsuppRun hgen hsuppRefl hcompat
-
-  cases hstruct
-  cases hdyn
-
-  simp [externalPieces_of_ready_v3,
-    canonicalObservablePiecesV3,
-    observablePiecesOfPackagesV3,
-    ExternalPiecesV3.toVisiblePieces]
+  unfold externalPieces_of_ready_v3
+  unfold ExternalPiecesV3.toObservablePieces
+  unfold canonicalObservablePiecesV3
+  unfold observablePiecesOfPackagesV3
+  rfl
 
 end Cpp

@@ -51,8 +51,8 @@ theorem externalPieces_of_ready_from_glue_v3_packageCoherent
     (hcompat : G.compatible n m Γ σ st) :
     PackageCoherentV3
       (externalPieces_of_ready_v3 (readyAssembly_of_glue_v3 G)
-        huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces
-      (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces := by
+        huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces
+      (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces := by
   rfl
 
 

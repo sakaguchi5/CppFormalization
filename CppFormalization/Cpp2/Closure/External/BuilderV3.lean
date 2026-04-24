@@ -234,7 +234,7 @@ noncomputable def glueExternalPieces (B : ReadyCertificateFamilyV3) (c : B.Cert)
 theorem readyExternalPieces_packageCoherent
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
     PackageCoherentV3
-      (B.readyExternalPieces c).toVisiblePieces
+      (B.readyExternalPieces c).toObservablePieces
       (canonicalObservablePiecesV3
         (B.uses_self c)
         (B.supportsRuntime_self c)
@@ -253,7 +253,7 @@ theorem readyExternalPieces_packageCoherent
 theorem glueExternalPieces_packageCoherent
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
     PackageCoherentV3
-      (B.glueExternalPieces c).toVisiblePieces
+      (B.glueExternalPieces c).toObservablePieces
       (canonicalObservablePiecesV3
         (B.uses_self c)
         (B.supportsRuntime_self c)
@@ -273,18 +273,18 @@ agree at the visible-package level. -/
 theorem ready_vs_glue_packageCoherent
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
     PackageCoherentV3
-      (B.readyExternalPieces c).toVisiblePieces
-      (B.glueExternalPieces c).toVisiblePieces := by
-  change (B.readyExternalPieces c).toVisiblePieces = (B.glueExternalPieces c).toVisiblePieces
+      (B.readyExternalPieces c).toObservablePieces
+      (B.glueExternalPieces c).toObservablePieces := by
+  change (B.readyExternalPieces c).toObservablePieces = (B.glueExternalPieces c).toObservablePieces
   calc
-    (B.readyExternalPieces c).toVisiblePieces =
+    (B.readyExternalPieces c).toObservablePieces =
         canonicalObservablePiecesV3
           (B.uses_self c)
           (B.supportsRuntime_self c)
           (B.generates_self c)
           (B.supportsReflection_self c) := by
       exact B.readyExternalPieces_packageCoherent c
-    _ = (B.glueExternalPieces c).toVisiblePieces := by
+    _ = (B.glueExternalPieces c).toObservablePieces := by
       symm
       exact B.glueExternalPieces_packageCoherent c
 
@@ -724,8 +724,8 @@ theorem glue_readyInduced_packageCoherent
         (B.supportsRuntime_self c)
         (B.generates_self c)
         (B.supportsReflection_self c)
-        (B.glue_compatible_self c)).toVisiblePieces
-      (B.glueExternalPieces c).toVisiblePieces := by
+        (B.glue_compatible_self c)).toObservablePieces
+      (B.glueExternalPieces c).toObservablePieces := by
   simpa [glueExternalPieces] using
     (externalPieces_of_ready_from_glue_v3_packageCoherent
       (G := B.toGlue)

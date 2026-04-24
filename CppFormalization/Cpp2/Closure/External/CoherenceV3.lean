@@ -5,42 +5,27 @@ namespace Cpp
 /-!
 # Closure.External.CoherenceV3
 
-Stage 2B temporarily separates two notions that were previously easy to conflate.
+Stage 2B separates two comparison notions.
 
 * `BoundaryCoherentV3` is the official quotient for closure theorems.
-  It says two external presentations induce the same `BodyClosureBoundaryCI`.
+  It compares the induced `BodyClosureBoundaryCI`.
 
-* `PackageCoherentV3` is a stronger observable-package comparison notion.
-  For now, we keep the old observable view `(dynamic, structural, profile)`,
-  but we rename its carrier type to avoid clashing with the new
-  `ExternalPiecesV3.VisiblePiecesV3` abbreviation introduced in `AssembleV3`.
-
-This is an intentional temporary isolation patch.
-The long-term redesign question is postponed.
+* `PackageCoherentV3` compares the observable package surface.
+  After the static-layer redesign this observable surface contains the whole
+  `BodyStaticBoundaryCI`, not just its profile.
 -/
 
-
-
-/-- Forget the full external package down to the temporary observable view. -/
-def ExternalPiecesV3.toObservablePieces
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (p : ExternalPiecesV3 Γ σ st) :
-    ObservablePiecesV3 Γ σ st :=
-  { structural := p.structural
-    profile := p.static.profile
-    dynamic := p.dynamic }
-
-/-- Assemble the temporary observable view directly from runtime/reflection packages. -/
+/-- Assemble the official observable view directly from runtime/reflection packages. -/
 def observablePiecesOfPackagesV3
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hrun : RuntimePiecesV3 Γ σ st)
     (hrefl : ReflectionPiecesV3 Γ st) :
     ObservablePiecesV3 Γ σ st :=
   { structural := hrefl.structural
-    profile := hrefl.static.profile
+    static := hrefl.static
     dynamic := hrun.dynamic }
 
-/-- Canonical temporary observable package chosen by the std/reflection fragments. -/
+/-- Canonical observable package chosen by the std/reflection fragments. -/
 def canonicalObservablePiecesV3
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     {n : F.Name} {m : R.Meta}
@@ -60,7 +45,7 @@ def BoundaryCoherentV3
     (p q : ExternalPiecesV3 Γ σ st) : Prop :=
   p.toBodyBoundary = q.toBodyBoundary
 
-/-- Stronger temporary observable-package comparison notion. -/
+/-- Strong observable-package comparison. -/
 def PackageCoherentV3
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (p q : ObservablePiecesV3 Γ σ st) : Prop :=
@@ -84,13 +69,21 @@ theorem PackageCoherentV3.structural_eq
   cases h
   rfl
 
+theorem PackageCoherentV3.static_eq
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {p q : ObservablePiecesV3 Γ σ st}
+    (h : PackageCoherentV3 p q) :
+    p.static = q.static := by
+  cases h
+  rfl
+
 theorem PackageCoherentV3.profile_eq
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     {p q : ObservablePiecesV3 Γ σ st}
     (h : PackageCoherentV3 p q) :
-    p.profile = q.profile := by
-  cases h
-  rfl
+    p.static.profile = q.static.profile := by
+  exact congrArg BodyStaticBoundaryCI.profile
+    (PackageCoherentV3.static_eq h)
 
 theorem PackageCoherentV3.dynamic_eq
     {Γ : TypeEnv} {σ : State} {st : CppStmt}

@@ -202,7 +202,7 @@ noncomputable def toyGlueVisiblePiecesAt
     (hsuppRun : toyStdFragmentV3.supportsRuntime n Γ σ st) :
     ObservablePiecesV3 Γ σ st := by
   rcases hsuppRun with ⟨rfl, rfl, rfl⟩
-  exact (toyGlueExternalPiecesV3 n).toVisiblePieces
+  exact (toyGlueExternalPiecesV3 n).toObservablePieces
 
 noncomputable def toyGlueExternalPiecesAt
     {n : toyStdFragmentV3.Name}
@@ -216,7 +216,7 @@ theorem toyGlueExternalPiecesAt_toVisiblePieces
     {n : toyStdFragmentV3.Name}
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hsuppRun : toyStdFragmentV3.supportsRuntime n Γ σ st) :
-    (toyGlueExternalPiecesAt hsuppRun).toVisiblePieces =
+    (toyGlueExternalPiecesAt hsuppRun).toObservablePieces =
       toyGlueVisiblePiecesAt hsuppRun := by
   rcases hsuppRun with ⟨rfl, rfl, rfl⟩
   rfl
@@ -231,7 +231,7 @@ theorem toyCanonicalVisiblePiecesV3_packageCoherent_compatible
     (hcompat : toyReadyAssemblyV3.compatible n m Γ σ st) :
     PackageCoherentV3
       (canonicalObservablePiecesV3 huse hsuppRun hgen hsuppRefl)
-      (toyGlueExternalPiecesAt hsuppRun).toVisiblePieces := by
+      (toyGlueExternalPiecesAt hsuppRun).toObservablePieces := by
   cases n with
   | mk Γn σn stn ready_n core_n =>
     cases m with
@@ -261,13 +261,13 @@ theorem toyCanonicalVisiblePiecesV3_wellDefined_compatible_fixed_runtime
       canonicalObservablePiecesV3 huse hsuppRun hgen₂ hsuppRefl₂ := by
   have hcoh₁ :
       canonicalObservablePiecesV3 huse hsuppRun hgen₁ hsuppRefl₁ =
-        (toyGlueExternalPiecesAt hsuppRun).toVisiblePieces := by
+        (toyGlueExternalPiecesAt hsuppRun).toObservablePieces := by
     simpa [PackageCoherentV3] using
       (toyCanonicalVisiblePiecesV3_packageCoherent_compatible
         huse hsuppRun hgen₁ hsuppRefl₁ hcompat₁)
   have hcoh₂ :
       canonicalObservablePiecesV3 huse hsuppRun hgen₂ hsuppRefl₂ =
-        (toyGlueExternalPiecesAt hsuppRun).toVisiblePieces := by
+        (toyGlueExternalPiecesAt hsuppRun).toObservablePieces := by
     simpa [PackageCoherentV3] using
       (toyCanonicalVisiblePiecesV3_packageCoherent_compatible
         huse hsuppRun hgen₂ hsuppRefl₂ hcompat₂)
@@ -340,16 +340,16 @@ theorem toyCanonicalVisiblePiecesV3_packageCoherent_compatible_fixed_runtime
 theorem toy_ready_vs_glue_packageCoherent
     (c : ToyReadyCertificate) :
     PackageCoherentV3
-      (toyExternalPiecesV3 c).toVisiblePieces
-      (toyGlueExternalPiecesV3 c).toVisiblePieces := by
-  change (toyExternalPiecesV3 c).toVisiblePieces = (toyGlueExternalPiecesV3 c).toVisiblePieces
+      (toyExternalPiecesV3 c).toObservablePieces
+      (toyGlueExternalPiecesV3 c).toObservablePieces := by
+  change (toyExternalPiecesV3 c).toObservablePieces = (toyGlueExternalPiecesV3 c).toObservablePieces
   calc
-    (toyExternalPiecesV3 c).toVisiblePieces =
+    (toyExternalPiecesV3 c).toObservablePieces =
         canonicalObservablePiecesV3
           (toy_uses c) (toy_supportsRuntime c)
           (toy_generates c) (toy_supportsReflection c) := by
       rfl
-    _ = (toyGlueExternalPiecesV3 c).toVisiblePieces := by
+    _ = (toyGlueExternalPiecesV3 c).toObservablePieces := by
       symm
       exact toyGlueExternalPiecesV3_packageCoherent c
 
@@ -377,8 +377,8 @@ theorem toy_glue_readyInduced_packageCoherent
         (toy_supportsRuntime c)
         (toy_generates c)
         (toy_supportsReflection c)
-        (toyGlue_compatible c)).toVisiblePieces
-      (toyGlueExternalPiecesV3 c).toVisiblePieces := by
+        (toyGlue_compatible c)).toObservablePieces
+      (toyGlueExternalPiecesV3 c).toObservablePieces := by
   change
     (externalPieces_of_ready_v3
       (readyAssembly_of_glue_v3 toyGlueV3)
@@ -386,9 +386,9 @@ theorem toy_glue_readyInduced_packageCoherent
       (toy_supportsRuntime c)
       (toy_generates c)
       (toy_supportsReflection c)
-      (toyGlue_compatible c)).toVisiblePieces
+      (toyGlue_compatible c)).toObservablePieces
     =
-    (toyGlueExternalPiecesV3 c).toVisiblePieces
+    (toyGlueExternalPiecesV3 c).toObservablePieces
   calc
     (externalPieces_of_ready_v3
       (readyAssembly_of_glue_v3 toyGlueV3)
@@ -396,13 +396,13 @@ theorem toy_glue_readyInduced_packageCoherent
       (toy_supportsRuntime c)
       (toy_generates c)
       (toy_supportsReflection c)
-      (toyGlue_compatible c)).toVisiblePieces
+      (toyGlue_compatible c)).toObservablePieces
         =
       canonicalObservablePiecesV3
         (toy_uses c) (toy_supportsRuntime c)
         (toy_generates c) (toy_supportsReflection c) := by
       rfl
-    _ = (toyGlueExternalPiecesV3 c).toVisiblePieces := by
+    _ = (toyGlueExternalPiecesV3 c).toObservablePieces := by
       symm
       exact toyGlueExternalPiecesV3_packageCoherent c
 

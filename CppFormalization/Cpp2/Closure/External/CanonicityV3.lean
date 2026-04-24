@@ -107,7 +107,18 @@ theorem ReflectionPackageUniqueV3.core_eq
   exact congrArg (fun p => p.core) (huniq hgen₁ hsupp₁ hgen₂ hsupp₂)
 
 
-theorem canonicalVisiblePiecesV3_wellDefined
+theorem ReflectionPackageUniqueV3.static_eq
+    {R : VerifiedReflectionFragmentV3}
+    (huniq : ReflectionPackageUniqueV3 R)
+    {m₁ m₂ : R.Meta} {Γ : TypeEnv} {st : CppStmt}
+    (hgen₁ : R.generates m₁ st) (hsupp₁ : R.supportsReflection m₁ Γ st)
+    (hgen₂ : R.generates m₂ st) (hsupp₂ : R.supportsReflection m₂ Γ st) :
+    (R.mkReflection hgen₁ hsupp₁).static =
+      (R.mkReflection hgen₂ hsupp₂).static := by
+  exact congrArg (fun p => p.static)
+    (huniq hgen₁ hsupp₁ hgen₂ hsupp₂)
+
+theorem canonicalObservablePiecesV3_wellDefined
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (hrununiq : RuntimePackageUniqueV3 F)
     (hrefluniq : ReflectionPackageUniqueV3 R)
@@ -160,7 +171,7 @@ theorem canonicalVisiblePiecesV3_packageCoherent
     PackageCoherentV3
       (canonicalObservablePiecesV3 huse₁ hsuppRun₁ hgen₁ hsuppRefl₁)
       (canonicalObservablePiecesV3 huse₂ hsuppRun₂ hgen₂ hsuppRefl₂) := by
-  exact canonicalVisiblePiecesV3_wellDefined hrununiq hrefluniq
+  exact canonicalObservablePiecesV3_wellDefined hrununiq hrefluniq
     huse₁ hsuppRun₁ hgen₁ hsuppRefl₁ huse₂ hsuppRun₂ hgen₂ hsuppRefl₂
 
 end Cpp

@@ -163,8 +163,8 @@ theorem legacy_ready_vs_glue_packageCoherent
     {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}
     (c : LegacyCertificateV3 F R) :
     PackageCoherentV3
-      (legacyReadyExternalPiecesV3 c).toVisiblePieces
-      (legacyGlueExternalPiecesV3 c).toVisiblePieces := by
+      (legacyReadyExternalPiecesV3 c).toObservablePieces
+      (legacyGlueExternalPiecesV3 c).toObservablePieces := by
   let B := legacyCertificateFamilyV3 F R
   simpa [legacyReadyExternalPiecesV3, legacyGlueExternalPiecesV3, B] using
     (B.ready_vs_glue_packageCoherent c)

@@ -223,8 +223,8 @@ theorem toySplit_glue_certificate_closure
 theorem toySplit_ready_vs_glue_packageCoherent
     (c : ToyReadyCertificate) :
     PackageCoherentV3
-      (toySplitReadyExternalPiecesV3 c).toVisiblePieces
-      (toySplitGlueExternalPiecesV3 c).toVisiblePieces := by
+      (toySplitReadyExternalPiecesV3 c).toObservablePieces
+      (toySplitGlueExternalPiecesV3 c).toObservablePieces := by
   exact toySplitFamilyV3.ready_vs_glue_packageCoherent
     (toySplit_uses c)
     (toySplit_supportsRuntime c)

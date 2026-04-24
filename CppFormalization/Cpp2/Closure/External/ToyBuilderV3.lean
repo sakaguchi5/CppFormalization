@@ -56,8 +56,8 @@ theorem toy_builder_glue_certificate_closure
 theorem toy_builder_ready_vs_glue_packageCoherent
     (c : ToyReadyCertificate) :
     PackageCoherentV3
-      (toyCertificateFamilyV3.readyExternalPieces c).toVisiblePieces
-      (toyCertificateFamilyV3.glueExternalPieces c).toVisiblePieces := by
+      (toyCertificateFamilyV3.readyExternalPieces c).toObservablePieces
+      (toyCertificateFamilyV3.glueExternalPieces c).toObservablePieces := by
   simpa [toyCertificateFamilyV3] using
     (toyCertificateFamilyV3.ready_vs_glue_packageCoherent c)
 

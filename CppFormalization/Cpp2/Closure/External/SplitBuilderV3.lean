@@ -197,7 +197,7 @@ theorem readyExternalPieces_packageCoherent
     (hsuppRefl : A.supportsReflection m Γ st)
     (hcompat : A.compatible n m Γ σ st) :
     PackageCoherentV3
-      (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces
+      (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces
       (canonicalObservablePiecesV3 (F := A.toStdFragment) (R := A.toReflectionFragment) huse hsuppRun hgen hsuppRefl) := by
   simpa [readyExternalPieces] using
     (externalPieces_of_ready_v3_packageCoherent
@@ -219,7 +219,7 @@ theorem glueExternalPieces_packageCoherent
     (hsuppRefl : A.supportsReflection m Γ st)
     (hcompat : A.compatible n m Γ σ st) :
     PackageCoherentV3
-      (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces
+      (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces
       (canonicalObservablePiecesV3  (F := A.toStdFragment) (R := A.toReflectionFragment) huse hsuppRun hgen hsuppRefl) := by
   simpa [glueExternalPieces] using
     (assembleExternalPiecesV3_packageCoherent
@@ -240,17 +240,17 @@ theorem ready_vs_glue_packageCoherent
     (hsuppRefl : A.supportsReflection m Γ st)
     (hcompat : A.compatible n m Γ σ st) :
     PackageCoherentV3
-      (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces
-      (A.glueExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces := by
+      (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces
+      (A.glueExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces := by
   change
-    (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces =
-      (A.glueExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces
+    (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces =
+      (A.glueExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces
   calc
-    (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces =
+    (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces =
         canonicalObservablePiecesV3  huse hsuppRun hgen hsuppRefl := by
       exact A.readyExternalPieces_packageCoherent huse hsuppRun hgen hsuppRefl hcompat
     _ =
-        (A.glueExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces := by
+        (A.glueExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces := by
       symm
       exact A.glueExternalPieces_packageCoherent huse hsuppRun hgen hsuppRefl hcompat
 
@@ -266,8 +266,8 @@ theorem glue_readyInduced_packageCoherent
     PackageCoherentV3
       (externalPieces_of_ready_v3
         (readyAssembly_of_glue_v3 A.toGlue)
-        huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces
-      (A.glueExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces := by
+        huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces
+      (A.glueExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces := by
   simpa [glueExternalPieces] using
     (externalPieces_of_ready_from_glue_v3_packageCoherent
       (G := A.toGlue)

@@ -7,12 +7,41 @@ namespace Cpp
 
 Visible V3 assembly after the static-layer redesign.
 -/
-/-- Temporary renamed carrier for the old Stage-2B observable package notion. -/
+
+/--
+The official observable package view used by `PackageCoherentV3`.
+
+Important: this is no longer profile-only.  The static package is observed as
+one coherent unit, because `typed0`, `root`, and `profile` must not be compared
+independently after the static-layer redesign.
+-/
 structure ObservablePiecesV3 (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
+  structural : BodyStructuralBoundary Γ st
+  static : BodyStaticBoundaryCI Γ st
+  dynamic : BodyDynamicBoundary Γ σ st
+
+/--
+A weaker profile-only view.
+
+This exists only for diagnostics or old comparison statements.  It must not be
+used as the carrier of `PackageCoherentV3`.
+-/
+structure ProfileObservablePiecesV3 (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
   structural : BodyStructuralBoundary Γ st
   profile : BodyControlProfile Γ st
   dynamic : BodyDynamicBoundary Γ σ st
 
+namespace ObservablePiecesV3
+
+def toProfileObservable
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (p : ObservablePiecesV3 Γ σ st) :
+    ProfileObservablePiecesV3 Γ σ st :=
+  { structural := p.structural
+    profile := p.static.profile
+    dynamic := p.dynamic }
+
+end ObservablePiecesV3
 structure ExternalPiecesV3 (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
   structural : BodyStructuralBoundary Γ st
   static : BodyStaticBoundaryCI Γ st
@@ -32,13 +61,19 @@ def toBodyBoundary
     p.dynamic
     p.adequacy
 
-def toVisiblePieces
+def toObservablePieces
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (p : ExternalPiecesV3 Γ σ st) :
     ObservablePiecesV3 Γ σ st :=
   { structural := p.structural
-    profile := p.static.profile
+    static := p.static
     dynamic := p.dynamic }
+
+def toProfileObservablePieces
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (p : ExternalPiecesV3 Γ σ st) :
+    ProfileObservablePiecesV3 Γ σ st :=
+  p.toObservablePieces.toProfileObservable
 /-
 abbrev VisiblePiecesV3 (Γ : TypeEnv) (σ : State) (st : CppStmt) :=
   ExternalPiecesV3 Γ σ st-/
