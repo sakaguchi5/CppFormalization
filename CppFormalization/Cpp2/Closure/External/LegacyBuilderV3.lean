@@ -52,12 +52,14 @@ noncomputable def oldReady
     BodyReadyCI c.Γ c.σ c.st :=
   (oldBoundary c).toBodyReadyCI
 
-/-- The remaining old core-membership witness. -/
+/-- The core-membership witness carried by the legacy reflection package. -/
 def oldCore
     {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}
     (c : LegacyCertificateV3 F R) :
     CoreBigStepFragment c.st :=
-  reflection_fragment_generates_core c.hgen
+  (R.mkReflection
+    (m := c.m) (Γ := c.Γ) (st := c.st)
+    c.hgen c.hstruct c.hstatic).core
 
 /-- Explicit V3 pieces obtained from the refactored legacy bridge. -/
 noncomputable def oldExternalPieces

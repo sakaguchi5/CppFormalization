@@ -90,33 +90,11 @@ theorem toy_compatible (c : ToyReadyCertificate) :
     toyReadyAssemblyV3.compatible c c c.Γ c.σ c.st := by
   exact ⟨rfl, rfl, rfl, rfl⟩
 
-/-- The reflection package chosen from a toy certificate is the obvious one. -/
-theorem toyReflectionFragmentV3_structural (c : ToyReadyCertificate) :
-    (toyReflectionFragmentV3.mkReflection
-      (toy_generates c)
-      (toy_supportsReflection c)).structural = c.ready.toStructural := by
-  cases c
-  rfl
-
-theorem toyReflectionFragmentV3_profile (c : ToyReadyCertificate) :
-    (toyReflectionFragmentV3.mkReflection
-      (toy_generates c)
-      (toy_supportsReflection c)).static.profile = c.ready.static.profile := by
-  cases c
-  unfold toyReflectionFragmentV3 toy_generates toy_supportsReflection
-  dsimp
 
 @[simp] theorem BodyReadyCI.toProfile_eq_static_profile
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (h : BodyReadyCI Γ σ st) :
     h.toProfile = h.static.profile := by
-  rfl
-
-theorem toyReflectionFragmentV3_core (c : ToyReadyCertificate) :
-    (toyReflectionFragmentV3.mkReflection
-      (toy_generates c)
-      (toy_supportsReflection c)).core = c.core := by
-  cases c
   rfl
 
 /-- The canonical explicit V3 pieces assembled from a toy certificate. -/
@@ -140,107 +118,6 @@ theorem toyReadyAssemblyV3_mkReady_eq (c : ToyReadyCertificate) :
   cases c
   unfold toyReadyAssemblyV3 toy_compatible
   dsimp
-
-theorem toyReflectionFragmentV3_static_eq (c : ToyReadyCertificate) :
-    (toyReflectionFragmentV3.mkReflection
-      (toy_generates c)
-      (toy_supportsReflection c)).static = c.ready.static := by
-  cases c with
-  | mk Γ σ st ready core =>
-      unfold toyReflectionFragmentV3 toy_generates toy_supportsReflection
-      dsimp
-
-/-- The assembled profile is exactly the reflection-selected toy profile. -/
-theorem toyExternalPiecesV3_profile (c : ToyReadyCertificate) :
-    (toyExternalPiecesV3 c).static.profile = c.ready.static.profile := by
-  unfold toyExternalPiecesV3
-  simp [externalPieces_of_ready_v3, toyReflectionFragmentV3_static_eq]
-
-theorem toyReady_toProfile_eq (c : ToyReadyCertificate) :
-    c.ready.static.profile =
-      (toyReadyAssemblyV3.mkReady
-        (toy_uses c)
-        (toy_supportsRuntime c)
-        (toy_generates c)
-        (toy_supportsReflection c)
-        (toy_compatible c)).static.profile := by
-  simp [toyReadyAssemblyV3_mkReady_eq c]
-
-theorem toyReadyAssemblyV3_profile_eq
-    (c : ToyReadyCertificate) :
-    (toyReadyAssemblyV3.mkReady
-      (toy_uses c)
-      (toy_supportsRuntime c)
-      (toy_generates c)
-      (toy_supportsReflection c)
-      (toy_compatible c)).static.profile =
-    (toyReflectionFragmentV3.mkReflection
-      (toy_generates c)
-      (toy_supportsReflection c)).static.profile := by
-  simpa using congrArg BodyStaticBoundaryCI.profile
-    (toyReadyAssemblyV3.static_eq
-      (toy_uses c)
-      (toy_supportsRuntime c)
-      (toy_generates c)
-      (toy_supportsReflection c)
-      (toy_compatible c))
-
-theorem toyExternalPiecesV3_adequacy (c : ToyReadyCertificate) :
-    (toyExternalPiecesV3 c).adequacy =
-      transportAdequacy
-        (toyReadyAssemblyV3_profile_eq c)
-        ((toyReadyAssemblyV3.mkReady
-          (toy_uses c)
-          (toy_supportsRuntime c)
-          (toy_generates c)
-          (toy_supportsReflection c)
-          (toy_compatible c)).toAdequacy) := by
-  -- 定義を展開して構造を露出させる
-  unfold toyExternalPiecesV3 externalPieces_of_ready_v3
-  -- 各コンポーネントが c.ready に集約されることを利用して simp
-  simp
-
-
-
-private theorem toyReady_toAdequacy_transport (c : ToyReadyCertificate) :
-    transportAdequacy (toyReady_toProfile_eq c) c.ready.toAdequacy =
-      (toyReadyAssemblyV3.mkReady
-        (toy_uses c)
-        (toy_supportsRuntime c)
-        (toy_generates c)
-        (toy_supportsReflection c)
-        (toy_compatible c)).toAdequacy := by
-  -- 1. まず c を分解
-  cases c with | mk Γ σ st ready core =>
-  unfold toyReady_toProfile_eq toy_compatible
-  unfold transportAdequacy
-  simp
-  rfl
-
-
-
-/-- Alternate display of adequacy using the packaged `c.ready` witness. -/
-theorem toyExternalPiecesV3_adequacy_ready (c : ToyReadyCertificate) :
-    (toyExternalPiecesV3 c).adequacy =
-      transportAdequacy
-        (toyReadyAssemblyV3_profile_eq c)
-        (transportAdequacy (toyReady_toProfile_eq c) c.ready.toAdequacy) := by
-  calc
-    (toyExternalPiecesV3 c).adequacy =
-        transportAdequacy
-          (toyReadyAssemblyV3_profile_eq c)
-          ((toyReadyAssemblyV3.mkReady
-            (toy_uses c)
-            (toy_supportsRuntime c)
-            (toy_generates c)
-            (toy_supportsReflection c)
-            (toy_compatible c)).toAdequacy) := by
-              exact toyExternalPiecesV3_adequacy c
-    _ =
-        transportAdequacy
-          (toyReadyAssemblyV3_profile_eq c)
-          (transportAdequacy (toyReady_toProfile_eq c) c.ready.toAdequacy) := by
-            rw [toyReady_toAdequacy_transport c]
 
 /-- The assembled boundary produced by the toy route is the expected one. -/
 theorem toyExternalPiecesV3_boundary (c : ToyReadyCertificate) :

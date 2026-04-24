@@ -41,14 +41,14 @@ noncomputable def externalPiecesV3_of_legacy_external_assumptions
     { structural := rf.structural
       static := rf.static
       dynamic := rt.dynamic
-      core := reflection_fragment_generates_core hgen
+      core := rf.core
       adequacy := ?_ }
   simpa [rf] using
     (G.mkAdequacy
       (n := n) (m := m) (Γ := Γ) (σ := σ) (st := st)
       huse hdyn hgen hstruct hstatic hcompat)
 
-/-- The V3 `core` projection is definitionally the remaining legacy core bridge. -/
+/-- The V3 `core` projection is the core membership carried by the legacy reflection package. -/
 theorem externalPiecesV3_of_legacy_external_assumptions_core
     {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}
     (G : VerifiedExternalGlueLegacy F R)
@@ -62,7 +62,10 @@ theorem externalPiecesV3_of_legacy_external_assumptions_core
     (hcompat : G.compatible n m Γ σ st) :
     (externalPiecesV3_of_legacy_external_assumptions
       G huse hdyn hgen hstruct hstatic hcompat).core
-      = reflection_fragment_generates_core hgen := by
+      =
+    (R.mkReflection
+      (m := m) (Γ := Γ) (st := st)
+      hgen hstruct hstatic).core := by
   rfl
 
 theorem externalPiecesV3_of_legacy_external_assumptions_boundary

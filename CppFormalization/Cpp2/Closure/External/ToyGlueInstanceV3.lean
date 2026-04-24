@@ -51,16 +51,6 @@ theorem toyGlueExternalPiecesV3_static
       dsimp [toyReflectionFragmentV3]
 
 
-
-theorem toyGlueExternalPiecesV3_profile
-    (c : ToyReadyCertificate) :
-    (toyGlueExternalPiecesV3 c).static.profile = c.ready.static.profile := by
-  cases c with | mk Γ σ st ready core =>
-      unfold toyGlueExternalPiecesV3 assembleExternalPiecesV3
-      unfold toy_supportsReflection
-      dsimp [toyReflectionFragmentV3]
-
-
 theorem toyGlueExternalPiecesV3_structural
     (c : ToyReadyCertificate) :
     (toyGlueExternalPiecesV3 c).structural = c.ready.toStructural := by
@@ -88,79 +78,21 @@ theorem toyReflectionFragmentV3_entry_of_supports
   simp
   rfl
 
-theorem toyGlueExternalPiecesV3_entry
-    (c : ToyReadyCertificate) :
-    (toyGlueExternalPiecesV3 c).static.root =
-      by
-        rcases toy_supportsReflection c with ⟨⟩
-        exact c.ready.static.root := by
-    rw [toyGlueExternalPiecesV3_static]
-  -- 右辺の証明オブジェクト内の rcases を解消するために c を分解
-    cases c
-  -- 定義を展開して計算
-    unfold toy_supportsReflection
-    rfl
-
-theorem toyGlueExternalPiecesV3_dynamic
-    (c : ToyReadyCertificate) :
-    (toyGlueExternalPiecesV3 c).dynamic = c.ready.toDynamic := by
-  have h :=
-    assembleExternalPiecesV3_dynamic
-      (G := toyGlueV3)
-      (huse := toy_uses c)
-      (hsuppRun := toy_supportsRuntime c)
-      (hgen := toy_generates c)
-      (hsuppRefl := toy_supportsReflection c)
-      (hcompat := toyGlue_compatible c)
-  cases c
-  simp
-
-theorem toyGlueExternalPiecesV3_core
-    (c : ToyReadyCertificate) :
-    (toyGlueExternalPiecesV3 c).core = c.core := by
-  have h :=
-    assembleExternalPiecesV3_core
-      (G := toyGlueV3)
-      (huse := toy_uses c)
-      (hsuppRun := toy_supportsRuntime c)
-      (hgen := toy_generates c)
-      (hsuppRefl := toy_supportsReflection c)
-      (hcompat := toyGlue_compatible c)
-  simp
-
 theorem toyGlueExternalPiecesV3_boundary_adequacy
     (c : ToyReadyCertificate) :
-    castBodyAdequacy (toyGlueExternalPiecesV3_profile c)
+    castBodyAdequacy
+      (congrArg BodyStaticBoundaryCI.profile
+        (toyGlueExternalPiecesV3_static c))
       ((toyGlueExternalPiecesV3 c).toBodyBoundary.adequacy) =
       (c.ready.toClosureBoundary).adequacy := by
   cases c with
   | mk Γ σ st ready core =>
       unfold toyGlueExternalPiecesV3 assembleExternalPiecesV3
       unfold toy_supportsReflection toy_generates toy_supportsRuntime toy_uses toyGlue_compatible toy_compatible
-      dsimp [toyGlueV3, toyReflectionFragmentV3, ExternalPiecesV3.toBodyBoundary, BodyReadyCI.toClosureBoundary]
+      dsimp [toyGlueV3, toyReflectionFragmentV3,
+        ExternalPiecesV3.toBodyBoundary, BodyReadyCI.toClosureBoundary]
       simp
       rfl
-
-
-theorem toyGlueExternalPiecesV3_boundary_entry
-    (c : ToyReadyCertificate) :
-    (toyGlueExternalPiecesV3 c).toBodyBoundary.static.root =
-      by
-        rcases toy_supportsReflection c with ⟨_, _⟩
-        exact c.ready.static.root := by
-  dsimp [ExternalPiecesV3.toBodyBoundary]
-  exact toyGlueExternalPiecesV3_entry c
-
-theorem toyReady_toClosureBoundary_entry
-    (c : ToyReadyCertificate) :
-    c.ready.toClosureBoundary.static.root =
-      by
-        rcases toy_supportsReflection c with ⟨_, _⟩
-        exact c.ready.static.root:= by
-  dsimp [BodyReadyCI.toClosureBoundary]
-  rcases toy_supportsReflection c with ⟨_, _⟩
-  rfl
-
 
 theorem toyGlueExternalPiecesV3_boundary
     (c : ToyReadyCertificate) :

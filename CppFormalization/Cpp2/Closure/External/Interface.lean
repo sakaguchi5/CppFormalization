@@ -6,11 +6,11 @@ namespace Cpp
 structure RuntimePiecesLegacy (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
   dynamic : BodyDynamicBoundary Γ σ st
 
-/-- Legacy reflection-side package: structural + assembled static package. -/
+/-- Legacy reflection-side package: structural + assembled static package + core membership. -/
 structure ReflectionPiecesLegacy (Γ : TypeEnv) (st : CppStmt) : Type where
   structural : BodyStructuralBoundary Γ st
   static : BodyStaticBoundaryCI Γ st
-
+  core : CoreBigStepFragment st
 /--
 Legacy std fragment interface.
 
@@ -33,8 +33,10 @@ structure VerifiedStdFragment where
 Legacy reflection fragment interface.
 
 Minimal upgrade:
-- keep the old predicate names (`generates`, `establishesStructural`, `establishesProfile`);
-- add a constructor returning the actual reflection package.
+- keep the old predicate names (`generates`, `establishesStructural`,
+  `establishesStatic`);
+- add a constructor returning the actual reflection package, including core
+  membership for the generated statement.
 -/
 structure VerifiedReflectionFragment where
   Meta : Type
@@ -69,23 +71,11 @@ structure VerifiedExternalGlueLegacy
       (hcompat : compatible n m Γ σ st) →
       BodyAdequacyCI Γ σ st
         ((R.mkReflection (m := m) (Γ := Γ) (st := st) hgen hstruct hstatic).static.profile)
-
-/--
-Still keep this as the remaining core-membership bridge for the legacy interface.
-
-This can be removed later if `ReflectionPiecesLegacy` is extended with
-`core : CoreBigStepFragment st`.
--/
-axiom reflection_fragment_generates_core
-    {R : VerifiedReflectionFragment} {m : R.Meta} {st : CppStmt} :
-    R.generates m st →
-    CoreBigStepFragment st
-
 /--
 Assembled boundary is no longer axiomatic.
 It is built definitionally from:
 - std-side runtime package,
-- reflection-side structural/profile package,
+- reflection-side structural/static package,
 - glue-produced adequacy.
 -/
 noncomputable def fragments_establish_body_closure_boundary
