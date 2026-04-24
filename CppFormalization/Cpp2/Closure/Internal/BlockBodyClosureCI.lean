@@ -34,20 +34,20 @@ CI-centric opened block-body closure layer.
 - 残る shell は opened block body adequacy だけである。
 -/
 
+
+
 /-- Forget CI-sensitive block-body fields and recover the existing concrete boundary. -/
 theorem blockBodyReadyConcrete_of_blockBodyReadyCI
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock} :
     BlockBodyReadyCI Γ σ ss → BlockBodyReadyConcrete Γ σ ss := by
   intro h
-  sorry/-
-  exact {
-    wf := h.wf
-    typed := h.typed0
-    breakScoped := h.breakScoped
-    continueScoped := h.continueScoped
-    state := h.state
-    safe := h.safe
-  }-/
+  exact
+    { wf := h.structural.wf
+      typed := h.static.typed0
+      breakScoped := h.structural.breakScoped
+      continueScoped := h.structural.continueScoped
+      state := h.dynamic.state
+      safe := h.dynamic.safe }
 
 /-- Forgetful map from assembled opened block-body boundary to the refined concrete one. -/
 theorem blockBodyReadyConcrete_of_blockBodyClosureBoundaryCI
@@ -104,7 +104,19 @@ theorem block_return_payload_exists_ci
   | block hB =>
       exact ⟨_, hB⟩
 
+noncomputable def blockNormalOut_of_stmtBlockNormalOut
+    {Γ : TypeEnv} {ss : StmtBlock}
+    (out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.block ss) Δ}) :
+    {Θ : TypeEnv // HasTypeBlockCI .normalK (pushTypeScope Γ) ss Θ} :=
+  let h := block_normal_payload_exists_ci out.property
+  ⟨Classical.choose h, Classical.choose_spec h⟩
 
+noncomputable def blockReturnOut_of_stmtBlockReturnOut
+    {Γ : TypeEnv} {ss : StmtBlock}
+    (out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ (.block ss) Δ}) :
+    {Θ : TypeEnv // HasTypeBlockCI .returnK (pushTypeScope Γ) ss Θ} :=
+  let h := block_return_payload_exists_ci out.property
+  ⟨Classical.choose h, Classical.choose_spec h⟩
 
 /--
 Project a statement-body summary for `.block ss` to the corresponding opened block-body summary.
@@ -119,20 +131,8 @@ noncomputable def blockBodySummary_of_stmtBodySummary
     StmtBodySummary Γ (.block ss) →
     BlockBodySummary Γ ss
   | { normalOut := n, returnOut := r } =>
-      { normalOut :=
-          match n with
-          | none => none
-          | some ⟨_, hty⟩ =>
-              let hex : ∃ Θ, HasTypeBlockCI .normalK (pushTypeScope Γ) ss Θ :=
-                block_normal_payload_exists_ci hty
-              some ⟨Classical.choose hex, Classical.choose_spec hex⟩
-        returnOut :=
-          match r with
-          | none => none
-          | some ⟨_, hty⟩ =>
-              let hex : ∃ Θ, HasTypeBlockCI .returnK (pushTypeScope Γ) ss Θ :=
-                block_return_payload_exists_ci hty
-              some ⟨Classical.choose hex, Classical.choose_spec hex⟩ }
+      { normalOut := n.map blockNormalOut_of_stmtBlockNormalOut
+        returnOut := r.map blockReturnOut_of_stmtBlockReturnOut }
 
 /--
 Theorem-backed profile projection from a top-level block entry to the opened block body.
@@ -199,13 +199,168 @@ noncomputable def blockBodyEntryWitness_of_bodyEntryWitness
     {Γ : TypeEnv} {ss : StmtBlock}
     (e : BodyEntryWitness Γ (.block ss)) :
     BlockBodyEntryWitness Γ ss :=
-  Classical.choice (blockBodyEntryWitness_nonempty_of_bodyEntryWitness e)
+  match e with
+  | .normal out =>
+      .normal (blockNormalOut_of_stmtBlockNormalOut out)
+  | .returned out =>
+      .returned (blockReturnOut_of_stmtBlockReturnOut out)
 
 noncomputable def blockBodyEntryWitness_of_bodyClosureBoundaryCI
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
     (h : BodyClosureBoundaryCI Γ σ (.block ss)) :
     BlockBodyEntryWitness Γ ss :=
   blockBodyEntryWitness_of_bodyEntryWitness h.static.root
+
+
+
+theorem blockBodyTyped0_of_bodyClosureBoundaryCI
+    {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
+    (hentry : BodyClosureBoundaryCI Γ σ (.block ss)) :
+    ∃ Δ, HasTypeBlock (pushTypeScope Γ) ss Δ := by
+  rcases hentry.static.typed0 with ⟨Δ, hty⟩
+  cases hty with
+  | block hB =>
+      exact ⟨_, hB⟩
+
+
+theorem blockBodyStaticBoundary_rootReturn_of_bodyClosureBoundaryCI
+    {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
+    (hentry : BodyClosureBoundaryCI Γ σ (.block ss)) :
+    match blockBodyEntryWitness_of_bodyEntryWitness hentry.static.root with
+    | .returned out =>
+        (blockBodyProfile_of_bodyClosureBoundaryCI hentry).summary.returnOut = some out
+    | .normal _ => True := by
+  cases hroot : hentry.static.root with
+  | normal out =>
+      simp [blockBodyEntryWitness_of_bodyEntryWitness]
+  | returned out =>
+      have hR0 :
+          hentry.static.profile.summary.returnOut = some out := by
+        simpa [BodyStaticBoundaryCI.returnOut?, hroot] using
+          (BodyStaticBoundaryCI.root_return_coherent hentry.static)
+
+      have hRmap :
+          Option.map blockReturnOut_of_stmtBlockReturnOut
+              hentry.static.profile.summary.returnOut =
+            some (blockReturnOut_of_stmtBlockReturnOut out) := by
+        simpa using
+          congrArg
+            (Option.map blockReturnOut_of_stmtBlockReturnOut)
+            hR0
+
+      simpa [blockBodyProfile_of_bodyClosureBoundaryCI,
+        blockBodySummary_of_stmtBodySummary,
+        blockBodyEntryWitness_of_bodyEntryWitness,
+        hroot] using hRmap
+
+theorem blockBodyStaticBoundary_rootNormal_of_bodyClosureBoundaryCI
+    {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
+    (hentry : BodyClosureBoundaryCI Γ σ (.block ss)) :
+    match blockBodyEntryWitness_of_bodyEntryWitness hentry.static.root with
+    | .normal out =>
+        (blockBodyProfile_of_bodyClosureBoundaryCI hentry).summary.normalOut = some out
+    | .returned _ => True := by
+  cases hroot : hentry.static.root with
+  | normal out =>
+      have hN0 :
+          hentry.static.profile.summary.normalOut = some out := by
+        simpa [BodyStaticBoundaryCI.normalOut?, hroot] using
+          (BodyStaticBoundaryCI.root_normal_coherent hentry.static)
+
+      have hNmap :
+          Option.map blockNormalOut_of_stmtBlockNormalOut
+              hentry.static.profile.summary.normalOut =
+            some (blockNormalOut_of_stmtBlockNormalOut out) := by
+        simpa using
+          congrArg
+            (Option.map blockNormalOut_of_stmtBlockNormalOut)
+            hN0
+
+      simpa [blockBodyProfile_of_bodyClosureBoundaryCI,
+        blockBodySummary_of_stmtBodySummary,
+        blockBodyEntryWitness_of_bodyEntryWitness,
+        hroot] using hNmap
+  | returned out =>
+      simp [blockBodyEntryWitness_of_bodyEntryWitness]
+
+theorem blockBody_rootReturn_after_rootNormal
+    {Γ : TypeEnv} {ss : StmtBlock}
+    {profile : BlockBodyControlProfile Γ ss}
+    {root : BlockBodyEntryWitness Γ ss}
+    (hN :
+      match root with
+      | .normal out => profile.summary.normalOut = some out
+      | .returned _ => True)
+    (hR :
+      match root with
+      | .returned out => profile.summary.returnOut = some out
+      | .normal _ => True) :
+    match root, hN with
+    | .returned out, _ => profile.summary.returnOut = some out
+    | .normal _, _ => True := by
+  cases root <;> simp [hR]
+
+noncomputable def blockBodyStaticBoundary_of_bodyClosureBoundaryCI
+    {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
+    (hentry : BodyClosureBoundaryCI Γ σ (.block ss)) :
+    BlockBodyStaticBoundaryCI Γ ss := by
+  refine
+    { typed0 := blockBodyTyped0_of_bodyClosureBoundaryCI hentry
+      profile := blockBodyProfile_of_bodyClosureBoundaryCI hentry
+      root := blockBodyEntryWitness_of_bodyEntryWitness hentry.static.root
+      rootCoherent := ?_ }
+  cases hroot : hentry.static.root with
+  | normal out =>
+      have hN :
+          (blockBodyProfile_of_bodyClosureBoundaryCI hentry).summary.normalOut =
+            some (blockNormalOut_of_stmtBlockNormalOut out) := by
+        -- 既存の hNmap と同じ中身
+        have hN0 :
+            hentry.static.profile.summary.normalOut = some out := by
+          simpa [BodyStaticBoundaryCI.normalOut?, hroot] using
+            (BodyStaticBoundaryCI.root_normal_coherent hentry.static)
+        have hmap :
+            Option.map blockNormalOut_of_stmtBlockNormalOut
+                hentry.static.profile.summary.normalOut =
+              some (blockNormalOut_of_stmtBlockNormalOut out) := by
+          simpa using
+            congrArg
+              (Option.map blockNormalOut_of_stmtBlockNormalOut)
+              hN0
+        simpa [blockBodyProfile_of_bodyClosureBoundaryCI,
+          blockBodySummary_of_stmtBodySummary,
+          blockBodyEntryWitness_of_bodyEntryWitness,
+          hroot] using hmap
+      exact BlockBodyRootCoherent.normal hN
+  | returned out =>
+      have hR :
+          (blockBodyProfile_of_bodyClosureBoundaryCI hentry).summary.returnOut =
+            some (blockReturnOut_of_stmtBlockReturnOut out) := by
+        -- 既存の hRmap と同じ中身
+        have hR0 :
+            hentry.static.profile.summary.returnOut = some out := by
+          simpa [BodyStaticBoundaryCI.returnOut?, hroot] using
+            (BodyStaticBoundaryCI.root_return_coherent hentry.static)
+        have hmap :
+            Option.map blockReturnOut_of_stmtBlockReturnOut
+                hentry.static.profile.summary.returnOut =
+              some (blockReturnOut_of_stmtBlockReturnOut out) := by
+          simpa using
+            congrArg
+              (Option.map blockReturnOut_of_stmtBlockReturnOut)
+              hR0
+        simpa [blockBodyProfile_of_bodyClosureBoundaryCI,
+          blockBodySummary_of_stmtBodySummary,
+          blockBodyEntryWitness_of_bodyEntryWitness,
+          hroot] using hmap
+      exact BlockBodyRootCoherent.returned hR
+
+@[simp] theorem blockBodyStaticBoundary_of_bodyClosureBoundaryCI_profile
+    {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
+    (hentry : BodyClosureBoundaryCI Γ σ (.block ss)) :
+    (blockBodyStaticBoundary_of_bodyClosureBoundaryCI hentry).profile =
+      blockBodyProfile_of_bodyClosureBoundaryCI hentry := by
+      rfl
 
 /--
 Opened-scope bridge into the assembled CI block-body boundary.
@@ -220,13 +375,19 @@ noncomputable def blockBodyClosureBoundaryCI_of_bodyClosureBoundaryCI_opened
     OpenScope σ σ' →
     BlockBodyClosureBoundaryCI Γ σ' ss := by
   intro hentry hopen
-  let hs := blockBodyStructuralBoundary_of_bodyClosureBoundaryCI hentry
-  let he := blockBodyEntryWitness_of_bodyClosureBoundaryCI hentry
-  let hp := blockBodyProfile_of_bodyClosureBoundaryCI hentry
-  let ha := blockBodyAdequacyScaffoldCI_of_bodyClosureBoundaryCI_opened hentry hopen
-  let hd := blockBodyDynamicBoundary_of_bodyClosureBoundaryCI_opened hentry hopen
-  sorry
-  --exact mkBlockBodyClosureBoundaryCI hs he hp hd ha.adequacy
+  exact
+    { structural :=
+        blockBodyStructuralBoundary_of_bodyClosureBoundaryCI hentry
+      static :=
+        blockBodyStaticBoundary_of_bodyClosureBoundaryCI hentry
+      dynamic :=
+        blockBodyDynamicBoundary_of_bodyClosureBoundaryCI_opened hentry hopen
+      adequacy := by
+        simpa [blockBodyStaticBoundary_of_bodyClosureBoundaryCI_profile hentry] using
+          (blockBodyAdequacyScaffoldCI_of_bodyClosureBoundaryCI_opened
+            hentry hopen).adequacy }
+
+
 
 /--
 Opened block-body closure target.
