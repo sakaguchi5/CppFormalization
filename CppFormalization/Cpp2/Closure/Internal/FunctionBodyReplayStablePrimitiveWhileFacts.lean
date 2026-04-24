@@ -155,7 +155,26 @@ theorem replay_stable_primitive_stmt_normal_preserves_scoped_typed_state_concret
     exact assign_stmt_normal_preserves_scoped_typed_state_concrete
       hty hσ hready hstep
 
-def bodyReadyCI_while_after_body_normal_of_replay_stable_primitive
+
+/--
+Remaining adequacy target.
+
+After one replay-stable primitive body-normal step, the tail while must be
+adequate at the post-state for the same static profile. This is the real
+semantic debt; readiness itself is already theorem-backed by
+`while_ready_after_body_normal_of_replay_stable_primitive`.
+本当はcondition trueが必要
+-/
+axiom replay_stable_primitive_while_tail_adequacy_of_body_normal
+    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
+    (hstable : ReplayStablePrimitiveStmt body)
+    (hcstable : ReplayStableCondExpr c)
+    (htyWhile : HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ)
+    (hready : BodyReadyCI Γ σ (.whileStmt c body))
+    (hbodyStep : BigStepStmt σ body .normal σ') :
+    BodyAdequacyCI Γ σ' (.whileStmt c body) hready.static.profile
+
+noncomputable def bodyReadyCI_while_after_body_normal_of_replay_stable_primitive
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
     ReplayStablePrimitiveStmt body →
     ReplayStableCondExpr c →
@@ -167,22 +186,20 @@ def bodyReadyCI_while_after_body_normal_of_replay_stable_primitive
 
   rcases while_typing_data htyWhile with ⟨_, _, hN, _, _⟩
 
-  -- body ready
   have hreadyBody : StmtReadyConcrete Γ σ body :=
     while_ready_body_data hready.dynamic.safe
 
-  -- state transport
   have hσ' : ScopedTypedStateConcrete Γ σ' :=
     replay_stable_primitive_stmt_normal_preserves_scoped_typed_state_concrete
       hstable hN hready.dynamic.state hreadyBody hbodyStep
 
-  -- while ready reconstruction（ここがあなたの既存 kernel）
   have hreadyWhile' : StmtReadyConcrete Γ σ' (.whileStmt c body) :=
-    sorry
+    while_ready_after_body_normal_of_replay_stable_primitive
+      hstable hcstable htyWhile hσ' hready.dynamic.safe hbodyStep
 
-  -- adequacy（再構成 or transport）
   have hadeq : BodyAdequacyCI Γ σ' (.whileStmt c body) hready.static.profile :=
-    sorry
+    replay_stable_primitive_while_tail_adequacy_of_body_normal
+      hstable hcstable htyWhile hready hbodyStep
 
   exact
     { structural := hready.structural
@@ -193,7 +210,7 @@ def bodyReadyCI_while_after_body_normal_of_replay_stable_primitive
       adequacy := hadeq }
 
 /-- wrapper for theorem-backed replay-stable primitive while tail boundary. -/
-def bodyClosureBoundaryCI_while_after_body_normal_of_replay_stable_primitive
+noncomputable def bodyClosureBoundaryCI_while_after_body_normal_of_replay_stable_primitive
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
     ReplayStablePrimitiveStmt body →
     ReplayStableCondExpr c →
@@ -210,7 +227,7 @@ def bodyClosureBoundaryCI_while_after_body_normal_of_replay_stable_primitive
 Replay-stable primitive body / cond から構成される tail-boundary reconstruction kit。
 `continue` branch は primitive replay-stable body では矛盾で閉じる。
 -/
-def whileTailBoundaryKitCI_of_replay_stable_primitive
+noncomputable def whileTailBoundaryKitCI_of_replay_stable_primitive
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (hstable : ReplayStablePrimitiveStmt body)
     (hcstable : ReplayStableCondExpr c)
@@ -229,7 +246,7 @@ def whileTailBoundaryKitCI_of_replay_stable_primitive
     exact replay_stable_primitive_stmt_no_continue hstable hstep
 
 /-- Replay-stable primitive body/cond yields a while-body class. -/
-def replay_stable_primitive_whileBodyClassCI
+noncomputable def replay_stable_primitive_whileBodyClassCI
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (hstable : ReplayStablePrimitiveStmt body)
     (hcstable : ReplayStableCondExpr c)
