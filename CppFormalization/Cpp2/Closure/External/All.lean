@@ -18,7 +18,6 @@ import CppFormalization.Cpp2.Closure.External.ReadyFromGlueV3
 import CppFormalization.Cpp2.Closure.External.ReflectionFragmentV2
 import CppFormalization.Cpp2.Closure.External.ReflectionFragmentV3
 import CppFormalization.Cpp2.Closure.External.ReflectiveStdClosure
-import CppFormalization.Cpp2.Closure.External.ReflectiveStdClosureV2
 import CppFormalization.Cpp2.Closure.External.ReflectiveStdClosureV3
 import CppFormalization.Cpp2.Closure.External.SplitBuilderV3
 import CppFormalization.Cpp2.Closure.External.StdFragmentV2

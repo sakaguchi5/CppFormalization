@@ -1,6 +1,5 @@
 import CppFormalization.Cpp2.Closure.All
 import CppFormalization.Cpp2.Closure.External.InterfaceV2
-import CppFormalization.Cpp2.Closure.External.ReflectiveStdClosureV2
 import CppFormalization.Cpp2.Proof.All
 
 /-!
