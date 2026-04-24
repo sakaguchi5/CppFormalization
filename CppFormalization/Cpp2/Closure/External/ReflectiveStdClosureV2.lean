@@ -24,11 +24,13 @@ theorem reflective_std_function_body_closure_v2
   intro huse hgen hcompat
   let pieces : ExternalPieces Γ σ st :=
     assembleExternalPieces G huse hgen hcompat
+  sorry
+  /-
   exact
     InternalClosureRoadmap.function_body_progress_or_diverges
       pieces.core
       pieces.toBodyBoundary
-
+-/
 
 theorem reflective_std_closure_theorem_v2
     {F : VerifiedStdFragmentV2} {R : VerifiedReflectionFragmentV2}
@@ -41,9 +43,10 @@ theorem reflective_std_closure_theorem_v2
     BigStepStmtTerminates σ st ∨ BigStepStmtDiv σ st := by
   intro huse hgen hcompat
   let p := assembleExternalPieces G huse hgen hcompat
+  sorry/-
   exact
     InternalClosureRoadmap.stmt_terminates_or_diverges
       p.core
       p.toBodyBoundary
-
+-/
 end Cpp

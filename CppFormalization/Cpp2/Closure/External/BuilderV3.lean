@@ -57,10 +57,10 @@ def toReflectionFragment (B : ReadyCertificateFamilyV3) : VerifiedReflectionFrag
     intro c Γ st _ hsupp
     rcases hsupp with ⟨rfl, rfl⟩
     exact
-      { structural := (B.readyOf c).toStructural
-        entry := (B.readyOf c).entry
-        profile := (B.readyOf c).toProfile
+      { structural := (B.readyOf c).structural
+        static := (B.readyOf c).static
         core := B.coreOf c }
+
 
 def mkReady_from_compatible
     (B : ReadyCertificateFamilyV3)
@@ -101,6 +101,22 @@ theorem compat_structural_eq
   rcases hsuppRefl with ⟨_, _⟩
   rfl
 
+theorem compat_static_eq
+    (B : ReadyCertificateFamilyV3)
+    {n : B.toStdFragment.Name} {m : B.toReflectionFragment.Meta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (_huse : B.toStdFragment.uses n)
+    (hsuppRun : B.toStdFragment.supportsRuntime n Γ σ st)
+    (hgen : B.toReflectionFragment.generates m st)
+    (hsuppRefl : B.toReflectionFragment.supportsReflection m Γ st)
+    (hcompat : n = m ∧ Γ = B.targetΓ n ∧ σ = B.targetσ n ∧ st = B.targetSt n) :
+    (mkReady_from_compatible B hcompat).static =
+      ((B.toReflectionFragment).mkReflection hgen hsuppRefl).static := by
+  rcases hcompat with ⟨rfl, rfl, rfl, rfl⟩
+  rcases hsuppRefl with ⟨_, _⟩
+  unfold ReadyCertificateFamilyV3.toReflectionFragment
+  dsimp [mkReady_from_compatible]
+
 theorem compat_profile_eq
     (B : ReadyCertificateFamilyV3)
     {n : B.toStdFragment.Name} {m : B.toReflectionFragment.Meta}
@@ -115,41 +131,6 @@ theorem compat_profile_eq
   rcases hcompat with ⟨rfl, rfl, rfl, rfl⟩
   rcases hsuppRefl with ⟨_, _⟩
   rfl
-
-theorem readyOf_entry_eq
-    (B : ReadyCertificateFamilyV3)
-    (n : B.Cert)
-    (hgen : B.toReflectionFragment.generates n (B.targetSt n))
-    (hsuppRefl : B.toReflectionFragment.supportsReflection n (B.targetΓ n) (B.targetSt n)) :
-    (B.readyOf n).entry =
-      (B.toReflectionFragment.mkReflection hgen hsuppRefl).entry := by
-  -- 1. hsuppRefl の中身（等式のペア）を分解する
-  -- これにより、mkReflection 内部の And.rec が計算可能な状態になる
-  rcases hsuppRefl with ⟨hΓ, hst⟩
-
-  -- 2. 自明な等式であることを Lean に再認識させる
-  -- (これによって ⋯ の中身が ⟨rfl, rfl⟩ であることが確定します)
-  cases hΓ
-  cases hst
-
-  -- 3. ここが重要：mkReflection の定義を展開し、
-  --    かつ ReadyCertificateFamilyV3 の構造体としての定義を整理する
-  simp [ReadyCertificateFamilyV3.toReflectionFragment]
-
-theorem compat_entry_eq
-    (B : ReadyCertificateFamilyV3)
-    {n : B.Cert} {m : B.Cert}
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (_ : B.toStdFragment.uses n)
-    (hsuppRun : B.toStdFragment.supportsRuntime n Γ σ st)
-    (hgen : B.toReflectionFragment.generates m st)
-    (hsuppRefl : B.toReflectionFragment.supportsReflection m Γ st)
-    (hcompat : n = m ∧ Γ = B.targetΓ n ∧ σ = B.targetσ n ∧ st = B.targetSt n) :
-    (mkReady_from_compatible B hcompat).entry =
-      (B.toReflectionFragment.mkReflection hgen hsuppRefl).entry := by
-  rcases hcompat with ⟨rfl, rfl, rfl, rfl⟩
-  simp [mkReady_from_compatible]
-  exact B.readyOf_entry_eq n hgen hsuppRefl
 
 /-- The canonical high-level ready assembly generated from the family. -/
 def toReadyAssembly (B : ReadyCertificateFamilyV3) :
@@ -166,11 +147,8 @@ def toReadyAssembly (B : ReadyCertificateFamilyV3) :
   structural_eq := fun huse hsuppRun hgen hsuppRefl hcompat =>
     compat_structural_eq B huse hsuppRun hgen hsuppRefl hcompat
 
-  entry_eq := fun huse hsuppRun hgen hsuppRefl hcompat =>
-    compat_entry_eq B huse hsuppRun hgen hsuppRefl hcompat
-
-  profile_eq := fun huse hsuppRun hgen hsuppRefl hcompat =>
-    compat_profile_eq B huse hsuppRun hgen hsuppRefl hcompat
+  static_eq := fun huse hsuppRun hgen hsuppRefl hcompat =>
+    compat_static_eq B huse hsuppRun hgen hsuppRefl hcompat
 
 def mkAdequacy_from_compatible
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
@@ -181,11 +159,12 @@ def mkAdequacy_from_compatible
     (hgen : R.generates m st)
     (hsuppRefl : R.supportsReflection m Γ st)
     (hcompat : A.compatible n m Γ σ st) :
-    BodyAdequacyCI Γ σ st ((R.mkReflection hgen hsuppRefl).profile) :=
+    BodyAdequacyCI Γ σ st ((R.mkReflection hgen hsuppRefl).static.profile) :=
   let hready := A.mkReady huse hsuppRun hgen hsuppRefl hcompat
-  let hprof := A.profile_eq huse hsuppRun hgen hsuppRefl hcompat
-  match (R.mkReflection hgen hsuppRefl).profile, hprof with
-  | _, rfl => hready.toAdequacy
+  castBodyAdequacy
+    (congrArg BodyStaticBoundaryCI.profile
+      (A.static_eq huse hsuppRun hgen hsuppRefl hcompat))
+    hready.toAdequacy
 
 /-- The canonical low-level glue generated from the family. -/
 def toGlue
@@ -249,12 +228,14 @@ noncomputable def glueExternalPieces (B : ReadyCertificateFamilyV3) (c : B.Cert)
     (B.supportsReflection_self c)
     (B.glue_compatible_self c)
 
+
+
 /-- The ready-route visible package is definitionally the canonical visible package. -/
 theorem readyExternalPieces_packageCoherent
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
     PackageCoherentV3
       (B.readyExternalPieces c).toVisiblePieces
-      (canonicalVisiblePiecesV3
+      (canonicalObservablePiecesV3
         (B.uses_self c)
         (B.supportsRuntime_self c)
         (B.generates_self c)
@@ -273,7 +254,7 @@ theorem glueExternalPieces_packageCoherent
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
     PackageCoherentV3
       (B.glueExternalPieces c).toVisiblePieces
-      (canonicalVisiblePiecesV3
+      (canonicalObservablePiecesV3
         (B.uses_self c)
         (B.supportsRuntime_self c)
         (B.generates_self c)
@@ -297,7 +278,7 @@ theorem ready_vs_glue_packageCoherent
   change (B.readyExternalPieces c).toVisiblePieces = (B.glueExternalPieces c).toVisiblePieces
   calc
     (B.readyExternalPieces c).toVisiblePieces =
-        canonicalVisiblePiecesV3
+        canonicalObservablePiecesV3
           (B.uses_self c)
           (B.supportsRuntime_self c)
           (B.generates_self c)
@@ -337,42 +318,70 @@ theorem readyExternalPieces_boundary
   simpa [ReadyCertificateFamilyV3.readyExternalPieces,
     B.readyAssembly_mkReady_self c] using h
 
+theorem mkReady_from_compatible_self
+    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+    mkReady_from_compatible B (B.compatible_self c) = B.readyOf c := by
+  unfold mkReady_from_compatible
+  unfold ReadyCertificateFamilyV3.compatible_self
+  simp
+
 /-- Canonical self-profile equality between the certificate ready witness and the
 reflection package selected by the builder-generated assembly. -/
 theorem readyAssembly_profile_self
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
-    (B.readyOf c).toProfile =
+    (B.readyOf c).static.profile =
       (B.toReflectionFragment.mkReflection
         (B.generates_self c)
-        (B.supportsReflection_self c)).profile := by
-  have hmk :
-      B.toReadyAssembly.mkReady
-        (B.uses_self c)
-        (B.supportsRuntime_self c)
-        (B.generates_self c)
-        (B.supportsReflection_self c)
-        (B.compatible_self c)
-      = B.readyOf c :=
-    readyAssembly_mkReady_self B c
+        (B.supportsReflection_self c)).static.profile := by
+  have h :=
+    congrArg BodyStaticBoundaryCI.profile
+      (compat_static_eq B
+        (_huse := B.uses_self c)
+        (hsuppRun := B.supportsRuntime_self c)
+        (hgen := B.generates_self c)
+        (hsuppRefl := B.supportsReflection_self c)
+        (hcompat := B.compatible_self c))
+  simpa [mkReady_from_compatible_self B c] using h
 
-  have hprof :
-      (B.toReadyAssembly.mkReady
-        (B.uses_self c)
-        (B.supportsRuntime_self c)
-        (B.generates_self c)
-        (B.supportsReflection_self c)
-        (B.compatible_self c)).toProfile =
-      (B.toReflectionFragment.mkReflection
-        (B.generates_self c)
-        (B.supportsReflection_self c)).profile :=
-    B.toReadyAssembly.profile_eq
+
+theorem mkAdequacy_from_compatible_self
+    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+    mkAdequacy_from_compatible
+      B.toReadyAssembly
       (B.uses_self c)
       (B.supportsRuntime_self c)
       (B.generates_self c)
       (B.supportsReflection_self c)
       (B.compatible_self c)
+      =
+      (readyAssembly_profile_self B c) ▸ (B.readyOf c).toAdequacy := by
+  apply bodyAdequacy_eq
+@[simp] theorem castBodyAdequacy_eq_transport
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {p q : BodyControlProfile Γ st}
+    (h : p = q)
+    (ha : BodyAdequacyCI Γ σ st p) :
+    castBodyAdequacy h ha = h ▸ ha := by
+  cases h
+  rfl
 
-  simpa [hmk] using hprof
+theorem mkAdequacy_from_compatible_self2
+    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+    mkAdequacy_from_compatible
+      B.toReadyAssembly
+      (B.uses_self c)
+      (B.supportsRuntime_self c)
+      (B.generates_self c)
+      (B.supportsReflection_self c)
+      (B.compatible_self c)
+      =
+      castBodyAdequacy
+        (readyAssembly_profile_self B c)
+        ((B.readyOf c).toAdequacy) := by
+  rw [castBodyAdequacy_eq_transport]
+  -- 2. ターゲットの型を整え、両辺が「依存型における輸送」の形であることを示す
+  -- これにより bodyAdequacy_eq が適用可能な状態になります
+  apply bodyAdequacy_eq
 
 def readySelf
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
@@ -399,33 +408,161 @@ theorem readySelf_toAdequacy_heq_readyOf
     HEq (readySelf B c).toAdequacy (B.readyOf c).toAdequacy := by
   rw [readySelf_eq]
 
-theorem mkAdequacy_from_compatible_self
+theorem readyAssembly_compatible_self
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
-    mkAdequacy_from_compatible
-      B.toReadyAssembly
+    B.toReadyAssembly.compatible
+      c c (B.targetΓ c) (B.targetσ c) (B.targetSt c) := by
+  simp [ReadyCertificateFamilyV3.toReadyAssembly]
+
+theorem readyAssembly_static_self
+    (B : ReadyCertificateFamilyV3) (c : B.Cert) :
+    (B.readyOf c).static =
+      (B.toReflectionFragment.mkReflection
+        (B.generates_self c)
+        (B.supportsReflection_self c)).static := by
+  have h :=
+    B.toReadyAssembly.static_eq
       (B.uses_self c)
       (B.supportsRuntime_self c)
       (B.generates_self c)
       (B.supportsReflection_self c)
-      (B.compatible_self c)
+      (readyAssembly_compatible_self B c)
+  simpa [readyAssembly_mkReady_self B c] using h
+
+@[simp] theorem castBodyAdequacy_rfl
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {p : BodyControlProfile Γ st}
+    (h : BodyAdequacyCI Γ σ st p) :
+    castBodyAdequacy rfl h = h := by
+  rfl
+
+@[simp] theorem castBodyAdequacy_symm_cast
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {p q : BodyControlProfile Γ st}
+    (e : p = q)
+    (h : BodyAdequacyCI Γ σ st p) :
+    castBodyAdequacy e.symm (castBodyAdequacy e h) = h := by
+  cases e
+  rfl
+
+theorem castBodyAdequacy_match_static
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {s₁ s₂ : BodyStaticBoundaryCI Γ st}
+    (ha : BodyAdequacyCI Γ σ st s₁.profile)
+    (h : s₁ = s₂) :
+    castBodyAdequacy
+      (Eq.symm (congrArg BodyStaticBoundaryCI.profile h))
+      (match s₂, h with
+       | _, rfl => ha)
       =
-      (readyAssembly_profile_self B c) ▸ (B.readyOf c).toAdequacy := by
-  apply bodyAdequacy_eq
+      ha := by
+  cases h
+  rfl
+
+theorem castBodyAdequacy_symm
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {p q : BodyControlProfile Γ st}
+    (ha : BodyAdequacyCI Γ σ st p)
+    (h : p = q) :
+    castBodyAdequacy (Eq.symm h) (castBodyAdequacy h ha) = ha := by
+  cases h
+  rfl
+
+theorem match_toStatic_eq_castBodyAdequacy
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (ready : BodyReadyCI Γ σ st)
+    {s : BodyStaticBoundaryCI Γ st}
+    (h : ready.toStatic = s) :
+    (match s, h with
+     | .(ready.toStatic), rfl => ready.toAdequacy)
+    =
+    castBodyAdequacy
+      (congrArg BodyStaticBoundaryCI.profile h)
+      ready.toAdequacy := by
+  cases h
+  rfl
+
+
+
+theorem mkAdequacy_from_compatible_eq_cast
+    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
+    (A : VerifiedExternalReadyAssemblyV3 F R)
+    {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : F.uses n)
+    (hsuppRun : F.supportsRuntime n Γ σ st)
+    (hgen : R.generates m st)
+    (hsuppRefl : R.supportsReflection m Γ st)
+    (hcompat : A.compatible n m Γ σ st) :
+    mkAdequacy_from_compatible A huse hsuppRun hgen hsuppRefl hcompat
+      =
+    castBodyAdequacy
+      (congrArg BodyStaticBoundaryCI.profile
+        (A.static_eq huse hsuppRun hgen hsuppRefl hcompat))
+      ((A.mkReady huse hsuppRun hgen hsuppRefl hcompat).toAdequacy) := by
+  unfold mkAdequacy_from_compatible
+  simp
+
+theorem mkAdequacy_from_compatible_cast
+    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
+    (A : VerifiedExternalReadyAssemblyV3 F R)
+    {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {ready : BodyReadyCI Γ σ st}
+    (huse : F.uses n)
+    (hsuppRun : F.supportsRuntime n Γ σ st)
+    (hgen : R.generates m st)
+    (hsuppRefl : R.supportsReflection m Γ st)
+    (hcompat : A.compatible n m Γ σ st)
+    (hready : A.mkReady huse hsuppRun hgen hsuppRefl hcompat = ready)
+    (hstatic : ready.toStatic = (R.mkReflection hgen hsuppRefl).static) :
+    castBodyAdequacy
+      (Eq.symm (congrArg BodyStaticBoundaryCI.profile hstatic))
+      (mkAdequacy_from_compatible A huse hsuppRun hgen hsuppRefl hcompat)
+      =
+      ready.toAdequacy := by
+  subst ready
+  rw [mkAdequacy_from_compatible_eq_cast]
+  have hprof :
+      congrArg BodyStaticBoundaryCI.profile
+        (A.static_eq huse hsuppRun hgen hsuppRefl hcompat)
+      =
+      congrArg BodyStaticBoundaryCI.profile hstatic := by
+    apply Subsingleton.elim
+  rw [hprof]
+  simpa using
+    (castBodyAdequacy_symm
+      ((A.mkReady huse hsuppRun hgen hsuppRefl hcompat).toAdequacy)
+      (congrArg BodyStaticBoundaryCI.profile hstatic))
+
+
 
 /-- On the canonical self-input, the family glue adequacy is the certificate adequacy
 transported along the canonical self profile equality. -/
 theorem glue_mkAdequacy_self
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
-    B.toGlue.mkAdequacy
-      (B.uses_self c)
-      (B.supportsRuntime_self c)
-      (B.generates_self c)
-      (B.supportsReflection_self c)
-      (B.glue_compatible_self c)
+    castBodyAdequacy
+      (Eq.symm (readyAssembly_profile_self B c))
+      (B.toGlue.mkAdequacy
+        (B.uses_self c)
+        (B.supportsRuntime_self c)
+        (B.generates_self c)
+        (B.supportsReflection_self c)
+        (B.glue_compatible_self c))
       =
-      (readyAssembly_profile_self B c) ▸ (B.readyOf c).toAdequacy := by
-  unfold ReadyCertificateFamilyV3.toGlue
-  simpa using mkAdequacy_from_compatible_self B c
+      (B.readyOf c).toAdequacy := by
+  have hcompat := readyAssembly_compatible_self B c
+  have hready := readyAssembly_mkReady_self B c
+  have hstatic := readyAssembly_static_self B c
+  simpa [ReadyCertificateFamilyV3.readyAssembly_profile_self,
+    ReadyCertificateFamilyV3.toGlue] using
+    (mkAdequacy_from_compatible_cast
+      (A := B.toReadyAssembly)
+      (huse := B.uses_self c)
+      (hsuppRun := B.supportsRuntime_self c)
+      (hgen := B.generates_self c)
+      (hsuppRefl := B.supportsReflection_self c)
+      (hcompat := hcompat)
+      (ready := B.readyOf c)
+      hready hstatic)
 
 theorem readyAssembly_dynamic_self
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
@@ -496,29 +633,22 @@ theorem glueExternalPieces_toBodyBoundary_eq_assemble
 theorem glueExternalPieces_toBodyBoundary_expand
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
     (B.glueExternalPieces c).toBodyBoundary =
-      { structural :=
-          (B.toReflectionFragment.mkReflection
-            (B.generates_self c)
-            (B.supportsReflection_self c)).structural
-        entry :=
-          (B.toReflectionFragment.mkReflection
-            (B.generates_self c)
-            (B.supportsReflection_self c)).entry
-        profile :=
-          (B.toReflectionFragment.mkReflection
-            (B.generates_self c)
-            (B.supportsReflection_self c)).profile
-        dynamic :=
-          (B.toStdFragment.mkRuntime
-            (B.uses_self c)
-            (B.supportsRuntime_self c)).dynamic
-        adequacy :=
-          B.toGlue.mkAdequacy
-            (B.uses_self c)
-            (B.supportsRuntime_self c)
-            (B.generates_self c)
-            (B.supportsReflection_self c)
-            (B.glue_compatible_self c) } := by
+      mkBodyClosureBoundaryCI
+        ((B.toReflectionFragment.mkReflection
+          (B.generates_self c)
+          (B.supportsReflection_self c)).structural)
+        ((B.toReflectionFragment.mkReflection
+          (B.generates_self c)
+          (B.supportsReflection_self c)).static)
+        ((B.toStdFragment.mkRuntime
+          (B.uses_self c)
+          (B.supportsRuntime_self c)).dynamic)
+        (B.toGlue.mkAdequacy
+          (B.uses_self c)
+          (B.supportsRuntime_self c)
+          (B.generates_self c)
+          (B.supportsReflection_self c)
+          (B.glue_compatible_self c)) := by
   rw [glueExternalPieces_toBodyBoundary_eq_assemble B c]
   exact
     assembleExternalPiecesV3_toBodyBoundary
@@ -542,43 +672,28 @@ theorem glueExternalPieces_boundary
       (B.readyOf c).toClosureBoundary := by
   rw [glueExternalPieces_toBodyBoundary_expand]
   unfold BodyReadyCI.toClosureBoundary
-
-  have hentry :
+  ext
+  · -- structural
+    simp
+  · -- static
+    change
       (B.toReflectionFragment.mkReflection
-        (B.generates_self c)
-        (B.supportsReflection_self c)).entry
+      (B.generates_self c)
+      (B.supportsReflection_self c)).static
         =
-      (B.readyOf c).entry := by
-    exact
-      (B.readyOf_entry_eq
-        c
-        (B.generates_self c)
-        (B.supportsReflection_self c)).symm
-
-  have hprof :
-      (B.toReflectionFragment.mkReflection
-        (B.generates_self c)
-        (B.supportsReflection_self c)).profile
-        =
-      (B.readyOf c).toProfile := by
-    rw [← readySelf_profile_self, readySelf_eq]
-
-  refine BodyClosureBoundaryCI.ext ?_ hentry hprof ?_ ?_
-  · rfl
-  · rfl
-  · change
-      castBodyAdequacy hprof
-        (B.toGlue.mkAdequacy
-          (B.uses_self c)
-          (B.supportsRuntime_self c)
-          (B.generates_self c)
-          (B.supportsReflection_self c)
-          (B.glue_compatible_self c))
-        =
-      (B.readyOf c).toAdequacy
-    rw [glue_mkAdequacy_self]
-    simp [castBodyAdequacy]
-    rfl
+      (B.readyOf c).static
+    cases B with
+      | mk Cert targetΓ targetσ targetSt readyOf coreOf =>
+        -- 1. ReflectionFragment の定義を展開
+        simp [ReadyCertificateFamilyV3.toReflectionFragment]
+        -- 2. ここが肝：mkReflection の引数に使われている証明の定義を展開する
+        -- これにより And.rec の対象が具体的な ⟨rfl, rfl⟩ の形に見えるようになる
+        unfold ReadyCertificateFamilyV3.supportsReflection_self
+        dsimp
+  · -- dynamic
+    simp
+  · -- adequacy
+    simpa using glue_mkAdequacy_self B c
 
 
 /-- For a builder-generated family, the direct ready route and the direct glue route

@@ -7,6 +7,11 @@ namespace Cpp
 
 Visible V3 assembly after the static-layer redesign.
 -/
+/-- Temporary renamed carrier for the old Stage-2B observable package notion. -/
+structure ObservablePiecesV3 (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
+  structural : BodyStructuralBoundary Γ st
+  profile : BodyControlProfile Γ st
+  dynamic : BodyDynamicBoundary Γ σ st
 
 structure ExternalPiecesV3 (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
   structural : BodyStructuralBoundary Γ st
@@ -27,8 +32,16 @@ def toBodyBoundary
     p.dynamic
     p.adequacy
 
+def toVisiblePieces
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (p : ExternalPiecesV3 Γ σ st) :
+    ObservablePiecesV3 Γ σ st :=
+  { structural := p.structural
+    profile := p.static.profile
+    dynamic := p.dynamic }
+/-
 abbrev VisiblePiecesV3 (Γ : TypeEnv) (σ : State) (st : CppStmt) :=
-  ExternalPiecesV3 Γ σ st
+  ExternalPiecesV3 Γ σ st-/
 
 end ExternalPiecesV3
 

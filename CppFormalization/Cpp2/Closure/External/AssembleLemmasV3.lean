@@ -86,7 +86,7 @@ theorem assembleExternalPiecesV3_adequacy
       G.mkAdequacy huse hsuppRun hgen hsuppRefl hcompat := by
   unfold assembleExternalPiecesV3
   rfl
-/-
+
 theorem assembleExternalPiecesV3_toVisiblePieces
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (G : VerifiedExternalGlueV3 F R)
@@ -97,8 +97,8 @@ theorem assembleExternalPiecesV3_toVisiblePieces
     (hgen : R.generates m st)
     (hsuppRefl : R.supportsReflection m Γ st)
     (hcompat : G.compatible n m Γ σ st) :
-    (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat) =
-      canonicalVisiblePiecesV3 huse hsuppRun hgen hsuppRefl := by
+    (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces =
+      canonicalObservablePiecesV3 huse hsuppRun hgen hsuppRefl := by
   rfl
 
 theorem assembleExternalPiecesV3_packageCoherent
@@ -113,9 +113,9 @@ theorem assembleExternalPiecesV3_packageCoherent
     (hcompat : G.compatible n m Γ σ st) :
     PackageCoherentV3
       (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces
-      (canonicalVisiblePiecesV3 huse hsuppRun hgen hsuppRefl) := by
+      (canonicalObservablePiecesV3 huse hsuppRun hgen hsuppRefl) := by
   rfl
--/
+
 
 
 end Cpp

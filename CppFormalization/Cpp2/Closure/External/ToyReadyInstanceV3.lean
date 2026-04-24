@@ -145,32 +145,64 @@ theorem toyReflectionFragmentV3_static_eq (c : ToyReadyCertificate) :
     (toyReflectionFragmentV3.mkReflection
       (toy_generates c)
       (toy_supportsReflection c)).static = c.ready.static := by
-  -- 1. Certificate を構造分解
-  cases c with | mk Γ σ st ready core =>
-  -- 2. 定義を展開
-  unfold toyReflectionFragmentV3 toy_generates toy_supportsReflection
-  -- 3. mkReflection の中身を簡約（ここで And.rec が表面に出る）
-  dsimp
+  cases c with
+  | mk Γ σ st ready core =>
+      unfold toyReflectionFragmentV3 toy_generates toy_supportsReflection
+      dsimp
 
 /-- The assembled profile is exactly the reflection-selected toy profile. -/
 theorem toyExternalPiecesV3_profile (c : ToyReadyCertificate) :
     (toyExternalPiecesV3 c).static.profile = c.ready.static.profile := by
   unfold toyExternalPiecesV3
-  simp [externalPieces_of_ready_v3]
-  rw [toyReflectionFragmentV3_static_eq]
+  simp [externalPieces_of_ready_v3, toyReflectionFragmentV3_static_eq]
 
 theorem toyReady_toProfile_eq (c : ToyReadyCertificate) :
-    c.ready.toProfile =
+    c.ready.static.profile =
       (toyReadyAssemblyV3.mkReady
         (toy_uses c)
         (toy_supportsRuntime c)
         (toy_generates c)
         (toy_supportsReflection c)
-        (toy_compatible c)).toProfile := by
-  exact congrArg BodyReadyCI.toProfile (toyReadyAssemblyV3_mkReady_eq c).symm
+        (toy_compatible c)).static.profile := by
+  simp [toyReadyAssemblyV3_mkReady_eq c]
 
-private theorem toyReady_toAdequacy_transport
+theorem toyReadyAssemblyV3_profile_eq
     (c : ToyReadyCertificate) :
+    (toyReadyAssemblyV3.mkReady
+      (toy_uses c)
+      (toy_supportsRuntime c)
+      (toy_generates c)
+      (toy_supportsReflection c)
+      (toy_compatible c)).static.profile =
+    (toyReflectionFragmentV3.mkReflection
+      (toy_generates c)
+      (toy_supportsReflection c)).static.profile := by
+  simpa using congrArg BodyStaticBoundaryCI.profile
+    (toyReadyAssemblyV3.static_eq
+      (toy_uses c)
+      (toy_supportsRuntime c)
+      (toy_generates c)
+      (toy_supportsReflection c)
+      (toy_compatible c))
+
+theorem toyExternalPiecesV3_adequacy (c : ToyReadyCertificate) :
+    (toyExternalPiecesV3 c).adequacy =
+      transportAdequacy
+        (toyReadyAssemblyV3_profile_eq c)
+        ((toyReadyAssemblyV3.mkReady
+          (toy_uses c)
+          (toy_supportsRuntime c)
+          (toy_generates c)
+          (toy_supportsReflection c)
+          (toy_compatible c)).toAdequacy) := by
+  -- 定義を展開して構造を露出させる
+  unfold toyExternalPiecesV3 externalPieces_of_ready_v3
+  -- 各コンポーネントが c.ready に集約されることを利用して simp
+  simp
+
+
+
+private theorem toyReady_toAdequacy_transport (c : ToyReadyCertificate) :
     transportAdequacy (toyReady_toProfile_eq c) c.ready.toAdequacy =
       (toyReadyAssemblyV3.mkReady
         (toy_uses c)
@@ -178,46 +210,25 @@ private theorem toyReady_toAdequacy_transport
         (toy_generates c)
         (toy_supportsReflection c)
         (toy_compatible c)).toAdequacy := by
-  sorry
+  -- 1. まず c を分解
+  cases c with | mk Γ σ st ready core =>
+  unfold toyReady_toProfile_eq toy_compatible
+  unfold transportAdequacy
+  simp
+  rfl
 
-/-- The visible adequacy is the ready adequacy transported along the chosen profile. -/
-theorem toyExternalPiecesV3_adequacy (c : ToyReadyCertificate) :
-    (toyExternalPiecesV3 c).adequacy =
-      transportAdequacy
-        (toyReadyAssemblyV3.profile_eq
-          (toy_uses c)
-          (toy_supportsRuntime c)
-          (toy_generates c)
-          (toy_supportsReflection c)
-          (toy_compatible c))
-        ((toyReadyAssemblyV3.mkReady
-          (toy_uses c)
-          (toy_supportsRuntime c)
-          (toy_generates c)
-          (toy_supportsReflection c)
-          (toy_compatible c)).toAdequacy) := by
-  sorry
+
 
 /-- Alternate display of adequacy using the packaged `c.ready` witness. -/
 theorem toyExternalPiecesV3_adequacy_ready (c : ToyReadyCertificate) :
     (toyExternalPiecesV3 c).adequacy =
       transportAdequacy
-        (toyReadyAssemblyV3.profile_eq
-          (toy_uses c)
-          (toy_supportsRuntime c)
-          (toy_generates c)
-          (toy_supportsReflection c)
-          (toy_compatible c))
+        (toyReadyAssemblyV3_profile_eq c)
         (transportAdequacy (toyReady_toProfile_eq c) c.ready.toAdequacy) := by
   calc
     (toyExternalPiecesV3 c).adequacy =
         transportAdequacy
-          (toyReadyAssemblyV3.profile_eq
-            (toy_uses c)
-            (toy_supportsRuntime c)
-            (toy_generates c)
-            (toy_supportsReflection c)
-            (toy_compatible c))
+          (toyReadyAssemblyV3_profile_eq c)
           ((toyReadyAssemblyV3.mkReady
             (toy_uses c)
             (toy_supportsRuntime c)
@@ -227,12 +238,7 @@ theorem toyExternalPiecesV3_adequacy_ready (c : ToyReadyCertificate) :
               exact toyExternalPiecesV3_adequacy c
     _ =
         transportAdequacy
-          (toyReadyAssemblyV3.profile_eq
-            (toy_uses c)
-            (toy_supportsRuntime c)
-            (toy_generates c)
-            (toy_supportsReflection c)
-            (toy_compatible c))
+          (toyReadyAssemblyV3_profile_eq c)
           (transportAdequacy (toyReady_toProfile_eq c) c.ready.toAdequacy) := by
             rw [toyReady_toAdequacy_transport c]
 

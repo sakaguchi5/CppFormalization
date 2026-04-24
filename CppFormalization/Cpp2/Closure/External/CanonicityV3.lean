@@ -117,33 +117,33 @@ theorem canonicalVisiblePiecesV3_wellDefined
     (hgen₁ : R.generates m₁ st) (hsuppRefl₁ : R.supportsReflection m₁ Γ st)
     (huse₂ : F.uses n₂) (hsuppRun₂ : F.supportsRuntime n₂ Γ σ st)
     (hgen₂ : R.generates m₂ st) (hsuppRefl₂ : R.supportsReflection m₂ Γ st) :
-    canonicalVisiblePiecesV3 huse₁ hsuppRun₁ hgen₁ hsuppRefl₁ =
-      canonicalVisiblePiecesV3 huse₂ hsuppRun₂ hgen₂ hsuppRefl₂ := by
-  unfold canonicalVisiblePiecesV3
-  unfold visiblePiecesOfPackagesV3
+    canonicalObservablePiecesV3 huse₁ hsuppRun₁ hgen₁ hsuppRefl₁ =
+      canonicalObservablePiecesV3 huse₂ hsuppRun₂ hgen₂ hsuppRefl₂ := by
+  unfold canonicalObservablePiecesV3
+  unfold observablePiecesOfPackagesV3
   have hrun : F.mkRuntime huse₁ hsuppRun₁ = F.mkRuntime huse₂ hsuppRun₂ :=
     hrununiq huse₁ hsuppRun₁ huse₂ hsuppRun₂
   have hrefl : R.mkReflection hgen₁ hsuppRefl₁ = R.mkReflection hgen₂ hsuppRefl₂ :=
     hrefluniq hgen₁ hsuppRefl₁ hgen₂ hsuppRefl₂
   calc
-    visiblePiecesOfPackagesV3
+    observablePiecesOfPackagesV3
         (F.mkRuntime huse₁ hsuppRun₁)
         (R.mkReflection hgen₁ hsuppRefl₁)
       =
-        visiblePiecesOfPackagesV3
+        observablePiecesOfPackagesV3
           (F.mkRuntime huse₂ hsuppRun₂)
           (R.mkReflection hgen₁ hsuppRefl₁) := by
             exact congrArg
               (fun rp =>
-                visiblePiecesOfPackagesV3 rp (R.mkReflection hgen₁ hsuppRefl₁))
+                observablePiecesOfPackagesV3 rp (R.mkReflection hgen₁ hsuppRefl₁))
               hrun
     _ =
-        visiblePiecesOfPackagesV3
+        observablePiecesOfPackagesV3
           (F.mkRuntime huse₂ hsuppRun₂)
           (R.mkReflection hgen₂ hsuppRefl₂) := by
             exact congrArg
               (fun fp =>
-                visiblePiecesOfPackagesV3 (F.mkRuntime huse₂ hsuppRun₂) fp)
+                observablePiecesOfPackagesV3 (F.mkRuntime huse₂ hsuppRun₂) fp)
               hrefl
 
 
@@ -158,8 +158,8 @@ theorem canonicalVisiblePiecesV3_packageCoherent
     (huse₂ : F.uses n₂) (hsuppRun₂ : F.supportsRuntime n₂ Γ σ st)
     (hgen₂ : R.generates m₂ st) (hsuppRefl₂ : R.supportsReflection m₂ Γ st) :
     PackageCoherentV3
-      (canonicalVisiblePiecesV3 huse₁ hsuppRun₁ hgen₁ hsuppRefl₁)
-      (canonicalVisiblePiecesV3 huse₂ hsuppRun₂ hgen₂ hsuppRefl₂) := by
+      (canonicalObservablePiecesV3 huse₁ hsuppRun₁ hgen₁ hsuppRefl₁)
+      (canonicalObservablePiecesV3 huse₂ hsuppRun₂ hgen₂ hsuppRefl₂) := by
   exact canonicalVisiblePiecesV3_wellDefined hrununiq hrefluniq
     huse₁ hsuppRun₁ hgen₁ hsuppRefl₁ huse₂ hsuppRun₂ hgen₂ hsuppRefl₂
 

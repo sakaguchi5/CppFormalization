@@ -76,7 +76,7 @@ theorem legacy_builder_ready_boundary_eq_bridge
           symm
           exact
             externalPiecesV3_of_legacy_external_assumptions_boundary
-              c.G c.huse c.hdyn c.hgen c.hstruct c.hprof c.hcompat
+              c.G c.huse c.hdyn c.hgen c.hstruct c.hstatic c.hcompat
 
 theorem legacy_builder_ready_boundaryCoherent_bridge
     {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}
@@ -99,7 +99,7 @@ theorem legacy_builder_glue_boundary_eq_bridge
           symm
           exact
             externalPiecesV3_of_legacy_external_assumptions_boundary
-              c.G c.huse c.hdyn c.hgen c.hstruct c.hprof c.hcompat
+              c.G c.huse c.hdyn c.hgen c.hstruct c.hstatic c.hcompat
 
 theorem legacy_builder_glue_boundaryCoherent_bridge
     {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}

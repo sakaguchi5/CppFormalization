@@ -161,4 +161,38 @@ theorem reflective_std_closure_theorem_from_ready_v3
   let p := externalPieces_of_ready_v3 A huse hsuppRun hgen hsuppRefl hcompat
   exact InternalClosureRoadmap.stmt_terminates_or_diverges p.core p.toBodyBoundary
 
+theorem externalPieces_of_ready_v3_packageCoherent
+    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
+    (A : VerifiedExternalReadyAssemblyV3 F R)
+    {n : F.Name} {m : R.Meta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : F.uses n)
+    (hsuppRun : F.supportsRuntime n Γ σ st)
+    (hgen : R.generates m st)
+    (hsuppRefl : R.supportsReflection m Γ st)
+    (hcompat : A.compatible n m Γ σ st) :
+    PackageCoherentV3
+      (externalPieces_of_ready_v3
+        A huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces
+      (canonicalObservablePiecesV3
+        huse hsuppRun hgen hsuppRefl) := by
+  change
+    (externalPieces_of_ready_v3
+      A huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces =
+    (canonicalObservablePiecesV3
+      huse hsuppRun hgen hsuppRefl)
+
+  have hdyn :=
+    A.dynamic_eq huse hsuppRun hgen hsuppRefl hcompat
+  have hstruct :=
+    A.structural_eq huse hsuppRun hgen hsuppRefl hcompat
+
+  cases hstruct
+  cases hdyn
+
+  simp [externalPieces_of_ready_v3,
+    canonicalObservablePiecesV3,
+    observablePiecesOfPackagesV3,
+    ExternalPiecesV3.toVisiblePieces]
+
 end Cpp

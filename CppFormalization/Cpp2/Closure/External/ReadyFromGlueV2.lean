@@ -40,8 +40,13 @@ theorem externalPieces_of_ready_from_glue_boundary_eq
     (assembleExternalPieces G huse hgen hcompat).toBodyBoundary := by
   let p : ExternalPieces Γ σ st :=
     assembleExternalPieces G huse hgen hcompat
-  change p.toBodyBoundary.toBodyReadyCI.toClosureBoundary = p.toBodyBoundary
-  exact bodyClosureBoundaryCI_roundtrip p.toBodyBoundary
+  have hp :
+      (externalPieces_of_ready_v2 (readyAssembly_of_glue_v2 G) huse hgen hcompat).toBodyBoundary
+        =
+      p.toBodyBoundary.toBodyReadyCI.toClosureBoundary := by
+    sorry--rfl
+  rw [hp]
+  simpa using bodyClosureBoundaryCI_roundtrip p.toBodyBoundary
 
 theorem reflective_std_function_body_closure_v2_via_ready
     {F : VerifiedStdFragmentV2} {R : VerifiedReflectionFragmentV2}

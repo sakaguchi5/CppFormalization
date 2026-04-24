@@ -32,7 +32,7 @@ structure LegacyCertificateV3
   hdyn : F.establishesDynamic n Γ σ st
   hgen : R.generates m st
   hstruct : R.establishesStructural m Γ st
-  hprof : R.establishesProfile m Γ st
+  hstatic : R.establishesStatic m Γ st
   hcompat : G.compatible n m Γ σ st
 
 namespace LegacyCertificateV3
@@ -43,7 +43,7 @@ noncomputable def oldBoundary
     (c : LegacyCertificateV3 F R) :
     BodyClosureBoundaryCI c.Γ c.σ c.st :=
   fragments_establish_body_closure_boundary
-    c.G c.huse c.hdyn c.hgen c.hstruct c.hprof c.hcompat
+    c.G c.huse c.hdyn c.hgen c.hstruct c.hstatic c.hcompat
 
 /-- The corresponding old ready witness extracted from the official boundary. -/
 noncomputable def oldReady
@@ -65,7 +65,7 @@ noncomputable def oldExternalPieces
     (c : LegacyCertificateV3 F R) :
     ExternalPiecesV3 c.Γ c.σ c.st :=
   externalPiecesV3_of_legacy_external_assumptions
-    c.G c.huse c.hdyn c.hgen c.hstruct c.hprof c.hcompat
+    c.G c.huse c.hdyn c.hgen c.hstruct c.hstatic c.hcompat
 
 end LegacyCertificateV3
 

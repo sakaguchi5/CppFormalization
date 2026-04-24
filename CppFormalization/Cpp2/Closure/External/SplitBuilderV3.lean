@@ -117,8 +117,6 @@ def toReadyAssembly (A : SplitArtifactFamilyV3) :
   structural_eq := A.structural_eq
   static_eq := A.static_eq
 
-
-
 def mkAdequacy_from_compatible
     (A : SplitArtifactFamilyV3)
     {n : A.RuntimeName} {m : A.ReflectionMeta}
@@ -187,6 +185,8 @@ theorem readyExternalPieces_boundary
       (hsuppRefl := hsuppRefl)
       (hcompat := hcompat))
 
+
+
 theorem readyExternalPieces_packageCoherent
     (A : SplitArtifactFamilyV3)
     {n : A.RuntimeName} {m : A.ReflectionMeta}
@@ -198,7 +198,7 @@ theorem readyExternalPieces_packageCoherent
     (hcompat : A.compatible n m Γ σ st) :
     PackageCoherentV3
       (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces
-      (canonicalVisiblePiecesV3 (F := A.toStdFragment) (R := A.toReflectionFragment) huse hsuppRun hgen hsuppRefl) := by
+      (canonicalObservablePiecesV3 (F := A.toStdFragment) (R := A.toReflectionFragment) huse hsuppRun hgen hsuppRefl) := by
   simpa [readyExternalPieces] using
     (externalPieces_of_ready_v3_packageCoherent
       (A := A.toReadyAssembly)
@@ -207,6 +207,7 @@ theorem readyExternalPieces_packageCoherent
       (hgen := hgen)
       (hsuppRefl := hsuppRefl)
       (hcompat := hcompat))
+
 
 theorem glueExternalPieces_packageCoherent
     (A : SplitArtifactFamilyV3)
@@ -219,7 +220,7 @@ theorem glueExternalPieces_packageCoherent
     (hcompat : A.compatible n m Γ σ st) :
     PackageCoherentV3
       (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces
-      (canonicalVisiblePiecesV3 (F := A.toStdFragment) (R := A.toReflectionFragment) huse hsuppRun hgen hsuppRefl) := by
+      (canonicalObservablePiecesV3  (F := A.toStdFragment) (R := A.toReflectionFragment) huse hsuppRun hgen hsuppRefl) := by
   simpa [glueExternalPieces] using
     (assembleExternalPiecesV3_packageCoherent
       (G := A.toGlue)
@@ -246,7 +247,7 @@ theorem ready_vs_glue_packageCoherent
       (A.glueExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces
   calc
     (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces =
-        canonicalVisiblePiecesV3 huse hsuppRun hgen hsuppRefl := by
+        canonicalObservablePiecesV3  huse hsuppRun hgen hsuppRefl := by
       exact A.readyExternalPieces_packageCoherent huse hsuppRun hgen hsuppRefl hcompat
     _ =
         (A.glueExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces := by
