@@ -87,15 +87,17 @@ theorem bodyReady_of_concrete
     StmtReadyConcrete Γ σ st →
     BodyReady Γ σ st := by
   intro hwf htyped hbreak hcont hstate hsafe
-  sorry/-
+  refine
+    { wf := hwf
+      typed := htyped
+      breakScoped := hbreak
+      continueScoped := hcont
+      state := scopedTypedState_of_concrete hstate
+      safe := ?_ }
   exact
-    mkLegacyBodyReadyOfStructuralDynamic
-      { wf := hwf
-        typed0 := htyped
-        breakScoped := hbreak
-        continueScoped := hcont }
-      { state := hstate
-        safe := hsafe }-/
+    ⟨ htyped
+    , noUninit_of_stmtReadyConcrete hsafe
+    , noInvalidRef_of_stmtReadyConcrete hsafe ⟩
 
 theorem assigns_preserves_scoped_typed_state_via_concrete
     {Γ : TypeEnv} {σ σ' : State} {p : PlaceExpr} {v : Value} {τ : CppType} :

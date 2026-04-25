@@ -29,10 +29,12 @@ structure WhileTailBoundaryKitCI
     (Γ : TypeEnv) (σ : State) (c : ValExpr) (body : CppStmt) : Type where
   afterNormal :
     ∀ {σ1 : State},
+      BigStepValue σ c (.bool true) →
       BigStepStmt σ body .normal σ1 →
       BodyClosureBoundaryCI Γ σ1 (.whileStmt c body)
   afterContinue :
     ∀ {σ1 : State},
+      BigStepValue σ c (.bool true) →
       BigStepStmt σ body .continueResult σ1 →
       BodyClosureBoundaryCI Γ σ1 (.whileStmt c body)
 
