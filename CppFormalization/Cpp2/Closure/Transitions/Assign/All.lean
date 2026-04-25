@@ -1,0 +1,1 @@
+import CppFormalization.Cpp2.Closure.Transitions.Minor.AssignDecomposition

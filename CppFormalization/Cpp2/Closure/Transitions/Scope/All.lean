@@ -1,0 +1,4 @@
+import CppFormalization.Cpp2.Closure.Transitions.OpenCloseLowLevelTheorems
+import CppFormalization.Cpp2.Closure.Transitions.Minor.OpenScopeDecomposition
+import CppFormalization.Cpp2.Closure.Transitions.Major.CloseScopeDecomposition
+import CppFormalization.Cpp2.Closure.Transitions.Major.CloseScopeTopFrameExtension

@@ -1,0 +1,5 @@
+import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectTransport
+import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectOwnership
+import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectRealizers
+import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectDecomposition
+import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectDecompositionWithNext

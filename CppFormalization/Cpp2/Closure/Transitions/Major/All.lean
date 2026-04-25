@@ -1,9 +1,3 @@
-import CppFormalization.Cpp2.Closure.Transitions.Major.CloseScopeDecomposition
-import CppFormalization.Cpp2.Closure.Transitions.Major.CloseScopeTopFrameExtension
-import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectDecomposition
-import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectDecompositionWithNext
-import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectOwnership
-import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectRealizers
-import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectTransport
-import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareRefDecomposition
-import CppFormalization.Cpp2.Closure.Transitions.Major.ObjectDeclRuntimeBridgeV3
+import CppFormalization.Cpp2.Closure.Transitions.Scope.All
+import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.All
+import CppFormalization.Cpp2.Closure.Transitions.DeclareRef.All

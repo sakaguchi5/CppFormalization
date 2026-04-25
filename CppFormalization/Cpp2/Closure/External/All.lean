@@ -10,6 +10,7 @@ import CppFormalization.Cpp2.Closure.External.Interface
 import CppFormalization.Cpp2.Closure.External.InterfaceV2
 import CppFormalization.Cpp2.Closure.External.InterfaceV3
 import CppFormalization.Cpp2.Closure.External.LegacyBuilderV3
+import CppFormalization.Cpp2.Closure.External.ObjectDeclRuntimeBridgeV3
 import CppFormalization.Cpp2.Closure.External.ReadyAssemblyV3
 import CppFormalization.Cpp2.Closure.External.ReadyFromGlueV3
 import CppFormalization.Cpp2.Closure.External.ReflectionFragmentV2
