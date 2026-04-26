@@ -1,18 +1,112 @@
-import CppFormalization.Cpp2.Closure.External.StdFragmentV3
+﻿--import CppFormalization.Cpp2.Closure.External.StdFragmentV3
 import CppFormalization.Cpp2.Closure.Transitions.Major.ObjectDeclRuntimeBridgeV3
 import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectDecomposition
 import CppFormalization.Cpp2.Closure.Foundation.CoreBigStepFragment
+--import CppFormalization.Cpp2.Closure.Foundation.BodyStaticBoundaryCI
+
 namespace Cpp
 
-/-!
+/-
 # Closure.External.ObjectDeclStdFragmentV3
 
 Concrete theorem-backed std/runtime fragment for object-declaration statements.
 
-This packages the recomputed-cursor object-declaration runtime builders into
-an actual `VerifiedStdFragmentV3` instance, so later ready/glue assembly can
-use a non-toy runtime side.
+The key point of this version is that initializer coherence is carried by an
+inductive certificate (`ObjectDeclRuntimeInit`) instead of dependent `match`
+fields on `ObjectDeclRuntimeCert`.  This mirrors the `BodyRootCoherent` repair:
+the constructor records the coherent shape, and projections are recovered by
+small eliminators.
 -/
+
+/--
+Runtime-side initializer certificate for object declarations.
+
+`noInit` says there is no initializer and no stored value.
+`someInit` says the initializer is typed/ready, evaluates to the stored value,
+and that stored value is compatible with the declared object type.
+-/
+inductive ObjectDeclRuntimeInit
+    (Γ : TypeEnv) (σ : State) (τ : CppType) :
+    Option ValExpr → Option Value → Type where
+  | noInit :
+      ObjectDeclRuntimeInit Γ σ τ (Option.none : Option ValExpr) (Option.none : Option Value)
+  | someInit {e : ValExpr} {v : Value} :
+      HasValueType Γ e τ →
+      ExprReadyConcrete Γ σ e τ →
+      BigStepValue σ e v →
+      ValueCompat v τ →
+      ObjectDeclRuntimeInit Γ σ τ (Option.some e) (Option.some v)
+
+namespace ObjectDeclRuntimeInit
+
+def toStoredValue
+    {Γ : TypeEnv} {σ : State} {τ : CppType}
+    {initExpr : Option ValExpr} {ov : Option Value}
+    (h : ObjectDeclRuntimeInit Γ σ τ initExpr ov) :
+    ObjectDeclInitStoredValue σ τ initExpr ov := by
+  cases h with
+  | noInit =>
+      exact ObjectDeclInitStoredValue.intro_none
+  | someInit hty hre hstep hcompat =>
+      exact ObjectDeclInitStoredValue.intro_some hstep hcompat
+
+@[simp] theorem ov_eq_none
+    {Γ : TypeEnv} {σ : State} {τ : CppType} {ov : Option Value}
+    (h : ObjectDeclRuntimeInit Γ σ τ (Option.none : Option ValExpr) ov) :
+    ov = Option.none := by
+  cases h
+  rfl
+
+def someWitness
+    {Γ : TypeEnv} {σ : State} {τ : CppType}
+    {e : ValExpr} {ov : Option Value}
+    (h : ObjectDeclRuntimeInit Γ σ τ (Option.some e) ov) :
+    {v : Value //
+      ov = Option.some v ∧
+      HasValueType Γ e τ ∧
+      ExprReadyConcrete Γ σ e τ ∧
+      BigStepValue σ e v ∧
+      ValueCompat v τ} := by
+  cases h with
+  | someInit hty hre hstep hcompat =>
+      exact ⟨_, rfl, hty, hre, hstep, hcompat⟩
+
+theorem ov_is_some
+    {Γ : TypeEnv} {σ : State} {τ : CppType}
+    {e : ValExpr} {ov : Option Value}
+    (h : ObjectDeclRuntimeInit Γ σ τ (Option.some e) ov) :
+    ∃ v, ov = Option.some v := by
+  exact ⟨(someWitness h).1, (someWitness h).2.1⟩
+
+def hasValueType
+    {Γ : TypeEnv} {σ : State} {τ : CppType}
+    {e : ValExpr} {ov : Option Value}
+    (h : ObjectDeclRuntimeInit Γ σ τ (Option.some e) ov) :
+    HasValueType Γ e τ :=
+  (someWitness h).2.2.1
+
+def exprReady
+    {Γ : TypeEnv} {σ : State} {τ : CppType}
+    {e : ValExpr} {ov : Option Value}
+    (h : ObjectDeclRuntimeInit Γ σ τ (Option.some e) ov) :
+    ExprReadyConcrete Γ σ e τ :=
+  (someWitness h).2.2.2.1
+
+def bigStepValue
+    {Γ : TypeEnv} {σ : State} {τ : CppType}
+    {e : ValExpr} {ov : Option Value}
+    (h : ObjectDeclRuntimeInit Γ σ τ (Option.some e) ov) :
+    BigStepValue σ e (someWitness h).1 :=
+  (someWitness h).2.2.2.2.1
+
+def valueCompat
+    {Γ : TypeEnv} {σ : State} {τ : CppType}
+    {e : ValExpr} {ov : Option Value}
+    (h : ObjectDeclRuntimeInit Γ σ τ (Option.some e) ov) :
+    ValueCompat (someWitness h).1 τ :=
+  (someWitness h).2.2.2.2.2
+
+end ObjectDeclRuntimeInit
 
 /-- Runtime-side certificate for an object-declaration statement. -/
 structure ObjectDeclRuntimeCert where
@@ -22,85 +116,88 @@ structure ObjectDeclRuntimeCert where
   τ : CppType
   ov : Option Value
   initExpr : Option ValExpr
-  initStored : ObjectDeclInitStoredValue σ τ initExpr ov
+  init : ObjectDeclRuntimeInit Γ σ τ initExpr ov
   ready : DeclareObjectReadyRecomputed Γ σ x τ ov
   objTy : ObjectType τ
-  hasExprTy :
-    match initExpr with
-    | none => True
-    | some e => HasValueType Γ e τ
-  exprReady :
-    match initExpr with
-    | none => True
-    | some e => ExprReadyConcrete Γ σ e τ
-
-/-- 初期化式がある場合、その型が τ であることを抽出する -/
-def ObjectDeclRuntimeCert.getHasValueType (c : ObjectDeclRuntimeCert) {e : ValExpr}
-    (h_expr : c.initExpr = some e) : HasValueType c.Γ e c.τ := by
-  rcases c with ⟨Γ, σ, x, τ, ov, initExpr, initStored, ready, objTy, hasExprTy, exprReady⟩
-  cases h_expr
-  exact hasExprTy
-
-/-- 初期化式がある場合、その readiness を抽出する -/
-def ObjectDeclRuntimeCert.getExprReady (c : ObjectDeclRuntimeCert) {e : ValExpr}
-    (h_expr : c.initExpr = some e) : ExprReadyConcrete c.Γ c.σ e c.τ := by
-  rcases c with ⟨Γ, σ, x, τ, ov, initExpr, initStored, ready, objTy, hasExprTy, exprReady⟩
-  cases h_expr
-  exact exprReady
-
-/-- 初期化式がある場合、その式が最終的に格納する concrete value を抽出する -/
-def ObjectDeclRuntimeCert.getStoredValue (c : ObjectDeclRuntimeCert) {e : ValExpr}
-    (h_expr : c.initExpr = some e) :
-    ∃ v, c.ov = some v ∧ BigStepValue c.σ e v ∧ ValueCompat v c.τ := by
-  rcases c with ⟨Γ, σ, x, τ, ov, initExpr, initStored, ready, objTy, hasExprTy, exprReady⟩
-  cases h_expr
-  rcases ObjectDeclInitStoredValue.witness initStored with ⟨v, hov, hstep, hcompat⟩
-  exact ⟨v, hov, hstep, hcompat⟩
 
 namespace ObjectDeclRuntimeCert
 
 @[simp] def targetStmt (c : ObjectDeclRuntimeCert) : CppStmt :=
   .declareObj c.τ c.x c.initExpr
 
+def initStored (c : ObjectDeclRuntimeCert) :
+    ObjectDeclInitStoredValue c.σ c.τ c.initExpr c.ov :=
+  c.init.toStoredValue
+
 @[simp] theorem targetStmt_none
-    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {ov : Option Value}
-    {hstore : ObjectDeclInitStoredValue σ τ none ov}
-    {h : DeclareObjectReadyRecomputed Γ σ x τ ov}
+    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType}
+    {hinit : ObjectDeclRuntimeInit Γ σ τ (Option.none : Option ValExpr) (Option.none : Option Value)}
+    {h : DeclareObjectReadyRecomputed Γ σ x τ (Option.none : Option Value)}
     {hobj : ObjectType τ} :
-    (ObjectDeclRuntimeCert.mk Γ σ x τ ov none hstore h hobj True.intro True.intro).targetStmt =
+    (ObjectDeclRuntimeCert.mk Γ σ x τ Option.none Option.none hinit h hobj).targetStmt =
       .declareObj τ x none := rfl
 
 @[simp] theorem targetStmt_some
-    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {ov : Option Value}
-    {e : ValExpr}
-    {hstore : ObjectDeclInitStoredValue σ τ (some e) ov}
-    {h : DeclareObjectReadyRecomputed Γ σ x τ ov}
-    {hobj : ObjectType τ}
-    {hty : HasValueType Γ e τ}
-    {hre : ExprReadyConcrete Γ σ e τ} :
-    (ObjectDeclRuntimeCert.mk Γ σ x τ ov (some e) hstore h hobj hty hre).targetStmt =
+    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType}
+    {e : ValExpr} {v : Value}
+    {hinit : ObjectDeclRuntimeInit Γ σ τ (Option.some e) (Option.some v)}
+    {h : DeclareObjectReadyRecomputed Γ σ x τ (Option.some v)}
+    {hobj : ObjectType τ} :
+    (ObjectDeclRuntimeCert.mk Γ σ x τ (Option.some v) (Option.some e) hinit h hobj).targetStmt =
       .declareObj τ x (some e) := rfl
+
+/-- 初期化式がある場合、その型が τ であることを抽出する。 -/
+def getHasValueType (c : ObjectDeclRuntimeCert) {e : ValExpr}
+    (h_expr : c.initExpr = some e) : HasValueType c.Γ e c.τ := by
+  rcases c with ⟨Γ, σ, x, τ, ov, initExpr, init, ready, objTy⟩
+  cases h_expr
+  exact ObjectDeclRuntimeInit.hasValueType init
+
+/-- 初期化式がある場合、その readiness を抽出する。 -/
+def getExprReady (c : ObjectDeclRuntimeCert) {e : ValExpr}
+    (h_expr : c.initExpr = some e) : ExprReadyConcrete c.Γ c.σ e c.τ := by
+  rcases c with ⟨Γ, σ, x, τ, ov, initExpr, init, ready, objTy⟩
+  cases h_expr
+  exact ObjectDeclRuntimeInit.exprReady init
 
 @[simp] theorem ov_eq_none_of_init_none
     {c : ObjectDeclRuntimeCert} (hinit : c.initExpr = none) :
     c.ov = none := by
-  rcases c with ⟨Γ, σ, x, τ, ov, initExpr, initStored, ready, objTy, hasExprTy, exprReady⟩
+  rcases c with ⟨Γ, σ, x, τ, ov, initExpr, init, ready, objTy⟩
   cases hinit
-  exact ObjectDeclInitStoredValue.ov_eq_none initStored
+  exact ObjectDeclRuntimeInit.ov_eq_none init
+
+/-- 初期化式がある場合、その式が最終的に格納する concrete value を subtype として抽出する。 -/
+def getStoredValueWitness (c : ObjectDeclRuntimeCert) {e : ValExpr}
+    (h_expr : c.initExpr = some e) :
+    {v : Value // c.ov = some v ∧ BigStepValue c.σ e v ∧ ValueCompat v c.τ} := by
+  rcases c with ⟨Γ, σ, x, τ, ov, initExpr, init, ready, objTy⟩
+  cases h_expr
+  let w := ObjectDeclRuntimeInit.someWitness init
+  exact
+    ⟨ w.1
+    , w.2.1
+    , w.2.2.2.2.1
+    , w.2.2.2.2.2 ⟩
+
+/-- Prop 版の存在定理。データ抽出ではなく、証明用。 -/
+theorem getStoredValue (c : ObjectDeclRuntimeCert) {e : ValExpr}
+    (h_expr : c.initExpr = some e) :
+    ∃ v, c.ov = some v ∧ BigStepValue c.σ e v ∧ ValueCompat v c.τ := by
+  let w := c.getStoredValueWitness h_expr
+  exact ⟨w.1, w.2.1, w.2.2.1, w.2.2.2⟩
 
 /-- 初期化式がある場合の stored-value witness を subtype として取り出す。 -/
 def storedValueWitness (c : ObjectDeclRuntimeCert) {e : ValExpr}
     (hinit : c.initExpr = some e) :
-    {v : Value // c.ov = some v ∧ BigStepValue c.σ e v ∧ ValueCompat v c.τ} := by
-  rcases c with ⟨Γ, σ, x, τ, ov, initExpr, initStored, ready, objTy, hasExprTy, exprReady⟩
-  cases hinit
-  exact ObjectDeclInitStoredValue.witness initStored
+    {v : Value // c.ov = some v ∧ BigStepValue c.σ e v ∧ ValueCompat v c.τ} :=
+  c.getStoredValueWitness hinit
 
-/-- 初期化式がある場合、ov は必ず some v になる -/
+/-- 初期化式がある場合、ov は必ず some v になる。 -/
 theorem ov_is_some_of_init_some {c : ObjectDeclRuntimeCert} {e : ValExpr}
     (hinit : c.initExpr = some e) : ∃ v, c.ov = some v := by
-  let ⟨v, h_ov, _⟩ := c.getStoredValue hinit
-  exists v
+  rcases c.getStoredValue hinit with ⟨v, h_ov, _, _⟩
+  exact ⟨v, h_ov⟩
 
 @[simp] theorem ov_ne_none_of_init_some
     {c : ObjectDeclRuntimeCert} {e : ValExpr}
@@ -131,8 +228,9 @@ def stmtReadyConcrete (c : ObjectDeclRuntimeCert) :
     StmtReadyConcrete c.Γ c.σ c.targetStmt := by
   cases hinit : c.initExpr with
   | none =>
-      have hreadyNone : DeclareObjectReadyRecomputed c.Γ c.σ c.x c.τ none :=
-        (c.ov_eq_none_of_init_none hinit) ▸ c.ready
+      have hov : c.ov = none := c.ov_eq_none_of_init_none hinit
+      have hreadyNone : DeclareObjectReadyRecomputed c.Γ c.σ c.x c.τ none := by
+        simpa [hov] using c.ready
       simpa [ObjectDeclRuntimeCert.targetStmt, hinit] using
         DeclareObjectReadyRecomputed.toStmtReadyConcrete_declareObjNone
           hreadyNone c.objTy
@@ -156,20 +254,20 @@ theorem bodyDynamicBoundary_eq_target
 
 def mkRuntime_none {n : ObjectDeclRuntimeCert} (hinit : n.initExpr = none) :
     RuntimePiecesV3 n.Γ n.σ (.declareObj n.τ n.x none) := by
-  rcases n with ⟨Γ, σ, x, τ, ov, initExpr, initStored, ready, objTy, hasExprTy, exprReady⟩
+  rcases n with ⟨Γ, σ, x, τ, ov, initExpr, init, ready, objTy⟩
   cases hinit
-  have hov : ov = none :=
-    ObjectDeclInitStoredValue.ov_eq_none_of_none initStored
+  have hov : ov = none := ObjectDeclRuntimeInit.ov_eq_none init
   subst hov
   exact DeclareObjectReadyRecomputed.runtimePieces_declareObjNone ready objTy
 
 def mkRuntime_some {n : ObjectDeclRuntimeCert} {e : ValExpr} (hinit : n.initExpr = some e) :
     RuntimePiecesV3 n.Γ n.σ (.declareObj n.τ n.x (some e)) := by
-  rcases n with ⟨Γ, σ, x, τ, ov, initExpr, initStored, ready, objTy, hasExprTy, exprReady⟩
-  dsimp at hinit
-  subst hinit
-  dsimp at hasExprTy exprReady
-  exact DeclareObjectReadyRecomputed.runtimePieces_declareObjSome ready objTy hasExprTy exprReady
+  rcases n with ⟨Γ, σ, x, τ, ov, initExpr, init, ready, objTy⟩
+  cases hinit
+  exact DeclareObjectReadyRecomputed.runtimePieces_declareObjSome
+    ready objTy
+    (ObjectDeclRuntimeInit.hasValueType init)
+    (ObjectDeclRuntimeInit.exprReady init)
 
 end ObjectDeclRuntimeCert
 
@@ -213,17 +311,17 @@ def toRuntime (c : ObjectDeclRuntimeCert) : RuntimePiecesV3 c.Γ c.σ c.targetSt
     (fun h => mkRuntime_none h)
     (fun _ h => mkRuntime_some h)
 
-/-- toRuntime の none のケースに関する簡約ルール -/
+/-- toRuntime の none のケースに関する簡約ルール。 -/
 @[simp] theorem toRuntime_none
-    (Γ σ x τ ov initStored ready objTy hasExprTy exprReady) :
-    let c := ObjectDeclRuntimeCert.mk Γ σ x τ ov none initStored ready objTy hasExprTy exprReady
+    (Γ σ x τ ov init ready objTy) :
+    let c := ObjectDeclRuntimeCert.mk Γ σ x τ ov (Option.none : Option ValExpr) init ready objTy
     c.toRuntime = mkRuntime_none (n := c) rfl :=
   rfl
 
-/-- toRuntime の some のケースに関する簡約ルール -/
+/-- toRuntime の some のケースに関する簡約ルール。 -/
 @[simp] theorem toRuntime_some
-    (Γ σ x τ ov e initStored ready objTy hasExprTy exprReady) :
-    let c := ObjectDeclRuntimeCert.mk Γ σ x τ ov (some e) initStored ready objTy hasExprTy exprReady
+    (Γ σ x τ v e init ready objTy) :
+    let c := ObjectDeclRuntimeCert.mk Γ σ x τ (Option.some v) (Option.some e) init ready objTy
     c.toRuntime = mkRuntime_some (n := c) rfl :=
   rfl
 
@@ -231,7 +329,7 @@ def toRuntime (c : ObjectDeclRuntimeCert) : RuntimePiecesV3 c.Γ c.σ c.targetSt
     (c : ObjectDeclRuntimeCert) (h : c.initExpr = none) :
     (h ▸ c.toRuntime : RuntimePiecesV3 c.Γ c.σ (CppStmt.declareObj c.τ c.x none))
     = mkRuntime_none h := by
-  rcases c with ⟨Γ, σ, x, τ, ov, (_ | e), initStored, ready, objTy, hasExprTy, exprReady⟩
+  rcases c with ⟨Γ, σ, x, τ, ov, (_ | e), init, ready, objTy⟩
   · rfl
   · nomatch h
 
@@ -239,7 +337,7 @@ def toRuntime (c : ObjectDeclRuntimeCert) : RuntimePiecesV3 c.Γ c.σ c.targetSt
     (c : ObjectDeclRuntimeCert) {e : ValExpr} (h : c.initExpr = some e) :
     (h ▸ c.toRuntime : RuntimePiecesV3 c.Γ c.σ (CppStmt.declareObj c.τ c.x (some e)))
     = mkRuntime_some h := by
-  rcases c with ⟨Γ, σ, x, τ, ov, (_ | e'), initStored, ready, objTy, hasExprTy, exprReady⟩
+  rcases c with ⟨Γ, σ, x, τ, ov, (_ | e'), init, ready, objTy⟩
   · nomatch h
   · injection h with h_eq
     subst h_eq
@@ -253,21 +351,21 @@ theorem targetStmt_eq_some {c : ObjectDeclRuntimeCert} {e : ValExpr} (h : c.init
     c.targetStmt = .declareObj c.τ c.x (some e) := by
   simp [targetStmt, h]
 
-/-- 統合定理：フレームワークの mkRuntime は、我々の toRuntime と一致する -/
+/-- 統合定理：フレームワークの mkRuntime は、我々の toRuntime と一致する。 -/
 theorem objectDeclStdFragmentV3_mkRuntime_eq (c : ObjectDeclRuntimeCert) :
     objectDeclStdFragmentV3.mkRuntime (n := c) trivial ⟨rfl, rfl, rfl⟩ = c.toRuntime := by
   unfold ObjectDeclRuntimeCert.toRuntime ObjectDeclRuntimeCert.casesOnInit
-  rcases c with ⟨Γ, σ, x, τ, ov, initExpr, initStored, ready, objTy, hasExprTy, exprReady⟩
+  rcases c with ⟨Γ, σ, x, τ, ov, initExpr, init, ready, objTy⟩
   cases initExpr with
   | none =>
-      dsimp [ObjectDeclRuntimeCert] at *
-      have hov : ov = none := ObjectDeclInitStoredValue.ov_eq_none initStored
+      have hov : ov = none := ObjectDeclRuntimeInit.ov_eq_none init
       subst hov
-      dsimp [ObjectDeclInitStoredValue] at initStored
-      cases initStored
+      cases init
       rfl
   | some e =>
-      rfl
+      cases init with
+      | someInit hty hre hstep hcompat =>
+          rfl
 
 @[simp] theorem mkRuntime_self (c : ObjectDeclRuntimeCert) :
     objectDeclStdFragmentV3.mkRuntime (n := c) trivial c.supportsRuntime_self = c.toRuntime := by
@@ -280,7 +378,6 @@ theorem objectDeclStdFragmentV3_mkRuntime_eq (c : ObjectDeclRuntimeCert) :
     StmtReadyConcrete c.Γ c.σ c.targetStmt :=
   c.stmtReadyConcrete
 
-
 /-- `currentTypeScopeFresh` already guarantees that the type environment has a
 top frame, so cert-level APIs can recover the witness expected by the
 recomputed-cursor preservation theorems without reopening lower layers. -/
@@ -291,7 +388,6 @@ def topTypeFrameWitness_of_currentTypeScopeFresh
   cases hsc : Γ.scopes with
   | nil =>
       simp [currentTypeScopeFresh, hsc] at h
-
   | cons fr frs =>
       exact ⟨fr, by simp⟩
 
@@ -477,13 +573,18 @@ end
           (Γ := c.Γ) (τ := c.τ) (x := c.x) (e := e)
           c.ready.scopeFresh c.objTy hty)
 
+/-- Old coarse typing recovered from the canonical normal CI typing. -/
+@[simp] theorem typed0
+    (c : ObjectDeclRuntimeCert) :
+    WellTypedFrom c.Γ c.targetStmt := by
+  exact ⟨c.postTypeEnv, normalCI_to_old_stmt c.normalTyping⟩
+
 /-- Structural boundary extracted from the cert. -/
 def bodyStructuralBoundary
     (c : ObjectDeclRuntimeCert) :
     BodyStructuralBoundary c.Γ c.targetStmt := by
   refine
     { wf := ?_
-      typed0 := ?_
       breakScoped := ?_
       continueScoped := ?_ }
   ·
@@ -494,8 +595,6 @@ def bodyStructuralBoundary
         have hty : HasValueType c.Γ e c.τ := c.getHasValueType hinit
         simpa [ObjectDeclRuntimeCert.targetStmt, hinit, WellFormedStmt] using
           (wellFormedValue_of_hasValueType hty)
-  ·
-    exact ⟨c.postTypeEnv, normalCI_to_old_stmt c.normalTyping⟩
   ·
     cases hinit : c.initExpr <;>
       simp [ObjectDeclRuntimeCert.targetStmt, hinit, BreakWellScoped, BreakWellScopedAt]
@@ -516,6 +615,20 @@ def bodyControlProfile
   { summary :=
       { normalOut := some c.normalOut
         returnOut := none } }
+
+/-- Static CI boundary extracted from the cert. -/
+def bodyStaticBoundary
+    (c : ObjectDeclRuntimeCert) :
+    BodyStaticBoundaryCI c.Γ c.targetStmt :=
+  { typed0 := c.typed0
+    profile := c.bodyControlProfile
+    root := .normal c.normalOut
+    rootCoherent := BodyRootCoherent.normal rfl }
+
+@[simp] theorem bodyStaticBoundary_profile
+    (c : ObjectDeclRuntimeCert) :
+    c.bodyStaticBoundary.profile = c.bodyControlProfile :=
+  rfl
 
 /-- Object declaration statements cannot produce a top-level return exit. -/
 theorem noReturnBigStep
@@ -548,12 +661,13 @@ def bodyAdequacyCI
 /-- Fully assembled CI closure boundary extracted from the cert. -/
 def bodyClosureBoundaryCI
     (c : ObjectDeclRuntimeCert) :
-    BodyClosureBoundaryCI c.Γ c.σ c.targetStmt :=
-  mkBodyClosureBoundaryCI
-    c.bodyStructuralBoundary
-    c.bodyControlProfile
-    c.bodyDynamicBoundary
-    c.bodyAdequacyCI
+    BodyClosureBoundaryCI c.Γ c.σ c.targetStmt := by
+  refine
+    { structural := c.bodyStructuralBoundary
+      static := c.bodyStaticBoundary
+      dynamic := c.bodyDynamicBoundary
+      adequacy := ?_ }
+  simpa [ObjectDeclRuntimeCert.bodyStaticBoundary] using c.bodyAdequacyCI
 
 /-- Legacy CI wrapper, recovered from the assembled boundary. -/
 def bodyReadyCI
@@ -563,13 +677,13 @@ def bodyReadyCI
 
 @[simp] theorem bodyReadyCI_safe
     (c : ObjectDeclRuntimeCert) :
-    c.bodyReadyCI.safe = c.stmtReadyConcrete :=
-  rfl
+    c.bodyReadyCI.dynamic.safe = c.stmtReadyConcrete := by
+  simp
 
 @[simp] theorem bodyReadyCI_state
     (c : ObjectDeclRuntimeCert) :
-    c.bodyReadyCI.state = c.ready.ready.concrete :=
-  rfl
+    c.bodyReadyCI.dynamic.state = c.ready.ready.concrete := by
+  simp
 
 @[simp] theorem targetStmt_inCoreBigStepFragment
     (c : ObjectDeclRuntimeCert) :
@@ -594,13 +708,13 @@ def toCoreBigStepCert
 
 @[simp] theorem toCoreBigStepCert_bodyReadyCI_safe
     (c : ObjectDeclRuntimeCert) :
-    c.toCoreBigStepCert.bodyReadyCI.safe = c.stmtReadyConcrete :=
-  rfl
+    c.toCoreBigStepCert.bodyReadyCI.dynamic.safe = c.stmtReadyConcrete := by
+  simp [toCoreBigStepCert, bodyClosureBoundaryCI]
 
 @[simp] theorem toCoreBigStepCert_bodyReadyCI_state
     (c : ObjectDeclRuntimeCert) :
-    c.toCoreBigStepCert.bodyReadyCI.state = c.ready.ready.concrete :=
-  rfl
+    c.toCoreBigStepCert.bodyReadyCI.dynamic.state = c.ready.ready.concrete := by
+  simp [toCoreBigStepCert, bodyClosureBoundaryCI]
 
 end ObjectDeclRuntimeCert
 

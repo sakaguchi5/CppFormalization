@@ -165,7 +165,7 @@ private theorem frameDeclBindingExactAt_insertTop
       rcases frameDeclBindingExactAt_backward hexact hbindOld with ⟨d', hdecl', hmatch'⟩
       exact ⟨d', by simpa [hy] using hdecl', hmatch'⟩
 
-theorem framewiseDeclBindingExact_declareTypeObject_declareObjectState
+theorem framewiseDeclBindingExact_declareTypeObject_declareObjectState_from_topFrameFresh
     {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {ov : Option Value}
     {Γtop : TypeFrame} :
     frameDepthAgreement Γ σ →
@@ -225,7 +225,7 @@ theorem framewiseDeclBindingExact_declareTypeObject_declareObjectState
                 simpa [declareObjectState, recordLocal, bindTopBinding, writeHeap, hS] using hkσ
               exact hexact (j + 1) Γfr σfr hkΓOld hkσOld
 
-theorem framewiseDeclBindingExact_declareTypeRef_declareRefState
+theorem framewiseDeclBindingExact_declareTypeRef_declareRefState_from_topFrameFresh
     {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {a : Nat}
     {Γtop : TypeFrame} :
     frameDepthAgreement Γ σ →
@@ -299,7 +299,7 @@ theorem framewiseDeclBindingExact_declareTypeObject_declareObjectStateWithNext
       framewiseDeclBindingExact
         (declareTypeObject Γ x τ)
         (declareObjectState σ τ x ov) :=
-    framewiseDeclBindingExact_declareTypeObject_declareObjectState
+    framewiseDeclBindingExact_declareTypeObject_declareObjectState_from_topFrameFresh
       hdepth hexact hΓ0 hfreshType hfreshRuntime
   intro k Γfr σfr hkΓ hkσ
   have hkσOld : (declareObjectState σ τ x ov).scopes[k]? = some σfr := by
@@ -336,7 +336,7 @@ theorem kernel_after_declareObjectState
         (Γ := Γ) (σ := σ) (x := x) (τ := τ) (ov := ov) h.concrete.frameDepth
       shadowing := shadowingCompatible_declareTypeObject_declareObjectState
         (Γ := Γ) (σ := σ) (x := x) (τ := τ) (ov := ov) h.concrete.shadowing
-      namesExact := framewiseDeclBindingExact_declareTypeObject_declareObjectState
+      namesExact :=framewiseDeclBindingExact_declareTypeObject_declareObjectState_from_topFrameFresh
         h.concrete.frameDepth h.concrete.namesExact hΓ0 (h.typeFresh _ hΓ0) (h.topFrameFresh hΓ0)
       objectDeclRealized := objectDeclRealized_after_declareObjectState
         (h := h) (hΓ0 := hΓ0) (τ := τ) (ov := ov)
@@ -424,7 +424,7 @@ theorem kernel_after_declareRefState
         (Γ := Γ) (σ := σ) (x := x) (τ := τ) (a := a) h.concrete.frameDepth
       shadowing := shadowingCompatible_declareTypeRef_declareRefState
         (Γ := Γ) (σ := σ) (x := x) (τ := τ) (a := a) h.concrete.shadowing
-      namesExact := framewiseDeclBindingExact_declareTypeRef_declareRefState
+      namesExact :=framewiseDeclBindingExact_declareTypeRef_declareRefState_from_topFrameFresh
         h.concrete.frameDepth h.concrete.namesExact hΓ0 (h.typeFresh _ hΓ0) (h.topFrameFresh hΓ0)
       objectDeclRealized := objectDeclRealized_after_declareRefState
         (h := h) (hΓ0 := hΓ0) (τ := τ) (a := a)

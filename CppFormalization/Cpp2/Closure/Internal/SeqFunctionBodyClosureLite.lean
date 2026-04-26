@@ -99,6 +99,12 @@ theorem seq_function_body_closure_lite
     (hleft :
       BodyClosureBoundaryLite Γ σ s →
       (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨ BigStepStmtDiv σ s)
+    (hpresS :
+      ∀ {σ'},
+        ScopedTypedStateConcrete Γ σ →
+        StmtReadyConcrete Γ σ s →
+        BigStepStmt σ s .normal σ' →
+        ScopedTypedStateConcrete Δ σ')
     (htail :
       ∀ {σ'}, BigStepStmt σ s .normal σ' →
       BodyClosureBoundaryLite Δ σ' t →
@@ -114,6 +120,7 @@ theorem seq_function_body_closure_lite
           simpa using (BigStepFunctionBody.to_stmt hfb)
         have htailBoundary : BodyClosureBoundaryLite Δ σ₁ t :=
           SeqBoundaryTransportLite.seq_tail_boundary_of_left_normal h hprof hstepS
+            (fun hstate hready hstep => hpresS hstate hready hstep)
         rcases htail hstepS htailBoundary with htailTerm | htailDiv
         · rcases htailTerm with ⟨ex₂, σ₂, hfb₂⟩
           cases ex₂ with

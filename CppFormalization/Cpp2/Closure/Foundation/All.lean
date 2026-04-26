@@ -1,18 +1,47 @@
+import CppFormalization.Cpp2.Closure.Foundation.BlockBodyDynamicBoundaryLite
 import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
+import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyLite
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
+import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCoherenceV2
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
+import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryLite
 import CppFormalization.Cpp2.Closure.Foundation.BodyControlProfile
+import CppFormalization.Cpp2.Closure.Foundation.BodyControlProfileLite
 import CppFormalization.Cpp2.Closure.Foundation.BodyDynamicBoundary
+import CppFormalization.Cpp2.Closure.Foundation.BodyEntryWitnessCI
+import CppFormalization.Cpp2.Closure.Foundation.BodyStaticBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyStructuralBoundary
+import CppFormalization.Cpp2.Closure.Foundation.BodyStructuralBoundaryLite
+import CppFormalization.Cpp2.Closure.Foundation.CoreBigStepFragment
+import CppFormalization.Cpp2.Closure.Foundation.DeclareReadyStrongBridge
+import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCI
+import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Foundation.Readiness
+import CppFormalization.Cpp2.Closure.Foundation.ReadinessInversions
+import CppFormalization.Cpp2.Closure.Foundation.ReadinessObjectDeclBridge
+import CppFormalization.Cpp2.Closure.Foundation.ReadinessSemanticsBridge
 import CppFormalization.Cpp2.Closure.Foundation.StateBoundary
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteDeclRealization
+import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteDeclTransport
+import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteExactnessTransport
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteFullAssembly
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteOwnershipAssembly
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteOwnershipTransport
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcretePreservation
+import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteReadyTransport
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteRecomputedCursor
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteStrengthening
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
+import CppFormalization.Cpp2.Closure.Foundation.WhileEntryBoundaryCI
+
+/-!
+# Closure.Foundation.All
+
+Build-coverage aggregate for `Closure.Foundation`.
+
+This file intentionally imports every non-Frontier Foundation module so that
+`Cpp2.BuildAll` checks the whole Foundation layer, not only the modules reached
+through the current mainline import graph.
+-/

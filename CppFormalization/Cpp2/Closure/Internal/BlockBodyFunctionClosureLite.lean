@@ -85,17 +85,29 @@ def cons_tail_dynamic_of_head_normal
     {Γ Δ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock}
     (hd : BlockBodyDynamicBoundaryLite Γ σ (.cons s ss))
     (hN : HasTypeStmtCI .normalK Γ s Δ)
-    (hstepS : BigStepStmt σ s .normal σ') :
+    (hstepS : BigStepStmt σ s .normal σ')
+    (hpresS :
+      ScopedTypedStateConcrete Γ σ →
+      StmtReadyConcrete Γ σ s →
+      BigStepStmt σ s .normal σ' →
+      ScopedTypedStateConcrete Δ σ') :
     BlockBodyDynamicBoundaryLite Δ σ' ss := by
   have hreadyS : StmtReadyConcrete Γ σ s :=
     blockReadyConcrete_cons_head hd.safe
+
+  have hstate' : ScopedTypedStateConcrete Δ σ' :=
+    hpresS hd.state hreadyS hstepS
+
+  have hreadyTail : BlockReadyConcrete Δ σ' ss :=
+    cons_block_ready_tail_after_head_normal
+      hN
+      hstate'
+      hd.safe
+      hstepS
+
   exact
-    { state :=
-        InternalClosureRoadmapCI.stmt_normal_preserves_scoped_typed_state
-          hN hreadyS hstepS hd.state
-      safe :=
-        InternalClosureRoadmapCI.block_head_normal_preserves_block_ready
-          hN hd.safe hstepS hd.state }
+    { state := hstate'
+      safe := hreadyTail }
 
 /-- Canonical cons node から head adequacy を取り出す。 -/
 def cons_head_adequacy_of_cons
@@ -148,13 +160,18 @@ def cons_tail_boundary_of_head_normal_mk
     (hs : BlockBodyStructuralBoundaryLite (.cons s ss))
     (hd : BlockBodyDynamicBoundaryLite Γ σ (.cons s ss))
     (ha : BlockBodyAdequacyLite Γ σ (.cons hN P₁ P₂))
-    (hstepS : BigStepStmt σ s .normal σ') :
+    (hstepS : BigStepStmt σ s .normal σ')
+    (hpresS :
+      ScopedTypedStateConcrete Γ σ →
+      StmtReadyConcrete Γ σ s →
+      BigStepStmt σ s .normal σ' →
+      ScopedTypedStateConcrete Δ σ') :
     BlockBodyClosureBoundaryLite Δ σ' ss := by
   exact
     mkBlockBodyClosureBoundaryLite
       (cons_tail_structural_of_parent hs hN)
       P₂
-      (cons_tail_dynamic_of_head_normal hd hN hstepS)
+      (cons_tail_dynamic_of_head_normal hd hN hstepS hpresS)
       (cons_tail_adequacy_of_head_normal ha hstepS)
 
 /-- Assembled boundary 版の head projection theorem. -/
@@ -180,13 +197,18 @@ def cons_tail_boundary_of_head_normal
     {hN : HasTypeStmtCI .normalK Γ s Δ}
     (h : BlockBodyClosureBoundaryLite Γ σ (.cons s ss))
     (hprof : h.profile = .cons hN P₁ P₂)
-    (hstepS : BigStepStmt σ s .normal σ') :
+    (hstepS : BigStepStmt σ s .normal σ')
+    (hpresS :
+      ScopedTypedStateConcrete Γ σ →
+      StmtReadyConcrete Γ σ s →
+      BigStepStmt σ s .normal σ' →
+      ScopedTypedStateConcrete Δ σ') :
     BlockBodyClosureBoundaryLite Δ σ' ss := by
   cases h with
   | mk hs hp hd ha =>
       cases hprof
       exact cons_tail_boundary_of_head_normal_mk
-        (hs := hs) (hd := hd) (ha := ha) hstepS
+        (hs := hs) (hd := hd) (ha := ha) hstepS hpresS
 
 
 /-! ## whole opened block-body closure -/
@@ -210,6 +232,12 @@ theorem cons_block_body_function_closure_lite
     (hhead :
       BodyClosureBoundaryLite Γ σ s →
       (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨ BigStepStmtDiv σ s)
+    (hpresS :
+      ∀ {σ'},
+        ScopedTypedStateConcrete Γ σ →
+        StmtReadyConcrete Γ σ s →
+        BigStepStmt σ s .normal σ' →
+        ScopedTypedStateConcrete Δ σ')
     (htail :
       ∀ {σ'}, BigStepStmt σ s .normal σ' →
       BlockBodyClosureBoundaryLite Δ σ' ss →
@@ -225,6 +253,7 @@ theorem cons_block_body_function_closure_lite
           simpa using (BigStepFunctionBody.to_stmt hfb)
         have htailBoundary : BlockBodyClosureBoundaryLite Δ σ₁ ss :=
           cons_tail_boundary_of_head_normal h hprof hstepS
+            (fun hstate hready hstep => hpresS hstate hready hstep)
         rcases htail hstepS htailBoundary with htailTerm | htailDiv
         · rcases htailTerm with ⟨ex₂, σ₂, hfb₂⟩
           cases ex₂ with
@@ -262,17 +291,6 @@ theorem declareRefState_scopes_length_of_nonempty
     (hne : σ.scopes ≠ []) :
     (declareRefState σ τ x a).scopes.length = σ.scopes.length := by
   unfold declareRefState bindTopBinding
-  cases hsc : σ.scopes with
-  | nil =>
-      contradiction
-  | cons fr frs =>
-      simp
-
-theorem declareObjectState_scopes_length_of_nonempty
-    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
-    (hne : σ.scopes ≠ []) :
-    (declareObjectState σ τ x ov).scopes.length = σ.scopes.length := by
-  unfold declareObjectState bindTopBinding writeHeap recordLocal
   cases hsc : σ.scopes with
   | nil =>
       contradiction

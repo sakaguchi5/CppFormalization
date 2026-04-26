@@ -23,16 +23,31 @@ theorem declareRefState_scopes_length_of_nonempty
   | cons fr frs =>
       simp
 
-theorem declareObjectState_scopes_length_of_nonempty
+theorem declareObjectStateCore_scopes_length_of_nonempty
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
     (hne : σ.scopes ≠ []) :
-    (declareObjectState σ τ x ov).scopes.length = σ.scopes.length := by
-  unfold declareObjectState bindTopBinding writeHeap recordLocal
+    (declareObjectStateCore σ τ x ov).scopes.length = σ.scopes.length := by
+  unfold declareObjectStateCore bindTopBinding writeHeap recordLocal
   cases hsc : σ.scopes with
   | nil =>
       contradiction
   | cons fr frs =>
       simp
+
+theorem declaresObject_scopes_length_of_nonempty
+    {σ σ' : State} {τ : CppType} {x : Ident} {ov : Option Value}
+    (hdecl : DeclaresObject σ τ x ov σ')
+    (hne : σ.scopes ≠ []) :
+    σ'.scopes.length = σ.scopes.length := by
+  rcases hdecl with ⟨aNext, hwithNext⟩
+  rcases hwithNext with ⟨σcore, hpayload, hpolicy⟩
+  rcases hpayload with ⟨_hobj, _hfresh, _hheap, _hovcompat, hcore⟩
+  rcases hpolicy with ⟨_hpostFresh, hσ'⟩
+  subst σcore
+  subst σ'
+  simpa [setNext] using
+    (declareObjectStateCore_scopes_length_of_nonempty
+      (σ := σ) (τ := τ) (x := x) (ov := ov) hne)
 
 theorem closeScope_scopes_length_pred
     {σ σ' : State}
@@ -83,12 +98,10 @@ theorem stmt_preserves_scope_length_of_nonempty
         simp [scopes_writeHeap])
       (declareObjNone := by
         intro σ σ' τ x hdecl hne
-        rcases hdecl with ⟨_, _, _, _, rfl⟩
-        exact declareObjectState_scopes_length_of_nonempty hne)
+        exact declaresObject_scopes_length_of_nonempty hdecl hne)
       (declareObjSome := by
         intro σ σ' τ x e v hval hdecl hne
-        rcases hdecl with ⟨_, _, _, _, rfl⟩
-        exact declareObjectState_scopes_length_of_nonempty hne)
+        exact declaresObject_scopes_length_of_nonempty hdecl hne)
       (declareRef := by
         intro σ σ' τ x p a hplace href hne
         rcases href with ⟨_, c, _, _, _, rfl⟩
@@ -169,12 +182,10 @@ theorem block_preserves_scope_length_of_nonempty
         simp [scopes_writeHeap])
       (declareObjNone := by
         intro σ σ' τ x hdecl hne
-        rcases hdecl with ⟨_, _, _, _, rfl⟩
-        exact declareObjectState_scopes_length_of_nonempty hne)
+        exact declaresObject_scopes_length_of_nonempty hdecl hne)
       (declareObjSome := by
         intro σ σ' τ x e v hval hdecl hne
-        rcases hdecl with ⟨_, _, _, _, rfl⟩
-        exact declareObjectState_scopes_length_of_nonempty hne)
+        exact declaresObject_scopes_length_of_nonempty hdecl hne)
       (declareRef := by
         intro σ σ' τ x p a hplace href hne
         rcases href with ⟨_, c, _, _, _, rfl⟩

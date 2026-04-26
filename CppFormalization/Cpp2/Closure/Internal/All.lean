@@ -1,12 +1,16 @@
---import CppFormalization.Cpp2.Closure.Internal.ArchitectureRoadmap
+-- import CppFormalization.Cpp2.Closure.Internal.ArchitectureRoadmap
 import CppFormalization.Cpp2.Closure.Internal.AssignHeadResidualTransportTheorems
 import CppFormalization.Cpp2.Closure.Internal.AssignHeadPushScopeBridges
 import CppFormalization.Cpp2.Closure.Internal.AssignHeadWhileTransportCompat
 import CppFormalization.Cpp2.Closure.Internal.AssignHeadWhileTransportTheorems
+import CppFormalization.Cpp2.Closure.Internal.AssignTransportKernel
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureCI
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureConcrete
-import CppFormalization.Cpp2.Closure.Internal.BlockNormalPreservation
+import CppFormalization.Cpp2.Closure.Internal.BlockBodyFunctionClosureLite
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyNormalPreservation
+import CppFormalization.Cpp2.Closure.Internal.BlockFunctionBodyClosureLite_recursor
+import CppFormalization.Cpp2.Closure.Internal.BlockNormalPreservation
+import CppFormalization.Cpp2.Closure.Internal.BodyBoundaryLiteCompatibility
 import CppFormalization.Cpp2.Closure.Internal.ConditionReplayKernel
 import CppFormalization.Cpp2.Closure.Internal.ConditionalNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.CurrentShellCI
@@ -24,8 +28,10 @@ import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmap
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapCI
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapConcrete
 import CppFormalization.Cpp2.Closure.Internal.LoopBodyFunctionClosureCI
+import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelCI
 import CppFormalization.Cpp2.Closure.Internal.NormalPathTypingBridge
 import CppFormalization.Cpp2.Closure.Internal.PrimitiveStmtNormalPreservation
+import CppFormalization.Cpp2.Closure.Internal.PtrExprAssignTransportKernel
 import CppFormalization.Cpp2.Closure.Internal.ReadinessBoundaryConcrete
 import CppFormalization.Cpp2.Closure.Internal.ReadinessReplayPrimitive
 import CppFormalization.Cpp2.Closure.Internal.ReadinessResidualBoundary
@@ -36,9 +42,11 @@ import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalEnvExtendi
 import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalEnvExtendingOldNames
 import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalEnvPreserving
 import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalStableFragment
+import CppFormalization.Cpp2.Closure.Internal.ResidualTransportStableFragment
 import CppFormalization.Cpp2.Closure.Internal.ResidualTransportableDeclarationsFragment
 import CppFormalization.Cpp2.Closure.Internal.ResidualTransportStrongThinSeparatedDeclarationsFragment
 import CppFormalization.Cpp2.Closure.Internal.ResidualTransportStrongThinSeparatedFragment
+import CppFormalization.Cpp2.Closure.Internal.SeqFunctionBodyClosureLite
 import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.SequentialStmtNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.StmtAbruptCompatibility
@@ -46,15 +54,26 @@ import CppFormalization.Cpp2.Closure.Internal.StmtControlCompatibility
 import CppFormalization.Cpp2.Closure.Internal.StmtControlKernel
 import CppFormalization.Cpp2.Closure.Internal.StmtControlPreservation
 import CppFormalization.Cpp2.Closure.Internal.StmtNormalCompatCases
+import CppFormalization.Cpp2.Closure.Internal.StrongThinSeparatedCondReplay
 import CppFormalization.Cpp2.Closure.Internal.StrongThinSeparatedDerefTheorems
 import CppFormalization.Cpp2.Closure.Internal.ThinSeparatedDerefAssignKernel
+import CppFormalization.Cpp2.Closure.Internal.Transport.All
 import CppFormalization.Cpp2.Closure.Internal.TypingCINormalExclusion
 import CppFormalization.Cpp2.Closure.Internal.TypingCISeparation
-import CppFormalization.Cpp2.Closure.Internal.Transport.All
 import CppFormalization.Cpp2.Closure.Internal.WhileBodyClassCI
 import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
 import CppFormalization.Cpp2.Closure.Internal.WhileFunctionClosureKernelCI
 import CppFormalization.Cpp2.Closure.Internal.WhileNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.WhileReentryKernelFacts
+import CppFormalization.Cpp2.Closure.Internal.WhileReentryReadyKernelCI
 import CppFormalization.Cpp2.Closure.Internal.WhileReplayStablePrimitiveFacts
 import CppFormalization.Cpp2.Closure.Internal.WhileStrongThinSeparatedAssignFacts
+
+/-!
+# Closure.Internal.All
+
+Build-coverage aggregate for `Closure.Internal`.
+
+`ArchitectureRoadmap` remains intentionally excluded as a roadmap/debt ledger.
+`Transport.All` is a nested aggregate at `Closure/Internal/Transport/All.lean`.
+-/

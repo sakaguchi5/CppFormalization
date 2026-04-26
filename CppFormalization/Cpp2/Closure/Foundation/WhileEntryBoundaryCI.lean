@@ -86,7 +86,7 @@ private def while_body_returnOut?_of_static
   match s.profile.summary.returnOut with
   | none => none
   | some out =>
-      let ⟨hN, hB, hC, hR⟩ := while_return_typing_data out.2
+      let ⟨_, _, _, hR⟩ := while_return_typing_data out.2
       some ⟨out.1, hR⟩
 
 def whileEntryBoundaryCI_of_bodyClosureBoundaryCI
