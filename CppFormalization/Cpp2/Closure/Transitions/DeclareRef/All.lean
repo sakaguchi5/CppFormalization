@@ -1,1 +1,1 @@
-import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareRefDecomposition
+import CppFormalization.Cpp2.Closure.Transitions.DeclareRef.Preservation
