@@ -1,2 +1,3 @@
 import CppFormalization.Cpp2.Closure.Transitions.Scope.OpenPreservation
+import CppFormalization.Cpp2.Closure.Transitions.Scope.CloseLowLevel
 import CppFormalization.Cpp2.Closure.Transitions.Scope.ClosePreservation
