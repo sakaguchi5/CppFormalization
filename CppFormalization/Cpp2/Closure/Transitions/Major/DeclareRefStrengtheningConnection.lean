@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteFullAssembly
-import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareRefDecomposition
+import CppFormalization.Cpp2.Closure.Transitions.DeclareRef.Preservation
 
 namespace Cpp
 

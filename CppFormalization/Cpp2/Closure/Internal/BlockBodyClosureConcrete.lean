@@ -1,7 +1,7 @@
 import CppFormalization.Cpp2.Boundary.FunctionBody
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureConcreteRefined
 import CppFormalization.Cpp2.Closure.Internal.BlockNormalPreservation
-import CppFormalization.Cpp2.Closure.Transitions.Minor.OpenScopeDecomposition
+import CppFormalization.Cpp2.Closure.Transitions.Scope.OpenPreservation
 import CppFormalization.Cpp2.Lemmas.ControlExclusion
 import CppFormalization.Cpp2.Semantics.Divergence
 

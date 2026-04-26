@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Transitions.Minor.StateUpdateRoadmap
+import CppFormalization.Cpp2.Closure.Foundation.CoreBigStepFragment
 
 namespace Cpp
 

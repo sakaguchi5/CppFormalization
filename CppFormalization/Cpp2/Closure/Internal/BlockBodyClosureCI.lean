@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Boundary.FunctionBody
+﻿import CppFormalization.Cpp2.Boundary.FunctionBody
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
@@ -8,7 +8,7 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyDynamicBoundary
 import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureConcrete
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI
-import CppFormalization.Cpp2.Closure.Transitions.Minor.OpenScopeDecomposition
+import CppFormalization.Cpp2.Closure.Transitions.Scope.OpenPreservation
 import CppFormalization.Cpp2.Semantics.Divergence
 
 namespace Cpp

@@ -1,9 +1,9 @@
 import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.ReadinessSemanticsBridge
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
-import CppFormalization.Cpp2.Closure.Transitions.Minor.AssignDecomposition
-import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareRefDecomposition
-import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectDecomposition
+import CppFormalization.Cpp2.Closure.Transitions.Assign.Preservation
+import CppFormalization.Cpp2.Closure.Transitions.DeclareRef.Preservation
+import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.Preservation
 import CppFormalization.Cpp2.Closure.Internal.AssignTransportKernel
 import CppFormalization.Cpp2.Lemmas.ExprTypeUniqueness
 

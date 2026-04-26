@@ -1,4 +1,3 @@
-import CppFormalization.Cpp2.Closure.Transitions.Major.CloseScopeDecomposition
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteStrengthening
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
 

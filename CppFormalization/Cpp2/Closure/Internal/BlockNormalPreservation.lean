@@ -1,9 +1,8 @@
 
 import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
-import CppFormalization.Cpp2.Closure.Transitions.Minor.OpenScopeDecomposition
-import CppFormalization.Cpp2.Closure.Transitions.Major.CloseScopeTopFrameExtension
-
+import CppFormalization.Cpp2.Closure.Transitions.Scope.OpenPreservation
+import CppFormalization.Cpp2.Closure.Transitions.Scope.ClosePreservation
 namespace Cpp
 
 /-!
