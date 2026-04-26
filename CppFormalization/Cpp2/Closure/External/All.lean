@@ -17,7 +17,7 @@ import CppFormalization.Cpp2.Closure.External.LegacyBridgeV2
 import CppFormalization.Cpp2.Closure.External.LegacyBridgeV3
 import CppFormalization.Cpp2.Closure.External.LegacyBuilderV3
 import CppFormalization.Cpp2.Closure.External.ObjectDeclRuntimeBridgeV3
---import CppFormalization.Cpp2.Closure.External.ObjectDeclStdFragmentV3
+import CppFormalization.Cpp2.Closure.External.ObjectDeclStdFragmentV3
 import CppFormalization.Cpp2.Closure.External.ReadyAssemblyV3
 import CppFormalization.Cpp2.Closure.External.ReadyFromGlueV3
 import CppFormalization.Cpp2.Closure.External.ReflectionFragmentV2

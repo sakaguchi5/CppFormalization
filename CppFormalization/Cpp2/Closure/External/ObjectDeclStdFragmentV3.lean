@@ -1,8 +1,9 @@
-﻿--import CppFormalization.Cpp2.Closure.External.StdFragmentV3
-import CppFormalization.Cpp2.Closure.Transitions.Major.ObjectDeclRuntimeBridgeV3
-import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectDecomposition
+import CppFormalization.Cpp2.Closure.External.StdFragmentV3
+import CppFormalization.Cpp2.Closure.External.ObjectDeclRuntimeBridgeV3
+import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.Preservation
 import CppFormalization.Cpp2.Closure.Foundation.CoreBigStepFragment
---import CppFormalization.Cpp2.Closure.Foundation.BodyStaticBoundaryCI
+import CppFormalization.Cpp2.Closure.Foundation.WellFormedFromTyping
+import CppFormalization.Cpp2.Closure.Foundation.TopFrameWitness
 
 namespace Cpp
 
@@ -378,18 +379,6 @@ theorem objectDeclStdFragmentV3_mkRuntime_eq (c : ObjectDeclRuntimeCert) :
     StmtReadyConcrete c.Γ c.σ c.targetStmt :=
   c.stmtReadyConcrete
 
-/-- `currentTypeScopeFresh` already guarantees that the type environment has a
-top frame, so cert-level APIs can recover the witness expected by the
-recomputed-cursor preservation theorems without reopening lower layers. -/
-def topTypeFrameWitness_of_currentTypeScopeFresh
-    {Γ : TypeEnv} {x : Ident}
-    (h : currentTypeScopeFresh Γ x) :
-    {Γfr : TypeFrame // Γ.scopes[0]? = some Γfr} := by
-  cases hsc : Γ.scopes with
-  | nil =>
-      simp [currentTypeScopeFresh, hsc] at h
-  | cons fr frs =>
-      exact ⟨fr, by simp⟩
 
 /-- Recover the top type-frame witness needed by
 `DeclareObjectReadyRecomputed.declaresObjectWithNext_after`. -/
@@ -515,46 +504,6 @@ theorem bigStepWithPostConcrete
         ScopedTypedStateConcrete c.postTypeEnv c.postState) :=
   rfl
 
-mutual
-
-private theorem wellFormedPlace_of_hasPlaceType
-    {Γ : TypeEnv} {p : PlaceExpr} {τ : CppType} :
-    HasPlaceType Γ p τ → WellFormedPlace p := by
-  intro h
-  cases h with
-  | var _ =>
-      simp [WellFormedPlace]
-  | deref hv =>
-      exact wellFormedValue_of_hasValueType hv
-
-private theorem wellFormedValue_of_hasValueType
-    {Γ : TypeEnv} {e : ValExpr} {τ : CppType} :
-    HasValueType Γ e τ → WellFormedValue e := by
-  intro h
-  cases h with
-  | litBool =>
-      simp [WellFormedValue]
-  | litInt =>
-      simp [WellFormedValue]
-  | load hp =>
-      simpa [WellFormedValue] using wellFormedPlace_of_hasPlaceType hp
-  | addrOf hp =>
-      simpa [WellFormedValue] using wellFormedPlace_of_hasPlaceType hp
-  | add h1 h2 =>
-      exact ⟨wellFormedValue_of_hasValueType h1, wellFormedValue_of_hasValueType h2⟩
-  | sub h1 h2 =>
-      exact ⟨wellFormedValue_of_hasValueType h1, wellFormedValue_of_hasValueType h2⟩
-  | mul h1 h2 =>
-      exact ⟨wellFormedValue_of_hasValueType h1, wellFormedValue_of_hasValueType h2⟩
-  | eq h1 h2 =>
-      exact ⟨wellFormedValue_of_hasValueType h1, wellFormedValue_of_hasValueType h2⟩
-  | lt h1 h2 =>
-      exact ⟨wellFormedValue_of_hasValueType h1, wellFormedValue_of_hasValueType h2⟩
-  | not h1 =>
-      simp [WellFormedValue]
-      exact wellFormedValue_of_hasValueType h1
-
-end
 
 /-- Canonical normal CI typing carried by the cert. -/
 @[simp] theorem normalTyping

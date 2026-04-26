@@ -33,7 +33,9 @@ import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcretePreservati
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteReadyTransport
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteRecomputedCursor
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteStrengthening
+import CppFormalization.Cpp2.Closure.Foundation.TopFrameWitness
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
+import CppFormalization.Cpp2.Closure.Foundation.WellFormedFromTyping
 import CppFormalization.Cpp2.Closure.Foundation.WhileEntryBoundaryCI
 
 /-!
