@@ -7,6 +7,7 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyControlProfile
 import CppFormalization.Cpp2.Closure.Foundation.BodyDynamicBoundary
 import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureConcrete
+import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureConcreteCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI
 import CppFormalization.Cpp2.Closure.Transitions.Scope.OpenPreservation
 import CppFormalization.Cpp2.Semantics.Divergence
@@ -33,6 +34,8 @@ CI-centric opened block-body closure layer.
   もう callback を飾りとして要求しない。実際に opened boundary を作り、callback を呼び、
   その result を statement-level `.block ss` result へ戻す。
 - 残る shell は opened block body adequacy だけである。
+- normal payload が明示される場合、opened block-body closure は
+  `BlockBodyClosureConcreteCI` の profile-aware current-env CI route へ接続できる。
 -/
 
 /-- Forget CI-sensitive block-body fields and recover the existing concrete boundary. -/
@@ -306,6 +309,79 @@ theorem block_body_function_closure_boundary_ci
   exact
     block_body_function_closure_concrete_refined
       (blockBodyReadyConcrete_of_blockBodyClosureBoundaryCI hentry)
+
+/-- Convert an outer-style block-body profile into a current-environment profile. -/
+def blockBodyControlProfileAt_of_blockBodyControlProfile
+    {Γ : TypeEnv} {ss : StmtBlock}
+    (P : BlockBodyControlProfile Γ ss) :
+    BlockBodyControlProfileAt (pushTypeScope Γ) ss :=
+  { summary :=
+      { normalOut := P.summary.normalOut
+        returnOut := P.summary.returnOut } }
+
+/--
+Convert an assembled opened block-body boundary into the profile-aware
+current-env CI contract, when its normal channel is explicitly present.
+-/
+def blockBodyReadyConcreteAtCI_of_blockBodyClosureBoundaryCI_normalOut
+    {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
+    (hentry : BlockBodyClosureBoundaryCI Γ σ ss)
+    (out : {Δ : TypeEnv // HasTypeBlockCI .normalK (pushTypeScope Γ) ss Δ})
+    (hout : hentry.static.profile.summary.normalOut = some out) :
+    BlockBodyReadyConcreteAtCI (pushTypeScope Γ) σ ss :=
+  { wf := hentry.structural.wf
+    profile := blockBodyControlProfileAt_of_blockBodyControlProfile hentry.static.profile
+    root := .normal out
+    rootCoherent := by
+      exact BlockBodyRootCoherentAt.normal
+        (by
+          simpa [blockBodyControlProfileAt_of_blockBodyControlProfile] using hout)
+    breakScoped := hentry.structural.breakScoped
+    continueScoped := hentry.structural.continueScoped
+    state := hentry.dynamic.state
+    safe := hentry.dynamic.safe }
+
+/--
+Opened block-body closure through the profile-aware current-env CI route, with
+the normal payload supplied explicitly by the profile.
+
+Unlike `block_body_function_closure_boundary_ci`, this route does not pass
+through the old-typing residual kernels.
+-/
+theorem block_body_function_closure_boundary_ci_via_current_ci_normal
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
+    (hentry : BlockBodyClosureBoundaryCI Γ σ ss)
+    (out : {Δ : TypeEnv // HasTypeBlockCI .normalK (pushTypeScope Γ) ss Δ})
+    (hout : hentry.static.profile.summary.normalOut = some out) :
+    FunctionBlockBodyClosureResult σ ss := by
+  let hAt : BlockBodyReadyConcreteAtCI (pushTypeScope Γ) σ ss :=
+    blockBodyReadyConcreteAtCI_of_blockBodyClosureBoundaryCI_normalOut
+      hentry out hout
+  have hN :
+      ∃ out, hAt.profile.summary.normalOut = some out := by
+    refine ⟨out, ?_⟩
+    simpa [hAt, blockBodyReadyConcreteAtCI_of_blockBodyClosureBoundaryCI_normalOut,
+      blockBodyControlProfileAt_of_blockBodyControlProfile] using hout
+  exact
+    block_body_function_closure_concrete_refined_at_ci
+      mkWhileReentry hAt hN
+
+/--
+Profile-facing wrapper for the profile-aware current-env CI route.
+-/
+theorem block_body_function_closure_boundary_ci_via_current_ci_normalOut
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
+    (hentry : BlockBodyClosureBoundaryCI Γ σ ss)
+    (hN :
+      ∃ out,
+        hentry.static.profile.summary.normalOut = some out) :
+    FunctionBlockBodyClosureResult σ ss := by
+  rcases hN with ⟨out, hout⟩
+  exact
+    block_body_function_closure_boundary_ci_via_current_ci_normal
+      mkWhileReentry hentry out hout
 
 /--
 Direct block-statement closure from the top-level block entry.
