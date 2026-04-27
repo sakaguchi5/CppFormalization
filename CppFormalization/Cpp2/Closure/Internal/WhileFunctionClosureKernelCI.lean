@@ -1,6 +1,7 @@
 /- CppFormalization/Cpp2/Closure/Internal/WhileFunctionClosureKernelCI.lean -/
 import CppFormalization.Cpp2.Boundary.FunctionBody
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
+import CppFormalization.Cpp2.Closure.Foundation.WhileEntryBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCI
 import CppFormalization.Cpp2.Closure.Internal.LoopBodyFunctionClosureCI
 import CppFormalization.Cpp2.Semantics.Divergence
@@ -14,9 +15,8 @@ Honest kernel surface for `while` function-body closure.
 
 設計意図:
 - `while` 全体の closure と、1 iteration の loop-body local closure を分離する。
-- generic provider を theorem statement に埋め込まず、
-  本当に必要な current-entry facts / tail-boundary reconstruction だけを
-  surface に出す。
+- current-entry で読める事実は `WhileEntryBoundaryCI` から theorem-backed に読む。
+- loop-body local boundary と tail-boundary reconstruction は、まだ別責務として残す。
 - `LoopBodyBoundaryCI` / `LoopReentryKernelCI` は、この shell を後で
   theorem-backed に満たすための internal mechanism として使う。
 -/
@@ -39,20 +39,42 @@ structure WhileTailBoundaryKitCI
       BodyClosureBoundaryCI Γ σ1 (.whileStmt c body)
 
 /--
+Current-entry typing read directly from the theorem-backed `WhileEntryBoundaryCI`.
+
+This is no longer a shell: the static-layer redesign makes the while header
+typing data available from `BodyClosureBoundaryCI.static`.
+-/
+theorem whileTypingCI_of_whileEntryBoundaryCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hentry : WhileEntryBoundaryCI Γ σ c body) :
+    HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ := by
+  exact HasTypeStmtCI.while_normal hentry.hc hentry.hN hentry.hB hentry.hC
+
+/--
 Current-entry typing extracted from a top-level `while` closure boundary.
 
-debt を個別の slot に露出するための細い shell.
+This is the first payoff of the `BodyStaticBoundaryCI` redesign:
+the old axiom is now a theorem.
 -/
-axiom whileTypingCI_of_bodyClosureBoundaryCI
+theorem whileTypingCI_of_bodyClosureBoundaryCI
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
     BodyClosureBoundaryCI Γ σ (.whileStmt c body) →
-    HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ
+    HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ := by
+  intro h
+  exact whileTypingCI_of_whileEntryBoundaryCI
+    (whileEntryBoundaryCI_of_bodyClosureBoundaryCI h)
 
 /--
 Current iteration の loop-body local boundary extracted from a top-level `while`
 closure boundary.
 
-current-entry の local boundary を bundle ではなく個別に扱う。
+This remains a real obligation.  The current entry gives only:
+- condition typing/readiness,
+- body normal/break/continue typing,
+- current body readiness.
+
+It does **not** by itself provide the 4-channel loop-body adequacy required by
+`LoopBodyBoundaryCI`.
 -/
 axiom whileLoopBoundaryCI_of_bodyClosureBoundaryCI
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
