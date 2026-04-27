@@ -50,6 +50,7 @@ import CppFormalization.Cpp2.Closure.Internal.ResidualTransportableDeclarationsF
 import CppFormalization.Cpp2.Closure.Internal.ResidualTransportStrongThinSeparatedDeclarationsFragment
 import CppFormalization.Cpp2.Closure.Internal.ResidualTransportStrongThinSeparatedFragment
 import CppFormalization.Cpp2.Closure.Internal.SeqFunctionBodyClosureLite
+import CppFormalization.Cpp2.Closure.Internal.SeqReturnAwareRouteCI
 import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.SequentialStmtNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.StmtAbruptCompatibility
