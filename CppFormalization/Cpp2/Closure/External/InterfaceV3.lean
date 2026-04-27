@@ -40,8 +40,10 @@ Main redesign point:
 - ready assembly carries explicit coherence back to the observable package side.
 
 Stage 2B comparison vocabulary:
+- `ObservablePiecesV3` is the official package-level carrier,
 - `PackageCoherentV3` is the strong observable-package comparison notion,
-- `BoundaryCoherentV3` is the official quotient used by closure theorems.
+- `BoundaryCoherentV3` is the official quotient used by closure theorems,
+- `VisiblePiecesV3` is deliberately not part of the V3 public vocabulary.
 
 Stage 2C family canonicity vocabulary:
 - `RuntimePackageUniqueV3` says runtime artifacts are target-canonical,

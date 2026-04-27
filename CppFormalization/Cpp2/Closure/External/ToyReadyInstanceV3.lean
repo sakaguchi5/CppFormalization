@@ -10,7 +10,7 @@ First concrete inhabited ready-route instance for the Stage 2A redesign.
 Main redesign changes reflected here:
 - the std side now returns `RuntimePiecesV3`,
 - the reflection side now returns one package containing
-  `(structural, profile, core)`,
+  `(structural, static, core)`,
 - the ready assembly must expose explicit coherence with those chosen pieces.
 -/
 

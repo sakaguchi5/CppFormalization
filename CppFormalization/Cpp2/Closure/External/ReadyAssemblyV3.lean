@@ -11,7 +11,8 @@ High-level ready assembly after the static-layer redesign.
 
 Key change:
 - coherence is stated for `static_eq`,
-  not for `entry_eq` and `profile_eq` separately.
+  not for `entry_eq` and `profile_eq` separately;
+- profile equality is only a projected consequence of static-package coherence.
 -/
 
 structure VerifiedExternalReadyAssemblyV3
@@ -60,7 +61,8 @@ structure VerifiedExternalReadyAssemblyV3
 
 namespace VerifiedExternalReadyAssemblyV3
 
-theorem profile_eq
+/-- Profile equality projected from the official `static_eq` coherence. -/
+theorem static_profile_eq
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (A : VerifiedExternalReadyAssemblyV3 F R)
     {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
@@ -73,6 +75,20 @@ theorem profile_eq
       (R.mkReflection hgen hsuppRefl).static.profile := by
   exact congrArg BodyStaticBoundaryCI.profile
     (A.static_eq huse hsuppRun hgen hsuppRefl hcompat)
+
+/-- Compatibility alias.  Prefer `VerifiedExternalReadyAssemblyV3.static_profile_eq`. -/
+theorem profile_eq
+    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
+    (A : VerifiedExternalReadyAssemblyV3 F R)
+    {n : F.Name} {m : R.Meta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : F.uses n)
+    (hsuppRun : F.supportsRuntime n Γ σ st)
+    (hgen : R.generates m st)
+    (hsuppRefl : R.supportsReflection m Γ st)
+    (hcompat : A.compatible n m Γ σ st) :
+    (A.mkReady huse hsuppRun hgen hsuppRefl hcompat).toProfile =
+      (R.mkReflection hgen hsuppRefl).static.profile :=
+  A.static_profile_eq huse hsuppRun hgen hsuppRefl hcompat
 
 end VerifiedExternalReadyAssemblyV3
 
@@ -97,7 +113,7 @@ def externalPieces_of_ready_v3
       core := hrefl.core
       adequacy :=
         transportAdequacy
-          (A.profile_eq huse hsuppRun hgen hsuppRefl hcompat)
+          (A.static_profile_eq huse hsuppRun hgen hsuppRefl hcompat)
           hr.toAdequacy }
 
 theorem externalPieces_of_ready_v3_boundary

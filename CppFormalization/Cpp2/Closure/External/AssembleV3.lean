@@ -5,7 +5,10 @@ namespace Cpp
 /-!
 # Closure.External.AssembleV3
 
-Visible V3 assembly after the static-layer redesign.
+Observable V3 assembly after the static-layer redesign.
+
+`VisiblePiecesV3` is intentionally not defined here.  The official package-level
+view is `ObservablePiecesV3`; the full external package is `ExternalPiecesV3`.
 -/
 
 /--
@@ -23,8 +26,9 @@ structure ObservablePiecesV3 (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type w
 /--
 A weaker profile-only view.
 
-This exists only for diagnostics or old comparison statements.  It must not be
-used as the carrier of `PackageCoherentV3`.
+This exists only for diagnostics or explicitly legacy/profile-only comparison
+statements.  It must not be used as the carrier of `PackageCoherentV3` or as the
+main route-coherence notion.
 -/
 structure ProfileObservablePiecesV3 (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
   structural : BodyStructuralBoundary Γ st

@@ -10,9 +10,13 @@ Stage 2B separates two comparison notions.
 * `BoundaryCoherentV3` is the official quotient for closure theorems.
   It compares the induced `BodyClosureBoundaryCI`.
 
-* `PackageCoherentV3` compares the observable package surface.
+* `PackageCoherentV3` compares the official observable package surface.
   After the static-layer redesign this observable surface contains the whole
   `BodyStaticBoundaryCI`, not just its profile.
+
+There is deliberately no `VisiblePiecesV3` in this layer.  The former visible
+view has been replaced by `ObservablePiecesV3`; profile-only comparisons are
+kept outside the official package carrier.
 -/
 
 /-- Assemble the official observable view directly from runtime/reflection packages. -/
@@ -77,13 +81,22 @@ theorem PackageCoherentV3.static_eq
   cases h
   rfl
 
-theorem PackageCoherentV3.profile_eq
+/-- Profile equality is only a projection of official static-package coherence. -/
+theorem PackageCoherentV3.static_profile_eq
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     {p q : ObservablePiecesV3 Γ σ st}
     (h : PackageCoherentV3 p q) :
     p.static.profile = q.static.profile := by
   exact congrArg BodyStaticBoundaryCI.profile
     (PackageCoherentV3.static_eq h)
+
+/-- Compatibility alias.  Prefer `PackageCoherentV3.static_profile_eq`. -/
+theorem PackageCoherentV3.profile_eq
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {p q : ObservablePiecesV3 Γ σ st}
+    (h : PackageCoherentV3 p q) :
+    p.static.profile = q.static.profile :=
+  PackageCoherentV3.static_profile_eq h
 
 theorem PackageCoherentV3.dynamic_eq
     {Γ : TypeEnv} {σ : State} {st : CppStmt}

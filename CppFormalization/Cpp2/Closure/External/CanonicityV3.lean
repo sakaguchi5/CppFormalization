@@ -16,7 +16,7 @@ for a fixed target `(Γ, σ, st)` or `(Γ, st)`, different artifact names / meta
 that support that same target should not yield different observable packages.
 
 This file therefore records family-level uniqueness / canonicity assumptions and
-extracts the visible consequences needed by later builder layers.
+extracts the observable consequences needed by later builder layers.
 -/
 
 
@@ -85,6 +85,30 @@ theorem ReflectionPackageUniqueV3.structural_eq
       (R.mkReflection hgen₂ hsupp₂).structural := by
   exact congrArg (fun p => p.structural) (huniq hgen₁ hsupp₁ hgen₂ hsupp₂)
 
+theorem ReflectionPackageUniqueV3.static_eq
+    {R : VerifiedReflectionFragmentV3}
+    (huniq : ReflectionPackageUniqueV3 R)
+    {m₁ m₂ : R.Meta} {Γ : TypeEnv} {st : CppStmt}
+    (hgen₁ : R.generates m₁ st) (hsupp₁ : R.supportsReflection m₁ Γ st)
+    (hgen₂ : R.generates m₂ st) (hsupp₂ : R.supportsReflection m₂ Γ st) :
+    (R.mkReflection hgen₁ hsupp₁).static =
+      (R.mkReflection hgen₂ hsupp₂).static := by
+  exact congrArg (fun p => p.static)
+    (huniq hgen₁ hsupp₁ hgen₂ hsupp₂)
+
+/-- Profile equality projected from reflection-package static canonicity. -/
+theorem ReflectionPackageUniqueV3.static_profile_eq
+    {R : VerifiedReflectionFragmentV3}
+    (huniq : ReflectionPackageUniqueV3 R)
+    {m₁ m₂ : R.Meta} {Γ : TypeEnv} {st : CppStmt}
+    (hgen₁ : R.generates m₁ st) (hsupp₁ : R.supportsReflection m₁ Γ st)
+    (hgen₂ : R.generates m₂ st) (hsupp₂ : R.supportsReflection m₂ Γ st) :
+    (R.mkReflection hgen₁ hsupp₁).static.profile =
+      (R.mkReflection hgen₂ hsupp₂).static.profile := by
+  exact congrArg BodyStaticBoundaryCI.profile
+    (huniq.static_eq hgen₁ hsupp₁ hgen₂ hsupp₂)
+
+/-- Compatibility alias.  Prefer `ReflectionPackageUniqueV3.static_profile_eq`. -/
 theorem ReflectionPackageUniqueV3.profile_eq
     {R : VerifiedReflectionFragmentV3}
     (huniq : ReflectionPackageUniqueV3 R)
@@ -93,7 +117,7 @@ theorem ReflectionPackageUniqueV3.profile_eq
     (hgen₂ : R.generates m₂ st) (hsupp₂ : R.supportsReflection m₂ Γ st) :
     (R.mkReflection hgen₁ hsupp₁).profile =
       (R.mkReflection hgen₂ hsupp₂).profile := by
-  exact congrArg (fun p => p.profile) (huniq hgen₁ hsupp₁ hgen₂ hsupp₂)
+  exact huniq.static_profile_eq hgen₁ hsupp₁ hgen₂ hsupp₂
 
 
 theorem ReflectionPackageUniqueV3.core_eq
@@ -106,17 +130,6 @@ theorem ReflectionPackageUniqueV3.core_eq
       (R.mkReflection hgen₂ hsupp₂).core := by
   exact congrArg (fun p => p.core) (huniq hgen₁ hsupp₁ hgen₂ hsupp₂)
 
-
-theorem ReflectionPackageUniqueV3.static_eq
-    {R : VerifiedReflectionFragmentV3}
-    (huniq : ReflectionPackageUniqueV3 R)
-    {m₁ m₂ : R.Meta} {Γ : TypeEnv} {st : CppStmt}
-    (hgen₁ : R.generates m₁ st) (hsupp₁ : R.supportsReflection m₁ Γ st)
-    (hgen₂ : R.generates m₂ st) (hsupp₂ : R.supportsReflection m₂ Γ st) :
-    (R.mkReflection hgen₁ hsupp₁).static =
-      (R.mkReflection hgen₂ hsupp₂).static := by
-  exact congrArg (fun p => p.static)
-    (huniq hgen₁ hsupp₁ hgen₂ hsupp₂)
 
 theorem canonicalObservablePiecesV3_wellDefined
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
