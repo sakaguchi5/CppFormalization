@@ -3,11 +3,12 @@ import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
-import CppFormalization.Cpp2.Closure.Transitions.Minor.AssignDecomposition
-import CppFormalization.Cpp2.Closure.Transitions.Minor.OpenScopeDecomposition
-import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareRefDecomposition
-import CppFormalization.Cpp2.Closure.Transitions.Major.CloseScopeDecomposition
-import CppFormalization.Cpp2.Closure.Transitions.Major.DeclareObjectDecomposition
+import CppFormalization.Cpp2.Closure.Transitions.Assign.Preservation
+import CppFormalization.Cpp2.Closure.Transitions.Scope.OpenPreservation
+import CppFormalization.Cpp2.Closure.Transitions.DeclareRef.Preservation
+import CppFormalization.Cpp2.Closure.Transitions.Scope.ClosePreservation
+import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.Preservation
+import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Boundary.FunctionBody
 import CppFormalization.Cpp2.Semantics.Divergence
 
@@ -71,7 +72,7 @@ theorem close_scope_preserves_concrete_state
     CloseScope σ σ' →
     ScopedTypedStateConcrete Γ σ' := by
   intro hσ hclose
-  exact closeScope_preserves_concrete_state_via_decomposition hσ hclose
+  exact closeScope_preserves_outer_from_pushTypeScope hσ hclose
 
 /- =========================================
    2. concrete から abstract theorem への橋
