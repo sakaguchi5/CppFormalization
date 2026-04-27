@@ -19,6 +19,12 @@ Common structural recursion core for
 The shared skeleton is theorem-backed for primitive / seq / ite / block and for
 the non-recursive `while` leaves. The only variation point is the four genuinely
 recursive `while` branches.
+
+Naming convention inside this file:
+- `handlers` is the externally supplied while-branch handler package.
+- `hcompatHead` / `hcompatTail` are sequential or block-cons compatibility proofs.
+- `hcompatBody` / `hcompatLoopTail` are while body and recursive loop-tail compatibility proofs.
+- `ihBodyPres` / `ihLoopPres` are preservation IHs derived from those compatibility proofs.
 -/
 
 abbrev WhileNormalNormalHandler : Prop :=
@@ -134,16 +140,16 @@ structure StmtBlockPreservationKernel where
 mutual
 
 private theorem stmt_control_goal_of_handlers
-    (H : WhileCompatHandlers)
+    (handlers : WhileCompatHandlers)
     {k : ControlKind} {Γ Δ : TypeEnv} {s : CppStmt}
     {σ : State} {ctrl : CtrlResult} {σ' : State}
     {hty : HasTypeStmtCI k Γ s Δ}
     {hstep : BigStepStmt σ s ctrl σ'}
-    (hcomp : StmtControlCompatible hty hstep) :
+    (hcompat : StmtControlCompatible hty hstep) :
     ScopedTypedStateConcrete Γ σ →
     StmtReadyConcrete Γ σ s →
     ScopedTypedStateConcrete Δ σ' := by
-  match hcomp with
+  match hcompat with
   | .skip =>
       intro hσ _
       simpa using hσ
@@ -217,9 +223,9 @@ private theorem stmt_control_goal_of_handlers
   | .seq_normal
       (Γ := Γ) (Θ := Θ) (Δ := Δ) (s := s) (t := t)
       (σ := σ) (σ₁ := σ₁) (σ₂ := σ₂) (ctrl := ctrl)
-      (htyS := htyS) (htyT := htyT)
-      (hstepS := hstepS) (hstepT := hstepT)
-      hcompS hcompT =>
+      (htyS := htyHead) (htyT := htyTail)
+      (hstepS := hstepHead) (hstepT := hstepTail)
+      hcompatHead hcompatTail =>
       intro hσ hready
       have hpost :
           ScopedTypedStateConcrete Θ σ₁ ∧ StmtReadyConcrete Θ σ₁ t := by
@@ -227,36 +233,36 @@ private theorem stmt_control_goal_of_handlers
           seq_left_normal_preserves_ready_of_left_preservation
             (Γ := Γ) (Δ := Θ) (σ := σ) (σ' := σ₁) (s := s) (t := t)
             (hpres := by
-              intro _htyS hσ0 hreadyS0 _hstepS
-              exact stmt_control_goal_of_handlers H hcompS hσ0 hreadyS0)
-            htyS hready hstepS hσ
-      rcases hpost with ⟨hσ₁, hreadyT⟩
-      exact stmt_control_goal_of_handlers H hcompT hσ₁ hreadyT
+              intro _htyHead hσ0 hreadyHead0 _hstepHead
+              exact stmt_control_goal_of_handlers handlers hcompatHead hσ0 hreadyHead0)
+            htyHead hready hstepHead hσ
+      rcases hpost with ⟨hσ₁, hreadyTail⟩
+      exact stmt_control_goal_of_handlers handlers hcompatTail hσ₁ hreadyTail
 
-  | .seq_break hcompS =>
+  | .seq_break hcompatHead =>
       intro hσ hready
-      have hreadyS := seq_ready_left hready
-      exact stmt_control_goal_of_handlers H hcompS hσ hreadyS
+      have hreadyHead := seq_ready_left hready
+      exact stmt_control_goal_of_handlers handlers hcompatHead hσ hreadyHead
 
-  | .seq_continue hcompS =>
+  | .seq_continue hcompatHead =>
       intro hσ hready
-      have hreadyS := seq_ready_left hready
-      exact stmt_control_goal_of_handlers H hcompS hσ hreadyS
+      have hreadyHead := seq_ready_left hready
+      exact stmt_control_goal_of_handlers handlers hcompatHead hσ hreadyHead
 
-  | .seq_return hcompS =>
+  | .seq_return hcompatHead =>
       intro hσ hready
-      have hreadyS := seq_ready_left hready
-      exact stmt_control_goal_of_handlers H hcompS hσ hreadyS
+      have hreadyHead := seq_ready_left hready
+      exact stmt_control_goal_of_handlers handlers hcompatHead hσ hreadyHead
 
-  | .ite_true hcompS =>
+  | .ite_true hcompatThen =>
       intro hσ hready
-      rcases ite_ready_branch_data hready with ⟨hreadyS, _⟩
-      exact stmt_control_goal_of_handlers H hcompS hσ hreadyS
+      rcases ite_ready_branch_data hready with ⟨hreadyThen, _⟩
+      exact stmt_control_goal_of_handlers handlers hcompatThen hσ hreadyThen
 
-  | .ite_false hcompT =>
+  | .ite_false hcompatElse =>
       intro hσ hready
-      rcases ite_ready_branch_data hready with ⟨_, hreadyT⟩
-      exact stmt_control_goal_of_handlers H hcompT hσ hreadyT
+      rcases ite_ready_branch_data hready with ⟨_, hreadyElse⟩
+      exact stmt_control_goal_of_handlers handlers hcompatElse hσ hreadyElse
 
   | .while_false_normal =>
       intro hσ _
@@ -264,90 +270,90 @@ private theorem stmt_control_goal_of_handlers
 
   | .while_true_normal_normal (Γ := Γ) (σ := σ) (σ₁ := σ₁) (σ₂ := σ₂) (c := c) (body := body)
       (hc := hc) (hN := hN) (hB := hB) (hC := hC)
-      (hcond := hcond) (hbody := hbody) (htail := htail)
-      hcompBody hcompTail =>
+      (hcond := hcond) (hbody := hstepBody) (htail := hstepLoopTail)
+      hcompatBody hcompatLoopTail =>
       intro hσ hready
       exact
-        H.normalNormal
+        handlers.normalNormal
           (hc := hc) (hN := hN) (hB := hB) (hC := hC)
-          (hbody := hbody) (htail := htail)
-          hcompBody hcompTail
-          (stmt_control_goal_of_handlers H hcompBody)
-          (stmt_control_goal_of_handlers H hcompTail)
+          (hbody := hstepBody) (htail := hstepLoopTail)
+          hcompatBody hcompatLoopTail
+          (stmt_control_goal_of_handlers handlers hcompatBody)
+          (stmt_control_goal_of_handlers handlers hcompatLoopTail)
           hσ hready
 
-  | .while_true_break hcompBody =>
+  | .while_true_break hcompatBody =>
       intro hσ hready
-      exact whileBreakCase (stmt_control_goal_of_handlers H hcompBody) hσ hready
+      exact whileBreakCase (stmt_control_goal_of_handlers handlers hcompatBody) hσ hready
 
   | .while_true_continue_normal (Γ := Γ) (σ := σ) (σ₁ := σ₁) (σ₂ := σ₂) (c := c) (body := body)
       (hc := hc) (hN := hN) (hB := hB) (hC := hC)
-      (hcond := hcond) (hbody := hbody) (htail := htail)
-      hcompBody hcompTail =>
+      (hcond := hcond) (hbody := hstepBody) (htail := hstepLoopTail)
+      hcompatBody hcompatLoopTail =>
       intro hσ hready
       exact
-        H.continueNormal
+        handlers.continueNormal
           (hc := hc) (hN := hN) (hB := hB) (hC := hC)
-          (hbody := hbody) (htail := htail)
-          hcompBody hcompTail
-          (stmt_control_goal_of_handlers H hcompBody)
-          (stmt_control_goal_of_handlers H hcompTail)
+          (hbody := hstepBody) (htail := hstepLoopTail)
+          hcompatBody hcompatLoopTail
+          (stmt_control_goal_of_handlers handlers hcompatBody)
+          (stmt_control_goal_of_handlers handlers hcompatLoopTail)
           hσ hready
 
   | .while_true_normal_return (Γ := Γ) (Δ := Δ) (σ := σ) (σ₁ := σ₁) (σ₂ := σ₂) (c := c) (body := body)
       (hc := hc) (hN := hN) (hB := hB) (hC := hC) (hR := hR)
-      (hcond := hcond) (rv := rv) (hbody := hbody) (htail := htail)
-      hcompBody hcompTail =>
+      (hcond := hcond) (rv := rv) (hbody := hstepBody) (htail := hstepLoopTail)
+      hcompatBody hcompatLoopTail =>
       intro hσ hready
       exact
-        H.normalReturn
+        handlers.normalReturn
           (hc := hc) (hN := hN) (hB := hB) (hC := hC) (hR := hR)
-          (rv := rv) (hbody := hbody) (htail := htail)
-          hcompBody hcompTail
-          (stmt_control_goal_of_handlers H hcompBody)
-          (stmt_control_goal_of_handlers H hcompTail)
+          (rv := rv) (hbody := hstepBody) (htail := hstepLoopTail)
+          hcompatBody hcompatLoopTail
+          (stmt_control_goal_of_handlers handlers hcompatBody)
+          (stmt_control_goal_of_handlers handlers hcompatLoopTail)
           hσ hready
 
   | .while_true_continue_return (Γ := Γ) (Δ := Δ) (σ := σ) (σ₁ := σ₁) (σ₂ := σ₂) (c := c) (body := body)
       (hc := hc) (hN := hN) (hB := hB) (hC := hC) (hR := hR)
-      (hcond := hcond) (rv := rv) (hbody := hbody) (htail := htail)
-      hcompBody hcompTail =>
+      (hcond := hcond) (rv := rv) (hbody := hstepBody) (htail := hstepLoopTail)
+      hcompatBody hcompatLoopTail =>
       intro hσ hready
       exact
-        H.continueReturn
+        handlers.continueReturn
           (hc := hc) (hN := hN) (hB := hB) (hC := hC) (hR := hR)
-          (rv := rv) (hbody := hbody) (htail := htail)
-          hcompBody hcompTail
-          (stmt_control_goal_of_handlers H hcompBody)
-          (stmt_control_goal_of_handlers H hcompTail)
+          (rv := rv) (hbody := hstepBody) (htail := hstepLoopTail)
+          hcompatBody hcompatLoopTail
+          (stmt_control_goal_of_handlers handlers hcompatBody)
+          (stmt_control_goal_of_handlers handlers hcompatLoopTail)
           hσ hready
 
-  | .while_true_return hcompBody =>
+  | .while_true_return hcompatBody =>
       intro hσ hready
-      exact whileReturnLeafCase (stmt_control_goal_of_handlers H hcompBody) hσ hready
+      exact whileReturnLeafCase (stmt_control_goal_of_handlers handlers hcompatBody) hσ hready
 
   | .block (Γ := Γ) (Θ := Θ) (ss := ss)
       (σ := σ) (σ₀ := σ₀) (σ₁ := σ₁) (σ₂ := σ₂) (ctrl := ctrl)
-      (htyB := htyB) (hopen := hopen) (hbody := hbody) (hclose := hclose)
-      hcompBody =>
+      (htyB := htyBlockBody) (hopen := hopen) (hbody := hstepBlockBody) (hclose := hclose)
+      hcompatBlockBody =>
       intro hσ hready
       exact
         blockStmtCase
-          (htyB := htyB) (hopen := hopen) (hclose := hclose)
-          (block_control_goal_of_handlers H hcompBody)
+          (htyB := htyBlockBody) (hopen := hopen) (hclose := hclose)
+          (block_control_goal_of_handlers handlers hcompatBlockBody)
           hσ hready
 
 private theorem block_control_goal_of_handlers
-    (H : WhileCompatHandlers)
+    (handlers : WhileCompatHandlers)
     {k : ControlKind} {Γ Δ : TypeEnv} {ss : StmtBlock}
     {σ : State} {ctrl : CtrlResult} {σ' : State}
     {hty : HasTypeBlockCI k Γ ss Δ}
     {hstep : BigStepBlock σ ss ctrl σ'}
-    (hcomp : BlockControlCompatible hty hstep) :
+    (hcompat : BlockControlCompatible hty hstep) :
     ScopedTypedStateConcrete Γ σ →
     BlockReadyConcrete Γ σ ss →
     ScopedTypedStateConcrete Δ σ' := by
-  match hcomp with
+  match hcompat with
   | .nil =>
       intro hσ _
       simpa using hσ
@@ -355,9 +361,9 @@ private theorem block_control_goal_of_handlers
   | .cons_normal
       (k := k) (Γ := Γ) (Θ := Θ) (Δ := Δ) (s := s) (ss := ss)
       (σ := σ) (σ₁ := σ₁) (σ₂ := σ₂) (ctrl := ctrl)
-      (htyS := htyS) (htyT := htyT)
-      (hstepS := hstepS) (hstepT := hstepT)
-      hcompS hcompT =>
+      (htyS := htyHead) (htyT := htyTail)
+      (hstepS := hstepHead) (hstepT := hstepTail)
+      hcompatHead hcompatTail =>
       intro hσ hready
       have hpost :
           ScopedTypedStateConcrete Θ σ₁ ∧ BlockReadyConcrete Θ σ₁ ss := by
@@ -365,36 +371,36 @@ private theorem block_control_goal_of_handlers
           cons_head_normal_preserves_ready_of_head_preservation
             (Γ := Γ) (Ξ := Θ) (σ := σ) (σ' := σ₁) (s := s) (ss := ss)
             (hpres := by
-              intro _htyS hσ0 hreadyS0 _hstepS
-              exact stmt_control_goal_of_handlers H hcompS hσ0 hreadyS0)
-            htyS hready hstepS hσ
-      rcases hpost with ⟨hσ₁, hreadyT⟩
-      exact block_control_goal_of_handlers H hcompT hσ₁ hreadyT
+              intro _htyHead hσ0 hreadyHead0 _hstepHead
+              exact stmt_control_goal_of_handlers handlers hcompatHead hσ0 hreadyHead0)
+            htyHead hready hstepHead hσ
+      rcases hpost with ⟨hσ₁, hreadyTail⟩
+      exact block_control_goal_of_handlers handlers hcompatTail hσ₁ hreadyTail
 
-  | .cons_break hcompS =>
+  | .cons_break hcompatHead =>
       intro hσ hready
-      have hreadyS := cons_block_ready_head hready
-      exact stmt_control_goal_of_handlers H hcompS hσ hreadyS
+      have hreadyHead := cons_block_ready_head hready
+      exact stmt_control_goal_of_handlers handlers hcompatHead hσ hreadyHead
 
-  | .cons_continue hcompS =>
+  | .cons_continue hcompatHead =>
       intro hσ hready
-      have hreadyS := cons_block_ready_head hready
-      exact stmt_control_goal_of_handlers H hcompS hσ hreadyS
+      have hreadyHead := cons_block_ready_head hready
+      exact stmt_control_goal_of_handlers handlers hcompatHead hσ hreadyHead
 
-  | .cons_return hcompS =>
+  | .cons_return hcompatHead =>
       intro hσ hready
-      have hreadyS := cons_block_ready_head hready
-      exact stmt_control_goal_of_handlers H hcompS hσ hreadyS
+      have hreadyHead := cons_block_ready_head hready
+      exact stmt_control_goal_of_handlers handlers hcompatHead hσ hreadyHead
 
 end
 
 def stmtBlock_preservation_kernel_of_handlers
-    (H : WhileCompatHandlers) : StmtBlockPreservationKernel where
+    (handlers : WhileCompatHandlers) : StmtBlockPreservationKernel where
   stmt := by
-    intro k Γ Δ s σ ctrl σ' hty hstep hcomp
-    exact stmt_control_goal_of_handlers H hcomp
+    intro k Γ Δ s σ ctrl σ' hty hstep hcompat
+    exact stmt_control_goal_of_handlers handlers hcompat
   block := by
-    intro k Γ Δ ss σ ctrl σ' hty hstep hcomp
-    exact block_control_goal_of_handlers H hcomp
+    intro k Γ Δ ss σ ctrl σ' hty hstep hcompat
+    exact block_control_goal_of_handlers handlers hcompat
 
 end Cpp

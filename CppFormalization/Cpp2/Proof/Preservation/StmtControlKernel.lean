@@ -16,36 +16,36 @@ def whileCompatHandlers_kernel
    (mkWhileReentry : WhileReentryReadyProvider):
     WhileCompatHandlers where
   normalNormal := by
-    intro Γ σ0 σ1 σ2 c body hc hN hB hC hbody htail
-      _hcompBody _hcompTail ihBody ihTail hsc_in hreadyWhile
+    intro Γ σ0 σBody σTail c body hc hN hB hC hstepBody hstepLoopTail
+      _hcompatBody _hcompatLoopTail ihBodyPres ihLoopPres hscIn hreadyWhile
     exact
       whileNormalNormalCase
-        mkWhileReentry hc hN hB hC hbody ihBody ihTail
-        hsc_in hreadyWhile
+        mkWhileReentry hc hN hB hC hstepBody ihBodyPres ihLoopPres
+        hscIn hreadyWhile
 
   continueNormal := by
-    intro Γ σ0 σ1 σ2 c body hc hN hB hC hbody htail
-      _hcompBody _hcompTail ihBody ihTail hsc_in hreadyWhile
+    intro Γ σ0 σBody σTail c body hc hN hB hC hstepBody hstepLoopTail
+      _hcompatBody _hcompatLoopTail ihBodyPres ihLoopPres hscIn hreadyWhile
     exact
       whileContinueNormalCase
-        mkWhileReentry hc hN hB hC hbody ihBody ihTail
-        hsc_in hreadyWhile
+        mkWhileReentry hc hN hB hC hstepBody ihBodyPres ihLoopPres
+        hscIn hreadyWhile
 
   normalReturn := by
-    intro Γ Δ σ0 σ1 σ2 c body rv hc hN hB hC hR hbody htail
-      _hcompBody _hcompTail ihBody ihTail hsc_in hreadyWhile
+    intro Γ Δ σ0 σBody σTail c body rv hc hN hB hC hR hstepBody hstepLoopTail
+      _hcompatBody _hcompatLoopTail ihBodyPres ihLoopPres hscIn hreadyWhile
     exact
       whileNormalReturnCase
-        mkWhileReentry hc hN hB hC hbody ihBody ihTail
-        hsc_in hreadyWhile
+        mkWhileReentry hc hN hB hC hstepBody ihBodyPres ihLoopPres
+        hscIn hreadyWhile
 
   continueReturn := by
-    intro Γ Δ σ0 σ1 σ2 c body rv hc hN hB hC hR hbody htail
-      _hcompBody _hcompTail ihBody ihTail hsc_in hreadyWhile
+    intro Γ Δ σ0 σBody σTail c body rv hc hN hB hC hR hstepBody hstepLoopTail
+      _hcompatBody _hcompatLoopTail ihBodyPres ihLoopPres hscIn hreadyWhile
     exact
       whileContinueReturnCase
-        mkWhileReentry hc hN hB hC hbody ihBody ihTail
-        hsc_in hreadyWhile
+        mkWhileReentry hc hN hB hC hstepBody ihBodyPres ihLoopPres
+        hscIn hreadyWhile
 
 def stmtBlock_preservation_kernel
     (mkWhileReentry : WhileReentryReadyProvider):
