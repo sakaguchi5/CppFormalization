@@ -13,6 +13,8 @@ Redesign:
   1. current-entry facts, theorem-backed by `WhileEntryBoundaryCI`;
   2. loop-body local boundary, still a real local-body obligation;
   3. tail-boundary reconstruction, still a real delimiter/reentry obligation.
+- additionally expose a reentry-based route where tail-boundary reconstruction
+  is assembled from `LoopReentryKernelCI` plus a post-state adequacy provider.
 -/
 
 /--
@@ -29,6 +31,30 @@ structure WhileBodyClassComponentsCI
     LoopBodyBoundaryCI Γ σ body
   tailBoundary :
     WhileTailBoundaryKitCI Γ σ c body
+
+/--
+A more honest reentry-based while-local support package.
+
+It replaces an opaque tail-boundary kit by:
+- current entry,
+- loop-body local boundary,
+- delimiter reentry kernel,
+- the remaining post-state top-level while adequacy provider.
+
+This is the surface that should replace direct uses of
+`whileTailBoundaryKitCI_of_bodyClosureBoundaryCI` when proving concrete classes.
+-/
+structure WhileBodyReentrySupportCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) : Type where
+  currentEntry :
+    WhileEntryBoundaryCI Γ σ c body
+  loopBoundary :
+    LoopBodyBoundaryCI Γ σ body
+  reentry :
+    LoopReentryKernelCI Γ c body
+  tailAdequacy :
+    WhileTailAdequacyProviderCI Γ σ c body hentry.static
 
 /--
 The class object consumed by the while case kernel.
@@ -83,6 +109,55 @@ theorem bodyProgressOrDiverges
 
 end WhileBodyClassComponentsCI
 
+namespace WhileBodyReentrySupportCI
+
+/--
+Assemble the ordinary component package from reentry support.
+
+This is the key connection from `LoopReentryKernelCI` to the tail-boundary kit.
+It does not hide the remaining adequacy obligation.
+-/
+def toComponents
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    {hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)}
+    (S : WhileBodyReentrySupportCI hentry) :
+    WhileBodyClassComponentsCI Γ σ c body :=
+  { entry := S.currentEntry
+    loopBoundary := S.loopBoundary
+    tailBoundary :=
+      whileTailBoundaryKitCI_of_loopReentry
+        hentry
+        S.currentEntry
+        S.loopBoundary
+        S.reentry
+        S.tailAdequacy }
+
+/-- The class payload induced by reentry support. -/
+def toClass
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    {hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)}
+    (S : WhileBodyReentrySupportCI hentry) :
+    WhileBodyClassCI Γ σ c body :=
+  S.toComponents.toClass
+
+/-- The theorem-backed while typing exposed by the current-entry component. -/
+theorem whileTyping
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    {hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)}
+    (S : WhileBodyReentrySupportCI hentry) :
+    HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ :=
+  S.toComponents.whileTyping
+
+/-- Local body progress/divergence through the loop-boundary component. -/
+theorem bodyProgressOrDiverges
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    {hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)}
+    (S : WhileBodyReentrySupportCI hentry) :
+    (∃ ctrl σ1, BigStepStmt σ body ctrl σ1) ∨ BigStepStmtDiv σ body :=
+  S.toClass.bodyProgressOrDiverges
+
+end WhileBodyReentrySupportCI
+
 /--
 Build the decomposed while-local components from a top-level while boundary.
 
@@ -98,6 +173,23 @@ noncomputable def whileBodyClassComponentsCI_of_bodyClosureBoundaryCI
   { entry := whileEntryBoundaryCI_of_bodyClosureBoundaryCI hentry
     loopBoundary := whileLoopBoundaryCI_of_bodyClosureBoundaryCI hentry
     tailBoundary := whileTailBoundaryKitCI_of_bodyClosureBoundaryCI hentry }
+
+/--
+Build the reentry-based while-local support from explicit obligations.
+
+This is the preferred theorem-proving route for concrete while-body classes.
+-/
+def whileBodyReentrySupportCI_of_bodyClosureBoundaryCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
+    (hloop : LoopBodyBoundaryCI Γ σ body)
+    (hreentry : LoopReentryKernelCI Γ c body)
+    (hadequacy : WhileTailAdequacyProviderCI Γ σ c body hentry.static) :
+    WhileBodyReentrySupportCI hentry :=
+  { currentEntry := whileEntryBoundaryCI_of_bodyClosureBoundaryCI hentry
+    loopBoundary := hloop
+    reentry := hreentry
+    tailAdequacy := hadequacy }
 
 /--
 Class extracted from a top-level `while` closure boundary.
@@ -162,6 +254,29 @@ theorem while_function_body_closure_boundary_ci_of_components
       K.whileTyping
       hentry
       K.toClass
+      htailClosure
+
+/--
+Reentry-support wrapper.
+
+This is the preferred route once a concrete proof supplies a
+`LoopReentryKernelCI` and the remaining post-state adequacy provider.
+-/
+theorem while_function_body_closure_boundary_ci_of_reentrySupport
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
+    (S : WhileBodyReentrySupportCI hentry)
+    (htailClosure :
+      ∀ {σ1 : State},
+        BodyClosureBoundaryCI Γ σ1 (.whileStmt c body) →
+        (∃ ex σ2, BigStepFunctionBody σ1 (.whileStmt c body) ex σ2) ∨
+          BigStepStmtDiv σ1 (.whileStmt c body)) :
+    (∃ ex σ', BigStepFunctionBody σ (.whileStmt c body) ex σ') ∨
+      BigStepStmtDiv σ (.whileStmt c body) := by
+  exact
+    while_function_body_closure_boundary_ci_of_components
+      hentry
+      S.toComponents
       htailClosure
 
 end Cpp

@@ -18,8 +18,11 @@ constructor-level case-driver body.
 - ここでは closed theorem は作らない。
 - while は同じ syntax `(.whileStmt c body)` への tail 再帰を持つので、
   case-driver 本体は明示的な recursive hypothesis を引数に取る。
-- これにより、残る open surface は「この body を満たす global recursion/fixed-point を
-  どう与えるか」だけになる。
+- `while` branch は now `WhileBodyClassComponentsCI` を経由する。
+  これにより:
+  * current-entry typing は theorem-backed;
+  * loop-body local boundary と tail-boundary reconstruction は
+    残る genuine obligations として分離される。
 -/
 
 /-- canonical result shape, re-exported for readability at the driver level. -/
@@ -93,13 +96,10 @@ theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body
           (fun helseBoundary =>
             IH (st := t) hfragT helseBoundary)
   | whileStmt c body =>
-      have htyWhile : HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ :=
-        whileTypingCI_of_bodyClosureBoundaryCI hentry
-      let K : WhileBodyClassCI Γ σ c body :=
-        whileBodyClassCI_of_bodyClosureBoundaryCI hentry
+      let K : WhileBodyClassComponentsCI Γ σ c body :=
+        whileBodyClassComponentsCI_of_bodyClosureBoundaryCI hentry
       exact
-        while_function_body_closure_boundary_ci_of_class
-          htyWhile
+        while_function_body_closure_boundary_ci_of_components
           hentry
           K
           (fun {σ1} htailBoundary =>
