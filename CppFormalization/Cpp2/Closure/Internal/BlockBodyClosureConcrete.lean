@@ -342,12 +342,11 @@ theorem block_body_function_closure_concrete_refined_at :
     ∀ {Γ : TypeEnv} {σ : State} {ss : StmtBlock},
       BlockBodyReadyConcreteAt Γ σ ss →
       (∃ ex σ', BigStepFunctionBlockBody σ ss ex σ') ∨ BigStepBlockDiv σ ss
-  | Γ, σ, .nil, h =>
+  | _, _, .nil, h =>
       nil_block_body_function_closure_concrete_refined_at h
-  | Γ, σ, .cons s ss, h =>
+  | _, _, .cons _ _, h =>
       cons_block_body_function_closure_concrete_refined_at h
         (fun htail => block_body_function_closure_concrete_refined_at htail)
-termination_by _Γ _σ ss _h => sizeOf ss
 
 /-- Opened block-body closure itself, as seen from a statement-level block entry. -/
 theorem block_body_function_closure_concrete_refined
