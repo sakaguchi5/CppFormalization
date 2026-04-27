@@ -28,13 +28,12 @@ CI-centric opened block-body closure layer.
 
 更新:
 - block-body closure と top-level block closure 自体は、
-  既存の concrete refined theorem を経由して theorem-backed にした。
-- opened block-body boundary bridge についても dynamic / structural に加えて
-  profile まで theorem-backed にした。
+  opened block-body result から open/body/close assembly で theorem-backed にした。
+- `block_function_body_closure_boundary_ci_from_opened_body` は、
+  もう callback を飾りとして要求しない。実際に opened boundary を作り、callback を呼び、
+  その result を statement-level `.block ss` result へ戻す。
 - 残る shell は opened block body adequacy だけである。
 -/
-
-
 
 /-- Forget CI-sensitive block-body fields and recover the existing concrete boundary. -/
 theorem blockBodyReadyConcrete_of_blockBodyReadyCI
@@ -177,8 +176,6 @@ def blockBodyDynamicBoundary_of_bodyClosureBoundaryCI_opened
   { state := hopened.state
     safe := hopened.safe }
 
-
-
 noncomputable def blockBodyEntryWitness_of_bodyEntryWitness
     {Γ : TypeEnv} {ss : StmtBlock}
     (e : BodyEntryWitness Γ (.block ss)) :
@@ -295,8 +292,6 @@ noncomputable def blockBodyClosureBoundaryCI_of_bodyClosureBoundaryCI_opened
           (blockBodyAdequacyScaffoldCI_of_bodyClosureBoundaryCI_opened
             hentry hopen).adequacy }
 
-
-
 /--
 Opened block-body closure target.
 
@@ -331,20 +326,27 @@ theorem block_function_body_closure_boundary_ci_direct
 /--
 Block-statement closure assembled from an opened block-body closure callback.
 
-`openedClosure` is intentionally kept in the surface for architectural honesty,
-but the actual CI theorem is already discharged by the concrete refined theorem.
+The callback is now semantically live: we construct the opened block-body boundary,
+call the callback, and assemble its result back into statement-level `.block ss`.
 -/
 theorem block_function_body_closure_boundary_ci_from_opened_body
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
     (hentry : BodyClosureBoundaryCI Γ σ (.block ss))
-    (_openedClosure :
+    (openedClosure :
       ∀ {σ0 : State},
         OpenScope σ σ0 →
         BlockBodyClosureBoundaryCI Γ σ0 ss →
         FunctionBlockBodyClosureResult σ0 ss) :
     (∃ ex σ', BigStepFunctionBody σ (.block ss) ex σ') ∨
       BigStepStmtDiv σ (.block ss) := by
-  exact block_function_body_closure_boundary_ci_direct hentry
+  let σ0 : State := pushScope σ
+  have hopen : OpenScope σ σ0 := by
+    rfl
+  have hopenedBoundary : BlockBodyClosureBoundaryCI Γ σ0 ss :=
+    blockBodyClosureBoundaryCI_of_bodyClosureBoundaryCI_opened hentry hopen
+  have hres : FunctionBlockBodyClosureResult σ0 ss :=
+    openedClosure hopen hopenedBoundary
+  exact block_function_body_result_of_opened_block_body_result hopen hres
 
 /-- `BodyReadyCI` 互換 wrapper for the opened-scope bridge. -/
 noncomputable def blockBodyReadyCI_of_bodyReadyCI_opened
