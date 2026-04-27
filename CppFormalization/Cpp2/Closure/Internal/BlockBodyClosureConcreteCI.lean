@@ -1,5 +1,6 @@
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureConcrete
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyNormalPreservation
+import CppFormalization.Cpp2.Closure.Internal.HeadTailReturnAwareRoutesCI
 import CppFormalization.Cpp2.Proof.Control.BigStepControlCompatibility
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlKernel
 
@@ -214,6 +215,25 @@ theorem nil_block_body_function_closure_concrete_refined_at_ci
   refine ⟨.fellThrough, σ, ?_⟩
   exact BigStepFunctionBlockBody.fallthrough BigStepBlock.nil
 
+/-- Head/tail closure callback for a normal head execution in the CI current-env route. -/
+private theorem blockBodyReadyConcreteAtCI_tailClosure_after_head_normal
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
+    (h : BlockBodyReadyConcreteAtCI Γ σ (.cons s ss))
+    (out : {Δ : TypeEnv // HasTypeBlockCI .normalK Γ (.cons s ss) Δ})
+    (htail :
+      ∀ {Δ : TypeEnv} {σ' : State}
+        (htailReady : BlockBodyReadyConcreteAtCI Δ σ' ss),
+        (∃ out, htailReady.profile.summary.normalOut = some out) →
+        (∃ ex σ'', BigStepFunctionBlockBody σ' ss ex σ'') ∨ BigStepBlockDiv σ' ss)
+    {σ' : State}
+    (hstep : BigStepStmt σ s .normal σ') :
+    (∃ ex σ'', BigStepFunctionBlockBody σ' ss ex σ'') ∨ BigStepBlockDiv σ' ss := by
+  rcases blockBodyReadyConcreteAtCI_cons_tail_after_head_normal
+      mkWhileReentry h out hstep with
+    ⟨Δ, htailReady, htailN⟩
+  exact htail htailReady htailN
+
 /-- Head/tail assembly for a `cons` opened block body in the CI current-env route,
 under an explicit normal-channel assumption. -/
 theorem cons_block_body_function_closure_concrete_refined_at_ci
@@ -231,43 +251,17 @@ theorem cons_block_body_function_closure_concrete_refined_at_ci
   rcases hN with ⟨out, _hout⟩
   have hheadReady : BodyReadyConcrete Γ σ s :=
     blockBodyReadyConcreteAtCI_cons_head_of_normalOut h out
-  rcases
-      concrete_body_ready_function_body_progress_or_diverges_by_cases_concrete_refined
-        (coreBigStepFragment_all s)
-        hheadReady with hheadTerm | hheadDiv
-  · rcases hheadTerm with ⟨ex, σ1, hheadExec⟩
-    cases ex with
-    | fellThrough =>
-        have hstepHead : BigStepStmt σ s .normal σ1 := by
-          simpa using (BigStepFunctionBody.to_stmt hheadExec)
-        rcases blockBodyReadyConcreteAtCI_cons_tail_after_head_normal
-            mkWhileReentry h out hstepHead with
-          ⟨Δ, htailReady, htailN⟩
-        rcases htail htailReady htailN with htailTerm | htailDiv
-        · rcases htailTerm with ⟨exTail, σ2, htailExec⟩
-          cases exTail with
-          | fellThrough =>
-              left
-              refine ⟨.fellThrough, σ2, ?_⟩
-              apply BigStepFunctionBlockBody.fallthrough
-              exact BigStepBlock.consNormal hstepHead
-                (by simpa using (BigStepFunctionBlockBody.to_block htailExec))
-          | returned rv =>
-              left
-              refine ⟨.returned rv, σ2, ?_⟩
-              apply BigStepFunctionBlockBody.returning
-              exact BigStepBlock.consNormal hstepHead
-                (by simpa using (BigStepFunctionBlockBody.to_block htailExec))
-        · right
-          exact BigStepBlockDiv.consTail hstepHead htailDiv
-    | returned rv =>
-        left
-        refine ⟨.returned rv, σ1, ?_⟩
-        apply BigStepFunctionBlockBody.returning
-        exact BigStepBlock.consReturn
-          (by simpa using (BigStepFunctionBody.to_stmt hheadExec))
-  · right
-    exact BigStepBlockDiv.consHere hheadDiv
+  -- ↓ ここからがパッチ適用後の新しいコード
+  have hheadClosure :
+      (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨ BigStepStmtDiv σ s :=
+    concrete_body_ready_function_body_progress_or_diverges_by_cases_concrete_refined
+      (coreBigStepFragment_all s)
+      hheadReady
+  exact
+    block_cons_function_body_result_return_aware
+      hheadClosure
+      (blockBodyReadyConcreteAtCI_tailClosure_after_head_normal
+        mkWhileReentry h out htail)
 
 /--
 Opened block-body closure in the CI current-env concrete route, for profiles

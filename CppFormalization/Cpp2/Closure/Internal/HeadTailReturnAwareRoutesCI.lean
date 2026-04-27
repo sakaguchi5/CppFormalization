@@ -1,6 +1,4 @@
-import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureConcreteCI
-import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureCI
-import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseSplitCI
+import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureConcrete
 import CppFormalization.Cpp2.Semantics.Divergence
 
 namespace Cpp
@@ -10,27 +8,12 @@ namespace Cpp
 
 Return-aware operational assembly for `seq` and block-body `cons`.
 
-This file deliberately separates the operational head/tail assembly from profile
-projection.  The core point is:
-
-* head return is handled as head return;
-* head normal is the only path that constructs a tail boundary and invokes the
-  tail closure route;
-* divergence is propagated from the actual point where it occurs.
-
-This avoids the false move of projecting a whole-return payload into a tail
-return profile.
+This file is deliberately low-level. It imports only the concrete block-body
+execution wrapper and divergence semantics, so it can be used by
+`BlockBodyClosureConcreteCI` without creating an import cycle.
 -/
 
-/--
-Return-aware assembly for statement sequencing.
-
-This theorem is profile-independent on purpose.  It states the semantic shape
-that every honest CI/profile route must eventually feed:
-- if the head returns, the whole sequence returns immediately;
-- if the head falls through, the tail closure decides the whole result;
-- if the head diverges, the whole sequence diverges at the head.
--/
+/-- Return-aware assembly for statement sequencing. -/
 theorem seq_function_body_result_return_aware
     {σ : State} {s t : CppStmt}
     (hhead :
@@ -74,12 +57,7 @@ theorem seq_function_body_result_return_aware
   · right
     exact BigStepStmtDiv.seqLeft hheadDiv
 
-/--
-Return-aware assembly for block-body cons.
-
-This is the block-body analogue of `seq_function_body_result_return_aware`.
-It is the operational core that profile-aware block-body routes should call.
--/
+/-- Return-aware assembly for block-body cons. -/
 theorem block_cons_function_body_result_return_aware
     {σ : State} {s : CppStmt} {ss : StmtBlock}
     (hhead :
@@ -88,8 +66,10 @@ theorem block_cons_function_body_result_return_aware
     (tailAfterHeadNormal :
       ∀ {σ' : State},
         BigStepStmt σ s .normal σ' →
-        FunctionBlockBodyClosureResult σ' ss) :
-    FunctionBlockBodyClosureResult σ (.cons s ss) := by
+        (∃ ex σ'', BigStepFunctionBlockBody σ' ss ex σ'') ∨
+          BigStepBlockDiv σ' ss) :
+    (∃ ex σ', BigStepFunctionBlockBody σ (.cons s ss) ex σ') ∨
+      BigStepBlockDiv σ (.cons s ss) := by
   rcases hhead with hheadTerm | hheadDiv
   · rcases hheadTerm with ⟨exHead, σ1, hheadExec⟩
     cases hheadExec with
@@ -120,47 +100,5 @@ theorem block_cons_function_body_result_return_aware
               (BigStepBlock.consReturn hstepHead)⟩
   · right
     exact BigStepBlockDiv.consHere hheadDiv
-
-/--
-Callback-shaped CI route for statement sequencing.
-
-This is intentionally not a full replacement for existing seq closure yet.
-It is the correct return-aware surface: the caller supplies a real head closure
-and a tail closure only for the actual head-normal execution.
--/
-theorem seq_function_body_closure_boundary_ci_return_aware_from_callbacks
-    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
-    (_hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
-    (headClosure :
-      (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨
-        BigStepStmtDiv σ s)
-    (tailAfterHeadNormal :
-      ∀ {σ' : State},
-        BigStepStmt σ s .normal σ' →
-        (∃ ex σ'', BigStepFunctionBody σ' t ex σ'') ∨
-          BigStepStmtDiv σ' t) :
-    (∃ ex σ', BigStepFunctionBody σ (.seq s t) ex σ') ∨
-      BigStepStmtDiv σ (.seq s t) := by
-  exact seq_function_body_result_return_aware headClosure tailAfterHeadNormal
-
-/--
-Callback-shaped CI route for block-body cons.
-
-This theorem is the block-side surface corresponding to the seq route above.
-It should replace ad-hoc cons assembly inside profile-aware block closure code.
--/
-theorem block_cons_function_body_closure_boundary_ci_return_aware_from_callbacks
-    {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
-    (_hentry : BlockBodyReadyConcreteAtCI Γ σ (.cons s ss))
-    (headClosure :
-      (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨
-        BigStepStmtDiv σ s)
-    (tailAfterHeadNormal :
-      ∀ {σ' : State},
-        BigStepStmt σ s .normal σ' →
-        FunctionBlockBodyClosureResult σ' ss) :
-    FunctionBlockBodyClosureResult σ (.cons s ss) := by
-  exact block_cons_function_body_result_return_aware
-    headClosure tailAfterHeadNormal
 
 end Cpp
