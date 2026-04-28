@@ -12,14 +12,15 @@ namespace Cpp
 
 Current-environment block-body closure boundary.
 
-`BlockBodyReadyConcreteAtCI` is enough for readiness and the concrete fallback
-route, but it is not enough to feed an IH/CI head-closure provider: the head
-statement needs a real `BodyClosureBoundaryCI`, including static profile and
-adequacy.
-
 This file introduces a current-environment block-body closure boundary and a
 return-aware cons route that closes the head through a boundary/IH provider
 rather than through the concrete master axiom.
+
+The current organization is intentionally debt-transparent:
+- head structural data is theorem-backed from cons block structural data;
+- head static and head adequacy are separated;
+- tail ready/profile/root are theorem-backed after a normal head step;
+- tail adequacy is the remaining tail-side obligation.
 -/
 
 /-- Current-environment dynamic boundary for an opened block body. -/
@@ -76,10 +77,6 @@ def BlockBodyClosureBoundaryAtCI.toReady
 /--
 Scaffold for extracting a head statement closure boundary from a current-env cons
 block-body closure boundary.
-
-This is the honest lower-level debt: a block-body closure boundary should carry
-enough static/adequacy information to close its head statement through the
-ordinary statement IH.
 -/
 structure BlockConsHeadClosureScaffoldAtCI
     (Γ : TypeEnv) (σ : State) (s : CppStmt) : Type where
@@ -88,15 +85,60 @@ structure BlockConsHeadClosureScaffoldAtCI
   adequacy : BodyAdequacyCI Γ σ s static.profile
 
 /--
-Extract the head closure scaffold from a cons block-body closure boundary.
+Head static extraction.
 
-This is intentionally a scaffold obligation, not hidden inside the cons closure
-theorem.  It is the block analogue of the seq-left scaffold debt.
+This is one of the two remaining head-side obligations.  It should eventually be
+proved by decomposing the cons block-body static/profile package.
 -/
-axiom blockCons_head_closure_scaffold_at_ci_of_boundary
+axiom blockCons_head_static_boundary_at_ci_of_boundary
     {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
     (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss)) :
-    BlockConsHeadClosureScaffoldAtCI Γ σ s
+    BodyStaticBoundaryCI Γ s
+
+/--
+Head adequacy extraction for a given extracted head static boundary.
+
+This is kept separate from head static extraction because adequacy is semantic
+evidence.  Conflating the two would hide the real proof obligation.
+-/
+axiom blockCons_head_adequacy_at_ci_of_boundary
+    {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
+    (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss))
+    (hstatic : BodyStaticBoundaryCI Γ s) :
+    BodyAdequacyCI Γ σ s hstatic.profile
+
+/-- The head statement inherits structural well-formedness/scoping from cons. -/
+theorem blockCons_head_structural_boundary_at_ci_of_boundary
+    {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
+    (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss)) :
+    BodyStructuralBoundary Γ s := by
+  have hwf : WellFormedStmt s ∧ WellFormedBlock ss := by
+    simpa [WellFormedBlock] using hentry.wf
+  have hbreak : BreakWellScoped s ∧ BreakWellScopedBlockAt 0 ss := by
+    simpa [BreakWellScopedBlockAt] using hentry.breakScoped
+  have hcont : ContinueWellScoped s ∧ ContinueWellScopedBlockAt 0 ss := by
+    simpa [ContinueWellScopedBlockAt] using hentry.continueScoped
+  exact
+    { wf := hwf.1
+      breakScoped := hbreak.1
+      continueScoped := hcont.1 }
+
+/--
+Extract the head closure scaffold from a cons block-body closure boundary.
+
+This is now assembled from:
+- theorem-backed structural data;
+- head static extraction;
+- head adequacy extraction.
+-/
+noncomputable def blockCons_head_closure_scaffold_at_ci_of_boundary
+    {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
+    (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss)) :
+    BlockConsHeadClosureScaffoldAtCI Γ σ s :=
+  let hstatic := blockCons_head_static_boundary_at_ci_of_boundary hentry
+  { structural := blockCons_head_structural_boundary_at_ci_of_boundary hentry
+    static := hstatic
+    adequacy := blockCons_head_adequacy_at_ci_of_boundary hentry hstatic }
 
 /-- Dynamic head boundary for the head statement of a cons block body. -/
 def blockCons_head_dynamic_boundary_at_ci_of_boundary
@@ -116,21 +158,53 @@ noncomputable def blockCons_head_closure_boundary_ci_of_boundary
   exact mkBodyClosureBoundaryCI hs.structural hs.static hd hs.adequacy
 
 /--
+Tail adequacy after an actual normal head execution.
+
+The tail ready/profile/root package is theorem-backed by
+`blockBodyReadyConcreteAtCI_cons_tail_after_head_normal`; the remaining
+non-trivial piece is the adequacy package for that tail boundary.
+-/
+axiom blockCons_tail_adequacy_at_ci_of_head_normal
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock}
+    (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss))
+    (out : {Δ : TypeEnv // HasTypeBlockCI .normalK Γ (.cons s ss) Δ})
+    (hstep : BigStepStmt σ s .normal σ')
+    {Θ : TypeEnv}
+    (htailReady : BlockBodyReadyConcreteAtCI Θ σ' ss) :
+    BlockBodyAdequacyAtCI Θ σ' ss htailReady.profile
+
+/--
 Tail closure boundary after an actual normal head execution.
 
-This is the second honest lower-level debt.  Dynamic readiness can be obtained
-from preservation/readiness transport, but the full closure boundary also needs
-a tail static profile and adequacy package.  Keeping this as a named obligation
-is much better than routing through the concrete master axiom.
+This is theorem-backed up to the named tail-adequacy obligation above.
 -/
-axiom blockCons_tail_closure_boundary_at_ci_of_head_normal
+theorem blockCons_tail_closure_boundary_at_ci_of_head_normal
     (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock}
     (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss))
     (out : {Δ : TypeEnv // HasTypeBlockCI .normalK Γ (.cons s ss) Δ})
     (hstep : BigStepStmt σ s .normal σ') :
     ∃ Θ, ∃ htail : BlockBodyClosureBoundaryAtCI Θ σ' ss,
-      ∃ outTail, htail.static.profile.summary.normalOut = some outTail
+      ∃ outTail, htail.static.profile.summary.normalOut = some outTail := by
+  rcases blockBodyReadyConcreteAtCI_cons_tail_after_head_normal
+      mkWhileReentry hentry.toReady out hstep with
+    ⟨Θ, htailReady, htailN⟩
+  let htail : BlockBodyClosureBoundaryAtCI Θ σ' ss :=
+    { wf := htailReady.wf
+      breakScoped := htailReady.breakScoped
+      continueScoped := htailReady.continueScoped
+      static :=
+        { profile := htailReady.profile
+          root := htailReady.root
+          rootCoherent := htailReady.rootCoherent }
+      dynamic :=
+        { state := htailReady.state
+          safe := htailReady.safe }
+      adequacy :=
+        blockCons_tail_adequacy_at_ci_of_head_normal
+          mkWhileReentry hentry out hstep htailReady }
+  exact ⟨Θ, htail, htailN⟩
 
 /--
 Decomposed cons-boundary certificate.
@@ -138,10 +212,6 @@ Decomposed cons-boundary certificate.
 This is the real object the cons route needs:
 - a closure scaffold for the head statement;
 - a tail closure boundary provider for the actual head-normal execution.
-
-The previous two axioms are now just one possible compatibility source for this
-certificate.  The preferred future route is to carry/prove this decomposition
-directly from the block-body static/adequacy package.
 -/
 structure BlockConsClosureDecompositionAtCI
     {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
@@ -178,10 +248,6 @@ noncomputable def blockCons_head_closure_boundary_ci_of_decomposition
 
 /--
 Cons block-body closure from an explicit decomposition certificate.
-
-This theorem has no direct dependency on the old concrete master axiom and no
-direct dependency on the old head/tail scaffold axioms.  All such debt is now
-isolated in the source of `BlockConsClosureDecompositionAtCI`.
 -/
 theorem block_cons_function_body_closure_boundary_at_ci_with_decomposition
     {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
@@ -245,14 +311,11 @@ theorem block_body_function_closure_boundary_at_ci_normalOut_with_decomposition
             htail
             htailN)
 
-
 /--
 Cons block-body closure from a statement-boundary/IH head provider and a
 recursive current-env block-body closure provider.
 
-Compatibility wrapper: this route now factors through the explicit
-`BlockConsClosureDecompositionAtCI` certificate.  The old head/tail scaffold
-axioms are used only to build that certificate.
+Compatibility wrapper.
 -/
 theorem block_cons_function_body_closure_boundary_at_ci_with_IH
     (mkWhileReentry : WhileReentryReadyProvider)
@@ -281,10 +344,7 @@ theorem block_cons_function_body_closure_boundary_at_ci_with_IH
 /--
 Current-env block-body closure through statement IH.
 
-Compatibility wrapper: the clean recursive route is
-`block_body_function_closure_boundary_at_ci_normalOut_with_decomposition`.
-This theorem instantiates the decomposition provider from the existing scaffold
-axioms.
+Compatibility wrapper.
 -/
 theorem block_body_function_closure_boundary_at_ci_normalOut_with_IH
     (mkWhileReentry : WhileReentryReadyProvider)
