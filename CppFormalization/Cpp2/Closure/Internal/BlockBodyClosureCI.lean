@@ -343,13 +343,18 @@ def blockBodyReadyConcreteAtCI_of_blockBodyClosureBoundaryCI_normalOut
 
 /--
 Opened block-body closure through the profile-aware current-env CI route, with
-the normal payload supplied explicitly by the profile.
+an explicit head-closure provider.
 
-Unlike `block_body_function_closure_boundary_ci`, this route does not pass
-through the old-typing residual kernels.
+This is the boundary-level version of the callback route in
+`BlockBodyClosureConcreteCI`.  It does not force the head statement through the
+concrete master axiom; callers may supply a CI/IH head closure provider.
 -/
-theorem block_body_function_closure_boundary_ci_via_current_ci_normal
+theorem block_body_function_closure_boundary_ci_via_current_ci_normal_with_headClosure
     (mkWhileReentry : WhileReentryReadyProvider)
+    (headClosure :
+      ∀ {Γ : TypeEnv} {σ : State} {st : CppStmt},
+        BodyReadyConcrete Γ σ st →
+          (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st)
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
     (hentry : BlockBodyClosureBoundaryCI Γ σ ss)
     (out : {Δ : TypeEnv // HasTypeBlockCI .normalK (pushTypeScope Γ) ss Δ})
@@ -364,8 +369,39 @@ theorem block_body_function_closure_boundary_ci_via_current_ci_normal
     simpa [hAt, blockBodyReadyConcreteAtCI_of_blockBodyClosureBoundaryCI_normalOut,
       blockBodyControlProfileAt_of_blockBodyControlProfile] using hout
   exact
-    block_body_function_closure_concrete_refined_at_ci
-      mkWhileReentry hAt hN
+    block_body_function_closure_concrete_refined_at_ci_with_headClosure
+      mkWhileReentry
+      (fun hheadReady => headClosure hheadReady)
+      hAt
+      hN
+
+
+/--
+Opened block-body closure through the profile-aware current-env CI route, with
+the normal payload supplied explicitly by the profile.
+
+Compatibility wrapper: the head closure provider is still the old concrete
+master.  Prefer
+`block_body_function_closure_boundary_ci_via_current_ci_normal_with_headClosure`
+when an IH/CI head closure provider is available.
+-/
+theorem block_body_function_closure_boundary_ci_via_current_ci_normal
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
+    (hentry : BlockBodyClosureBoundaryCI Γ σ ss)
+    (out : {Δ : TypeEnv // HasTypeBlockCI .normalK (pushTypeScope Γ) ss Δ})
+    (hout : hentry.static.profile.summary.normalOut = some out) :
+    FunctionBlockBodyClosureResult σ ss := by
+  exact
+    block_body_function_closure_boundary_ci_via_current_ci_normal_with_headClosure
+      mkWhileReentry
+      (fun hheadReady =>
+        concrete_body_ready_function_body_progress_or_diverges_by_cases_concrete_refined
+          (coreBigStepFragment_all _)
+          hheadReady)
+      hentry
+      out
+      hout
 
 /--
 Profile-facing wrapper for the profile-aware current-env CI route.
@@ -459,5 +495,25 @@ theorem block_function_body_closure_ci_honest
       hentry.toClosureBoundary
       (fun hopen hopenedBoundary =>
         openedClosure hopen hopenedBoundary.toBlockBodyReadyCI)
+
+/--
+Profile-facing wrapper for the callback-based current-env CI route.
+-/
+theorem block_body_function_closure_boundary_ci_via_current_ci_normalOut_with_headClosure
+    (mkWhileReentry : WhileReentryReadyProvider)
+    (headClosure :
+      ∀ {Γ : TypeEnv} {σ : State} {st : CppStmt},
+        BodyReadyConcrete Γ σ st →
+          (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st)
+    {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
+    (hentry : BlockBodyClosureBoundaryCI Γ σ ss)
+    (hN :
+      ∃ out,
+        hentry.static.profile.summary.normalOut = some out) :
+    FunctionBlockBodyClosureResult σ ss := by
+  rcases hN with ⟨out, hout⟩
+  exact
+    block_body_function_closure_boundary_ci_via_current_ci_normal_with_headClosure
+      mkWhileReentry headClosure hentry out hout
 
 end Cpp

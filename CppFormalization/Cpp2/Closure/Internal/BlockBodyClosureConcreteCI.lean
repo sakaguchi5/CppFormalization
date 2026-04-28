@@ -289,6 +289,39 @@ theorem cons_block_body_function_closure_concrete_refined_at_ci_return_aware
       headClosure
       tailAfterHeadNormal
 
+/--
+Normal-channel cons closure with an explicit head-closure provider.
+
+This is the next abstraction step after the return-aware operational route.
+The cons assembly no longer needs to know how head closure is proved.
+The old concrete master can still be used as one provider, but CI/IH routes can
+now supply the head closure directly.
+-/
+theorem cons_block_body_function_closure_concrete_refined_at_ci_with_headClosure
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
+    (h : BlockBodyReadyConcreteAtCI Γ σ (.cons s ss))
+    (hN : ∃ out, h.profile.summary.normalOut = some out)
+    (headClosure :
+      BodyReadyConcrete Γ σ s →
+        (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨ BigStepStmtDiv σ s)
+    (htail :
+      ∀ {Δ : TypeEnv} {σ' : State}
+        (htailReady : BlockBodyReadyConcreteAtCI Δ σ' ss),
+        (∃ out, htailReady.profile.summary.normalOut = some out) →
+        (∃ ex σ'', BigStepFunctionBlockBody σ' ss ex σ'') ∨ BigStepBlockDiv σ' ss) :
+    (∃ ex σ', BigStepFunctionBlockBody σ (.cons s ss) ex σ') ∨
+      BigStepBlockDiv σ (.cons s ss) := by
+  rcases hN with ⟨out, _hout⟩
+  have hheadReady : BodyReadyConcrete Γ σ s :=
+    blockBodyReadyConcreteAtCI_cons_head_of_normalOut h out
+  exact
+    cons_block_body_function_closure_concrete_refined_at_ci_return_aware
+      h
+      (headClosure hheadReady)
+      (blockBodyReadyConcreteAtCI_tailClosure_after_head_normal
+        mkWhileReentry h out htail)
+
 /-- Head/tail assembly for a `cons` opened block body in the CI current-env route,
 under an explicit normal-channel assumption. -/
 theorem cons_block_body_function_closure_concrete_refined_at_ci
@@ -300,24 +333,20 @@ theorem cons_block_body_function_closure_concrete_refined_at_ci
       ∀ {Δ : TypeEnv} {σ' : State}
         (htailReady : BlockBodyReadyConcreteAtCI Δ σ' ss),
         (∃ out, htailReady.profile.summary.normalOut = some out) →
-        (∃ ex σ'', BigStepFunctionBlockBody σ' ss ex σ'') ∨ BigStepBlockDiv σ' ss) :
+        (∃ ex σ'', BigStepFunctionBlockBody σ' ss ex σ'') ∨
+          BigStepBlockDiv σ' ss) :
     (∃ ex σ', BigStepFunctionBlockBody σ (.cons s ss) ex σ') ∨
       BigStepBlockDiv σ (.cons s ss) := by
-  rcases hN with ⟨out, _hout⟩
-  have hheadReady : BodyReadyConcrete Γ σ s :=
-    blockBodyReadyConcreteAtCI_cons_head_of_normalOut h out
-  -- ↓ ここからがパッチ適用後の新しいコード
-  have hheadClosure :
-      (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨ BigStepStmtDiv σ s :=
-    concrete_body_ready_function_body_progress_or_diverges_by_cases_concrete_refined
-      (coreBigStepFragment_all s)
-      hheadReady
   exact
-    cons_block_body_function_closure_concrete_refined_at_ci_return_aware
+    cons_block_body_function_closure_concrete_refined_at_ci_with_headClosure
+      mkWhileReentry
       h
-      hheadClosure
-      (blockBodyReadyConcreteAtCI_tailClosure_after_head_normal
-        mkWhileReentry h out htail)
+      hN
+      (fun hheadReady =>
+        concrete_body_ready_function_body_progress_or_diverges_by_cases_concrete_refined
+          (coreBigStepFragment_all s)
+          hheadReady)
+      htail
 
 /--
 Opened block-body closure in the CI current-env concrete route, for profiles
@@ -339,5 +368,40 @@ theorem block_body_function_closure_concrete_refined_at_ci
         (fun htail htailN =>
           block_body_function_closure_concrete_refined_at_ci
             mkWhileReentry htail htailN)
+
+/--
+Opened block-body closure in the CI current-env concrete route, with an explicit
+head-closure provider.
+
+This is the callback-based version of
+`block_body_function_closure_concrete_refined_at_ci`.  The recursive block-body
+driver no longer commits to the concrete master axiom for closing the head
+statement.
+-/
+theorem block_body_function_closure_concrete_refined_at_ci_with_headClosure
+    (mkWhileReentry : WhileReentryReadyProvider)
+    (headClosure :
+      ∀ {Γ : TypeEnv} {σ : State} {st : CppStmt},
+        BodyReadyConcrete Γ σ st →
+          (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st) :
+    ∀ {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
+      (h : BlockBodyReadyConcreteAtCI Γ σ ss),
+      (∃ out, h.profile.summary.normalOut = some out) →
+      (∃ ex σ', BigStepFunctionBlockBody σ ss ex σ') ∨
+        BigStepBlockDiv σ ss
+  | _, _, .nil, h, _hN =>
+      nil_block_body_function_closure_concrete_refined_at_ci h
+  | _, _, .cons _ _, h, hN =>
+      cons_block_body_function_closure_concrete_refined_at_ci_with_headClosure
+        mkWhileReentry
+        h
+        hN
+        (fun hheadReady => headClosure hheadReady)
+        (fun htail htailN =>
+          block_body_function_closure_concrete_refined_at_ci_with_headClosure
+            mkWhileReentry
+            headClosure
+            htail
+            htailN)
 
 end Cpp
