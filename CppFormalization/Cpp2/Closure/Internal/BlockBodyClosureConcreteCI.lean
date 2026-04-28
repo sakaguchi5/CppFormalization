@@ -83,6 +83,33 @@ theorem top_level_abrupt_excluded_from_blockBodyReadyConcreteAtCI
   · intro hcont
     exact no_top_continue_from_scoped_block hready.continueScoped hcont
 
+/--
+Decompose the aggregate return channel of a cons block-body profile.
+
+This is the profile-side fact that prevents the false projection
+
+  whole cons returnOut ↦ tail returnOut.
+
+For `(.cons s ss)`, a return typing is either:
+- a head-return typing, in which case the tail is not executed; or
+- a head-normal typing followed by a tail-return typing.
+-/
+theorem blockBodyReadyConcreteAtCI_cons_returnOut_cases
+    {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
+    (h : BlockBodyReadyConcreteAtCI Γ σ (.cons s ss))
+    (hR : ∃ out, h.profile.summary.returnOut = some out) :
+    (∃ Δ, HasTypeStmtCI .returnK Γ s Δ) ∨
+      (∃ Θ Δ,
+        HasTypeStmtCI .normalK Γ s Θ ∧
+        HasTypeBlockCI .returnK Θ ss Δ) := by
+  rcases hR with ⟨out, _hout⟩
+  rcases out with ⟨Δ, htyBlock⟩
+  cases htyBlock with
+  | cons_normal htyHead htyTail =>
+      exact Or.inr ⟨_, _, htyHead, htyTail⟩
+  | cons_return htyHead =>
+      exact Or.inl ⟨_, htyHead⟩
+
 /-- Extract the head statement boundary from a CI current-env cons block body using
 an explicit normal block-body payload. -/
 def blockBodyReadyConcreteAtCI_cons_head_of_normalOut
@@ -234,6 +261,34 @@ private theorem blockBodyReadyConcreteAtCI_tailClosure_after_head_normal
     ⟨Δ, htailReady, htailN⟩
   exact htail htailReady htailN
 
+/--
+Return-aware cons closure from callbacks.
+
+This is the profile-independent live route for `cons` in the CI current-env
+layer.  It does not require a `normalOut` payload itself.  If the head returns,
+the tail is never queried.  If the head is normal, the supplied
+`tailAfterHeadNormal` callback is used.
+
+The existing normal-channel theorem below is now just one way of producing the
+`tailAfterHeadNormal` callback.
+-/
+theorem cons_block_body_function_closure_concrete_refined_at_ci_return_aware
+    {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
+    (_h : BlockBodyReadyConcreteAtCI Γ σ (.cons s ss))
+    (headClosure :
+      (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨ BigStepStmtDiv σ s)
+    (tailAfterHeadNormal :
+      ∀ {σ' : State},
+        BigStepStmt σ s .normal σ' →
+        (∃ ex σ'', BigStepFunctionBlockBody σ' ss ex σ'') ∨
+          BigStepBlockDiv σ' ss) :
+    (∃ ex σ', BigStepFunctionBlockBody σ (.cons s ss) ex σ') ∨
+      BigStepBlockDiv σ (.cons s ss) := by
+  exact
+    block_cons_function_body_result_return_aware
+      headClosure
+      tailAfterHeadNormal
+
 /-- Head/tail assembly for a `cons` opened block body in the CI current-env route,
 under an explicit normal-channel assumption. -/
 theorem cons_block_body_function_closure_concrete_refined_at_ci
@@ -258,7 +313,8 @@ theorem cons_block_body_function_closure_concrete_refined_at_ci
       (coreBigStepFragment_all s)
       hheadReady
   exact
-    block_cons_function_body_result_return_aware
+    cons_block_body_function_closure_concrete_refined_at_ci_return_aware
+      h
       hheadClosure
       (blockBodyReadyConcreteAtCI_tailClosure_after_head_normal
         mkWhileReentry h out htail)
