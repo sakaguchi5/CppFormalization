@@ -18,7 +18,9 @@ rather than through the concrete master axiom.
 
 The current organization is intentionally debt-transparent:
 - head structural data is theorem-backed from cons block structural data;
-- head static and head adequacy are separated;
+- head typed0 is theorem-backed from the explicit cons normal payload;
+- head profile/root/coherence are separated as a static scaffold;
+- head adequacy is separated from head static;
 - tail ready/profile/root are theorem-backed after a normal head step;
 - tail adequacy is the remaining tail-side obligation.
 -/
@@ -85,15 +87,69 @@ structure BlockConsHeadClosureScaffoldAtCI
   adequacy : BodyAdequacyCI Γ σ s static.profile
 
 /--
-Head static extraction.
+Head static scaffold without `typed0`.
 
-This is one of the two remaining head-side obligations.  It should eventually be
-proved by decomposing the cons block-body static/profile package.
+`typed0` is no longer part of the scaffold: in the normal-channel cons route it
+is theorem-backed from the explicit normal payload for the whole cons block.
+The remaining static debt is profile/root/root-coherence.
 -/
-axiom blockCons_head_static_boundary_at_ci_of_boundary
+structure BlockConsHeadStaticScaffoldAtCI
+    (Γ : TypeEnv) (s : CppStmt) : Type where
+  profile : BodyControlProfile Γ s
+  root : BodyEntryWitness Γ s
+  rootCoherent : BodyRootCoherent profile root
+
+/--
+Head `typed0` from the explicit normal typing payload of a cons block.
+
+For a normal typing of `.cons s ss`, the head statement necessarily has a normal
+CI typing, and normal CI typing forgets to ordinary old typing.
+-/
+theorem blockCons_head_typed0_at_ci_of_normalOut
     {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
-    (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss)) :
-    BodyStaticBoundaryCI Γ s
+    (_hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss))
+    (out : {Δ : TypeEnv // HasTypeBlockCI .normalK Γ (.cons s ss) Δ}) :
+    WellTypedFrom Γ s := by
+  rcases out with ⟨Δ, htyBlock⟩
+  cases htyBlock with
+  | cons_normal htyHead htyTail =>
+      exact ⟨_, normalCI_to_old_stmt htyHead⟩
+
+/--
+Head static scaffold extraction.
+
+This is the remaining static-side obligation after removing `typed0` from the
+axiom.  It may depend on the chosen normal cons payload, because that is the
+actual route used to close the head in this normal-channel theorem.
+-/
+axiom blockCons_head_static_scaffold_at_ci_of_boundary
+    {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
+    (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss))
+    (out : {Δ : TypeEnv // HasTypeBlockCI .normalK Γ (.cons s ss) Δ})
+    (hout : hentry.static.profile.summary.normalOut = some out) :
+    BlockConsHeadStaticScaffoldAtCI Γ s
+
+/-- Assemble a `BodyStaticBoundaryCI` from theorem-backed `typed0` plus scaffold. -/
+def BlockConsHeadStaticScaffoldAtCI.toBodyStaticBoundaryCI
+    {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
+    (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss))
+    (out : {Δ : TypeEnv // HasTypeBlockCI .normalK Γ (.cons s ss) Δ})
+    (h : BlockConsHeadStaticScaffoldAtCI Γ s) :
+    BodyStaticBoundaryCI Γ s :=
+  { typed0 := blockCons_head_typed0_at_ci_of_normalOut hentry out
+    profile := h.profile
+    root := h.root
+    rootCoherent := h.rootCoherent }
+
+/-- Head static extraction assembled from theorem-backed `typed0` and scaffold. -/
+noncomputable def blockCons_head_static_boundary_at_ci_of_boundary
+    {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
+    (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss))
+    (out : {Δ : TypeEnv // HasTypeBlockCI .normalK Γ (.cons s ss) Δ})
+    (hout : hentry.static.profile.summary.normalOut = some out) :
+    BodyStaticBoundaryCI Γ s :=
+  let hsc := blockCons_head_static_scaffold_at_ci_of_boundary hentry out hout
+  hsc.toBodyStaticBoundaryCI hentry out
 
 /--
 Head adequacy extraction for a given extracted head static boundary.
@@ -128,14 +184,16 @@ Extract the head closure scaffold from a cons block-body closure boundary.
 
 This is now assembled from:
 - theorem-backed structural data;
-- head static extraction;
+- theorem-backed `typed0` plus head static scaffold;
 - head adequacy extraction.
 -/
 noncomputable def blockCons_head_closure_scaffold_at_ci_of_boundary
     {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
-    (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss)) :
+    (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss))
+    (out : {Δ : TypeEnv // HasTypeBlockCI .normalK Γ (.cons s ss) Δ})
+    (hout : hentry.static.profile.summary.normalOut = some out) :
     BlockConsHeadClosureScaffoldAtCI Γ σ s :=
-  let hstatic := blockCons_head_static_boundary_at_ci_of_boundary hentry
+  let hstatic := blockCons_head_static_boundary_at_ci_of_boundary hentry out hout
   { structural := blockCons_head_structural_boundary_at_ci_of_boundary hentry
     static := hstatic
     adequacy := blockCons_head_adequacy_at_ci_of_boundary hentry hstatic }
@@ -151,9 +209,11 @@ def blockCons_head_dynamic_boundary_at_ci_of_boundary
 /-- Full head statement boundary extracted from a cons block-body boundary. -/
 noncomputable def blockCons_head_closure_boundary_ci_of_boundary
     {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
-    (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss)) :
+    (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss))
+    (out : {Δ : TypeEnv // HasTypeBlockCI .normalK Γ (.cons s ss) Δ})
+    (hout : hentry.static.profile.summary.normalOut = some out) :
     BodyClosureBoundaryCI Γ σ s := by
-  let hs := blockCons_head_closure_scaffold_at_ci_of_boundary hentry
+  let hs := blockCons_head_closure_scaffold_at_ci_of_boundary hentry out hout
   let hd := blockCons_head_dynamic_boundary_at_ci_of_boundary hentry
   exact mkBodyClosureBoundaryCI hs.structural hs.static hd hs.adequacy
 
@@ -210,13 +270,16 @@ theorem blockCons_tail_closure_boundary_at_ci_of_head_normal
 Decomposed cons-boundary certificate.
 
 This is the real object the cons route needs:
-- a closure scaffold for the head statement;
+- a closure scaffold for the head statement for the selected normal route;
 - a tail closure boundary provider for the actual head-normal execution.
 -/
 structure BlockConsClosureDecompositionAtCI
     {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
     (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss)) : Type where
-  head : BlockConsHeadClosureScaffoldAtCI Γ σ s
+  head :
+    ∀ (out : {Δ : TypeEnv // HasTypeBlockCI .normalK Γ (.cons s ss) Δ}),
+      hentry.static.profile.summary.normalOut = some out →
+      BlockConsHeadClosureScaffoldAtCI Γ σ s
   tailAfterHeadNormal :
     ∀ {σ' : State}
       (out : {Δ : TypeEnv // HasTypeBlockCI .normalK Γ (.cons s ss) Δ}),
@@ -231,7 +294,9 @@ noncomputable def blockConsClosureDecompositionAtCI_of_scaffolds
     {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
     (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss)) :
     BlockConsClosureDecompositionAtCI hentry :=
-  { head := blockCons_head_closure_scaffold_at_ci_of_boundary hentry
+  { head := by
+      intro out hout
+      exact blockCons_head_closure_scaffold_at_ci_of_boundary hentry out hout
     tailAfterHeadNormal := by
       intro σ' out _hout hstep
       exact blockCons_tail_closure_boundary_at_ci_of_head_normal
@@ -241,10 +306,13 @@ noncomputable def blockConsClosureDecompositionAtCI_of_scaffolds
 noncomputable def blockCons_head_closure_boundary_ci_of_decomposition
     {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
     (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss))
-    (D : BlockConsClosureDecompositionAtCI hentry) :
+    (D : BlockConsClosureDecompositionAtCI hentry)
+    (out : {Δ : TypeEnv // HasTypeBlockCI .normalK Γ (.cons s ss) Δ})
+    (hout : hentry.static.profile.summary.normalOut = some out) :
     BodyClosureBoundaryCI Γ σ s := by
+  let hs := D.head out hout
   let hd := blockCons_head_dynamic_boundary_at_ci_of_boundary hentry
-  exact mkBodyClosureBoundaryCI D.head.structural D.head.static hd D.head.adequacy
+  exact mkBodyClosureBoundaryCI hs.structural hs.static hd hs.adequacy
 
 /--
 Cons block-body closure from an explicit decomposition certificate.
@@ -266,7 +334,7 @@ theorem block_cons_function_body_closure_boundary_at_ci_with_decomposition
       BigStepBlockDiv σ (.cons s ss) := by
   rcases hN with ⟨out, hout⟩
   have hheadBoundary : BodyClosureBoundaryCI Γ σ s :=
-    blockCons_head_closure_boundary_ci_of_decomposition hentry D
+    blockCons_head_closure_boundary_ci_of_decomposition hentry D out hout
   have hhead :
       (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨ BigStepStmtDiv σ s :=
     headClosure hheadBoundary
