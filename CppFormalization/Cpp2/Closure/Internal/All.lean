@@ -5,6 +5,7 @@ import CppFormalization.Cpp2.Closure.Internal.AssignHeadWhileTransportCompat
 import CppFormalization.Cpp2.Closure.Internal.AssignHeadWhileTransportTheorems
 import CppFormalization.Cpp2.Closure.Internal.AssignTransportKernel
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureCI
+import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureAtCI
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureConcrete
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureConcreteCI
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyFunctionClosureLite
