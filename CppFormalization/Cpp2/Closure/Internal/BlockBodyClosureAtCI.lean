@@ -133,11 +133,126 @@ axiom blockCons_tail_closure_boundary_at_ci_of_head_normal
       ∃ outTail, htail.static.profile.summary.normalOut = some outTail
 
 /--
+Decomposed cons-boundary certificate.
+
+This is the real object the cons route needs:
+- a closure scaffold for the head statement;
+- a tail closure boundary provider for the actual head-normal execution.
+
+The previous two axioms are now just one possible compatibility source for this
+certificate.  The preferred future route is to carry/prove this decomposition
+directly from the block-body static/adequacy package.
+-/
+structure BlockConsClosureDecompositionAtCI
+    {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
+    (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss)) : Type where
+  head : BlockConsHeadClosureScaffoldAtCI Γ σ s
+  tailAfterHeadNormal :
+    ∀ {σ' : State}
+      (out : {Δ : TypeEnv // HasTypeBlockCI .normalK Γ (.cons s ss) Δ}),
+      hentry.static.profile.summary.normalOut = some out →
+      BigStepStmt σ s .normal σ' →
+      ∃ Θ, ∃ htail : BlockBodyClosureBoundaryAtCI Θ σ' ss,
+        ∃ outTail, htail.static.profile.summary.normalOut = some outTail
+
+/-- Compatibility constructor for the decomposed cons-boundary certificate. -/
+noncomputable def blockConsClosureDecompositionAtCI_of_scaffolds
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
+    (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss)) :
+    BlockConsClosureDecompositionAtCI hentry :=
+  { head := blockCons_head_closure_scaffold_at_ci_of_boundary hentry
+    tailAfterHeadNormal := by
+      intro σ' out _hout hstep
+      exact blockCons_tail_closure_boundary_at_ci_of_head_normal
+        mkWhileReentry hentry out hstep }
+
+/-- Full head statement boundary extracted from a cons decomposition certificate. -/
+noncomputable def blockCons_head_closure_boundary_ci_of_decomposition
+    {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
+    (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss))
+    (D : BlockConsClosureDecompositionAtCI hentry) :
+    BodyClosureBoundaryCI Γ σ s := by
+  let hd := blockCons_head_dynamic_boundary_at_ci_of_boundary hentry
+  exact mkBodyClosureBoundaryCI D.head.structural D.head.static hd D.head.adequacy
+
+/--
+Cons block-body closure from an explicit decomposition certificate.
+
+This theorem has no direct dependency on the old concrete master axiom and no
+direct dependency on the old head/tail scaffold axioms.  All such debt is now
+isolated in the source of `BlockConsClosureDecompositionAtCI`.
+-/
+theorem block_cons_function_body_closure_boundary_at_ci_with_decomposition
+    {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
+    (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss))
+    (D : BlockConsClosureDecompositionAtCI hentry)
+    (hN : ∃ out, hentry.static.profile.summary.normalOut = some out)
+    (headClosure :
+      BodyClosureBoundaryCI Γ σ s →
+        (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨ BigStepStmtDiv σ s)
+    (tailClosure :
+      ∀ {Θ : TypeEnv} {σ' : State}
+        (htail : BlockBodyClosureBoundaryAtCI Θ σ' ss),
+        (∃ out, htail.static.profile.summary.normalOut = some out) →
+        (∃ ex σ'', BigStepFunctionBlockBody σ' ss ex σ'') ∨ BigStepBlockDiv σ' ss) :
+    (∃ ex σ', BigStepFunctionBlockBody σ (.cons s ss) ex σ') ∨
+      BigStepBlockDiv σ (.cons s ss) := by
+  rcases hN with ⟨out, hout⟩
+  have hheadBoundary : BodyClosureBoundaryCI Γ σ s :=
+    blockCons_head_closure_boundary_ci_of_decomposition hentry D
+  have hhead :
+      (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨ BigStepStmtDiv σ s :=
+    headClosure hheadBoundary
+  exact
+    block_cons_function_body_result_return_aware
+      hhead
+      (fun hstep =>
+        match D.tailAfterHeadNormal out hout hstep with
+        | ⟨Θ, htail, htailN⟩ =>
+            tailClosure htail htailN)
+
+/--
+Current-env block-body closure through statement IH, parameterized by an explicit
+cons-decomposition provider.
+-/
+theorem block_body_function_closure_boundary_at_ci_normalOut_with_decomposition
+    (headClosure :
+      ∀ {Γ : TypeEnv} {σ : State} {st : CppStmt},
+        BodyClosureBoundaryCI Γ σ st →
+          (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st)
+    (decomposeCons :
+      ∀ {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
+        (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss)),
+        BlockConsClosureDecompositionAtCI hentry) :
+    ∀ {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
+      (hentry : BlockBodyClosureBoundaryAtCI Γ σ ss),
+      (∃ out, hentry.static.profile.summary.normalOut = some out) →
+      (∃ ex σ', BigStepFunctionBlockBody σ ss ex σ') ∨
+        BigStepBlockDiv σ ss
+  | _, _, .nil, _hentry, _hN =>
+      Or.inl ⟨.fellThrough, _, BigStepFunctionBlockBody.fallthrough BigStepBlock.nil⟩
+  | _, _, .cons _ _, hentry, hN =>
+      block_cons_function_body_closure_boundary_at_ci_with_decomposition
+        hentry
+        (decomposeCons hentry)
+        hN
+        (fun hheadBoundary => headClosure hheadBoundary)
+        (fun htail htailN =>
+          block_body_function_closure_boundary_at_ci_normalOut_with_decomposition
+            headClosure
+            decomposeCons
+            htail
+            htailN)
+
+
+/--
 Cons block-body closure from a statement-boundary/IH head provider and a
 recursive current-env block-body closure provider.
 
-This is the route that actually makes the head closure provider usable:
-the head is closed via `BodyClosureBoundaryCI`, not via `BodyReadyConcrete`.
+Compatibility wrapper: this route now factors through the explicit
+`BlockConsClosureDecompositionAtCI` certificate.  The old head/tail scaffold
+axioms are used only to build that certificate.
 -/
 theorem block_cons_function_body_closure_boundary_at_ci_with_IH
     (mkWhileReentry : WhileReentryReadyProvider)
@@ -151,30 +266,25 @@ theorem block_cons_function_body_closure_boundary_at_ci_with_IH
       ∀ {Θ : TypeEnv} {σ' : State}
         (htail : BlockBodyClosureBoundaryAtCI Θ σ' ss),
         (∃ out, htail.static.profile.summary.normalOut = some out) →
-        (∃ ex σ'', BigStepFunctionBlockBody σ' ss ex σ'') ∨ BigStepBlockDiv σ' ss) :
+        (∃ ex σ'', BigStepFunctionBlockBody σ' ss ex σ'') ∨
+          BigStepBlockDiv σ' ss) :
     (∃ ex σ', BigStepFunctionBlockBody σ (.cons s ss) ex σ') ∨
       BigStepBlockDiv σ (.cons s ss) := by
-  rcases hN with ⟨out, _hout⟩
-  have hheadBoundary : BodyClosureBoundaryCI Γ σ s :=
-    blockCons_head_closure_boundary_ci_of_boundary hentry
-  have hhead :
-      (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨ BigStepStmtDiv σ s :=
-    headClosure hheadBoundary
   exact
-    block_cons_function_body_result_return_aware
-      hhead
-      (fun hstep =>
-        match blockCons_tail_closure_boundary_at_ci_of_head_normal
-            mkWhileReentry hentry out hstep with
-        | ⟨Θ, htail, htailN⟩ =>
-            tailClosure htail htailN)
+    block_cons_function_body_closure_boundary_at_ci_with_decomposition
+      hentry
+      (blockConsClosureDecompositionAtCI_of_scaffolds mkWhileReentry hentry)
+      hN
+      headClosure
+      tailClosure
 
 /--
 Current-env block-body closure through statement IH.
 
-This is the recursive boundary-level counterpart of
-`block_body_function_closure_concrete_refined_at_ci_with_headClosure`.
-It avoids committing to the concrete master for head statements.
+Compatibility wrapper: the clean recursive route is
+`block_body_function_closure_boundary_at_ci_normalOut_with_decomposition`.
+This theorem instantiates the decomposition provider from the existing scaffold
+axioms.
 -/
 theorem block_body_function_closure_boundary_at_ci_normalOut_with_IH
     (mkWhileReentry : WhileReentryReadyProvider)
@@ -186,20 +296,10 @@ theorem block_body_function_closure_boundary_at_ci_normalOut_with_IH
       (hentry : BlockBodyClosureBoundaryAtCI Γ σ ss),
       (∃ out, hentry.static.profile.summary.normalOut = some out) →
       (∃ ex σ', BigStepFunctionBlockBody σ ss ex σ') ∨
-        BigStepBlockDiv σ ss
-  | _, _, .nil, _hentry, _hN =>
-      Or.inl ⟨.fellThrough, _, BigStepFunctionBlockBody.fallthrough BigStepBlock.nil⟩
-  | _, _, .cons _ _, hentry, hN =>
-      block_cons_function_body_closure_boundary_at_ci_with_IH
-        mkWhileReentry
-        hentry
-        hN
-        (fun hheadBoundary => headClosure hheadBoundary)
-        (fun htail htailN =>
-          block_body_function_closure_boundary_at_ci_normalOut_with_IH
-            mkWhileReentry
-            headClosure
-            htail
-            htailN)
+        BigStepBlockDiv σ ss :=
+  block_body_function_closure_boundary_at_ci_normalOut_with_decomposition
+    headClosure
+    (fun hentry =>
+      blockConsClosureDecompositionAtCI_of_scaffolds mkWhileReentry hentry)
 
 end Cpp
