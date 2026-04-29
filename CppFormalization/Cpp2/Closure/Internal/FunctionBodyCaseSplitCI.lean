@@ -884,16 +884,58 @@ def toBodyAdequacyCI
 end SeqLeftAdequacySupportCI
 
 /--
-Remaining semantic adequacy support for the extracted left boundary.
+Remaining head-normal route obligation for the extracted left boundary.
 
-The normal channel is now route-aware: an actual left-normal execution must
-return the tail-compatible route used by the sequence continuation.
+This is the real normal-channel semantic debt.  An actual left-normal execution
+must provide the full route needed to continue into the sequence tail, not just
+a bare normal typing witness.
 -/
-axiom seq_left_adequacy_support_ci_of_entry
+axiom seq_head_normal_route_ci_of_entry
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (hstatic : BodyStaticBoundaryCI Γ s) :
-    SeqLeftAdequacySupportCI Γ σ s t hstatic.profile
+    ∀ {σ1 : State},
+      BigStepStmt σ s .normal σ1 →
+      SeqHeadNormalRouteCI Γ σ s t σ1 hstatic.profile
+
+/--
+Compatibility wrapper: the left normal adequacy support is exactly the
+head-normal route provider.
+-/
+noncomputable def seq_left_normal_adequacy_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (hstatic : BodyStaticBoundaryCI Γ s) :
+    SeqLeftNormalAdequacyCI Γ σ s t hstatic.profile :=
+  { normalRoute := seq_head_normal_route_ci_of_entry hentry hstatic }
+
+/--
+Remaining left-return adequacy obligation for the extracted left boundary.
+
+A left return exits the sequence immediately, so it is separate from the
+head-normal route/tail-continuation obligation.
+-/
+axiom seq_left_return_adequacy_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (hstatic : BodyStaticBoundaryCI Γ s) :
+    SeqLeftReturnAdequacyCI Γ σ s hstatic.profile
+
+/--
+Compatibility name for the old combined left adequacy support.
+
+The combined package is now assembled from the two genuinely different
+semantic obligations:
+1. head-normal route support;
+2. immediate left-return support.
+-/
+noncomputable def seq_left_adequacy_support_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (hstatic : BodyStaticBoundaryCI Γ s) :
+    SeqLeftAdequacySupportCI Γ σ s t hstatic.profile :=
+  { normal := seq_left_normal_adequacy_ci_of_entry hentry hstatic
+    returned := seq_left_return_adequacy_ci_of_entry hentry hstatic }
 
 /-- Compatibility name for downstream callers. -/
 def seq_left_adequacy_ci_of_entry
