@@ -20,15 +20,15 @@ abbrev FunctionBodyClosureResult (σ : State) (st : CppStmt) : Prop :=
 
 The old `seq_left_closure_scaffold_ci_of_entry` and
 `seq_tail_closure_scaffold_ci_of_left_normal` axioms hid several different
-responsibilities in one package.  This file now keeps the public scaffold names
-for downstream compatibility, but builds them from narrower pieces:
+responsibilities in one package. This file keeps the public scaffold names for
+downstream compatibility, but builds them from narrower pieces:
 
 * structural data is theorem-backed from the whole sequence boundary;
 * left `typed0` is theorem-backed from the whole old typing payload;
 * left static profile/root and left adequacy remain explicitly named obligations;
-* tail static and tail adequacy remain explicitly named obligations, because
-  they depend on the actual left-normal route and must not be projected from
-  the whole sequence return channel.
+* tail static and tail adequacy are packaged together behind the actual
+  left-normal route, because the tail environment is path-sensitive and must not
+  be projected from the whole sequence return channel.
 -/
 
 structure SeqLeftClosureScaffoldCI
@@ -72,12 +72,26 @@ def toBodyStaticBoundaryCI
 end SeqLeftStaticScaffoldCI
 
 /--
+Static and adequacy payload for the tail of a sequence after an actual
+left-normal route.
+
+This package is deliberately produced from the actual normal typing and
+execution route below. Keeping static and adequacy together prevents the tail
+adequacy obligation from degenerating into an over-broad statement about
+arbitrary post-states and arbitrary static packages.
+-/
+structure SeqTailStaticAdequacyCI
+    (Θ : TypeEnv) (σ1 : State) (t : CppStmt) : Type where
+  static : BodyStaticBoundaryCI Θ t
+  adequacy : BodyAdequacyCI Θ σ1 t static.profile
+
+/--
 The left side of a well-typed sequence is well typed.
 
 This is deliberately proved from the coarse `typed0` payload of the whole
-sequence.  It is not guessed from a CI root witness, because a return/break
-root by itself does not generally carry enough information to type unrelated
-sequence tails.
+sequence. It is not guessed from a CI root witness, because a return/break root
+by itself does not generally carry enough information to type unrelated sequence
+tails.
 -/
 theorem seq_left_typed0_of_entry
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
@@ -168,36 +182,55 @@ noncomputable def seq_left_closure_scaffold_ci_of_entry
     adequacy := seq_left_adequacy_ci_of_entry hentry hstatic }
 
 /--
-Remaining static obligation for the tail after an actual left-normal route.
+Remaining tail static+adequacy obligation after an actual left-normal route.
 
-Unlike the left side, this cannot honestly be read from the whole sequence
-profile alone.  The chosen `HasTypeStmtCI .normalK Γ s Θ` and actual head-normal
-execution determine the tail environment.
+The premise is intentionally route-indexed. The selected
+`HasTypeStmtCI .normalK Γ s Θ` and the actual `BigStepStmt σ s .normal σ1`
+determine the tail environment and post-state. A tail adequacy provider that
+does not mention this route is too strong and mathematically misleading.
 -/
-axiom seq_tail_static_boundary_ci_of_left_normal
+axiom seq_tail_static_adequacy_ci_of_left_normal
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
     ∀ {Θ : TypeEnv} {σ1 : State},
       HasTypeStmtCI .normalK Γ s Θ →
       BigStepStmt σ s .normal σ1 →
-      BodyStaticBoundaryCI Θ t
+      SeqTailStaticAdequacyCI Θ σ1 t
 
 /--
-Remaining semantic adequacy obligation for the tail after an actual left-normal
-route.
+Compatibility projection: tail static boundary after a left-normal route.
+Prefer the packaged `seq_tail_static_adequacy_ci_of_left_normal` in new code.
 -/
-axiom seq_tail_adequacy_ci_of_left_normal
+noncomputable def seq_tail_static_boundary_ci_of_left_normal
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
+    ∀ {Θ : TypeEnv} {σ1 : State},
+      HasTypeStmtCI .normalK Γ s Θ →
+      BigStepStmt σ s .normal σ1 →
+      BodyStaticBoundaryCI Θ t := by
+  intro Θ σ1 htyLeft hstepLeft
+  exact (seq_tail_static_adequacy_ci_of_left_normal hentry htyLeft hstepLeft).static
+
+/--
+Compatibility projection: tail adequacy after a left-normal route.
+Prefer the packaged `seq_tail_static_adequacy_ci_of_left_normal` in new code.
+-/
+noncomputable def seq_tail_adequacy_ci_of_left_normal
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
     ∀ {Θ : TypeEnv} {σ1 : State}
-      (hstatic : BodyStaticBoundaryCI Θ t),
-      BodyAdequacyCI Θ σ1 t hstatic.profile
+      (htyLeft : HasTypeStmtCI .normalK Γ s Θ)
+      (hstepLeft : BigStepStmt σ s .normal σ1),
+      BodyAdequacyCI Θ σ1 t
+        ((seq_tail_static_boundary_ci_of_left_normal hentry htyLeft hstepLeft).profile) := by
+  intro Θ σ1 htyLeft hstepLeft
+  exact (seq_tail_static_adequacy_ci_of_left_normal hentry htyLeft hstepLeft).adequacy
 
 /--
 Compatibility scaffold for the sequence tail after a left-normal execution.
 
-This is now assembled from theorem-backed structural extraction plus the two
-remaining tail obligations.
+This is now assembled from theorem-backed structural extraction plus the
+route-indexed tail static+adequacy package.
 -/
 noncomputable def seq_tail_closure_scaffold_ci_of_left_normal
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
@@ -207,12 +240,11 @@ noncomputable def seq_tail_closure_scaffold_ci_of_left_normal
       BigStepStmt σ s .normal σ1 →
       SeqTailClosureScaffoldCI Θ σ1 t := by
   intro Θ σ1 htyLeft hstepLeft
-  let hstatic := seq_tail_static_boundary_ci_of_left_normal hentry htyLeft hstepLeft
+  let htail := seq_tail_static_adequacy_ci_of_left_normal hentry htyLeft hstepLeft
   exact
     { structural := seq_tail_structural_boundary_of_entry hentry
-      static := hstatic
-      adequacy :=
-        seq_tail_adequacy_ci_of_left_normal hentry hstatic }
+      static := htail.static
+      adequacy := htail.adequacy }
 
 def seq_left_dynamic_boundary_of_entry
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
@@ -255,9 +287,9 @@ noncomputable def seq_tail_closure_boundary_ci_of_left_normal
 Actual head-normal execution exposes a normal CI witness for the left statement.
 
 This is the theorem version of the previously explicit `normalWitness`
-callback.  It is not guessed from the whole sequence profile.  It is obtained
-from the left closure boundary's adequacy, which is exactly the layer that
-relates actual execution to the static control profile.
+callback. It is not guessed from the whole sequence profile. It is obtained from
+the left closure boundary's adequacy, which is exactly the layer that relates
+actual execution to the static control profile.
 -/
 theorem seq_left_normalWitness_of_entry
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
