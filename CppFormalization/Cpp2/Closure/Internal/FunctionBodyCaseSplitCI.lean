@@ -1720,6 +1720,95 @@ theorem toRootCoherent
 end IteBranchRootPayloadCI
 
 /--
+A Type-level normal slot for an extracted `ite` branch profile.
+-/
+structure IteBranchNormalSlotCI
+    (Γ : TypeEnv) (st : CppStmt) : Type where
+  Δ : TypeEnv
+  hty : HasTypeStmtCI .normalK Γ st Δ
+
+namespace IteBranchNormalSlotCI
+
+def out
+    {Γ : TypeEnv} {st : CppStmt}
+    (n : IteBranchNormalSlotCI Γ st) :
+    {Δ : TypeEnv // HasTypeStmtCI .normalK Γ st Δ} :=
+  ⟨n.Δ, n.hty⟩
+
+end IteBranchNormalSlotCI
+
+/--
+A Type-level return slot for an extracted `ite` branch profile.
+-/
+structure IteBranchReturnSlotCI
+    (Γ : TypeEnv) (st : CppStmt) : Type where
+  Δ : TypeEnv
+  hty : HasTypeStmtCI .returnK Γ st Δ
+
+namespace IteBranchReturnSlotCI
+
+def out
+    {Γ : TypeEnv} {st : CppStmt}
+    (r : IteBranchReturnSlotCI Γ st) :
+    {Δ : TypeEnv // HasTypeStmtCI .returnK Γ st Δ} :=
+  ⟨r.Δ, r.hty⟩
+
+end IteBranchReturnSlotCI
+
+/--
+Slot-level profile payload for one branch of an `ite`.
+
+A branch profile is just an optional normal slot and an optional return slot.
+The root is not an independent field: it is chosen from one of the selected
+slots, and the old root/coherence payload is derived by definition below.
+-/
+structure IteBranchProfileSlotPayloadCI
+    (Γ : TypeEnv) (st : CppStmt) : Type where
+  normalSlot : Option (IteBranchNormalSlotCI Γ st)
+  returnSlot : Option (IteBranchReturnSlotCI Γ st)
+  rootChoice :
+    Sum
+      ({ n : IteBranchNormalSlotCI Γ st // normalSlot = some n })
+      ({ r : IteBranchReturnSlotCI Γ st // returnSlot = some r })
+
+namespace IteBranchProfileSlotPayloadCI
+
+/-- Convert selected branch slots into the actual branch control profile. -/
+def toProfile
+    {Γ : TypeEnv} {st : CppStmt}
+    (S : IteBranchProfileSlotPayloadCI Γ st) :
+    BodyControlProfile Γ st :=
+  { summary :=
+      { normalOut := S.normalSlot.map (fun n => IteBranchNormalSlotCI.out n)
+        returnOut := S.returnSlot.map (fun r => IteBranchReturnSlotCI.out r) } }
+
+/--
+The root payload induced by the selected root slot.
+
+This is the branch analogue of the seq slot-to-profile bridge: once the branch
+slots and root choice are selected, root/coherence is definitional.
+-/
+def toRootPayload
+    {Γ : TypeEnv} {st : CppStmt}
+    (S : IteBranchProfileSlotPayloadCI Γ st) :
+    IteBranchRootPayloadCI S.toProfile := by
+  cases S.rootChoice with
+  | inl hn =>
+      rcases hn with ⟨n, hn⟩
+      exact
+        IteBranchRootPayloadCI.normal
+          (out := IteBranchNormalSlotCI.out n)
+          (by simp [toProfile, hn, IteBranchNormalSlotCI.out])
+  | inr hr =>
+      rcases hr with ⟨r, hr⟩
+      exact
+        IteBranchRootPayloadCI.returned
+          (out := IteBranchReturnSlotCI.out r)
+          (by simp [toProfile, hr, IteBranchReturnSlotCI.out])
+
+end IteBranchProfileSlotPayloadCI
+
+/--
 Profile payload for one branch of an `ite`.
 
 The remaining static choice is now explicit: choose a branch profile, and choose
@@ -1730,6 +1819,18 @@ structure IteBranchProfilePayloadCI
     (Γ : TypeEnv) (st : CppStmt) : Type where
   profile : BodyControlProfile Γ st
   rootPayload : IteBranchRootPayloadCI profile
+
+namespace IteBranchProfilePayloadCI
+
+/-- Build the old profile payload shape from the canonical slot-level payload. -/
+def ofSlotPayload
+    {Γ : TypeEnv} {st : CppStmt}
+    (S : IteBranchProfileSlotPayloadCI Γ st) :
+    IteBranchProfilePayloadCI Γ st :=
+  { profile := S.toProfile
+    rootPayload := S.toRootPayload }
+
+end IteBranchProfilePayloadCI
 
 /--
 Root/coherence scaffold for a chosen branch profile.
@@ -1825,28 +1926,44 @@ theorem ite_else_typed0_of_entry
       exact ⟨_, helse⟩
 
 /--
-Remaining then-branch profile payload obligation.
+Remaining then-branch slot-level profile payload obligation.
 
-This no longer owns coarse typing, nor root/coherence as independent fields.
-`typed0` is extracted by `ite_then_typed0_of_entry`; root/coherence is assembled
-by definition from the selected profile payload.
+This is narrower than selecting an arbitrary branch profile: the profile is now
+assembled from explicit normal/return slots, and the root is chosen from those
+selected slots.
 -/
-axiom ite_then_profile_payload_ci_of_entry
+axiom ite_then_profile_slot_payload_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    IteBranchProfilePayloadCI Γ s
+    IteBranchProfileSlotPayloadCI Γ s
 
 /--
-Remaining else-branch profile payload obligation.
+Remaining else-branch slot-level profile payload obligation.
 
-This no longer owns coarse typing, nor root/coherence as independent fields.
-`typed0` is extracted by `ite_else_typed0_of_entry`; root/coherence is assembled
-by definition from the selected profile payload.
+This is narrower than selecting an arbitrary branch profile: the profile is now
+assembled from explicit normal/return slots, and the root is chosen from those
+selected slots.
 -/
-axiom ite_else_profile_payload_ci_of_entry
+axiom ite_else_profile_slot_payload_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    IteBranchProfilePayloadCI Γ t
+    IteBranchProfileSlotPayloadCI Γ t
+
+/-- Compatibility profile payload for the then branch. -/
+noncomputable def ite_then_profile_payload_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    IteBranchProfilePayloadCI Γ s :=
+  IteBranchProfilePayloadCI.ofSlotPayload
+    (ite_then_profile_slot_payload_ci_of_entry hentry)
+
+/-- Compatibility profile payload for the else branch. -/
+noncomputable def ite_else_profile_payload_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    IteBranchProfilePayloadCI Γ t :=
+  IteBranchProfilePayloadCI.ofSlotPayload
+    (ite_else_profile_slot_payload_ci_of_entry hentry)
 
 /-- Then-branch root/coherence scaffold induced by the selected profile payload. -/
 noncomputable def ite_then_root_scaffold_ci_of_entry
