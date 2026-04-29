@@ -1809,6 +1809,162 @@ def toRootPayload
 end IteBranchProfileSlotPayloadCI
 
 /--
+Normal channel provenance for a whole `ite` payload.
+
+A whole `ite` exposes a normal channel only when both branches expose the same
+normal post-environment.  The condition typing is kept in the source because it
+is part of the `HasTypeStmtCI.ite` constructor.
+-/
+inductive IteNormalSourceCI
+    {Γ : TypeEnv} {c : ValExpr} {s t : CppStmt}
+    (out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.ite c s t) Δ}) : Prop where
+  | normal
+      {Δ : TypeEnv}
+      (hcond : HasValueType Γ c (.base .bool))
+      (hthen : HasTypeStmtCI .normalK Γ s Δ)
+      (helse : HasTypeStmtCI .normalK Γ t Δ)
+      (hout : out = ⟨Δ, HasTypeStmtCI.ite hcond hthen helse⟩) :
+      IteNormalSourceCI out
+
+/--
+Return channel provenance for a whole `ite` payload.
+
+A whole `ite` exposes a return channel only when both branches expose the same
+return post-environment.
+-/
+inductive IteReturnSourceCI
+    {Γ : TypeEnv} {c : ValExpr} {s t : CppStmt}
+    (out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ (.ite c s t) Δ}) : Prop where
+  | returned
+      {Δ : TypeEnv}
+      (hcond : HasValueType Γ c (.base .bool))
+      (hthen : HasTypeStmtCI .returnK Γ s Δ)
+      (helse : HasTypeStmtCI .returnK Γ t Δ)
+      (hout : out = ⟨Δ, HasTypeStmtCI.ite hcond hthen helse⟩) :
+      IteReturnSourceCI out
+
+theorem ite_normal_source_ci_of_out
+    {Γ : TypeEnv} {c : ValExpr} {s t : CppStmt}
+    (out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.ite c s t) Δ}) :
+    IteNormalSourceCI out := by
+  rcases out with ⟨Δ, hty⟩
+  cases hty with
+  | ite hcond hthen helse =>
+      exact IteNormalSourceCI.normal hcond hthen helse rfl
+
+theorem ite_return_source_ci_of_out
+    {Γ : TypeEnv} {c : ValExpr} {s t : CppStmt}
+    (out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ (.ite c s t) Δ}) :
+    IteReturnSourceCI out := by
+  rcases out with ⟨Δ, hty⟩
+  cases hty with
+  | ite hcond hthen helse =>
+      exact IteReturnSourceCI.returned hcond hthen helse rfl
+
+/--
+Type-level decision connecting a whole `ite` normal channel to the selected
+then-branch normal slot.
+-/
+inductive IteThenNormalSlotDecisionCI
+    {Γ : TypeEnv} {c : ValExpr} {s t : CppStmt}
+    (normalSlot : Option (IteBranchNormalSlotCI Γ s))
+    (out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.ite c s t) Δ}) : Type where
+  | normal
+      {Δ : TypeEnv}
+      (hcond : HasValueType Γ c (.base .bool))
+      (hthen : HasTypeStmtCI .normalK Γ s Δ)
+      (helse : HasTypeStmtCI .normalK Γ t Δ)
+      (hout : out = ⟨Δ, HasTypeStmtCI.ite hcond hthen helse⟩)
+      (hslot : normalSlot = some ⟨Δ, hthen⟩) :
+      IteThenNormalSlotDecisionCI normalSlot out
+
+/--
+Type-level decision connecting a whole `ite` normal channel to the selected
+else-branch normal slot.
+-/
+inductive IteElseNormalSlotDecisionCI
+    {Γ : TypeEnv} {c : ValExpr} {s t : CppStmt}
+    (normalSlot : Option (IteBranchNormalSlotCI Γ t))
+    (out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.ite c s t) Δ}) : Type where
+  | normal
+      {Δ : TypeEnv}
+      (hcond : HasValueType Γ c (.base .bool))
+      (hthen : HasTypeStmtCI .normalK Γ s Δ)
+      (helse : HasTypeStmtCI .normalK Γ t Δ)
+      (hout : out = ⟨Δ, HasTypeStmtCI.ite hcond hthen helse⟩)
+      (hslot : normalSlot = some ⟨Δ, helse⟩) :
+      IteElseNormalSlotDecisionCI normalSlot out
+
+/--
+Type-level decision connecting a whole `ite` return channel to the selected
+then-branch return slot.
+-/
+inductive IteThenReturnSlotDecisionCI
+    {Γ : TypeEnv} {c : ValExpr} {s t : CppStmt}
+    (returnSlot : Option (IteBranchReturnSlotCI Γ s))
+    (out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ (.ite c s t) Δ}) : Type where
+  | returned
+      {Δ : TypeEnv}
+      (hcond : HasValueType Γ c (.base .bool))
+      (hthen : HasTypeStmtCI .returnK Γ s Δ)
+      (helse : HasTypeStmtCI .returnK Γ t Δ)
+      (hout : out = ⟨Δ, HasTypeStmtCI.ite hcond hthen helse⟩)
+      (hslot : returnSlot = some ⟨Δ, hthen⟩) :
+      IteThenReturnSlotDecisionCI returnSlot out
+
+/--
+Type-level decision connecting a whole `ite` return channel to the selected
+else-branch return slot.
+-/
+inductive IteElseReturnSlotDecisionCI
+    {Γ : TypeEnv} {c : ValExpr} {s t : CppStmt}
+    (returnSlot : Option (IteBranchReturnSlotCI Γ t))
+    (out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ (.ite c s t) Δ}) : Type where
+  | returned
+      {Δ : TypeEnv}
+      (hcond : HasValueType Γ c (.base .bool))
+      (hthen : HasTypeStmtCI .returnK Γ s Δ)
+      (helse : HasTypeStmtCI .returnK Γ t Δ)
+      (hout : out = ⟨Δ, HasTypeStmtCI.ite hcond hthen helse⟩)
+      (hslot : returnSlot = some ⟨Δ, helse⟩) :
+      IteElseReturnSlotDecisionCI returnSlot out
+
+/--
+Canonical slot-level profile payload for the then branch of an `ite`.
+
+The payload is no longer merely branch-local: every visible whole-`ite` normal
+or return channel is connected to the corresponding selected branch slot.
+-/
+structure IteThenProfileSlotPayloadCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) : Type where
+  branch : IteBranchProfileSlotPayloadCI Γ s
+  normalDecision :
+    ∀ {out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.ite c s t) Δ}},
+      hentry.static.profile.summary.normalOut = some out →
+      IteThenNormalSlotDecisionCI branch.normalSlot out
+  returnDecision :
+    ∀ {out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ (.ite c s t) Δ}},
+      hentry.static.profile.summary.returnOut = some out →
+      IteThenReturnSlotDecisionCI branch.returnSlot out
+
+/--
+Canonical slot-level profile payload for the else branch of an `ite`.
+-/
+structure IteElseProfileSlotPayloadCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) : Type where
+  branch : IteBranchProfileSlotPayloadCI Γ t
+  normalDecision :
+    ∀ {out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.ite c s t) Δ}},
+      hentry.static.profile.summary.normalOut = some out →
+      IteElseNormalSlotDecisionCI branch.normalSlot out
+  returnDecision :
+    ∀ {out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ (.ite c s t) Δ}},
+      hentry.static.profile.summary.returnOut = some out →
+      IteElseReturnSlotDecisionCI branch.returnSlot out
+
+/--
 Profile payload for one branch of an `ite`.
 
 The remaining static choice is now explicit: choose a branch profile, and choose
@@ -1935,7 +2091,7 @@ selected slots.
 axiom ite_then_profile_slot_payload_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    IteBranchProfileSlotPayloadCI Γ s
+    IteThenProfileSlotPayloadCI hentry
 
 /--
 Remaining else-branch slot-level profile payload obligation.
@@ -1947,7 +2103,7 @@ selected slots.
 axiom ite_else_profile_slot_payload_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    IteBranchProfileSlotPayloadCI Γ t
+    IteElseProfileSlotPayloadCI hentry
 
 /-- Compatibility profile payload for the then branch. -/
 noncomputable def ite_then_profile_payload_ci_of_entry
@@ -1955,7 +2111,7 @@ noncomputable def ite_then_profile_payload_ci_of_entry
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
     IteBranchProfilePayloadCI Γ s :=
   IteBranchProfilePayloadCI.ofSlotPayload
-    (ite_then_profile_slot_payload_ci_of_entry hentry)
+    (ite_then_profile_slot_payload_ci_of_entry hentry).branch
 
 /-- Compatibility profile payload for the else branch. -/
 noncomputable def ite_else_profile_payload_ci_of_entry
@@ -1963,7 +2119,7 @@ noncomputable def ite_else_profile_payload_ci_of_entry
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
     IteBranchProfilePayloadCI Γ t :=
   IteBranchProfilePayloadCI.ofSlotPayload
-    (ite_else_profile_slot_payload_ci_of_entry hentry)
+    (ite_else_profile_slot_payload_ci_of_entry hentry).branch
 
 /-- Then-branch root/coherence scaffold induced by the selected profile payload. -/
 noncomputable def ite_then_root_scaffold_ci_of_entry
