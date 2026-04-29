@@ -72,18 +72,17 @@ theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body
         primitive_stmt_function_body_step_or_diverges_body_closure
           (st := .declareRef τ x p) (by simp [PrimitiveCoreStmtConcrete]) hentry
   | seq s t =>
-      have hfragST : CoreBigStepFragment s ∧ CoreBigStepFragment t := by
-        simpa [CoreBigStepFragment, InBigStepFragment] using hfrag
-      rcases hfragST with ⟨hfragS, hfragT⟩
-      exact
-        seq_function_body_closure_boundary_ci_honest
-          hentry
-          (fun hleftBoundary =>
-            IH (st := s) hfragS hleftBoundary)
-          (fun hty hstep =>
-            seq_tail_closure_boundary_ci_of_left_normal mkWhileReentry hentry hty hstep)
-          (fun _hty _hstep htailBoundary =>
-            IH (st := t) hfragT htailBoundary)
+    have hfragST : CoreBigStepFragment s ∧ CoreBigStepFragment t := by
+      simpa [CoreBigStepFragment, InBigStepFragment] using hfrag
+    rcases hfragST with ⟨hfragS, hfragT⟩
+    exact
+      seq_function_body_closure_boundary_ci_honest_route
+        mkWhileReentry
+        hentry
+        (fun hleftBoundary =>
+          IH (st := s) hfragS hleftBoundary)
+        (fun _route htailBoundary =>
+          IH (st := t) hfragT htailBoundary)
   | ite c s t =>
       have hfragST : CoreBigStepFragment s ∧ CoreBigStepFragment t := by
         simpa [CoreBigStepFragment, InBigStepFragment] using hfrag
