@@ -1609,7 +1609,43 @@ axiom ite_function_body_closure_boundary_ci_honest
       FunctionBodyClosureResult σ t) :
     FunctionBodyClosureResult σ (.ite c s t)
 
+/--
+Route-aware `BodyReadyCI` wrapper for sequence closure.
+
+This is the canonical ready-level surface.  The tail callback receives the
+selected head-normal route and the tail boundary at `route.Θ`; it no longer
+chooses an arbitrary post-environment from a bare normal typing witness.
+-/
 theorem seq_function_body_closure_ci_honest
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyReadyCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyReadyCI Γ σ s →
+      FunctionBodyClosureResult σ s)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry.toClosureBoundary).profile) →
+        BodyReadyCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  exact
+    seq_function_body_closure_boundary_ci_honest
+      mkWhileReentry
+      hentry.toClosureBoundary
+      (fun hleftBoundary => leftClosure hleftBoundary.toBodyReadyCI)
+      (fun route htailBoundary =>
+        tailClosure route htailBoundary.toBodyReadyCI)
+
+/--
+Compatibility ready-level surface for older callers that still provide an
+explicit tail boundary at a bare normal witness.
+
+This is not the canonical surface.  It is retained only for downstream code that
+has not yet moved to the selected-route callback shape.
+-/
+theorem seq_function_body_closure_ci_honest_with_tail_boundary
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyReadyCI Γ σ (.seq s t))
     (leftClosure :
