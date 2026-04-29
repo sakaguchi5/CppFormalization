@@ -15,6 +15,22 @@ namespace Cpp
 abbrev FunctionBodyClosureResult (σ : State) (st : CppStmt) : Prop :=
   (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st
 
+/-!
+## Seq scaffold extraction
+
+The old `seq_left_closure_scaffold_ci_of_entry` and
+`seq_tail_closure_scaffold_ci_of_left_normal` axioms hid several different
+responsibilities in one package.  This file now keeps the public scaffold names
+for downstream compatibility, but builds them from narrower pieces:
+
+* structural data is theorem-backed from the whole sequence boundary;
+* left `typed0` is theorem-backed from the whole old typing payload;
+* left static profile/root and left adequacy remain explicitly named obligations;
+* tail static and tail adequacy remain explicitly named obligations, because
+  they depend on the actual left-normal route and must not be projected from
+  the whole sequence return channel.
+-/
+
 structure SeqLeftClosureScaffoldCI
     (Γ : TypeEnv) (σ : State) (s : CppStmt) : Type where
   structural : BodyStructuralBoundary Γ s
@@ -27,18 +43,176 @@ structure SeqTailClosureScaffoldCI
   static : BodyStaticBoundaryCI Θ t
   adequacy : BodyAdequacyCI Θ σ1 t static.profile
 
-axiom seq_left_closure_scaffold_ci_of_entry
+/--
+Static scaffold for the left side of a sequence, excluding the old `typed0`
+payload.
+
+`typed0` is theorem-backed from the whole sequence's coarse typing below.
+The remaining static data is the chosen CI profile/root/coherence for `s`.
+-/
+structure SeqLeftStaticScaffoldCI
+    (Γ : TypeEnv) (s : CppStmt) : Type where
+  profile : BodyControlProfile Γ s
+  root : BodyEntryWitness Γ s
+  rootCoherent : BodyRootCoherent profile root
+
+namespace SeqLeftStaticScaffoldCI
+
+/-- Assemble the canonical left static boundary from theorem-backed `typed0`. -/
+def toBodyStaticBoundaryCI
+    {Γ : TypeEnv} {s : CppStmt}
+    (h : SeqLeftStaticScaffoldCI Γ s)
+    (htyped : WellTypedFrom Γ s) :
+    BodyStaticBoundaryCI Γ s :=
+  { typed0 := htyped
+    profile := h.profile
+    root := h.root
+    rootCoherent := h.rootCoherent }
+
+end SeqLeftStaticScaffoldCI
+
+/--
+The left side of a well-typed sequence is well typed.
+
+This is deliberately proved from the coarse `typed0` payload of the whole
+sequence.  It is not guessed from a CI root witness, because a return/break
+root by itself does not generally carry enough information to type unrelated
+sequence tails.
+-/
+theorem seq_left_typed0_of_entry
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
-    SeqLeftClosureScaffoldCI Γ σ s
+    WellTypedFrom Γ s := by
+  rcases hentry.static.typed0 with ⟨Δ, htySeq⟩
+  cases htySeq with
+  | seq hs _ht =>
+      exact ⟨_, hs⟩
 
-axiom seq_tail_closure_scaffold_ci_of_left_normal
+/-- The left side inherits structural admissibility from the whole sequence. -/
+theorem seq_left_structural_boundary_of_entry
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
+    BodyStructuralBoundary Γ s := by
+  have hwf : WellFormedStmt s ∧ WellFormedStmt t := by
+    simpa [WellFormedStmt] using hentry.structural.wf
+  have hbreak : BreakWellScoped s ∧ BreakWellScoped t := by
+    simpa [BreakWellScoped] using hentry.structural.breakScoped
+  have hcont : ContinueWellScoped s ∧ ContinueWellScoped t := by
+    simpa [ContinueWellScoped] using hentry.structural.continueScoped
+  exact
+    { wf := hwf.1
+      breakScoped := hbreak.1
+      continueScoped := hcont.1 }
+
+/-- The tail side inherits structural admissibility from the whole sequence. -/
+theorem seq_tail_structural_boundary_of_entry
+    {Γ Θ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
+    BodyStructuralBoundary Θ t := by
+  have hwf : WellFormedStmt s ∧ WellFormedStmt t := by
+    simpa [WellFormedStmt] using hentry.structural.wf
+  have hbreak : BreakWellScoped s ∧ BreakWellScoped t := by
+    simpa [BreakWellScoped] using hentry.structural.breakScoped
+  have hcont : ContinueWellScoped s ∧ ContinueWellScoped t := by
+    simpa [ContinueWellScoped] using hentry.structural.continueScoped
+  exact
+    { wf := hwf.2
+      breakScoped := hbreak.2
+      continueScoped := hcont.2 }
+
+/--
+Remaining static-profile/root obligation for extracting the left side of a
+sequence.
+
+This is narrower than the old closure-scaffold axiom: structural data and
+`typed0` are no longer part of the obligation.
+-/
+axiom seq_left_static_scaffold_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
+    SeqLeftStaticScaffoldCI Γ s
+
+/--
+Remaining semantic adequacy obligation for the extracted left boundary.
+
+Kept separate from static extraction: adequacy relates actual executions to the
+chosen static profile, so it should not be hidden inside a static scaffold.
+-/
+axiom seq_left_adequacy_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (hstatic : BodyStaticBoundaryCI Γ s) :
+    BodyAdequacyCI Γ σ s hstatic.profile
+
+/-- Left static boundary assembled from theorem-backed `typed0` and the static scaffold. -/
+noncomputable def seq_left_static_boundary_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
+    BodyStaticBoundaryCI Γ s :=
+  (seq_left_static_scaffold_ci_of_entry hentry).toBodyStaticBoundaryCI
+    (seq_left_typed0_of_entry hentry)
+
+/--
+Compatibility scaffold for the left side of a sequence.
+
+This name is kept for downstream callers, but the scaffold is no longer a
+single opaque axiom.
+-/
+noncomputable def seq_left_closure_scaffold_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
+    SeqLeftClosureScaffoldCI Γ σ s :=
+  let hstatic := seq_left_static_boundary_ci_of_entry hentry
+  { structural := seq_left_structural_boundary_of_entry hentry
+    static := hstatic
+    adequacy := seq_left_adequacy_ci_of_entry hentry hstatic }
+
+/--
+Remaining static obligation for the tail after an actual left-normal route.
+
+Unlike the left side, this cannot honestly be read from the whole sequence
+profile alone.  The chosen `HasTypeStmtCI .normalK Γ s Θ` and actual head-normal
+execution determine the tail environment.
+-/
+axiom seq_tail_static_boundary_ci_of_left_normal
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
     ∀ {Θ : TypeEnv} {σ1 : State},
       HasTypeStmtCI .normalK Γ s Θ →
       BigStepStmt σ s .normal σ1 →
-      SeqTailClosureScaffoldCI Θ σ1 t
+      BodyStaticBoundaryCI Θ t
+
+/--
+Remaining semantic adequacy obligation for the tail after an actual left-normal
+route.
+-/
+axiom seq_tail_adequacy_ci_of_left_normal
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
+    ∀ {Θ : TypeEnv} {σ1 : State}
+      (hstatic : BodyStaticBoundaryCI Θ t),
+      BodyAdequacyCI Θ σ1 t hstatic.profile
+
+/--
+Compatibility scaffold for the sequence tail after a left-normal execution.
+
+This is now assembled from theorem-backed structural extraction plus the two
+remaining tail obligations.
+-/
+noncomputable def seq_tail_closure_scaffold_ci_of_left_normal
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
+    ∀ {Θ : TypeEnv} {σ1 : State},
+      HasTypeStmtCI .normalK Γ s Θ →
+      BigStepStmt σ s .normal σ1 →
+      SeqTailClosureScaffoldCI Θ σ1 t := by
+  intro Θ σ1 htyLeft hstepLeft
+  let hstatic := seq_tail_static_boundary_ci_of_left_normal hentry htyLeft hstepLeft
+  exact
+    { structural := seq_tail_structural_boundary_of_entry hentry
+      static := hstatic
+      adequacy :=
+        seq_tail_adequacy_ci_of_left_normal hentry hstatic }
 
 def seq_left_dynamic_boundary_of_entry
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
