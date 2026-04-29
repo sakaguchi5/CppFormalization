@@ -1676,38 +1676,145 @@ def ite_else_dynamic_boundary_of_entry
     safe := ite_ready_else hentry.dynamic.safe }
 
 /--
+Static scaffold for one branch of an `ite`, excluding the coarse `typed0`
+payload.
+
+The `typed0` field is theorem-backed from the whole `ite` typing below.  The
+remaining static debt is the CI profile/root/coherence choice for the branch.
+-/
+structure IteBranchStaticScaffoldCI
+    (Γ : TypeEnv) (st : CppStmt) : Type where
+  profile : BodyControlProfile Γ st
+  root : BodyEntryWitness Γ st
+  rootCoherent : BodyRootCoherent profile root
+
+namespace IteBranchStaticScaffoldCI
+
+/-- Assemble a branch static boundary from theorem-backed `typed0`. -/
+def toBodyStaticBoundaryCI
+    {Γ : TypeEnv} {st : CppStmt}
+    (h : IteBranchStaticScaffoldCI Γ st)
+    (htyped : WellTypedFrom Γ st) :
+    BodyStaticBoundaryCI Γ st :=
+  { typed0 := htyped
+    profile := h.profile
+    root := h.root
+    rootCoherent := h.rootCoherent }
+
+end IteBranchStaticScaffoldCI
+
+/--
+The then branch of a well-typed `ite` is well typed.
+
+This is theorem-backed from the coarse `typed0` payload of the whole `ite`.
+-/
+theorem ite_then_typed0_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    WellTypedFrom Γ s := by
+  rcases hentry.static.typed0 with ⟨Δ, htyIte⟩
+  cases htyIte with
+  | ite _ hthen _ =>
+      exact ⟨_, hthen⟩
+
+/--
+The else branch of a well-typed `ite` is well typed.
+
+This is theorem-backed from the coarse `typed0` payload of the whole `ite`.
+-/
+theorem ite_else_typed0_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    WellTypedFrom Γ t := by
+  rcases hentry.static.typed0 with ⟨Δ, htyIte⟩
+  cases htyIte with
+  | ite _ _ helse =>
+      exact ⟨_, helse⟩
+
+/--
+Remaining then-branch static scaffold obligation.
+
+This no longer owns coarse typing: `typed0` is extracted by
+`ite_then_typed0_of_entry`.  The remaining static debt is only the branch
+profile/root/coherence choice.
+-/
+axiom ite_then_static_scaffold_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    IteBranchStaticScaffoldCI Γ s
+
+/--
+Remaining else-branch static scaffold obligation.
+
+This no longer owns coarse typing: `typed0` is extracted by
+`ite_else_typed0_of_entry`.  The remaining static debt is only the branch
+profile/root/coherence choice.
+-/
+axiom ite_else_static_scaffold_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    IteBranchStaticScaffoldCI Γ t
+
+/-- Then-branch static boundary assembled from scaffold plus theorem-backed typing. -/
+noncomputable def ite_then_static_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    BodyStaticBoundaryCI Γ s :=
+  (ite_then_static_scaffold_ci_of_entry hentry).toBodyStaticBoundaryCI
+    (ite_then_typed0_of_entry hentry)
+
+/-- Else-branch static boundary assembled from scaffold plus theorem-backed typing. -/
+noncomputable def ite_else_static_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    BodyStaticBoundaryCI Γ t :=
+  (ite_else_static_scaffold_ci_of_entry hentry).toBodyStaticBoundaryCI
+    (ite_else_typed0_of_entry hentry)
+
+/--
+Remaining then-branch adequacy obligation, relative to the assembled branch
+static boundary.
+-/
+axiom ite_then_adequacy_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    BodyAdequacyCI Γ σ s (ite_then_static_ci_of_entry hentry).profile
+
+/--
+Remaining else-branch adequacy obligation, relative to the assembled branch
+static boundary.
+-/
+axiom ite_else_adequacy_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    BodyAdequacyCI Γ σ t (ite_else_static_ci_of_entry hentry).profile
+
+/--
 Static+adequacy package for one branch of an `ite`.
 
-The structural and dynamic components are intentionally absent: both are
-projected by theorem from the whole `ite` boundary.  The remaining debt is the
-branch static package and its adequacy.
+Compatibility package assembled from the separated static scaffold and adequacy
+obligations.  It is no longer a primitive axiom.
 -/
 structure IteBranchStaticAdequacyCI
     (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
   static : BodyStaticBoundaryCI Γ st
   adequacy : BodyAdequacyCI Γ σ st static.profile
 
-/--
-Remaining then-branch static+adequacy obligation.
-
-This is narrower than the old branch-boundary axiom: it no longer owns either
-the branch structural boundary or the branch dynamic boundary.
--/
-axiom ite_then_static_adequacy_ci_of_entry
+/-- Compatibility package for the then branch. -/
+noncomputable def ite_then_static_adequacy_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    IteBranchStaticAdequacyCI Γ σ s
+    IteBranchStaticAdequacyCI Γ σ s :=
+  { static := ite_then_static_ci_of_entry hentry
+    adequacy := ite_then_adequacy_ci_of_entry hentry }
 
-/--
-Remaining else-branch static+adequacy obligation.
-
-This is narrower than the old branch-boundary axiom: it no longer owns either
-the branch structural boundary or the branch dynamic boundary.
--/
-axiom ite_else_static_adequacy_ci_of_entry
+/-- Compatibility package for the else branch. -/
+noncomputable def ite_else_static_adequacy_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    IteBranchStaticAdequacyCI Γ σ t
+    IteBranchStaticAdequacyCI Γ σ t :=
+  { static := ite_else_static_ci_of_entry hentry
+    adequacy := ite_else_adequacy_ci_of_entry hentry }
 
 /--
 Branch closure boundaries for an `ite`.
