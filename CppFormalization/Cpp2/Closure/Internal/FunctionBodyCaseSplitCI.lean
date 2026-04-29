@@ -23,7 +23,7 @@ The old `seq_left_closure_scaffold_ci_of_entry` and
 responsibilities in one package. The canonical sequence closure surfaces in
 this file are now route-aware: the tail is entered through the selected
 `SeqHeadNormalRouteCI`, not through an arbitrary bare normal typing witness.
-Legacy explicit-tail-boundary surfaces are isolated under `SeqLegacy`.
+The old explicit-tail-boundary surfaces have been removed from this file; callers should use the selected-route callback shape.
 
 The scaffold pieces are built from narrower pieces:
 
@@ -1566,46 +1566,6 @@ theorem seq_function_body_closure_boundary_ci_honest
             mkWhileReentry hentry route
         tailClosure route htailBoundary)
 
-namespace SeqLegacy
-
-/--
-Legacy explicit-tail-boundary version of the old seq shell.
-
-This adapter is intentionally not the canonical sequence closure surface. It
-keeps the old arbitrary-`Δ` callback shape only for migration; new code should
-use `seq_function_body_closure_boundary_ci_honest`, whose tail callback receives
-the selected `SeqHeadNormalRouteCI`.
--/
-theorem seq_function_body_closure_boundary_ci_honest_with_tail_boundary
-    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
-    (leftClosure :
-      BodyClosureBoundaryCI Γ σ s →
-      FunctionBodyClosureResult σ s)
-    (tailBoundary :
-      ∀ {Δ : TypeEnv} {σ1 : State},
-        HasTypeStmtCI .normalK Γ s Δ →
-        BigStepStmt σ s .normal σ1 →
-        BodyClosureBoundaryCI Δ σ1 t)
-    (tailClosure :
-      ∀ {Δ : TypeEnv} {σ1 : State},
-        HasTypeStmtCI .normalK Γ s Δ →
-        BigStepStmt σ s .normal σ1 →
-        BodyClosureBoundaryCI Δ σ1 t →
-        FunctionBodyClosureResult σ1 t) :
-    FunctionBodyClosureResult σ (.seq s t) := by
-  have hleft : FunctionBodyClosureResult σ s :=
-    leftClosure (seq_left_closure_boundary_ci_of_entry hentry)
-  exact
-    seq_function_body_result_return_aware
-      hleft
-      (fun hstep =>
-        match seq_left_normalWitness_of_entry hentry hstep with
-        | ⟨Δ, htyLeft⟩ =>
-            tailClosure htyLeft hstep (tailBoundary htyLeft hstep))
-
-end SeqLegacy
-
 axiom ite_function_body_closure_boundary_ci_honest
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t))
@@ -1645,43 +1605,6 @@ theorem seq_function_body_closure_ci_honest
       (fun hleftBoundary => leftClosure hleftBoundary.toBodyReadyCI)
       (fun route htailBoundary =>
         tailClosure route htailBoundary.toBodyReadyCI)
-
-namespace SeqLegacy
-
-/--
-Legacy ready-level surface for older callers that still provide an explicit
-tail boundary at a bare normal witness.
-
-This is not the canonical surface.  It is retained only for downstream code that
-has not yet moved to the selected-route callback shape.
--/
-theorem seq_function_body_closure_ci_honest_with_tail_boundary
-    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
-    (hentry : BodyReadyCI Γ σ (.seq s t))
-    (leftClosure :
-      BodyReadyCI Γ σ s →
-      FunctionBodyClosureResult σ s)
-    (tailBoundary :
-      ∀ {Δ : TypeEnv} {σ1 : State},
-        HasTypeStmtCI .normalK Γ s Δ →
-        BigStepStmt σ s .normal σ1 →
-        BodyReadyCI Δ σ1 t)
-    (tailClosure :
-      ∀ {Δ : TypeEnv} {σ1 : State},
-        HasTypeStmtCI .normalK Γ s Δ →
-        BigStepStmt σ s .normal σ1 →
-        BodyReadyCI Δ σ1 t →
-        FunctionBodyClosureResult σ1 t) :
-    FunctionBodyClosureResult σ (.seq s t) := by
-  exact
-    seq_function_body_closure_boundary_ci_honest_with_tail_boundary
-      hentry.toClosureBoundary
-      (fun hleftBoundary => leftClosure hleftBoundary.toBodyReadyCI)
-      (fun hty hstep => (tailBoundary hty hstep).toClosureBoundary)
-      (fun hty hstep htailBoundary =>
-        tailClosure hty hstep htailBoundary.toBodyReadyCI)
-
-end SeqLegacy
 
 theorem ite_function_body_closure_ci_honest
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
