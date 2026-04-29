@@ -616,49 +616,11 @@ theorem normalDecision_toProp
 end SeqLeftNormalSlotSelectionCI
 
 /--
-Type-level return-source payload for a whole-sequence return channel.
-
-This mirrors `SeqReturnSourceCI`, but lives in `Type`.  It is not derived by
-eliminating `HasTypeStmtCI : Prop`; instead it is carried by the return-slot
-selection obligation.  This lets later definitions construct Type-level slot
-payloads without eliminating Prop into Type.
--/
-inductive SeqReturnSourcePayloadCI
-    {Γ : TypeEnv} {s t : CppStmt}
-    (out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ (.seq s t) Δ}) : Type where
-  | leftReturn
-      {Δ : TypeEnv}
-      (hleft : HasTypeStmtCI .returnK Γ s Δ)
-      (hout : out = ⟨Δ, HasTypeStmtCI.seq_return hleft⟩) :
-      SeqReturnSourcePayloadCI out
-  | tailReturn
-      {Θ Δ : TypeEnv}
-      (hleft : HasTypeStmtCI .normalK Γ s Θ)
-      (htail : HasTypeStmtCI .returnK Θ t Δ)
-      (hout : out = ⟨Δ, HasTypeStmtCI.seq_normal hleft htail⟩) :
-      SeqReturnSourcePayloadCI out
-
-namespace SeqReturnSourcePayloadCI
-
-/-- Forget Type-level return-source payload to the Prop-level provenance. -/
-theorem toProp
-    {Γ : TypeEnv} {s t : CppStmt}
-    {out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ (.seq s t) Δ}}
-    (p : SeqReturnSourcePayloadCI out) :
-    SeqReturnSourceCI out := by
-  cases p with
-  | leftReturn hleft hout =>
-      exact SeqReturnSourceCI.leftReturn hleft hout
-  | tailReturn hleft htail hout =>
-      exact SeqReturnSourceCI.tailReturn hleft htail hout
-
-end SeqReturnSourcePayloadCI
-
-/--
 Type-level decision for a visible whole-sequence return channel.
 
-This combines the return-source provenance with the slot proof required by that
-source:
+This is the only Type-level return provenance used by the left-profile
+selection layer.  It combines the return-source provenance with the slot proof
+required by that source:
 - a left-originated return carries the matching selected left return slot;
 - a tail-originated return carries the matching selected left normal slot.
 
@@ -1070,24 +1032,70 @@ structure SeqLeftNormalAdequacyCI
       SeqHeadNormalRouteCI Γ σ s t σ1 P
 
 /--
-Return-channel adequacy obligation for the extracted left boundary.
+Runtime decision for an actual left-return execution.
 
-A left return exits the sequence immediately; it does not require a tail route.
+This is the return-side analogue of the route-aware normal branch.  Given an
+actual execution
+
+`BigStepStmt σ s (.returnResult rv) σ'`
+
+the decision says that this execution is reflected by the selected return slot
+of the extracted left profile.
+-/
+structure SeqLeftReturnRuntimeDecisionCI
+    (Γ : TypeEnv) (σ : State) (s : CppStmt)
+    (P : BodyControlProfile Γ s)
+    {rv : Option Value} {σ' : State}
+    (_hstep : BigStepStmt σ s (.returnResult rv) σ') : Type where
+  Delta : TypeEnv
+  hleft : HasTypeStmtCI .returnK Γ s Delta
+  hprofile : P.summary.returnOut = some ⟨Delta, hleft⟩
+
+namespace SeqLeftReturnRuntimeDecisionCI
+
+/-- Forget the runtime return decision to the older return-profile payload. -/
+def toPayload
+    {Γ : TypeEnv} {σ : State} {s : CppStmt}
+    {P : BodyControlProfile Γ s}
+    {rv : Option Value} {σ' : State}
+    {hstep : BigStepStmt σ s (.returnResult rv) σ'}
+    (d : SeqLeftReturnRuntimeDecisionCI Γ σ s P hstep) :
+    SeqLeftReturnPayloadCI P :=
+  { Delta := d.Delta
+    hleft := d.hleft
+    hprofile := d.hprofile }
+
+/-- Forget the runtime return decision to ordinary adequacy evidence. -/
+def toExists
+    {Γ : TypeEnv} {σ : State} {s : CppStmt}
+    {P : BodyControlProfile Γ s}
+    {rv : Option Value} {σ' : State}
+    {hstep : BigStepStmt σ s (.returnResult rv) σ'}
+    (d : SeqLeftReturnRuntimeDecisionCI Γ σ s P hstep) :
+    ∃ out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ s Δ},
+      P.summary.returnOut = some out :=
+  ⟨⟨d.Delta, d.hleft⟩, d.hprofile⟩
+
+end SeqLeftReturnRuntimeDecisionCI
+
+/--
+Return-channel adequacy support for the extracted left boundary.
+
+This is runtime-decision based: an actual left-return execution must match the
+selected return slot in the extracted left profile.
 -/
 structure SeqLeftReturnAdequacyCI
     (Γ : TypeEnv) (σ : State) (s : CppStmt)
     (P : BodyControlProfile Γ s) : Type where
-  returnSound :
+  returnDecision :
     ∀ {rv : Option Value} {σ' : State}
-      (_hstep : BigStepStmt σ s (.returnResult rv) σ'),
-      ∃ out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ s Δ},
-        P.summary.returnOut = some out
+      (hstep : BigStepStmt σ s (.returnResult rv) σ'),
+      SeqLeftReturnRuntimeDecisionCI Γ σ s P hstep
 
 /--
 Type-level package for the two semantic adequacy channels of the left side.
 
-The normal channel is route-aware; the return channel remains ordinary because
-it does not continue into the tail.
+The normal channel is route-aware; the return channel is runtime-decision aware.
 -/
 structure SeqLeftAdequacySupportCI
     (Γ : TypeEnv) (σ : State) (s t : CppStmt)
@@ -1097,7 +1105,7 @@ structure SeqLeftAdequacySupportCI
 
 namespace SeqLeftAdequacySupportCI
 
-/-- Forget the route-aware support to the ordinary `BodyAdequacyCI`. -/
+/-- Forget the route-aware/runtime-decision support to ordinary `BodyAdequacyCI`. -/
 def toBodyAdequacyCI
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
@@ -1107,7 +1115,9 @@ def toBodyAdequacyCI
       intro σ1 hstep
       let r := A.normal.normalRoute hstep
       exact ⟨⟨r.Θ, r.hleft⟩, r.hprofile⟩
-    returnSound := A.returned.returnSound }
+    returnSound := by
+      intro rv σ' hstep
+      exact (A.returned.returnDecision hstep).toExists }
 
 end SeqLeftAdequacySupportCI
 
@@ -1184,16 +1194,32 @@ noncomputable def seq_left_normal_adequacy_ci_of_entry
   { normalRoute := seq_head_normal_route_ci_of_entry hentry hstatic }
 
 /--
-Remaining left-return adequacy obligation for the extracted left boundary.
+Remaining runtime return-decision obligation for the extracted left boundary.
 
-A left return exits the sequence immediately, so it is separate from the
-head-normal route/tail-continuation obligation.
+An actual left-return execution must be reflected by the selected return slot of
+the extracted left profile.
 -/
-axiom seq_left_return_adequacy_ci_of_entry
+axiom seq_left_return_runtime_decision_ci_of_entry
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (hstatic : BodyStaticBoundaryCI Γ s) :
-    SeqLeftReturnAdequacyCI Γ σ s hstatic.profile
+    ∀ {rv : Option Value} {σ' : State}
+      (hstep : BigStepStmt σ s (.returnResult rv) σ'),
+      SeqLeftReturnRuntimeDecisionCI Γ σ s hstatic.profile hstep
+
+/--
+Compatibility wrapper for the older return-adequacy name.
+
+The old return adequacy package is now assembled from the runtime decision
+provider.
+-/
+noncomputable def seq_left_return_adequacy_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (hstatic : BodyStaticBoundaryCI Γ s) :
+    SeqLeftReturnAdequacyCI Γ σ s hstatic.profile :=
+  { returnDecision :=
+      seq_left_return_runtime_decision_ci_of_entry hentry hstatic }
 
 /--
 Compatibility name for the old combined left adequacy support.
