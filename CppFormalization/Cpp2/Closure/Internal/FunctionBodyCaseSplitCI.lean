@@ -1676,19 +1676,112 @@ def ite_else_dynamic_boundary_of_entry
     safe := ite_ready_else hentry.dynamic.safe }
 
 /--
+Type-level root payload for a selected branch profile.
+
+This is the small piece of data needed to define the branch root and its
+coherence proof without keeping root/coherence as an axiom field.
+-/
+inductive IteBranchRootPayloadCI
+    {Γ : TypeEnv} {st : CppStmt}
+    (profile : BodyControlProfile Γ st) : Type where
+  | normal
+      {out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ st Δ}}
+      (hprofile : profile.summary.normalOut = some out) :
+      IteBranchRootPayloadCI profile
+  | returned
+      {out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ st Δ}}
+      (hprofile : profile.summary.returnOut = some out) :
+      IteBranchRootPayloadCI profile
+
+namespace IteBranchRootPayloadCI
+
+/-- The branch entry witness determined by a root payload. -/
+def toRoot
+    {Γ : TypeEnv} {st : CppStmt}
+    {profile : BodyControlProfile Γ st}
+    (p : IteBranchRootPayloadCI profile) :
+    BodyEntryWitness Γ st :=
+  match p with
+  | .normal (out := out) _ => .normal out
+  | .returned (out := out) _ => .returned out
+
+/-- Root coherence is definitionally induced by the root payload. -/
+theorem toRootCoherent
+    {Γ : TypeEnv} {st : CppStmt}
+    {profile : BodyControlProfile Γ st}
+    (p : IteBranchRootPayloadCI profile) :
+    BodyRootCoherent profile p.toRoot := by
+  cases p with
+  | normal hprofile =>
+      exact BodyRootCoherent.normal hprofile
+  | returned hprofile =>
+      exact BodyRootCoherent.returned hprofile
+
+end IteBranchRootPayloadCI
+
+/--
+Profile payload for one branch of an `ite`.
+
+The remaining static choice is now explicit: choose a branch profile, and choose
+one available root payload for that profile.  The root witness and coherence
+record are derived from this payload by definitions below.
+-/
+structure IteBranchProfilePayloadCI
+    (Γ : TypeEnv) (st : CppStmt) : Type where
+  profile : BodyControlProfile Γ st
+  rootPayload : IteBranchRootPayloadCI profile
+
+/--
+Root/coherence scaffold for a chosen branch profile.
+
+This structure is kept as a readable compatibility package, but it is produced
+by `def` from `IteBranchProfilePayloadCI`; it is not an independent axiom.
+-/
+structure IteBranchRootScaffoldCI
+    (Γ : TypeEnv) (st : CppStmt)
+    (profile : BodyControlProfile Γ st) : Type where
+  root : BodyEntryWitness Γ st
+  rootCoherent : BodyRootCoherent profile root
+
+namespace IteBranchRootScaffoldCI
+
+/-- Build branch root/coherence from the selected profile payload. -/
+def ofProfilePayload
+    {Γ : TypeEnv} {st : CppStmt}
+    (P : IteBranchProfilePayloadCI Γ st) :
+    IteBranchRootScaffoldCI Γ st P.profile :=
+  { root := P.rootPayload.toRoot
+    rootCoherent := P.rootPayload.toRootCoherent }
+
+end IteBranchRootScaffoldCI
+
+/--
 Static scaffold for one branch of an `ite`, excluding the coarse `typed0`
 payload.
 
 The `typed0` field is theorem-backed from the whole `ite` typing below.  The
-remaining static debt is the CI profile/root/coherence choice for the branch.
+only primitive remaining static debt is the profile payload.  Root/coherence is
+assembled by definition from that payload.
 -/
 structure IteBranchStaticScaffoldCI
     (Γ : TypeEnv) (st : CppStmt) : Type where
-  profile : BodyControlProfile Γ st
-  root : BodyEntryWitness Γ st
-  rootCoherent : BodyRootCoherent profile root
+  profilePayload : IteBranchProfilePayloadCI Γ st
 
 namespace IteBranchStaticScaffoldCI
+
+/-- The selected branch profile. -/
+def profile
+    {Γ : TypeEnv} {st : CppStmt}
+    (h : IteBranchStaticScaffoldCI Γ st) :
+    BodyControlProfile Γ st :=
+  h.profilePayload.profile
+
+/-- The branch root/coherence scaffold induced by the selected profile payload. -/
+def rootScaffold
+    {Γ : TypeEnv} {st : CppStmt}
+    (h : IteBranchStaticScaffoldCI Γ st) :
+    IteBranchRootScaffoldCI Γ st h.profile :=
+  IteBranchRootScaffoldCI.ofProfilePayload h.profilePayload
 
 /-- Assemble a branch static boundary from theorem-backed `typed0`. -/
 def toBodyStaticBoundaryCI
@@ -1698,8 +1791,8 @@ def toBodyStaticBoundaryCI
     BodyStaticBoundaryCI Γ st :=
   { typed0 := htyped
     profile := h.profile
-    root := h.root
-    rootCoherent := h.rootCoherent }
+    root := h.rootScaffold.root
+    rootCoherent := h.rootScaffold.rootCoherent }
 
 end IteBranchStaticScaffoldCI
 
@@ -1732,28 +1825,60 @@ theorem ite_else_typed0_of_entry
       exact ⟨_, helse⟩
 
 /--
-Remaining then-branch static scaffold obligation.
+Remaining then-branch profile payload obligation.
 
-This no longer owns coarse typing: `typed0` is extracted by
-`ite_then_typed0_of_entry`.  The remaining static debt is only the branch
-profile/root/coherence choice.
+This no longer owns coarse typing, nor root/coherence as independent fields.
+`typed0` is extracted by `ite_then_typed0_of_entry`; root/coherence is assembled
+by definition from the selected profile payload.
 -/
-axiom ite_then_static_scaffold_ci_of_entry
+axiom ite_then_profile_payload_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    IteBranchStaticScaffoldCI Γ s
+    IteBranchProfilePayloadCI Γ s
 
 /--
-Remaining else-branch static scaffold obligation.
+Remaining else-branch profile payload obligation.
 
-This no longer owns coarse typing: `typed0` is extracted by
-`ite_else_typed0_of_entry`.  The remaining static debt is only the branch
-profile/root/coherence choice.
+This no longer owns coarse typing, nor root/coherence as independent fields.
+`typed0` is extracted by `ite_else_typed0_of_entry`; root/coherence is assembled
+by definition from the selected profile payload.
 -/
-axiom ite_else_static_scaffold_ci_of_entry
+axiom ite_else_profile_payload_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    IteBranchStaticScaffoldCI Γ t
+    IteBranchProfilePayloadCI Γ t
+
+/-- Then-branch root/coherence scaffold induced by the selected profile payload. -/
+noncomputable def ite_then_root_scaffold_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    IteBranchRootScaffoldCI Γ s
+      (ite_then_profile_payload_ci_of_entry hentry).profile :=
+  IteBranchRootScaffoldCI.ofProfilePayload
+    (ite_then_profile_payload_ci_of_entry hentry)
+
+/-- Else-branch root/coherence scaffold induced by the selected profile payload. -/
+noncomputable def ite_else_root_scaffold_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    IteBranchRootScaffoldCI Γ t
+      (ite_else_profile_payload_ci_of_entry hentry).profile :=
+  IteBranchRootScaffoldCI.ofProfilePayload
+    (ite_else_profile_payload_ci_of_entry hentry)
+
+/-- Compatibility static scaffold for the then branch. -/
+noncomputable def ite_then_static_scaffold_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    IteBranchStaticScaffoldCI Γ s :=
+  { profilePayload := ite_then_profile_payload_ci_of_entry hentry }
+
+/-- Compatibility static scaffold for the else branch. -/
+noncomputable def ite_else_static_scaffold_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    IteBranchStaticScaffoldCI Γ t :=
+  { profilePayload := ite_else_profile_payload_ci_of_entry hentry }
 
 /-- Then-branch static boundary assembled from scaffold plus theorem-backed typing. -/
 noncomputable def ite_then_static_ci_of_entry
@@ -1772,24 +1897,133 @@ noncomputable def ite_else_static_ci_of_entry
     (ite_else_typed0_of_entry hentry)
 
 /--
-Remaining then-branch adequacy obligation, relative to the assembled branch
-static boundary.
+Runtime decision for an actual branch-normal execution of an `ite` branch.
+
+This is the branch analogue of the seq left-return runtime decision: an actual
+branch execution must be reflected by the selected normal channel in the branch
+profile.
 -/
-axiom ite_then_adequacy_ci_of_entry
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    BodyAdequacyCI Γ σ s (ite_then_static_ci_of_entry hentry).profile
+structure IteBranchNormalRuntimeDecisionCI
+    (Γ : TypeEnv) (σ : State) (st : CppStmt)
+    (P : BodyControlProfile Γ st)
+    {σ' : State}
+    (_hstep : BigStepStmt σ st .normal σ') : Type where
+  Delta : TypeEnv
+  hty : HasTypeStmtCI .normalK Γ st Delta
+  hprofile : P.summary.normalOut = some ⟨Delta, hty⟩
+
+namespace IteBranchNormalRuntimeDecisionCI
+
+/-- Forget the runtime normal decision to ordinary adequacy evidence. -/
+def toExists
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {P : BodyControlProfile Γ st}
+    {σ' : State}
+    {hstep : BigStepStmt σ st .normal σ'}
+    (d : IteBranchNormalRuntimeDecisionCI Γ σ st P hstep) :
+    ∃ out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ st Δ},
+      P.summary.normalOut = some out :=
+  ⟨⟨d.Delta, d.hty⟩, d.hprofile⟩
+
+end IteBranchNormalRuntimeDecisionCI
 
 /--
-Remaining else-branch adequacy obligation, relative to the assembled branch
-static boundary.
+Runtime decision for an actual branch-return execution of an `ite` branch.
+
+An actual branch return must be reflected by the selected return channel in the
+branch profile.
 -/
-axiom ite_else_adequacy_ci_of_entry
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    BodyAdequacyCI Γ σ t (ite_else_static_ci_of_entry hentry).profile
+structure IteBranchReturnRuntimeDecisionCI
+    (Γ : TypeEnv) (σ : State) (st : CppStmt)
+    (P : BodyControlProfile Γ st)
+    {rv : Option Value} {σ' : State}
+    (_hstep : BigStepStmt σ st (.returnResult rv) σ') : Type where
+  Delta : TypeEnv
+  hty : HasTypeStmtCI .returnK Γ st Delta
+  hprofile : P.summary.returnOut = some ⟨Delta, hty⟩
+
+namespace IteBranchReturnRuntimeDecisionCI
+
+/-- Forget the runtime return decision to ordinary adequacy evidence. -/
+def toExists
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {P : BodyControlProfile Γ st}
+    {rv : Option Value} {σ' : State}
+    {hstep : BigStepStmt σ st (.returnResult rv) σ'}
+    (d : IteBranchReturnRuntimeDecisionCI Γ σ st P hstep) :
+    ∃ out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ st Δ},
+      P.summary.returnOut = some out :=
+  ⟨⟨d.Delta, d.hty⟩, d.hprofile⟩
+
+end IteBranchReturnRuntimeDecisionCI
 
 /--
+Runtime-decision adequacy support for one `ite` branch.
+
+This keeps the branch adequacy obligation aligned with the selected branch
+profile instead of exposing only ordinary `BodyAdequacyCI` evidence.
+-/
+structure IteBranchAdequacySupportCI
+    (Γ : TypeEnv) (σ : State) (st : CppStmt)
+    (P : BodyControlProfile Γ st) : Type where
+  normalDecision :
+    ∀ {σ' : State}
+      (hstep : BigStepStmt σ st .normal σ'),
+      IteBranchNormalRuntimeDecisionCI Γ σ st P hstep
+  returnDecision :
+    ∀ {rv : Option Value} {σ' : State}
+      (hstep : BigStepStmt σ st (.returnResult rv) σ'),
+      IteBranchReturnRuntimeDecisionCI Γ σ st P hstep
+
+namespace IteBranchAdequacySupportCI
+
+/-- Forget runtime-decision support to ordinary `BodyAdequacyCI`. -/
+def toBodyAdequacyCI
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {P : BodyControlProfile Γ st}
+    (A : IteBranchAdequacySupportCI Γ σ st P) :
+    BodyAdequacyCI Γ σ st P :=
+  { normalSound := by
+      intro σ' hstep
+      exact (A.normalDecision hstep).toExists
+    returnSound := by
+      intro rv σ' hstep
+      exact (A.returnDecision hstep).toExists }
+
+end IteBranchAdequacySupportCI
+
+/--
+Remaining then-branch runtime-decision adequacy obligation, relative to the
+assembled branch static boundary.
+-/
+axiom ite_then_adequacy_support_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    IteBranchAdequacySupportCI Γ σ s (ite_then_static_ci_of_entry hentry).profile
+
+/--
+Remaining else-branch runtime-decision adequacy obligation, relative to the
+assembled branch static boundary.
+-/
+axiom ite_else_adequacy_support_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    IteBranchAdequacySupportCI Γ σ t (ite_else_static_ci_of_entry hentry).profile
+
+/-- Compatibility adequacy wrapper for the then branch. -/
+noncomputable def ite_then_adequacy_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    BodyAdequacyCI Γ σ s (ite_then_static_ci_of_entry hentry).profile :=
+  (ite_then_adequacy_support_ci_of_entry hentry).toBodyAdequacyCI
+
+/-- Compatibility adequacy wrapper for the else branch. -/
+noncomputable def ite_else_adequacy_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    BodyAdequacyCI Γ σ t (ite_else_static_ci_of_entry hentry).profile :=
+  (ite_else_adequacy_support_ci_of_entry hentry).toBodyAdequacyCI
+/-
 Static+adequacy package for one branch of an `ite`.
 
 Compatibility package assembled from the separated static scaffold and adequacy
