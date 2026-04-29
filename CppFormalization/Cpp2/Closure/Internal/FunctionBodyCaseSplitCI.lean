@@ -27,8 +27,7 @@ downstream compatibility, but builds them from narrower pieces:
 * left `typed0` is theorem-backed from the whole old typing payload;
 * whole-sequence normal/return profile payloads are decomposed into explicit
   `Prop`-level seq provenance certificates;
-* left static profile/root/coherence is now supplied together with an explicit
-  compatibility certificate against the seq provenance;
+* left profile selection and left root/coherence selection are separated;
 * left adequacy remains a separate semantic obligation;
 * tail static and tail adequacy are packaged together behind the actual
   left-normal route, because the tail environment is path-sensitive and must not
@@ -211,7 +210,7 @@ theorem seq_static_decomposition_ci_of_entry
     exact seq_return_source_ci_of_out out
 
 /--
-Compatibility condition for a chosen left static scaffold.
+Compatibility condition for a chosen left profile.
 
 This is still a proposition, but unlike the earlier opaque scaffold axiom it
 states what the left profile must expose:
@@ -223,23 +222,50 @@ states what the left profile must expose:
 The condition deliberately does not force the left profile to be minimal.  It
 only requires the channels demanded by the visible whole-sequence profile.
 -/
-structure SeqLeftStaticScaffoldCompatibleCI
+structure SeqLeftProfileCompatibleCI
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (_D : SeqStaticDecompositionCI hentry)
-    (S : SeqLeftStaticScaffoldCI Γ s) : Prop where
+    (P : BodyControlProfile Γ s) : Prop where
   normalFromWhole :
     ∀ {out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.seq s t) Δ}},
       hentry.static.profile.summary.normalOut = some out →
       ∃ Θ, ∃ hleft : HasTypeStmtCI .normalK Γ s Θ,
-        S.profile.summary.normalOut = some ⟨Θ, hleft⟩
+        P.summary.normalOut = some ⟨Θ, hleft⟩
   returnFromWhole :
     ∀ {out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ (.seq s t) Δ}},
       hentry.static.profile.summary.returnOut = some out →
         (∃ Δ, ∃ hleft : HasTypeStmtCI .returnK Γ s Δ,
-          S.profile.summary.returnOut = some ⟨Δ, hleft⟩) ∨
+          P.summary.returnOut = some ⟨Δ, hleft⟩) ∨
         (∃ Θ, ∃ hleft : HasTypeStmtCI .normalK Γ s Θ,
-          S.profile.summary.normalOut = some ⟨Θ, hleft⟩)
+          P.summary.normalOut = some ⟨Θ, hleft⟩)
+
+/--
+Root/coherence package for a chosen left profile.
+
+This is separated from profile selection.  The profile says which left channels
+are exposed; the root chooses one available entry witness and proves coherence
+with that profile.
+-/
+structure SeqLeftRootScaffoldCI
+    (Γ : TypeEnv) (s : CppStmt)
+    (P : BodyControlProfile Γ s) : Type where
+  root : BodyEntryWitness Γ s
+  rootCoherent : BodyRootCoherent P root
+
+/--
+Compatibility condition for a chosen full left static scaffold.
+
+This is now only a wrapper around profile compatibility.  Root coherence is
+carried by `SeqLeftRootScaffoldCI` and then by `SeqLeftStaticScaffoldCI` itself.
+-/
+structure SeqLeftStaticScaffoldCompatibleCI
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (D : SeqStaticDecompositionCI hentry)
+    (S : SeqLeftStaticScaffoldCI Γ s) : Prop where
+  profileCompatible :
+    SeqLeftProfileCompatibleCI hentry D S.profile
 
 /--
 The left side of a well-typed sequence is well typed.
@@ -291,21 +317,56 @@ theorem seq_tail_structural_boundary_of_entry
       continueScoped := hcont.2 }
 
 /--
-Remaining static-profile/root obligation for extracting the left side of a
-sequence.
+Remaining profile-selection obligation for the left side of a sequence.
 
-The result is a chosen left static scaffold together with a compatibility
-certificate against the theorem-backed seq decomposition.  This is narrower than
-an arbitrary projection from the whole sequence: the chosen left profile must
-expose exactly the head-side channels required by the visible whole-sequence
-normal/return channels.
+This is narrower than the old static-scaffold obligation.  It chooses only the
+left profile and proves that the chosen profile exposes the head-side channels
+forced by the whole-sequence provenance.
 -/
-axiom seq_left_static_scaffold_payload_ci_of_decomposition
+axiom seq_left_profile_payload_ci_of_decomposition
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (D : SeqStaticDecompositionCI hentry) :
+    { P : BodyControlProfile Γ s //
+      SeqLeftProfileCompatibleCI hentry D P }
+
+/--
+Remaining root/coherence obligation for a chosen left profile.
+
+This is deliberately separate from profile selection.  A profile may expose
+several channels; the root witness chooses one available entry channel and
+proves coherence with that profile.
+-/
+axiom seq_left_root_scaffold_ci_of_profile
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (D : SeqStaticDecompositionCI hentry)
+    (P : BodyControlProfile Γ s)
+    (hP : SeqLeftProfileCompatibleCI hentry D P) :
+    SeqLeftRootScaffoldCI Γ s P
+
+/--
+Assemble the full left static scaffold from separately chosen profile and root
+packages.
+
+The only remaining static assumptions are now:
+1. choose a left profile compatible with seq provenance;
+2. choose a coherent root for that chosen left profile.
+-/
+noncomputable def seq_left_static_scaffold_payload_ci_of_decomposition
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (D : SeqStaticDecompositionCI hentry) :
     { S : SeqLeftStaticScaffoldCI Γ s //
-      SeqLeftStaticScaffoldCompatibleCI hentry D S }
+      SeqLeftStaticScaffoldCompatibleCI hentry D S } := by
+  let Ppack := seq_left_profile_payload_ci_of_decomposition hentry D
+  let R := seq_left_root_scaffold_ci_of_profile hentry D Ppack.1 Ppack.2
+  refine
+    ⟨{ profile := Ppack.1
+       root := R.root
+       rootCoherent := R.rootCoherent }, ?_⟩
+  exact
+    { profileCompatible := Ppack.2 }
 
 /-- Compatibility projection for the chosen left static scaffold. -/
 noncomputable def seq_left_static_scaffold_ci_of_decomposition
