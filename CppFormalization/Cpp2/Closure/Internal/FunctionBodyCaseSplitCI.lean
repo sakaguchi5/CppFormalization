@@ -26,10 +26,10 @@ downstream compatibility, but builds them from narrower pieces:
 * structural data is theorem-backed from the whole sequence boundary;
 * left `typed0` is theorem-backed from the whole old typing payload;
 * whole-sequence normal/return profile payloads are decomposed into explicit
-  seq provenance objects;
-* left static profile/root and left adequacy remain explicitly named obligations,
-  but the left-static obligation is now parameterized by the seq static
-  decomposition certificate;
+  `Prop`-level seq provenance certificates;
+* left static profile/root/coherence is now supplied together with an explicit
+  compatibility certificate against the seq provenance;
+* left adequacy remains a separate semantic obligation;
 * tail static and tail adequacy are packaged together behind the actual
   left-normal route, because the tail environment is path-sensitive and must not
   be projected from the whole sequence return channel.
@@ -146,6 +146,40 @@ theorem seq_return_source_ci_of_out
   | seq_return hleft =>
       exact SeqReturnSourceCI.leftReturn hleft rfl
 
+/-- Extract the left normal payload from a whole-sequence normal source. -/
+theorem seq_normal_source_left_payload_ci
+    {Γ : TypeEnv} {s t : CppStmt}
+    {out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.seq s t) Δ}}
+    (hsrc : SeqNormalSourceCI out) :
+    ∃ Θ, ∃ hleft : HasTypeStmtCI .normalK Γ s Θ,
+      ∃ Δ, ∃ htail : HasTypeStmtCI .normalK Θ t Δ,
+        out = ⟨Δ, HasTypeStmtCI.seq_normal hleft htail⟩ := by
+  cases hsrc with
+  | normal hleft htail hout =>
+      exact ⟨_, hleft, _, htail, hout⟩
+
+/--
+Extract the left-side payload required by a whole-sequence return source.
+
+A left-return source gives a left return payload.  A tail-return source gives a
+left normal payload, because the tail is reached only after the left side falls
+through normally.
+-/
+theorem seq_return_source_left_payload_ci
+    {Γ : TypeEnv} {s t : CppStmt}
+    {out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ (.seq s t) Δ}}
+    (hsrc : SeqReturnSourceCI out) :
+    (∃ Δ, ∃ hleft : HasTypeStmtCI .returnK Γ s Δ,
+        out = ⟨Δ, HasTypeStmtCI.seq_return hleft⟩) ∨
+      (∃ Θ, ∃ hleft : HasTypeStmtCI .normalK Γ s Θ,
+        ∃ Δ, ∃ htail : HasTypeStmtCI .returnK Θ t Δ,
+          out = ⟨Δ, HasTypeStmtCI.seq_normal hleft htail⟩) := by
+  cases hsrc with
+  | leftReturn hleft hout =>
+      exact Or.inl ⟨_, hleft, hout⟩
+  | tailReturn hleft htail hout =>
+      exact Or.inr ⟨_, hleft, _, htail, hout⟩
+
 /--
 Provenance certificate for the static channels of a whole sequence boundary.
 
@@ -175,6 +209,38 @@ theorem seq_static_decomposition_ci_of_entry
     exact seq_normal_source_ci_of_out out
   · intro out _hout
     exact seq_return_source_ci_of_out out
+
+/--
+Compatibility condition for a chosen left static scaffold.
+
+This is still a proposition, but unlike the earlier opaque scaffold axiom it
+states what the left profile must expose:
+- any visible whole-sequence normal channel contributes a left normal channel;
+- a visible whole-sequence return channel contributes either a left return
+  channel or a left normal channel, depending on whether the return originates
+  in the head or in the tail.
+
+The condition deliberately does not force the left profile to be minimal.  It
+only requires the channels demanded by the visible whole-sequence profile.
+-/
+structure SeqLeftStaticScaffoldCompatibleCI
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (_D : SeqStaticDecompositionCI hentry)
+    (S : SeqLeftStaticScaffoldCI Γ s) : Prop where
+  normalFromWhole :
+    ∀ {out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.seq s t) Δ}},
+      hentry.static.profile.summary.normalOut = some out →
+      ∃ Θ, ∃ hleft : HasTypeStmtCI .normalK Γ s Θ,
+        S.profile.summary.normalOut = some ⟨Θ, hleft⟩
+  returnFromWhole :
+    ∀ {out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ (.seq s t) Δ}},
+      hentry.static.profile.summary.returnOut = some out →
+        (∃ Δ, ∃ hleft : HasTypeStmtCI .returnK Γ s Δ,
+          S.profile.summary.returnOut = some ⟨Δ, hleft⟩) ∨
+        (∃ Θ, ∃ hleft : HasTypeStmtCI .normalK Γ s Θ,
+          S.profile.summary.normalOut = some ⟨Θ, hleft⟩)
+
 /--
 The left side of a well-typed sequence is well typed.
 
@@ -226,17 +292,37 @@ theorem seq_tail_structural_boundary_of_entry
 
 /--
 Remaining static-profile/root obligation for extracting the left side of a
-sequence, now parameterized by the theorem-backed seq static decomposition.
+sequence.
 
-The obligation is still real: deciding the left profile requires choosing how
-to expose head-normal/head-return information from the whole profile.  The new
-premise prevents this from being an opaque projection from the whole sequence.
+The result is a chosen left static scaffold together with a compatibility
+certificate against the theorem-backed seq decomposition.  This is narrower than
+an arbitrary projection from the whole sequence: the chosen left profile must
+expose exactly the head-side channels required by the visible whole-sequence
+normal/return channels.
 -/
-axiom seq_left_static_scaffold_ci_of_decomposition
+axiom seq_left_static_scaffold_payload_ci_of_decomposition
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (D : SeqStaticDecompositionCI hentry) :
-    SeqLeftStaticScaffoldCI Γ s
+    { S : SeqLeftStaticScaffoldCI Γ s //
+      SeqLeftStaticScaffoldCompatibleCI hentry D S }
+
+/-- Compatibility projection for the chosen left static scaffold. -/
+noncomputable def seq_left_static_scaffold_ci_of_decomposition
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (D : SeqStaticDecompositionCI hentry) :
+    SeqLeftStaticScaffoldCI Γ s :=
+  (seq_left_static_scaffold_payload_ci_of_decomposition hentry D).1
+
+/-- The compatibility certificate carried by the chosen left static scaffold. -/
+theorem seq_left_static_scaffold_compatible_ci_of_decomposition
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (D : SeqStaticDecompositionCI hentry) :
+    SeqLeftStaticScaffoldCompatibleCI hentry D
+      (seq_left_static_scaffold_ci_of_decomposition hentry D) :=
+  (seq_left_static_scaffold_payload_ci_of_decomposition hentry D).2
 
 /-- Compatibility name for downstream callers. -/
 noncomputable def seq_left_static_scaffold_ci_of_entry
@@ -244,6 +330,17 @@ noncomputable def seq_left_static_scaffold_ci_of_entry
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
     SeqLeftStaticScaffoldCI Γ s :=
   seq_left_static_scaffold_ci_of_decomposition
+    hentry
+    (seq_static_decomposition_ci_of_entry hentry)
+
+/-- Compatibility certificate for the downstream-name scaffold. -/
+theorem seq_left_static_scaffold_compatible_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
+    SeqLeftStaticScaffoldCompatibleCI hentry
+      (seq_static_decomposition_ci_of_entry hentry)
+      (seq_left_static_scaffold_ci_of_entry hentry) :=
+  seq_left_static_scaffold_compatible_ci_of_decomposition
     hentry
     (seq_static_decomposition_ci_of_entry hentry)
 
