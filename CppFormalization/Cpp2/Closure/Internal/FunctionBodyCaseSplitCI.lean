@@ -397,16 +397,151 @@ structure SeqLeftProfilePayloadCI
   support : SeqLeftProfileSupportCI hentry D profile
 
 /--
-Remaining profile-selection obligation for the left side of a sequence.
-
-It chooses a left profile together with Type-level support exposing the channels
-required by the whole-sequence provenance.
+A Type-level normal slot for the extracted left profile.
 -/
-axiom seq_left_profile_payload_ci_of_decomposition
+structure SeqLeftNormalSlotCI
+    (Γ : TypeEnv) (s : CppStmt) : Type where
+  Θ : TypeEnv
+  hleft : HasTypeStmtCI .normalK Γ s Θ
+
+namespace SeqLeftNormalSlotCI
+
+def out
+    {Γ : TypeEnv} {s : CppStmt}
+    (n : SeqLeftNormalSlotCI Γ s) :
+    {Δ : TypeEnv // HasTypeStmtCI .normalK Γ s Δ} :=
+  ⟨n.Θ, n.hleft⟩
+
+end SeqLeftNormalSlotCI
+
+/--
+A Type-level return slot for the extracted left profile.
+-/
+structure SeqLeftReturnSlotCI
+    (Γ : TypeEnv) (s : CppStmt) : Type where
+  Δ : TypeEnv
+  hleft : HasTypeStmtCI .returnK Γ s Δ
+
+namespace SeqLeftReturnSlotCI
+
+def out
+    {Γ : TypeEnv} {s : CppStmt}
+    (r : SeqLeftReturnSlotCI Γ s) :
+    {Δ : TypeEnv // HasTypeStmtCI .returnK Γ s Δ} :=
+  ⟨r.Δ, r.hleft⟩
+
+end SeqLeftReturnSlotCI
+
+/--
+Slot-level profile selection for the left side of a sequence.
+
+This is narrower than selecting an arbitrary `BodyControlProfile`.  A statement
+body profile is just a normal slot and a return slot, so the real remaining
+static choice is exactly which two optional slots are selected.
+
+The support fields are Type-level, not Prop-level.  This is necessary because
+`toSupport` constructs `SeqLeftProfileSupportCI`, which lives in `Type`.
+-/
+structure SeqLeftProfileSlotPayloadCI
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (_D : SeqStaticDecompositionCI hentry) : Type where
+  normalSlot : Option (SeqLeftNormalSlotCI Γ s)
+  returnSlot : Option (SeqLeftReturnSlotCI Γ s)
+  normalFromWhole :
+    ∀ {out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.seq s t) Δ}},
+      hentry.static.profile.summary.normalOut = some out →
+      { n : SeqLeftNormalSlotCI Γ s // normalSlot = some n }
+  returnFromWhole :
+    ∀ {out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ (.seq s t) Δ}},
+      hentry.static.profile.summary.returnOut = some out →
+        Sum
+          ({ r : SeqLeftReturnSlotCI Γ s // returnSlot = some r })
+          ({ n : SeqLeftNormalSlotCI Γ s // normalSlot = some n })
+
+namespace SeqLeftProfileSlotPayloadCI
+
+/-- Convert selected slots into the actual left control profile. -/
+def toProfile
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    {hentry : BodyClosureBoundaryCI Γ σ (.seq s t)}
+    {D : SeqStaticDecompositionCI hentry}
+    (S : SeqLeftProfileSlotPayloadCI hentry D) :
+    BodyControlProfile Γ s :=
+  { summary :=
+      { normalOut := S.normalSlot.map (fun n => n.out)
+        returnOut := S.returnSlot.map (fun r => r.out) } }
+
+/--
+The Type-level support induced by the selected slots.
+
+This is the bridge from slot-level selection to the existing support interface.
+Because `normalFromWhole` and `returnFromWhole` are Type-level fields, this
+definition does not eliminate Prop into Type.
+-/
+def toSupport
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    {hentry : BodyClosureBoundaryCI Γ σ (.seq s t)}
+    {D : SeqStaticDecompositionCI hentry}
+    (S : SeqLeftProfileSlotPayloadCI hentry D) :
+    SeqLeftProfileSupportCI hentry D S.toProfile := by
+  refine
+    { normalFromWhole := ?_
+      returnFromWhole := ?_ }
+  · intro out hout
+    rcases S.normalFromWhole hout with ⟨n, hn⟩
+    exact
+      { Θ := n.Θ
+        hleft := n.hleft
+        hprofile := by
+          simp [toProfile, hn, SeqLeftNormalSlotCI.out] }
+  · intro out hout
+    cases S.returnFromWhole hout with
+    | inl hret =>
+        rcases hret with ⟨r, hr⟩
+        exact
+          Sum.inl
+            { Delta := r.Δ
+              hleft := r.hleft
+              hprofile := by
+                simp [toProfile, hr, SeqLeftReturnSlotCI.out] }
+    | inr hnorm =>
+        rcases hnorm with ⟨n, hn⟩
+        exact
+          Sum.inr
+            { Θ := n.Θ
+              hleft := n.hleft
+              hprofile := by
+                simp [toProfile, hn, SeqLeftNormalSlotCI.out] }
+
+end SeqLeftProfileSlotPayloadCI
+
+/--
+Remaining slot-selection obligation for the left side of a sequence.
+
+This is the precise remaining static debt: choose the optional left normal and
+return slots required by the whole-sequence provenance.
+-/
+axiom seq_left_profile_slots_ci_of_decomposition
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (D : SeqStaticDecompositionCI hentry) :
-    SeqLeftProfilePayloadCI hentry D
+    SeqLeftProfileSlotPayloadCI hentry D
+
+/--
+Compatibility package selecting a left profile together with Type-level support.
+
+This is now assembled from slot-level selection rather than postulating an
+arbitrary profile directly.
+-/
+noncomputable def seq_left_profile_payload_ci_of_decomposition
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (D : SeqStaticDecompositionCI hentry) :
+    SeqLeftProfilePayloadCI hentry D :=
+  let S := seq_left_profile_slots_ci_of_decomposition hentry D
+  { profile := S.toProfile
+    support := S.toSupport }
 
 /--
 Root/coherence for a chosen left profile is definitionally assembled from
