@@ -25,7 +25,11 @@ downstream compatibility, but builds them from narrower pieces:
 
 * structural data is theorem-backed from the whole sequence boundary;
 * left `typed0` is theorem-backed from the whole old typing payload;
-* left static profile/root and left adequacy remain explicitly named obligations;
+* whole-sequence normal/return profile payloads are decomposed into explicit
+  seq provenance objects;
+* left static profile/root and left adequacy remain explicitly named obligations,
+  but the left-static obligation is now parameterized by the seq static
+  decomposition certificate;
 * tail static and tail adequacy are packaged together behind the actual
   left-normal route, because the tail environment is path-sensitive and must not
   be projected from the whole sequence return channel.
@@ -86,6 +90,92 @@ structure SeqTailStaticAdequacyCI
   adequacy : BodyAdequacyCI Θ σ1 t static.profile
 
 /--
+Normal channel provenance for a whole sequence payload.
+
+This must live in `Prop`, not `Type`, because it is obtained by eliminating
+a `HasTypeStmtCI` proof, and `HasTypeStmtCI` itself is a `Prop`.
+-/
+inductive SeqNormalSourceCI
+    {Γ : TypeEnv} {s t : CppStmt}
+    (out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.seq s t) Δ}) : Prop where
+  | normal
+      {Θ Δ : TypeEnv}
+      (hleft : HasTypeStmtCI .normalK Γ s Θ)
+      (htail : HasTypeStmtCI .normalK Θ t Δ)
+      (hout : out = ⟨Δ, HasTypeStmtCI.seq_normal hleft htail⟩) :
+      SeqNormalSourceCI out
+
+/--
+Return channel provenance for a whole sequence payload.
+
+A sequence can return either because the left side returns, or because
+the left side is normal and the tail returns.
+-/
+inductive SeqReturnSourceCI
+    {Γ : TypeEnv} {s t : CppStmt}
+    (out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ (.seq s t) Δ}) : Prop where
+  | leftReturn
+      {Δ : TypeEnv}
+      (hleft : HasTypeStmtCI .returnK Γ s Δ)
+      (hout : out = ⟨Δ, HasTypeStmtCI.seq_return hleft⟩) :
+      SeqReturnSourceCI out
+  | tailReturn
+      {Θ Δ : TypeEnv}
+      (hleft : HasTypeStmtCI .normalK Γ s Θ)
+      (htail : HasTypeStmtCI .returnK Θ t Δ)
+      (hout : out = ⟨Δ, HasTypeStmtCI.seq_normal hleft htail⟩) :
+      SeqReturnSourceCI out
+
+theorem seq_normal_source_ci_of_out
+    {Γ : TypeEnv} {s t : CppStmt}
+    (out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.seq s t) Δ}) :
+    SeqNormalSourceCI out := by
+  rcases out with ⟨Δ, hty⟩
+  cases hty with
+  | seq_normal hleft htail =>
+      exact SeqNormalSourceCI.normal hleft htail rfl
+
+theorem seq_return_source_ci_of_out
+    {Γ : TypeEnv} {s t : CppStmt}
+    (out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ (.seq s t) Δ}) :
+    SeqReturnSourceCI out := by
+  rcases out with ⟨Δ, hty⟩
+  cases hty with
+  | seq_normal hleft htail =>
+      exact SeqReturnSourceCI.tailReturn hleft htail rfl
+  | seq_return hleft =>
+      exact SeqReturnSourceCI.leftReturn hleft rfl
+
+/--
+Provenance certificate for the static channels of a whole sequence boundary.
+
+This is a proposition, not data.  It records that every visible whole-sequence
+channel has the expected seq provenance.
+-/
+structure SeqStaticDecompositionCI
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) : Prop where
+  normal :
+    ∀ {out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.seq s t) Δ}},
+      hentry.static.profile.summary.normalOut = some out →
+      SeqNormalSourceCI out
+  returned :
+    ∀ {out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ (.seq s t) Δ}},
+      hentry.static.profile.summary.returnOut = some out →
+      SeqReturnSourceCI out
+
+theorem seq_static_decomposition_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
+    SeqStaticDecompositionCI hentry := by
+  refine
+    { normal := ?_
+      returned := ?_ }
+  · intro out _hout
+    exact seq_normal_source_ci_of_out out
+  · intro out _hout
+    exact seq_return_source_ci_of_out out
+/--
 The left side of a well-typed sequence is well typed.
 
 This is deliberately proved from the coarse `typed0` payload of the whole
@@ -136,15 +226,26 @@ theorem seq_tail_structural_boundary_of_entry
 
 /--
 Remaining static-profile/root obligation for extracting the left side of a
-sequence.
+sequence, now parameterized by the theorem-backed seq static decomposition.
 
-This is narrower than the old closure-scaffold axiom: structural data and
-`typed0` are no longer part of the obligation.
+The obligation is still real: deciding the left profile requires choosing how
+to expose head-normal/head-return information from the whole profile.  The new
+premise prevents this from being an opaque projection from the whole sequence.
 -/
-axiom seq_left_static_scaffold_ci_of_entry
+axiom seq_left_static_scaffold_ci_of_decomposition
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (D : SeqStaticDecompositionCI hentry) :
+    SeqLeftStaticScaffoldCI Γ s
+
+/-- Compatibility name for downstream callers. -/
+noncomputable def seq_left_static_scaffold_ci_of_entry
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
-    SeqLeftStaticScaffoldCI Γ s
+    SeqLeftStaticScaffoldCI Γ s :=
+  seq_left_static_scaffold_ci_of_decomposition
+    hentry
+    (seq_static_decomposition_ci_of_entry hentry)
 
 /--
 Remaining semantic adequacy obligation for the extracted left boundary.
