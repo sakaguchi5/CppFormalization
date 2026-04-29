@@ -2231,6 +2231,73 @@ def toExists
 end IteBranchReturnRuntimeDecisionCI
 
 /--
+Slot-aware runtime decision for an actual branch-normal execution.
+
+The decision records that the runtime normal typing witness is exactly the
+selected normal slot of the branch profile payload, not merely that the induced
+profile contains an equal normal output.
+-/
+structure IteBranchNormalSlotRuntimeDecisionCI
+    (Γ : TypeEnv) (σ : State) (st : CppStmt)
+    (S : IteBranchProfileSlotPayloadCI Γ st)
+    {σ' : State}
+    (_hstep : BigStepStmt σ st .normal σ') : Type where
+  Delta : TypeEnv
+  hty : HasTypeStmtCI .normalK Γ st Delta
+  hslot : S.normalSlot = some ⟨Delta, hty⟩
+
+namespace IteBranchNormalSlotRuntimeDecisionCI
+
+/-- Forget the slot-aware runtime decision to the profile-level decision. -/
+def toRuntimeDecision
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {S : IteBranchProfileSlotPayloadCI Γ st}
+    {σ' : State}
+    {hstep : BigStepStmt σ st .normal σ'}
+    (d : IteBranchNormalSlotRuntimeDecisionCI Γ σ st S hstep) :
+    IteBranchNormalRuntimeDecisionCI Γ σ st S.toProfile hstep :=
+  { Delta := d.Delta
+    hty := d.hty
+    hprofile := by
+      simp [IteBranchProfileSlotPayloadCI.toProfile, d.hslot,
+        IteBranchNormalSlotCI.out] }
+
+end IteBranchNormalSlotRuntimeDecisionCI
+
+/--
+Slot-aware runtime decision for an actual branch-return execution.
+
+The decision records that the runtime return typing witness is exactly the
+selected return slot of the branch profile payload.
+-/
+structure IteBranchReturnSlotRuntimeDecisionCI
+    (Γ : TypeEnv) (σ : State) (st : CppStmt)
+    (S : IteBranchProfileSlotPayloadCI Γ st)
+    {rv : Option Value} {σ' : State}
+    (_hstep : BigStepStmt σ st (.returnResult rv) σ') : Type where
+  Delta : TypeEnv
+  hty : HasTypeStmtCI .returnK Γ st Delta
+  hslot : S.returnSlot = some ⟨Delta, hty⟩
+
+namespace IteBranchReturnSlotRuntimeDecisionCI
+
+/-- Forget the slot-aware runtime decision to the profile-level decision. -/
+def toRuntimeDecision
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {S : IteBranchProfileSlotPayloadCI Γ st}
+    {rv : Option Value} {σ' : State}
+    {hstep : BigStepStmt σ st (.returnResult rv) σ'}
+    (d : IteBranchReturnSlotRuntimeDecisionCI Γ σ st S hstep) :
+    IteBranchReturnRuntimeDecisionCI Γ σ st S.toProfile hstep :=
+  { Delta := d.Delta
+    hty := d.hty
+    hprofile := by
+      simp [IteBranchProfileSlotPayloadCI.toProfile, d.hslot,
+        IteBranchReturnSlotCI.out] }
+
+end IteBranchReturnSlotRuntimeDecisionCI
+
+/--
 Runtime-decision adequacy support for one `ite` branch.
 
 This keeps the branch adequacy obligation aligned with the selected branch
@@ -2266,22 +2333,78 @@ def toBodyAdequacyCI
 end IteBranchAdequacySupportCI
 
 /--
-Remaining then-branch runtime-decision adequacy obligation, relative to the
-assembled branch static boundary.
+Slot-aware runtime-decision adequacy support for one `ite` branch.
+
+This is the canonical branch adequacy obligation: actual normal/return branch
+executions must use the selected normal/return slots of the branch profile
+payload.
 -/
-axiom ite_then_adequacy_support_ci_of_entry
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    IteBranchAdequacySupportCI Γ σ s (ite_then_static_ci_of_entry hentry).profile
+structure IteBranchSlotAdequacySupportCI
+    (Γ : TypeEnv) (σ : State) (st : CppStmt)
+    (S : IteBranchProfileSlotPayloadCI Γ st) : Type where
+  normalDecision :
+    ∀ {σ' : State}
+      (hstep : BigStepStmt σ st .normal σ'),
+      IteBranchNormalSlotRuntimeDecisionCI Γ σ st S hstep
+  returnDecision :
+    ∀ {rv : Option Value} {σ' : State}
+      (hstep : BigStepStmt σ st (.returnResult rv) σ'),
+      IteBranchReturnSlotRuntimeDecisionCI Γ σ st S hstep
+
+namespace IteBranchSlotAdequacySupportCI
+
+/-- Forget slot-aware adequacy support to profile-level adequacy support. -/
+def toAdequacySupport
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {S : IteBranchProfileSlotPayloadCI Γ st}
+    (A : IteBranchSlotAdequacySupportCI Γ σ st S) :
+    IteBranchAdequacySupportCI Γ σ st S.toProfile :=
+  { normalDecision := by
+      intro σ' hstep
+      exact (A.normalDecision hstep).toRuntimeDecision
+    returnDecision := by
+      intro rv σ' hstep
+      exact (A.returnDecision hstep).toRuntimeDecision }
+
+end IteBranchSlotAdequacySupportCI
 
 /--
-Remaining else-branch runtime-decision adequacy obligation, relative to the
-assembled branch static boundary.
+Remaining then-branch slot-aware runtime-decision adequacy obligation.
 -/
-axiom ite_else_adequacy_support_ci_of_entry
+axiom ite_then_slot_adequacy_support_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    IteBranchAdequacySupportCI Γ σ t (ite_else_static_ci_of_entry hentry).profile
+    IteBranchSlotAdequacySupportCI Γ σ s
+      (ite_then_profile_slot_payload_ci_of_entry hentry).branch
+
+/--
+Remaining else-branch slot-aware runtime-decision adequacy obligation.
+-/
+axiom ite_else_slot_adequacy_support_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    IteBranchSlotAdequacySupportCI Γ σ t
+      (ite_else_profile_slot_payload_ci_of_entry hentry).branch
+
+/-- Compatibility profile-level adequacy support for the then branch. -/
+noncomputable def ite_then_adequacy_support_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    IteBranchAdequacySupportCI Γ σ s (ite_then_static_ci_of_entry hentry).profile := by
+  simpa [ite_then_static_ci_of_entry, IteBranchStaticScaffoldCI.toBodyStaticBoundaryCI,
+    IteBranchStaticScaffoldCI.profile, ite_then_static_scaffold_ci_of_entry,
+    ite_then_profile_payload_ci_of_entry, IteBranchProfilePayloadCI.ofSlotPayload]
+    using (ite_then_slot_adequacy_support_ci_of_entry hentry).toAdequacySupport
+
+/-- Compatibility profile-level adequacy support for the else branch. -/
+noncomputable def ite_else_adequacy_support_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    IteBranchAdequacySupportCI Γ σ t (ite_else_static_ci_of_entry hentry).profile := by
+  simpa [ite_else_static_ci_of_entry, IteBranchStaticScaffoldCI.toBodyStaticBoundaryCI,
+    IteBranchStaticScaffoldCI.profile, ite_else_static_scaffold_ci_of_entry,
+    ite_else_profile_payload_ci_of_entry, IteBranchProfilePayloadCI.ofSlotPayload]
+    using (ite_else_slot_adequacy_support_ci_of_entry hentry).toAdequacySupport
 
 /-- Compatibility adequacy wrapper for the then branch. -/
 noncomputable def ite_then_adequacy_ci_of_entry
@@ -2296,7 +2419,8 @@ noncomputable def ite_else_adequacy_ci_of_entry
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
     BodyAdequacyCI Γ σ t (ite_else_static_ci_of_entry hentry).profile :=
   (ite_else_adequacy_support_ci_of_entry hentry).toBodyAdequacyCI
-/-
+
+/--
 Static+adequacy package for one branch of an `ite`.
 
 Compatibility package assembled from the separated static scaffold and adequacy
