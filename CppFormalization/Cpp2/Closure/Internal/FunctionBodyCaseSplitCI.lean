@@ -512,16 +512,78 @@ theorem seq_left_static_scaffold_compatible_ci_of_entry
     (seq_static_decomposition_ci_of_entry hentry)
 
 /--
-Remaining semantic adequacy obligation for the extracted left boundary.
+Normal-channel adequacy obligation for the extracted left boundary.
 
-Kept separate from static extraction: adequacy relates actual executions to the
-chosen static profile, so it should not be hidden inside a static scaffold.
+This is separated from return-channel adequacy because the two channels have
+very different provenance for sequencing.  In particular, a whole-sequence
+return can originate in the left side or in the tail after a left-normal step.
 -/
-axiom seq_left_adequacy_ci_of_entry
+structure SeqLeftNormalAdequacyCI
+    (Γ : TypeEnv) (σ : State) (s : CppStmt)
+    (P : BodyControlProfile Γ s) : Type where
+  normalSound :
+    ∀ {σ' : State} (_hstep : BigStepStmt σ s .normal σ'),
+      ∃ out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ s Δ},
+        P.summary.normalOut = some out
+
+/--
+Return-channel adequacy obligation for the extracted left boundary.
+
+This cannot be obtained merely from whole-sequence return adequacy unless the
+whole profile records enough path-sensitive provenance to distinguish a
+left-return execution from a tail-return typing.  So it remains an explicit
+semantic obligation, but no longer hidden inside one undifferentiated adequacy
+axiom.
+-/
+structure SeqLeftReturnAdequacyCI
+    (Γ : TypeEnv) (σ : State) (s : CppStmt)
+    (P : BodyControlProfile Γ s) : Type where
+  returnSound :
+    ∀ {rv : Option Value} {σ' : State}
+      (_hstep : BigStepStmt σ s (.returnResult rv) σ'),
+      ∃ out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ s Δ},
+        P.summary.returnOut = some out
+
+/-- Type-level package for the two semantic adequacy channels of the left side. -/
+structure SeqLeftAdequacySupportCI
+    (Γ : TypeEnv) (σ : State) (s : CppStmt)
+    (P : BodyControlProfile Γ s) : Type where
+  normal : SeqLeftNormalAdequacyCI Γ σ s P
+  returned : SeqLeftReturnAdequacyCI Γ σ s P
+
+namespace SeqLeftAdequacySupportCI
+
+/-- Forget the channel-split support to the ordinary `BodyAdequacyCI`. -/
+def toBodyAdequacyCI
+    {Γ : TypeEnv} {σ : State} {s : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (A : SeqLeftAdequacySupportCI Γ σ s P) :
+    BodyAdequacyCI Γ σ s P :=
+  { normalSound := A.normal.normalSound
+    returnSound := A.returned.returnSound }
+
+end SeqLeftAdequacySupportCI
+
+/--
+Remaining semantic adequacy support for the extracted left boundary.
+
+The obligation is now channel-split.  This is intentionally still separate from
+static extraction: adequacy relates actual executions to the chosen static
+profile, so it should not be hidden inside a static scaffold.
+-/
+axiom seq_left_adequacy_support_ci_of_entry
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (hstatic : BodyStaticBoundaryCI Γ s) :
-    BodyAdequacyCI Γ σ s hstatic.profile
+    SeqLeftAdequacySupportCI Γ σ s hstatic.profile
+
+/-- Compatibility name for downstream callers. -/
+def seq_left_adequacy_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (hstatic : BodyStaticBoundaryCI Γ s) :
+    BodyAdequacyCI Γ σ s hstatic.profile :=
+  (seq_left_adequacy_support_ci_of_entry hentry hstatic).toBodyAdequacyCI
 
 /-- Left static boundary assembled from theorem-backed `typed0` and the static scaffold. -/
 noncomputable def seq_left_static_boundary_ci_of_entry
