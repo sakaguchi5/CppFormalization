@@ -1567,30 +1567,185 @@ theorem seq_function_body_closure_boundary_ci_honest
             mkWhileReentry hentry route
         tailClosure route htailBoundary)
 
-/--
-Branch closure boundaries extracted from an `ite` entry boundary.
+/-!
+## Ite branch boundary extraction
 
-This is now the only remaining `ite` boundary obligation in this file. It does
-not assert progress for the whole `ite`; it only says that the already-ready
-whole conditional exposes closure boundaries for both branches at the same entry
-state. Condition evaluation and result assembly are theorem-backed below.
+Unlike `seq`, `ite` does not enter a tail through a post-state/post-environment
+computed by the head statement.  Both branches are entered from the original
+state and environment.  Therefore structural and dynamic branch boundaries are
+theorem-backed projections from the whole `ite` boundary; the remaining debt is
+branch static and branch adequacy.
+-/
+
+/-- Condition readiness extracted from a concrete `ite` readiness package. -/
+theorem ite_ready_cond
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt} :
+    StmtReadyConcrete Γ σ (.ite c s t) →
+    ExprReadyConcrete Γ σ c (.base .bool) := by
+  intro h
+  cases h with
+  | ite _ hcond _ _ =>
+      exact hcond
+
+/-- Then-branch readiness extracted from a concrete `ite` readiness package. -/
+theorem ite_ready_then
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt} :
+    StmtReadyConcrete Γ σ (.ite c s t) →
+    StmtReadyConcrete Γ σ s := by
+  intro h
+  cases h with
+  | ite _ _ hthen _ =>
+      exact hthen
+
+/-- Else-branch readiness extracted from a concrete `ite` readiness package. -/
+theorem ite_ready_else
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt} :
+    StmtReadyConcrete Γ σ (.ite c s t) →
+    StmtReadyConcrete Γ σ t := by
+  intro h
+  cases h with
+  | ite _ _ _ helse =>
+      exact helse
+
+/--
+Then-branch structural boundary projected from the whole `ite` boundary.
+
+This is theorem-backed because `WellFormedStmt`, `BreakWellScoped`, and
+`ContinueWellScoped` all decompose structurally over `ite`.
+-/
+theorem ite_then_structural_boundary_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    BodyStructuralBoundary Γ s := by
+  have hwf : WellFormedValue c ∧ WellFormedStmt s ∧ WellFormedStmt t := by
+    simpa [WellFormedStmt] using hentry.structural.wf
+  have hbreak : BreakWellScoped s ∧ BreakWellScoped t := by
+    simpa [BreakWellScoped] using hentry.structural.breakScoped
+  have hcont : ContinueWellScoped s ∧ ContinueWellScoped t := by
+    simpa [ContinueWellScoped] using hentry.structural.continueScoped
+  exact
+    { wf := hwf.2.1
+      breakScoped := hbreak.1
+      continueScoped := hcont.1 }
+
+/--
+Else-branch structural boundary projected from the whole `ite` boundary.
+
+This is theorem-backed because `WellFormedStmt`, `BreakWellScoped`, and
+`ContinueWellScoped` all decompose structurally over `ite`.
+-/
+theorem ite_else_structural_boundary_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    BodyStructuralBoundary Γ t := by
+  have hwf : WellFormedValue c ∧ WellFormedStmt s ∧ WellFormedStmt t := by
+    simpa [WellFormedStmt] using hentry.structural.wf
+  have hbreak : BreakWellScoped s ∧ BreakWellScoped t := by
+    simpa [BreakWellScoped] using hentry.structural.breakScoped
+  have hcont : ContinueWellScoped s ∧ ContinueWellScoped t := by
+    simpa [ContinueWellScoped] using hentry.structural.continueScoped
+  exact
+    { wf := hwf.2.2
+      breakScoped := hbreak.2
+      continueScoped := hcont.2 }
+
+/--
+Dynamic boundary for the then branch of an `ite`.
+
+The branch starts in the same state as the whole `ite`; the branch readiness is
+a direct projection of `StmtReadyConcrete.ite`.
+-/
+def ite_then_dynamic_boundary_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    BodyDynamicBoundary Γ σ s :=
+  { state := hentry.dynamic.state
+    safe := ite_ready_then hentry.dynamic.safe }
+
+/--
+Dynamic boundary for the else branch of an `ite`.
+
+The branch starts in the same state as the whole `ite`; the branch readiness is
+a direct projection of `StmtReadyConcrete.ite`.
+-/
+def ite_else_dynamic_boundary_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    BodyDynamicBoundary Γ σ t :=
+  { state := hentry.dynamic.state
+    safe := ite_ready_else hentry.dynamic.safe }
+
+/--
+Static+adequacy package for one branch of an `ite`.
+
+The structural and dynamic components are intentionally absent: both are
+projected by theorem from the whole `ite` boundary.  The remaining debt is the
+branch static package and its adequacy.
+-/
+structure IteBranchStaticAdequacyCI
+    (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
+  static : BodyStaticBoundaryCI Γ st
+  adequacy : BodyAdequacyCI Γ σ st static.profile
+
+/--
+Remaining then-branch static+adequacy obligation.
+
+This is narrower than the old branch-boundary axiom: it no longer owns either
+the branch structural boundary or the branch dynamic boundary.
+-/
+axiom ite_then_static_adequacy_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    IteBranchStaticAdequacyCI Γ σ s
+
+/--
+Remaining else-branch static+adequacy obligation.
+
+This is narrower than the old branch-boundary axiom: it no longer owns either
+the branch structural boundary or the branch dynamic boundary.
+-/
+axiom ite_else_static_adequacy_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    IteBranchStaticAdequacyCI Γ σ t
+
+/--
+Branch closure boundaries for an `ite`.
+
+Compatibility package assembled from theorem-backed structural/dynamic
+projections and the remaining static+adequacy branch obligations.
 -/
 structure IteBranchClosureBoundariesCI
-    (Γ : TypeEnv) (σ : State) (c : ValExpr) (s t : CppStmt) : Type where
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) : Type where
   thenBoundary : BodyClosureBoundaryCI Γ σ s
   elseBoundary : BodyClosureBoundaryCI Γ σ t
 
 /--
-Remaining branch-boundary extraction obligation for `ite`.
+Compatibility constructor for old callers.
 
-C++-semantically, this is the static/dynamic/adequacy projection from the whole
-conditional to its two branches. It is deliberately narrower than the old
-whole-result shell axiom.
+The real remaining obligations are now the two static+adequacy branch packages;
+the structural and dynamic pieces are theorem-backed.
 -/
-axiom ite_branch_closure_boundaries_ci_of_entry
+noncomputable def ite_branch_closure_boundaries_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    IteBranchClosureBoundariesCI Γ σ c s t
+    IteBranchClosureBoundariesCI hentry := by
+  let hthen := ite_then_static_adequacy_ci_of_entry hentry
+  let helse := ite_else_static_adequacy_ci_of_entry hentry
+  exact
+    { thenBoundary :=
+        mkBodyClosureBoundaryCI
+          (ite_then_structural_boundary_of_entry hentry)
+          hthen.static
+          (ite_then_dynamic_boundary_of_entry hentry)
+          hthen.adequacy
+      elseBoundary :=
+        mkBodyClosureBoundaryCI
+          (ite_else_structural_boundary_of_entry hentry)
+          helse.static
+          (ite_else_dynamic_boundary_of_entry hentry)
+          helse.adequacy }
 
 /-- Extract condition readiness from a concrete-ready `ite`. -/
 theorem ite_condition_ready_of_entry
