@@ -23,6 +23,8 @@ constructor-level case-driver body.
   * current-entry typing は theorem-backed;
   * loop-body local boundary と tail-boundary reconstruction は
     残る genuine obligations として分離される。
+- `seq` branch は route-aware な
+  `seq_function_body_closure_boundary_ci_honest` を正規 surface として使う。
 -/
 
 /-- canonical result shape, re-exported for readability at the driver level. -/
@@ -76,7 +78,7 @@ theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body
       simpa [CoreBigStepFragment, InBigStepFragment] using hfrag
     rcases hfragST with ⟨hfragS, hfragT⟩
     exact
-      seq_function_body_closure_boundary_ci_honest_route
+      seq_function_body_closure_boundary_ci_honest
         mkWhileReentry
         hentry
         (fun hleftBoundary =>

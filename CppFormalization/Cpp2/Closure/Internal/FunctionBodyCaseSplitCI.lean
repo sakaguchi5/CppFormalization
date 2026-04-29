@@ -1488,10 +1488,11 @@ noncomputable def seq_tail_closure_boundary_ci_of_head_normal_route
       safe := hreadyRight }
   exact mkBodyClosureBoundaryCI hs.structural hs.static hd hs.adequacy
 
+
 /--
 Compatibility name for tail closure after an actual left-normal execution.
 
-This no longer accepts an arbitrary normal typing witness.  It obtains the
+This no longer accepts an arbitrary normal typing witness. It obtains the
 selected head-normal route from the entry boundary and the actual left-normal
 execution, then delegates to the route-aware boundary constructor.
 -/
@@ -1535,7 +1536,7 @@ The tail is invoked only with the selected head-normal route supplied by the
 left adequacy support.  This avoids treating an arbitrary normal witness as a
 valid tail continuation route.
 -/
-theorem seq_function_body_closure_boundary_ci_honest_route
+theorem seq_function_body_closure_boundary_ci_honest
     (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
@@ -1569,7 +1570,7 @@ actual head-normal execution, and it needs the corresponding normal CI witness.
 That witness is now supplied by `seq_left_normalWitness_of_entry`, which follows
 from left-boundary adequacy.
 -/
-theorem seq_function_body_closure_boundary_ci_honest
+theorem seq_function_body_closure_boundary_ci_honest_with_tail_boundary
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (leftClosure :
@@ -1627,7 +1628,7 @@ theorem seq_function_body_closure_ci_honest
         FunctionBodyClosureResult σ1 t) :
     FunctionBodyClosureResult σ (.seq s t) := by
   exact
-    seq_function_body_closure_boundary_ci_honest
+    seq_function_body_closure_boundary_ci_honest_with_tail_boundary
       hentry.toClosureBoundary
       (fun hleftBoundary => leftClosure hleftBoundary.toBodyReadyCI)
       (fun hty hstep => (tailBoundary hty hstep).toClosureBoundary)

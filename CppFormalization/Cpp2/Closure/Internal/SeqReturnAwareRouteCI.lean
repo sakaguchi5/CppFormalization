@@ -12,7 +12,11 @@ The `normalWitness` callback introduced earlier is now theorem-backed by
 `seq_left_normalWitness_of_entry` in `FunctionBodyCaseSplitCI`.
 
 This file keeps the old explicit-provider route for compatibility and exposes
-the theorem-backed wrapper below.
+the theorem-backed wrapper below.  The canonical route-aware seq closure surface
+in `FunctionBodyCaseSplitCI` is now
+`seq_function_body_closure_boundary_ci_honest`; the explicit-tail-boundary
+compatibility surface used here is
+`seq_function_body_closure_boundary_ci_honest_with_tail_boundary`.
 -/
 
 /--
@@ -59,9 +63,9 @@ theorem seq_function_body_closure_boundary_ci_return_aware_with_normalWitness
 /--
 Theorem-backed return-aware seq closure.
 
-This is the intended replacement surface: the normal witness provider is no
-longer a callback.  It is obtained from the left-boundary adequacy via
-`seq_left_normalWitness_of_entry`.
+This is the intended explicit-tail-boundary compatibility surface: the normal
+witness provider is no longer a callback.  It is obtained from the left-boundary
+adequacy via `seq_left_normalWitness_of_entry`.
 -/
 theorem seq_function_body_closure_boundary_ci_return_aware
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
@@ -82,7 +86,7 @@ theorem seq_function_body_closure_boundary_ci_return_aware
         FunctionBodyClosureResult σ1 t) :
     FunctionBodyClosureResult σ (.seq s t) := by
   exact
-    seq_function_body_closure_boundary_ci_honest
+    seq_function_body_closure_boundary_ci_honest_with_tail_boundary
       hentry leftClosure tailBoundary tailClosure
 
 /--
