@@ -8,6 +8,7 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Internal.HeadTailReturnAwareRoutesCI
 import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.StmtControlPreservation
+import CppFormalization.Cpp2.Closure.Foundation.ReadinessSemanticsBridge
 import CppFormalization.Cpp2.Semantics.Divergence
 
 namespace Cpp
@@ -1566,7 +1567,85 @@ theorem seq_function_body_closure_boundary_ci_honest
             mkWhileReentry hentry route
         tailClosure route htailBoundary)
 
-axiom ite_function_body_closure_boundary_ci_honest
+/--
+Branch closure boundaries extracted from an `ite` entry boundary.
+
+This is now the only remaining `ite` boundary obligation in this file. It does
+not assert progress for the whole `ite`; it only says that the already-ready
+whole conditional exposes closure boundaries for both branches at the same entry
+state. Condition evaluation and result assembly are theorem-backed below.
+-/
+structure IteBranchClosureBoundariesCI
+    (Γ : TypeEnv) (σ : State) (c : ValExpr) (s t : CppStmt) : Type where
+  thenBoundary : BodyClosureBoundaryCI Γ σ s
+  elseBoundary : BodyClosureBoundaryCI Γ σ t
+
+/--
+Remaining branch-boundary extraction obligation for `ite`.
+
+C++-semantically, this is the static/dynamic/adequacy projection from the whole
+conditional to its two branches. It is deliberately narrower than the old
+whole-result shell axiom.
+-/
+axiom ite_branch_closure_boundaries_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    IteBranchClosureBoundariesCI Γ σ c s t
+
+/-- Extract condition readiness from a concrete-ready `ite`. -/
+theorem ite_condition_ready_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    ExprReadyConcrete Γ σ c (.base .bool) := by
+  cases hentry.dynamic.safe with
+  | ite _ hcond _ _ =>
+      exact hcond
+
+/-- Operational result assembly for the true branch of an `ite`. -/
+theorem ite_function_body_result_true
+    {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hcond : BigStepValue σ c (.bool true))
+    (hthen : FunctionBodyClosureResult σ s) :
+    FunctionBodyClosureResult σ (.ite c s t) := by
+  rcases hthen with hthenTerm | hthenDiv
+  · rcases hthenTerm with ⟨ex, σ', hbody⟩
+    cases hbody with
+    | fallthrough hstep =>
+        exact Or.inl ⟨.fellThrough, σ', BigStepFunctionBody.fallthrough
+          (BigStepStmt.iteTrue hcond hstep)⟩
+    | returning hstep =>
+        rename_i rv
+        exact Or.inl ⟨.returned rv, σ', BigStepFunctionBody.returning
+          (BigStepStmt.iteTrue hcond hstep)⟩
+  · exact Or.inr (BigStepStmtDiv.iteTrue hcond hthenDiv)
+
+/-- Operational result assembly for the false branch of an `ite`. -/
+theorem ite_function_body_result_false
+    {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hcond : BigStepValue σ c (.bool false))
+    (helse : FunctionBodyClosureResult σ t) :
+    FunctionBodyClosureResult σ (.ite c s t) := by
+  rcases helse with helseTerm | helseDiv
+  · rcases helseTerm with ⟨ex, σ', hbody⟩
+    cases hbody with
+    | fallthrough hstep =>
+        exact Or.inl ⟨.fellThrough, σ', BigStepFunctionBody.fallthrough
+          (BigStepStmt.iteFalse hcond hstep)⟩
+    | returning hstep =>
+        rename_i rv
+        exact Or.inl ⟨.returned rv, σ', BigStepFunctionBody.returning
+          (BigStepStmt.iteFalse hcond hstep)⟩
+  · exact Or.inr (BigStepStmtDiv.iteFalse hcond helseDiv)
+
+/--
+Theorem-backed `ite` closure shell.
+
+The only abstract input is branch-boundary extraction. Once the condition is
+ready, expression readiness supplies a boolean evaluation; the corresponding
+branch closure is then lifted to the whole conditional by the operational
+assembly lemmas above.
+-/
+theorem ite_function_body_closure_boundary_ci_honest
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t))
     (thenClosure :
@@ -1575,7 +1654,23 @@ axiom ite_function_body_closure_boundary_ci_honest
     (elseClosure :
       BodyClosureBoundaryCI Γ σ t →
       FunctionBodyClosureResult σ t) :
-    FunctionBodyClosureResult σ (.ite c s t)
+    FunctionBodyClosureResult σ (.ite c s t) := by
+  let hb := ite_branch_closure_boundaries_ci_of_entry hentry
+  have hcondReady : ExprReadyConcrete Γ σ c (.base .bool) :=
+    ite_condition_ready_of_entry hentry
+  rcases expr_ready_to_bigstep hcondReady with ⟨v, hcondEval⟩
+  have hcompat : ValueCompat v (.base .bool) :=
+    expr_ready_eval_compat hcondReady hcondEval
+  cases hcompat with
+  | bool =>
+      rename_i b
+      cases b with
+      | false =>
+          exact ite_function_body_result_false hcondEval
+            (elseClosure hb.elseBoundary)
+      | true =>
+          exact ite_function_body_result_true hcondEval
+            (thenClosure hb.thenBoundary)
 
 /--
 Route-aware `BodyReadyCI` wrapper for sequence closure.
