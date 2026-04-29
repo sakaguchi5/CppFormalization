@@ -20,8 +20,12 @@ abbrev FunctionBodyClosureResult (σ : State) (st : CppStmt) : Prop :=
 
 The old `seq_left_closure_scaffold_ci_of_entry` and
 `seq_tail_closure_scaffold_ci_of_left_normal` axioms hid several different
-responsibilities in one package. This file keeps the public scaffold names for
-downstream compatibility, but builds them from narrower pieces:
+responsibilities in one package. The canonical sequence closure surfaces in
+this file are now route-aware: the tail is entered through the selected
+`SeqHeadNormalRouteCI`, not through an arbitrary bare normal typing witness.
+Legacy explicit-tail-boundary surfaces are isolated under `SeqLegacy`.
+
+The scaffold pieces are built from narrower pieces:
 
 * structural data is theorem-backed from the whole sequence boundary;
 * left `typed0` is theorem-backed from the whole old typing payload;
@@ -1562,13 +1566,15 @@ theorem seq_function_body_closure_boundary_ci_honest
             mkWhileReentry hentry route
         tailClosure route htailBoundary)
 
-/--
-Return-aware theorem version of the old seq shell.
+namespace SeqLegacy
 
-The old axiom hid the central issue: tail closure may only be invoked after an
-actual head-normal execution, and it needs the corresponding normal CI witness.
-That witness is now supplied by `seq_left_normalWitness_of_entry`, which follows
-from left-boundary adequacy.
+/--
+Legacy explicit-tail-boundary version of the old seq shell.
+
+This adapter is intentionally not the canonical sequence closure surface. It
+keeps the old arbitrary-`Δ` callback shape only for migration; new code should
+use `seq_function_body_closure_boundary_ci_honest`, whose tail callback receives
+the selected `SeqHeadNormalRouteCI`.
 -/
 theorem seq_function_body_closure_boundary_ci_honest_with_tail_boundary
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
@@ -1597,6 +1603,8 @@ theorem seq_function_body_closure_boundary_ci_honest_with_tail_boundary
         match seq_left_normalWitness_of_entry hentry hstep with
         | ⟨Δ, htyLeft⟩ =>
             tailClosure htyLeft hstep (tailBoundary htyLeft hstep))
+
+end SeqLegacy
 
 axiom ite_function_body_closure_boundary_ci_honest
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
@@ -1638,9 +1646,11 @@ theorem seq_function_body_closure_ci_honest
       (fun route htailBoundary =>
         tailClosure route htailBoundary.toBodyReadyCI)
 
+namespace SeqLegacy
+
 /--
-Compatibility ready-level surface for older callers that still provide an
-explicit tail boundary at a bare normal witness.
+Legacy ready-level surface for older callers that still provide an explicit
+tail boundary at a bare normal witness.
 
 This is not the canonical surface.  It is retained only for downstream code that
 has not yet moved to the selected-route callback shape.
@@ -1670,6 +1680,8 @@ theorem seq_function_body_closure_ci_honest_with_tail_boundary
       (fun hty hstep => (tailBoundary hty hstep).toClosureBoundary)
       (fun hty hstep htailBoundary =>
         tailClosure hty hstep htailBoundary.toBodyReadyCI)
+
+end SeqLegacy
 
 theorem ite_function_body_closure_ci_honest
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}

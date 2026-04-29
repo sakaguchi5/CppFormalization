@@ -11,21 +11,19 @@ Live return-aware route for statement sequencing.
 The `normalWitness` callback introduced earlier is now theorem-backed by
 `seq_left_normalWitness_of_entry` in `FunctionBodyCaseSplitCI`.
 
-This file keeps the old explicit-provider route for compatibility and exposes
-the theorem-backed wrapper below.  The canonical route-aware seq closure surface
-in `FunctionBodyCaseSplitCI` is now
-`seq_function_body_closure_boundary_ci_honest`; the explicit-tail-boundary
-compatibility surface used here is
-`seq_function_body_closure_boundary_ci_honest_with_tail_boundary`.
+This file exposes route-aware theorem-backed wrappers as its canonical public
+surface. Explicit-provider and explicit-tail-boundary compatibility adapters
+are isolated under `SeqLegacy`; new code should not call them directly.
 -/
 
-/--
-Return-aware seq closure from existing seq boundary pieces plus an explicit
-normal witness provider.
+namespace SeqLegacy
 
-Compatibility theorem.  Prefer
-`seq_function_body_closure_boundary_ci_return_aware` below when working from a
-`BodyClosureBoundaryCI`.
+/--
+Legacy return-aware seq closure from existing seq boundary pieces plus an
+explicit normal witness provider.
+
+Prefer `seq_function_body_closure_boundary_ci_return_aware` below when working
+from a `BodyClosureBoundaryCI`.
 -/
 theorem seq_function_body_closure_boundary_ci_return_aware_with_normalWitness
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
@@ -60,6 +58,8 @@ theorem seq_function_body_closure_boundary_ci_return_aware_with_normalWitness
         | ⟨Δ, hty⟩ =>
             tailClosure hty hstep (tailBoundary hty hstep))
 
+end SeqLegacy
+
 /--
 Route-aware theorem-backed return-aware seq closure.
 
@@ -84,12 +84,14 @@ theorem seq_function_body_closure_boundary_ci_return_aware
     seq_function_body_closure_boundary_ci_honest
       mkWhileReentry hentry leftClosure tailClosure
 
+namespace SeqLegacy
+
 /--
-Explicit-tail-boundary compatibility surface.
+Legacy explicit-tail-boundary compatibility surface.
 
 The normal witness provider is no longer a callback, but this still accepts the
-old arbitrary-`Δ` tail boundary callback shape for downstream compatibility.
-Prefer `seq_function_body_closure_boundary_ci_return_aware` for new code.
+old arbitrary-`Δ` tail boundary callback shape for migration. Prefer
+`seq_function_body_closure_boundary_ci_return_aware` for new code.
 -/
 theorem seq_function_body_closure_boundary_ci_return_aware_with_tail_boundary
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
@@ -113,9 +115,13 @@ theorem seq_function_body_closure_boundary_ci_return_aware_with_tail_boundary
     seq_function_body_closure_boundary_ci_honest_with_tail_boundary
       hentry leftClosure tailBoundary tailClosure
 
+end SeqLegacy
+
+namespace SeqLegacy
+
 /--
-`BodyReadyCI` wrapper for the return-aware seq route with explicit normal witness.
-Compatibility theorem.
+Legacy `BodyReadyCI` wrapper for the return-aware seq route with explicit normal
+witness.
 -/
 theorem seq_function_body_closure_ci_return_aware_with_normalWitness
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
@@ -148,6 +154,8 @@ theorem seq_function_body_closure_ci_return_aware_with_normalWitness
       (fun hty hstep htailBoundary =>
         tailClosure hty hstep htailBoundary.toBodyReadyCI)
 
+end SeqLegacy
+
 /-- Route-aware theorem-backed `BodyReadyCI` wrapper. -/
 theorem seq_function_body_closure_ci_return_aware
     (mkWhileReentry : WhileReentryReadyProvider)
@@ -170,7 +178,9 @@ theorem seq_function_body_closure_ci_return_aware
       leftClosure
       tailClosure
 
-/-- Explicit-tail-boundary compatibility `BodyReadyCI` wrapper. -/
+namespace SeqLegacy
+
+/-- Legacy explicit-tail-boundary compatibility `BodyReadyCI` wrapper. -/
 theorem seq_function_body_closure_ci_return_aware_with_tail_boundary
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyReadyCI Γ σ (.seq s t))
@@ -196,6 +206,8 @@ theorem seq_function_body_closure_ci_return_aware_with_tail_boundary
       (fun hty hstep => (tailBoundary hty hstep).toClosureBoundary)
       (fun hty hstep htailBoundary =>
         tailClosure hty hstep htailBoundary.toBodyReadyCI)
+
+end SeqLegacy
 
 
 end Cpp
