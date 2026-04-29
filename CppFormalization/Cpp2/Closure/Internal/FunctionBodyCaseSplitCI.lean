@@ -517,16 +517,103 @@ def toSupport
 end SeqLeftProfileSlotPayloadCI
 
 /--
-Remaining slot-selection obligation for the left side of a sequence.
+Normal-slot selection for the left side of a sequence.
 
-This is the precise remaining static debt: choose the optional left normal and
-return slots required by the whole-sequence provenance.
+This isolates the first static choice: which left normal slot, if any, is
+exposed by the selected left profile.  Any visible whole-sequence normal channel
+must be covered by this selected normal slot.
 -/
-axiom seq_left_profile_slots_ci_of_decomposition
+structure SeqLeftNormalSlotSelectionCI
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (_D : SeqStaticDecompositionCI hentry) : Type where
+  normalSlot : Option (SeqLeftNormalSlotCI Γ s)
+  normalFromWhole :
+    ∀ {out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.seq s t) Δ}},
+      hentry.static.profile.summary.normalOut = some out →
+      { n : SeqLeftNormalSlotCI Γ s // normalSlot = some n }
+
+/--
+Return-slot selection for the left side of a sequence, relative to the already
+chosen normal slot.
+
+A whole-sequence return channel is covered either by a selected left return
+slot, or by the selected left normal slot when the return comes from the tail
+after a left-normal route.
+-/
+structure SeqLeftReturnSlotSelectionCI
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (D : SeqStaticDecompositionCI hentry)
+    (N : SeqLeftNormalSlotSelectionCI hentry D) : Type where
+  returnSlot : Option (SeqLeftReturnSlotCI Γ s)
+  returnFromWhole :
+    ∀ {out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ (.seq s t) Δ}},
+      hentry.static.profile.summary.returnOut = some out →
+        Sum
+          ({ r : SeqLeftReturnSlotCI Γ s // returnSlot = some r })
+          ({ n : SeqLeftNormalSlotCI Γ s // N.normalSlot = some n })
+
+namespace SeqLeftProfileSlotPayloadCI
+
+/--
+Assemble the old slot payload from separated normal-slot and return-slot
+selections.
+-/
+def ofSelections
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    {hentry : BodyClosureBoundaryCI Γ σ (.seq s t)}
+    {D : SeqStaticDecompositionCI hentry}
+    (N : SeqLeftNormalSlotSelectionCI hentry D)
+    (R : SeqLeftReturnSlotSelectionCI hentry D N) :
+    SeqLeftProfileSlotPayloadCI hentry D :=
+  { normalSlot := N.normalSlot
+    returnSlot := R.returnSlot
+    normalFromWhole := N.normalFromWhole
+    returnFromWhole := R.returnFromWhole }
+
+end SeqLeftProfileSlotPayloadCI
+
+/--
+Remaining normal-slot selection obligation for the left side of a sequence.
+
+This is now separated from return-slot selection.  The normal slot is the
+critical slot used both by whole-sequence normal execution and by tail-originated
+returns.
+-/
+axiom seq_left_normal_slot_selection_ci_of_decomposition
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (D : SeqStaticDecompositionCI hentry) :
-    SeqLeftProfileSlotPayloadCI hentry D
+    SeqLeftNormalSlotSelectionCI hentry D
+
+/--
+Remaining return-slot selection obligation for the left side of a sequence,
+relative to the chosen normal slot.
+
+This is deliberately relative to `N`: tail-originated returns must point back to
+the same selected left normal slot, not an unrelated normal witness.
+-/
+axiom seq_left_return_slot_selection_ci_of_decomposition
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (D : SeqStaticDecompositionCI hentry)
+    (N : SeqLeftNormalSlotSelectionCI hentry D) :
+    SeqLeftReturnSlotSelectionCI hentry D N
+
+/--
+Compatibility name for the previous profile-slot payload.
+
+The payload is now assembled from separately selected normal and return slots.
+-/
+noncomputable def seq_left_profile_slots_ci_of_decomposition
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (D : SeqStaticDecompositionCI hentry) :
+    SeqLeftProfileSlotPayloadCI hentry D :=
+  let N := seq_left_normal_slot_selection_ci_of_decomposition hentry D
+  let R := seq_left_return_slot_selection_ci_of_decomposition hentry D N
+  SeqLeftProfileSlotPayloadCI.ofSelections N R
 
 /--
 Compatibility package selecting a left profile together with Type-level support.
