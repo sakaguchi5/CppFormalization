@@ -517,31 +517,78 @@ def toSupport
 end SeqLeftProfileSlotPayloadCI
 
 /--
+Type-level decision for a visible whole-sequence normal channel.
+
+A whole-sequence normal channel is possible only through `seq_normal`, so the
+left side must expose the same left-normal witness as the selected normal slot.
+
+This is stronger than merely saying that some normal slot exists.
+-/
+inductive SeqNormalSlotDecisionCI
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    {hentry : BodyClosureBoundaryCI Γ σ (.seq s t)}
+    {D : SeqStaticDecompositionCI hentry}
+    (normalSlot : Option (SeqLeftNormalSlotCI Γ s))
+    (out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.seq s t) Δ}) : Type where
+  | normal
+      {Θ Δ : TypeEnv}
+      (hleft : HasTypeStmtCI .normalK Γ s Θ)
+      (htail : HasTypeStmtCI .normalK Θ t Δ)
+      (houtDef : out = ⟨Δ, HasTypeStmtCI.seq_normal hleft htail⟩)
+      (hslot : normalSlot = some ⟨Θ, hleft⟩) :
+      SeqNormalSlotDecisionCI normalSlot out
+
+namespace SeqNormalSlotDecisionCI
+
+/-- Forget the Type-level normal decision to Prop-level normal-source provenance. -/
+theorem toProp
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    {hentry : BodyClosureBoundaryCI Γ σ (.seq s t)}
+    {D : SeqStaticDecompositionCI hentry}
+    {normalSlot : Option (SeqLeftNormalSlotCI Γ s)}
+    {out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.seq s t) Δ}}
+    (d : SeqNormalSlotDecisionCI (hentry := hentry) (D := D) normalSlot out) :
+    SeqNormalSourceCI out := by
+  cases d with
+  | normal hleft htail houtDef hslot =>
+      exact SeqNormalSourceCI.normal hleft htail houtDef
+
+/-- Forget the Type-level normal decision to the old selected-slot shape. -/
+def toSelectedSlot
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    {hentry : BodyClosureBoundaryCI Γ σ (.seq s t)}
+    {D : SeqStaticDecompositionCI hentry}
+    {normalSlot : Option (SeqLeftNormalSlotCI Γ s)}
+    {out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.seq s t) Δ}}
+    (d : SeqNormalSlotDecisionCI (hentry := hentry) (D := D) normalSlot out) :
+    { n : SeqLeftNormalSlotCI Γ s // normalSlot = some n } := by
+  cases d with
+  | normal hleft htail houtDef hslot =>
+      exact ⟨⟨_, hleft⟩, hslot⟩
+
+end SeqNormalSlotDecisionCI
+
+/--
 Normal-slot selection for the left side of a sequence.
 
-This isolates the first static choice: which left normal slot, if any, is
-exposed by the selected left profile.
-
-The obligation is source-aware.  It does not merely react to the presence of a
-whole-sequence normal channel; it also receives the `SeqNormalSourceCI`
-certificate explaining that channel's seq constructor provenance.
+For each visible whole-sequence normal channel, we choose a Type-level decision
+showing that the selected normal slot is exactly the left-normal witness used by
+that `seq_normal` source.
 -/
 structure SeqLeftNormalSlotSelectionCI
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
-    (_D : SeqStaticDecompositionCI hentry) : Type where
+    (D : SeqStaticDecompositionCI hentry) : Type where
   normalSlot : Option (SeqLeftNormalSlotCI Γ s)
-  normalFromSource :
+  normalDecision :
     ∀ {out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.seq s t) Δ}},
       hentry.static.profile.summary.normalOut = some out →
-      SeqNormalSourceCI out →
-      { n : SeqLeftNormalSlotCI Γ s // normalSlot = some n }
+      SeqNormalSlotDecisionCI (hentry := hentry) (D := D) normalSlot out
 
 namespace SeqLeftNormalSlotSelectionCI
 
 /--
-Compatibility projection for callers that only mention the whole-sequence
-normal summary.  The provenance is supplied by `SeqStaticDecompositionCI`.
+Compatibility projection for callers that only need the old selected-slot shape.
 -/
 def normalFromWhole
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
@@ -551,7 +598,20 @@ def normalFromWhole
     {out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.seq s t) Δ}}
     (hout : hentry.static.profile.summary.normalOut = some out) :
     { n : SeqLeftNormalSlotCI Γ s // N.normalSlot = some n } :=
-  N.normalFromSource hout (D.normal hout)
+  (N.normalDecision hout).toSelectedSlot
+
+/--
+The Type-level normal decision is compatible with the Prop-level decomposition.
+-/
+theorem normalDecision_toProp
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    {hentry : BodyClosureBoundaryCI Γ σ (.seq s t)}
+    {D : SeqStaticDecompositionCI hentry}
+    (N : SeqLeftNormalSlotSelectionCI hentry D)
+    {out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.seq s t) Δ}}
+    (hout : hentry.static.profile.summary.normalOut = some out) :
+    SeqNormalSourceCI out :=
+  (N.normalDecision hout).toProp
 
 end SeqLeftNormalSlotSelectionCI
 
@@ -599,11 +659,12 @@ Type-level decision for a visible whole-sequence return channel.
 
 This combines the return-source provenance with the slot proof required by that
 source:
-- a left-originated return carries a selected left return slot;
-- a tail-originated return carries the already selected left normal slot.
+- a left-originated return carries the matching selected left return slot;
+- a tail-originated return carries the matching selected left normal slot.
 
-This avoids splitting source recognition and slot selection into separate fields
-where the source payload becomes unused.
+The matching is important: the tail-return branch must not merely prove that
+some normal slot exists.  It must prove that the selected normal slot is the one
+corresponding to the `hleft` witness in the tail-return source.
 -/
 inductive SeqReturnSlotDecisionCI
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
@@ -616,16 +677,14 @@ inductive SeqReturnSlotDecisionCI
       {Δ : TypeEnv}
       (hleft : HasTypeStmtCI .returnK Γ s Δ)
       (houtDef : out = ⟨Δ, HasTypeStmtCI.seq_return hleft⟩)
-      (slot : SeqLeftReturnSlotCI Γ s)
-      (hslot : returnSlot = some slot) :
+      (hslot : returnSlot = some ⟨Δ, hleft⟩) :
       SeqReturnSlotDecisionCI N returnSlot out
   | tailReturn
       {Θ Δ : TypeEnv}
       (hleft : HasTypeStmtCI .normalK Γ s Θ)
       (htail : HasTypeStmtCI .returnK Θ t Δ)
       (houtDef : out = ⟨Δ, HasTypeStmtCI.seq_normal hleft htail⟩)
-      (slot : SeqLeftNormalSlotCI Γ s)
-      (hslot : N.normalSlot = some slot) :
+      (hslot : N.normalSlot = some ⟨Θ, hleft⟩) :
       SeqReturnSlotDecisionCI N returnSlot out
 
 namespace SeqReturnSlotDecisionCI
@@ -641,9 +700,9 @@ theorem toProp
     (d : SeqReturnSlotDecisionCI N returnSlot out) :
     SeqReturnSourceCI out := by
   cases d with
-  | leftReturn hleft houtDef slot hslot =>
+  | leftReturn hleft houtDef hslot =>
       exact SeqReturnSourceCI.leftReturn hleft houtDef
-  | tailReturn hleft htail houtDef slot hslot =>
+  | tailReturn hleft htail houtDef hslot =>
       exact SeqReturnSourceCI.tailReturn hleft htail houtDef
 
 /-- Forget the Type-level decision to the old slot-dispatcher shape. -/
@@ -659,10 +718,10 @@ def toSum
       ({ r : SeqLeftReturnSlotCI Γ s // returnSlot = some r })
       ({ n : SeqLeftNormalSlotCI Γ s // N.normalSlot = some n }) := by
   cases d with
-  | leftReturn hleft houtDef slot hslot =>
-      exact Sum.inl ⟨slot, hslot⟩
-  | tailReturn hleft htail houtDef slot hslot =>
-      exact Sum.inr ⟨slot, hslot⟩
+  | leftReturn hleft houtDef hslot =>
+      exact Sum.inl ⟨⟨_, hleft⟩, hslot⟩
+  | tailReturn hleft htail houtDef hslot =>
+      exact Sum.inr ⟨⟨_, hleft⟩, hslot⟩
 
 end SeqReturnSlotDecisionCI
 
