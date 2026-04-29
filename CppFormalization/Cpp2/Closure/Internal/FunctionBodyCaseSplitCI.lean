@@ -28,6 +28,7 @@ downstream compatibility, but builds them from narrower pieces:
 * whole-sequence normal/return profile payloads are decomposed into explicit
   `Prop`-level seq provenance certificates;
 * left profile selection and left root/coherence selection are separated;
+* root/coherence is theorem-backed from Type-level profile support;
 * left adequacy remains a separate semantic obligation;
 * tail static and tail adequacy are packaged together behind the actual
   left-normal route, because the tail environment is path-sensitive and must not
@@ -212,15 +213,8 @@ theorem seq_static_decomposition_ci_of_entry
 /--
 Compatibility condition for a chosen left profile.
 
-This is still a proposition, but unlike the earlier opaque scaffold axiom it
-states what the left profile must expose:
-- any visible whole-sequence normal channel contributes a left normal channel;
-- a visible whole-sequence return channel contributes either a left return
-  channel or a left normal channel, depending on whether the return originates
-  in the head or in the tail.
-
-The condition deliberately does not force the left profile to be minimal.  It
-only requires the channels demanded by the visible whole-sequence profile.
+This is a proposition. It is useful for downstream reasoning, but it must not
+be used to construct Type-level root data.
 -/
 structure SeqLeftProfileCompatibleCI
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
@@ -239,6 +233,79 @@ structure SeqLeftProfileCompatibleCI
           P.summary.returnOut = some ⟨Δ, hleft⟩) ∨
         (∃ Θ, ∃ hleft : HasTypeStmtCI .normalK Γ s Θ,
           P.summary.normalOut = some ⟨Θ, hleft⟩)
+
+/--
+Type-level payload witnessing that the chosen left profile exposes a normal
+channel.
+
+The equality proof is a Prop field inside a Type-valued structure.  This avoids
+trying to use `Sigma` with a Prop-valued family.
+-/
+structure SeqLeftNormalPayloadCI
+    {Γ : TypeEnv} {s : CppStmt}
+    (P : BodyControlProfile Γ s) : Type where
+  Θ : TypeEnv
+  hleft : HasTypeStmtCI .normalK Γ s Θ
+  hprofile : P.summary.normalOut = some ⟨Θ, hleft⟩
+
+/--
+Type-level payload witnessing that the chosen left profile exposes a return
+channel.
+-/
+structure SeqLeftReturnPayloadCI
+    {Γ : TypeEnv} {s : CppStmt}
+    (P : BodyControlProfile Γ s) : Type where
+  Delta : TypeEnv
+  hleft : HasTypeStmtCI .returnK Γ s Delta
+  hprofile : P.summary.returnOut = some ⟨Delta, hleft⟩
+
+/--
+Type-level support for a chosen left profile.
+
+This carries the same information as `SeqLeftProfileCompatibleCI`, but as
+Type-level payloads.  It is needed when constructing a `SeqLeftRootScaffoldCI`,
+which itself lives in `Type`.
+-/
+structure SeqLeftProfileSupportCI
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (_D : SeqStaticDecompositionCI hentry)
+    (P : BodyControlProfile Γ s) : Type where
+  normalFromWhole :
+    ∀ {out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.seq s t) Δ}},
+      hentry.static.profile.summary.normalOut = some out →
+      SeqLeftNormalPayloadCI P
+  returnFromWhole :
+    ∀ {out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ (.seq s t) Δ}},
+      hentry.static.profile.summary.returnOut = some out →
+        Sum
+          (SeqLeftReturnPayloadCI P)
+          (SeqLeftNormalPayloadCI P)
+
+namespace SeqLeftProfileSupportCI
+
+/-- Forget the Type-level support to the Prop-level compatibility statement. -/
+theorem toCompatible
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    {hentry : BodyClosureBoundaryCI Γ σ (.seq s t)}
+    {D : SeqStaticDecompositionCI hentry}
+    {P : BodyControlProfile Γ s}
+    (S : SeqLeftProfileSupportCI hentry D P) :
+    SeqLeftProfileCompatibleCI hentry D P := by
+  refine
+    { normalFromWhole := ?_
+      returnFromWhole := ?_ }
+  · intro out hout
+    let hnorm := S.normalFromWhole hout
+    exact ⟨hnorm.Θ, hnorm.hleft, hnorm.hprofile⟩
+  · intro out hout
+    cases S.returnFromWhole hout with
+    | inl hret =>
+        exact Or.inl ⟨hret.Delta, hret.hleft, hret.hprofile⟩
+    | inr hnorm =>
+        exact Or.inr ⟨hnorm.Θ, hnorm.hleft, hnorm.hprofile⟩
+
+end SeqLeftProfileSupportCI
 
 /--
 Root/coherence package for a chosen left profile.
@@ -317,41 +384,75 @@ theorem seq_tail_structural_boundary_of_entry
       continueScoped := hcont.2 }
 
 /--
+Type-level package selecting a left profile together with Type-level support.
+
+This cannot be a subtype `{ P // SeqLeftProfileSupportCI ... P }`, because
+`SeqLeftProfileSupportCI ... P` lives in `Type`, not `Prop`.
+-/
+structure SeqLeftProfilePayloadCI
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (D : SeqStaticDecompositionCI hentry) : Type where
+  profile : BodyControlProfile Γ s
+  support : SeqLeftProfileSupportCI hentry D profile
+
+/--
 Remaining profile-selection obligation for the left side of a sequence.
 
-This is narrower than the old static-scaffold obligation.  It chooses only the
-left profile and proves that the chosen profile exposes the head-side channels
-forced by the whole-sequence provenance.
+It chooses a left profile together with Type-level support exposing the channels
+required by the whole-sequence provenance.
 -/
 axiom seq_left_profile_payload_ci_of_decomposition
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (D : SeqStaticDecompositionCI hentry) :
-    { P : BodyControlProfile Γ s //
-      SeqLeftProfileCompatibleCI hentry D P }
+    SeqLeftProfilePayloadCI hentry D
 
 /--
-Remaining root/coherence obligation for a chosen left profile.
+Root/coherence for a chosen left profile is theorem-backed from Type-level
+profile support.
 
-This is deliberately separate from profile selection.  A profile may expose
-several channels; the root witness chooses one available entry channel and
-proves coherence with that profile.
+This cannot be proved from `SeqLeftProfileCompatibleCI : Prop`, because that
+would require eliminating Prop-level `Exists`/`Or` into `Type`.
 -/
-axiom seq_left_root_scaffold_ci_of_profile
+def seq_left_root_scaffold_ci_of_profile
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (D : SeqStaticDecompositionCI hentry)
     (P : BodyControlProfile Γ s)
-    (hP : SeqLeftProfileCompatibleCI hentry D P) :
-    SeqLeftRootScaffoldCI Γ s P
+    (S : SeqLeftProfileSupportCI hentry D P) :
+    SeqLeftRootScaffoldCI Γ s P := by
+  cases hroot : hentry.static.root with
+  | normal out =>
+      have hN :
+          hentry.static.profile.summary.normalOut = some out := by
+        simpa [hroot] using
+          (BodyStaticBoundaryCI.root_normal_coherent hentry.static)
+      let hnorm := S.normalFromWhole hN
+      exact
+        { root := .normal ⟨hnorm.Θ, hnorm.hleft⟩
+          rootCoherent := BodyRootCoherent.normal hnorm.hprofile }
+  | returned out =>
+      have hR :
+          hentry.static.profile.summary.returnOut = some out := by
+        simpa [hroot] using
+          (BodyStaticBoundaryCI.root_return_coherent hentry.static)
+      cases S.returnFromWhole hR with
+      | inl hret =>
+          exact
+            { root := .returned ⟨hret.Delta, hret.hleft⟩
+              rootCoherent := BodyRootCoherent.returned hret.hprofile }
+      | inr hnorm =>
+          exact
+            { root := .normal ⟨hnorm.Θ, hnorm.hleft⟩
+              rootCoherent := BodyRootCoherent.normal hnorm.hprofile }
 
 /--
 Assemble the full left static scaffold from separately chosen profile and root
 packages.
 
-The only remaining static assumptions are now:
-1. choose a left profile compatible with seq provenance;
-2. choose a coherent root for that chosen left profile.
+The remaining static assumption is now only profile selection with Type-level
+support.  Root/coherence is theorem-backed from that support.
 -/
 noncomputable def seq_left_static_scaffold_payload_ci_of_decomposition
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
@@ -360,13 +461,18 @@ noncomputable def seq_left_static_scaffold_payload_ci_of_decomposition
     { S : SeqLeftStaticScaffoldCI Γ s //
       SeqLeftStaticScaffoldCompatibleCI hentry D S } := by
   let Ppack := seq_left_profile_payload_ci_of_decomposition hentry D
-  let R := seq_left_root_scaffold_ci_of_profile hentry D Ppack.1 Ppack.2
+  let R :=
+    seq_left_root_scaffold_ci_of_profile
+      hentry
+      D
+      Ppack.profile
+      Ppack.support
   refine
-    ⟨{ profile := Ppack.1
+    ⟨{ profile := Ppack.profile
        root := R.root
        rootCoherent := R.rootCoherent }, ?_⟩
   exact
-    { profileCompatible := Ppack.2 }
+    { profileCompatible := Ppack.support.toCompatible }
 
 /-- Compatibility projection for the chosen left static scaffold. -/
 noncomputable def seq_left_static_scaffold_ci_of_decomposition
