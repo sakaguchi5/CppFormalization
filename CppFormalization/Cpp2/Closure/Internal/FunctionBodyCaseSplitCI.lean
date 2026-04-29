@@ -1112,22 +1112,68 @@ def toBodyAdequacyCI
 end SeqLeftAdequacySupportCI
 
 /--
-Remaining head-normal route obligation for the extracted left boundary.
+Remaining normal-profile payload obligation for an actual left-normal execution.
 
-This is the real normal-channel semantic debt.  An actual left-normal execution
-must provide the full route needed to continue into the sequence tail, not just
-a bare normal typing witness.
+This is the left-side part of the head-normal route: the actual execution of
+`s` must be reflected by the selected normal channel in the extracted left
+profile.
 -/
-axiom seq_head_normal_route_ci_of_entry
+axiom seq_head_normal_profile_payload_ci_of_entry
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (hstatic : BodyStaticBoundaryCI Γ s) :
     ∀ {σ1 : State},
       BigStepStmt σ s .normal σ1 →
-      SeqHeadNormalRouteCI Γ σ s t σ1 hstatic.profile
+      SeqLeftNormalPayloadCI hstatic.profile
 
 /--
-Compatibility wrapper: the left normal adequacy support is exactly the
+Remaining tail static+adequacy obligation for an actual left-normal execution.
+
+This is the tail-side part of the head-normal route.  Once the actual head
+execution has been reflected in the selected left normal payload, the tail
+boundary must be supplied at that payload's post-environment and actual
+post-state.
+-/
+axiom seq_tail_static_adequacy_payload_ci_of_head_normal_payload
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (hstatic : BodyStaticBoundaryCI Γ s) :
+    ∀ {σ1 : State}
+      (hstep : BigStepStmt σ s .normal σ1),
+      SeqLeftNormalPayloadCI hstatic.profile →
+      SeqTailStaticAdequacyPayloadCI
+        (seq_head_normal_profile_payload_ci_of_entry hentry hstatic hstep).Θ
+        σ1
+        t
+
+/--
+Compatibility name for the full head-normal route.
+
+The old route obligation is now assembled from two narrower obligations:
+1. actual left-normal execution is reflected in the selected left normal profile;
+2. the tail static/adequacy payload is supplied for that route.
+-/
+noncomputable def seq_head_normal_route_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (hstatic : BodyStaticBoundaryCI Γ s) :
+    ∀ {σ1 : State},
+      BigStepStmt σ s .normal σ1 →
+      SeqHeadNormalRouteCI Γ σ s t σ1 hstatic.profile := by
+  intro σ1 hstep
+  let hp := seq_head_normal_profile_payload_ci_of_entry hentry hstatic hstep
+  let htail :=
+    seq_tail_static_adequacy_payload_ci_of_head_normal_payload
+      hentry hstatic hstep hp
+  exact
+    { Θ := hp.Θ
+      hleft := hp.hleft
+      hprofile := hp.hprofile
+      hstepLeft := hstep
+      tail := htail }
+
+/--
+Compatibility wrapper: the left normal adequacy support is exactly the assembled
 head-normal route provider.
 -/
 noncomputable def seq_left_normal_adequacy_ci_of_entry
