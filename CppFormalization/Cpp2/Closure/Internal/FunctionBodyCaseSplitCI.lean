@@ -2381,7 +2381,7 @@ The branch-local adequacy provider is indexed by the selected then-branch slot
 payload profile, so the normal/return channel decisions are derived uniformly
 from one branch adequacy package.
 -/
-axiom ite_then_adequacy_witness_ci_of_entry
+axiom ite_then_body_adequacy_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
     BodyAdequacyCI Γ σ s
@@ -2392,7 +2392,7 @@ Remaining else-branch witness-producing adequacy obligation.
 
 This replaces the two channel-specific else-branch runtime-decision axioms.
 -/
-axiom ite_else_adequacy_witness_ci_of_entry
+axiom ite_else_body_adequacy_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
     BodyAdequacyCI Γ σ t
@@ -2408,9 +2408,9 @@ noncomputable def ite_then_slot_adequacy_support_ci_of_entry
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
     IteBranchSlotAdequacySupportCI Γ σ s
       (ite_then_profile_slot_payload_ci_of_entry hentry) :=
-  IteBranchSlotAdequacySupportCI.ofBodyAdequacyWitness
+  IteBranchSlotAdequacySupportCI.ofBodyAdequacy
     (ite_then_profile_slot_payload_ci_of_entry hentry)
-    (ite_then_adequacy_witness_ci_of_entry hentry)
+    (ite_then_body_adequacy_ci_of_entry hentry)
 
 /--
 Compatibility package for else-branch slot-aware adequacy support.
@@ -2420,9 +2420,9 @@ noncomputable def ite_else_slot_adequacy_support_ci_of_entry
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
     IteBranchSlotAdequacySupportCI Γ σ t
       (ite_else_profile_slot_payload_ci_of_entry hentry) :=
-  IteBranchSlotAdequacySupportCI.ofBodyAdequacyWitness
+  IteBranchSlotAdequacySupportCI.ofBodyAdequacy
     (ite_else_profile_slot_payload_ci_of_entry hentry)
-    (ite_else_adequacy_witness_ci_of_entry hentry)
+    (ite_else_body_adequacy_ci_of_entry hentry)
 
 /--
 Compatibility name for the old then normal runtime-decision surface.
@@ -2527,76 +2527,76 @@ This is the provider-facing analogue of `IteBranchStaticAdequacyCI`.  The
 ordinary proof-only package remains available by forgetting the witness
 provider.
 -/
-structure IteBranchStaticAdequacyWitnessCI
+structure IteBranchStaticAdequacyProviderCI
     (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
   static : BodyStaticBoundaryCI Γ st
   adequacyWitness : BodyAdequacyCI Γ σ st static.profile
 
-namespace IteBranchStaticAdequacyWitnessCI
+namespace IteBranchStaticAdequacyProviderCI
 
 /-- Forget the witness-producing branch package to the older proof-only API. -/
 def toStaticAdequacyCI
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (B : IteBranchStaticAdequacyWitnessCI Γ σ st) :
+    (B : IteBranchStaticAdequacyProviderCI Γ σ st) :
     IteBranchStaticAdequacyCI Γ σ st :=
   { static := B.static
     adequacy := B.adequacyWitness }
 
-end IteBranchStaticAdequacyWitnessCI
+end IteBranchStaticAdequacyProviderCI
 
 /--
 Then-branch witness adequacy transported to the actual static boundary profile.
 -/
-noncomputable def ite_then_adequacy_witness_ci_of_static_entry
+noncomputable def ite_then_body_adequacy_ci_of_static_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
     BodyAdequacyCI Γ σ s (ite_then_static_ci_of_entry hentry).profile := by
   simpa [ite_then_static_ci_of_entry, IteBranchStaticScaffoldCI.toBodyStaticBoundaryCI,
     IteBranchStaticScaffoldCI.profile, ite_then_static_scaffold_ci_of_entry,
     ite_then_profile_payload_ci_of_entry, IteBranchProfilePayloadCI.ofSlotPayload]
-    using (ite_then_adequacy_witness_ci_of_entry hentry)
+    using (ite_then_body_adequacy_ci_of_entry hentry)
 
 /--
 Else-branch witness adequacy transported to the actual static boundary profile.
 -/
-noncomputable def ite_else_adequacy_witness_ci_of_static_entry
+noncomputable def ite_else_body_adequacy_ci_of_static_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
     BodyAdequacyCI Γ σ t (ite_else_static_ci_of_entry hentry).profile := by
   simpa [ite_else_static_ci_of_entry, IteBranchStaticScaffoldCI.toBodyStaticBoundaryCI,
     IteBranchStaticScaffoldCI.profile, ite_else_static_scaffold_ci_of_entry,
     ite_else_profile_payload_ci_of_entry, IteBranchProfilePayloadCI.ofSlotPayload]
-    using (ite_else_adequacy_witness_ci_of_entry hentry)
+    using (ite_else_body_adequacy_ci_of_entry hentry)
 
 /-- Witness-producing compatibility package for the then branch. -/
-noncomputable def ite_then_static_adequacy_witness_ci_of_entry
+noncomputable def ite_then_static_adequacy_provider_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    IteBranchStaticAdequacyWitnessCI Γ σ s :=
+    IteBranchStaticAdequacyProviderCI Γ σ s :=
   { static := ite_then_static_ci_of_entry hentry
-    adequacyWitness := ite_then_adequacy_witness_ci_of_static_entry hentry }
+    adequacyWitness := ite_then_body_adequacy_ci_of_static_entry hentry }
 
 /-- Witness-producing compatibility package for the else branch. -/
-noncomputable def ite_else_static_adequacy_witness_ci_of_entry
+noncomputable def ite_else_static_adequacy_provider_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    IteBranchStaticAdequacyWitnessCI Γ σ t :=
+    IteBranchStaticAdequacyProviderCI Γ σ t :=
   { static := ite_else_static_ci_of_entry hentry
-    adequacyWitness := ite_else_adequacy_witness_ci_of_static_entry hentry }
+    adequacyWitness := ite_else_body_adequacy_ci_of_static_entry hentry }
 
 /-- Compatibility package for the then branch. -/
 noncomputable def ite_then_static_adequacy_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
     IteBranchStaticAdequacyCI Γ σ s :=
-  (ite_then_static_adequacy_witness_ci_of_entry hentry).toStaticAdequacyCI
+  (ite_then_static_adequacy_provider_ci_of_entry hentry).toStaticAdequacyCI
 
 /-- Compatibility package for the else branch. -/
 noncomputable def ite_else_static_adequacy_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
     IteBranchStaticAdequacyCI Γ σ t :=
-  (ite_else_static_adequacy_witness_ci_of_entry hentry).toStaticAdequacyCI
+  (ite_else_static_adequacy_provider_ci_of_entry hentry).toStaticAdequacyCI
 
 /--
 Branch closure boundaries for an `ite`.

@@ -306,7 +306,7 @@ This is the provider-facing analogue of `WhileTailAdequacyProviderCI`.  It is
 kept in this replay-stable facts layer for now so the existing while kernel and
 class interfaces remain source-compatible during the migration.
 -/
-structure WhileTailAdequacyWitnessProviderCI
+structure hileTailAdequacyProviderDataCI
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (static : BodyStaticBoundaryCI Γ (.whileStmt c body)) : Type where
   afterNormal :
@@ -320,13 +320,13 @@ structure WhileTailAdequacyWitnessProviderCI
       BigStepStmt σ body .continueResult σ1 →
       BodyAdequacyCI Γ σ1 (.whileStmt c body) static.profile
 
-namespace WhileTailAdequacyWitnessProviderCI
+namespace hileTailAdequacyProviderDataCI
 
 /-- Forget a witness-producing tail adequacy provider to the existing proof-only API. -/
 def toWhileTailAdequacyProviderCI
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     {static : BodyStaticBoundaryCI Γ (.whileStmt c body)}
-    (P : WhileTailAdequacyWitnessProviderCI (σ := σ) (c := c) (body := body) static) :
+    (P : hileTailAdequacyProviderDataCI (σ := σ) (c := c) (body := body) static) :
     WhileTailAdequacyProviderCI Γ σ c body static :=
   { afterNormal := by
       intro σ1 hcond hstep
@@ -335,49 +335,14 @@ def toWhileTailAdequacyProviderCI
       intro σ1 hcond hstep
       exact P.afterContinue hcond hstep }
 
-end WhileTailAdequacyWitnessProviderCI
+end hileTailAdequacyProviderDataCI
 
-/--
-Witness-producing post-state adequacy after a replay-stable primitive body-normal
-step.  The witness is obtained by transporting the original top-level while
-adequacy along the concrete `whileTrueNormal` execution route.
--/
-noncomputable def while_tail_adequacy_witness_after_body_normal
-    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
-    (hready : BodyReadyCI Γ σ (.whileStmt c body))
-    (hcond : BigStepValue σ c (.bool true))
-    (hbodyStep : BigStepStmt σ body .normal σ') :
-    BodyAdequacyCI Γ σ' (.whileStmt c body) hready.static.profile :=
-  BodyAdequacyCI.ofWitness
-    (normalWitness := by
-      intro σ2 htail
-      exact hready.adequacy.normalWitness
-        (BigStepStmt.whileTrueNormal hcond hbodyStep htail))
-    (returnWitness := by
-      intro rv σ2 htail
-      exact hready.adequacy.returnWitness
-        (BigStepStmt.whileTrueNormal hcond hbodyStep htail))
 
 /--
 Witness-producing post-state adequacy after a replay-stable primitive
 body-continue step.  This is the continue-channel analogue of
-`while_tail_adequacy_witness_after_body_normal`.
+`while_tail_adequacy_after_body_normal`.
 -/
-noncomputable def while_tail_adequacy_witness_after_body_continue
-    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
-    (hready : BodyReadyCI Γ σ (.whileStmt c body))
-    (hcond : BigStepValue σ c (.bool true))
-    (hbodyStep : BigStepStmt σ body .continueResult σ') :
-    BodyAdequacyCI Γ σ' (.whileStmt c body) hready.static.profile :=
-  BodyAdequacyCI.ofWitness
-    (normalWitness := by
-      intro σ2 htail
-      exact hready.adequacy.normalWitness
-        (BigStepStmt.whileTrueContinue hcond hbodyStep htail))
-    (returnWitness := by
-      intro rv σ2 htail
-      exact hready.adequacy.returnWitness
-        (BigStepStmt.whileTrueContinue hcond hbodyStep htail))
 
 def while_tail_adequacy_after_body_normal
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
@@ -418,17 +383,17 @@ bodies.
 This is the witness-producing companion of
 `replay_stable_primitive_whileTailAdequacyProviderCI`.
 -/
-noncomputable def replay_stable_primitive_whileTailAdequacyWitnessProviderCI
+noncomputable def replay_stable_primitive_hileTailAdequacyProviderDataCI
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) :
-    @WhileTailAdequacyWitnessProviderCI Γ σ c body hentry.static := -- @を使ってσを明示 :=
+    @hileTailAdequacyProviderDataCI Γ σ c body hentry.static := -- @を使ってσを明示 :=
   { afterNormal := by
       intro σ1 hcond hstep
-      exact while_tail_adequacy_witness_after_body_normal
+      exact while_tail_adequacy_after_body_normal
         hentry.toBodyReadyCI hcond hstep
     afterContinue := by
       intro σ1 hcond hstep
-      exact while_tail_adequacy_witness_after_body_continue
+      exact while_tail_adequacy_after_body_continue
         hentry.toBodyReadyCI hcond hstep }
 
 /--

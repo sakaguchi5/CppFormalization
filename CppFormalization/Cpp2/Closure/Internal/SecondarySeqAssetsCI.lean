@@ -191,44 +191,44 @@ The existing `SeqTailStaticAdequacyPayloadCI` remains proof-only through
 `SeqTailAdequacySupportCI`.  This payload exposes the same tail boundary as a
 `BodyAdequacyCI`, which is the shape needed by the provider migration.
 -/
-structure SeqTailStaticAdequacyWitnessPayloadCI
+structure SeqTailStaticAdequacyProviderPayloadCI
     (Θ : TypeEnv) (σ1 : State) (t : CppStmt) : Type where
   static : BodyStaticBoundaryCI Θ t
-  adequacyWitness : BodyAdequacyCI Θ σ1 t static.profile
+  adequacy : BodyAdequacyCI Θ σ1 t static.profile
 
-namespace SeqTailStaticAdequacyWitnessPayloadCI
+namespace SeqTailStaticAdequacyProviderPayloadCI
 
 /-- Forget the witness-producing tail payload to the existing proof-only payload. -/
 def toStaticAdequacyPayloadCI
     {Θ : TypeEnv} {σ1 : State} {t : CppStmt}
-    (p : SeqTailStaticAdequacyWitnessPayloadCI Θ σ1 t) :
+    (p : SeqTailStaticAdequacyProviderPayloadCI Θ σ1 t) :
     SeqTailStaticAdequacyPayloadCI Θ σ1 t :=
   { static := p.static
     support :=
       { normal :=
           { normalSound := by
               intro σ2 hstep
-              let w := p.adequacyWitness.normalWitness hstep
+              let w := p.adequacy.normalWitness hstep
               exact ⟨w.val, w.property⟩ }
         returned :=
           { returnSound := by
               intro rv σ2 hstep
-              let w := p.adequacyWitness.returnWitness hstep
+              let w := p.adequacy.returnWitness hstep
               exact ⟨w.val, w.property⟩ } } }
 
 /-- Forget the witness-producing tail payload to the older static+adequacy API. -/
 noncomputable def toStaticAdequacyCI
     {Θ : TypeEnv} {σ1 : State} {t : CppStmt}
-    (p : SeqTailStaticAdequacyWitnessPayloadCI Θ σ1 t) :
+    (p : SeqTailStaticAdequacyProviderPayloadCI Θ σ1 t) :
     SeqTailStaticAdequacyCI Θ σ1 t :=
   (p.toStaticAdequacyPayloadCI).toStaticAdequacyCI
 
-end SeqTailStaticAdequacyWitnessPayloadCI
+end SeqTailStaticAdequacyProviderPayloadCI
 
 /--
 Witness-producing compatibility name for the extracted left sequence boundary.
 -/
-noncomputable def seq_left_adequacy_witness_ci_of_entry
+noncomputable def seq_left_body_adequacy_ci_of_entry
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (hstatic : BodyStaticBoundaryCI Γ s) :

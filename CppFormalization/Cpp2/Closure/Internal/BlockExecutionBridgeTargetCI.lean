@@ -131,22 +131,22 @@ Witness-producing opened block-body adequacy scaffold.
 
 This is the provider-facing analogue of `BlockOpenedAdequacyScaffoldCI`.
 -/
-structure BlockOpenedAdequacyWitnessScaffoldCI
+structure BlockOpenedAdequacyProviderScaffoldCI
     (Γ : TypeEnv) (σ : State) (ss : StmtBlock)
     (P : BlockBodyControlProfile Γ ss) : Type where
   adequacyWitness : BlockBodyAdequacyCI Γ σ ss P
 
-namespace BlockOpenedAdequacyWitnessScaffoldCI
+namespace BlockOpenedAdequacyProviderScaffoldCI
 
 /-- Forget the witness-producing opened block scaffold to the proof-only scaffold. -/
 def toOpenedAdequacyScaffoldCI
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
     {P : BlockBodyControlProfile Γ ss}
-    (S : BlockOpenedAdequacyWitnessScaffoldCI Γ σ ss P) :
+    (S : BlockOpenedAdequacyProviderScaffoldCI Γ σ ss P) :
     BlockOpenedAdequacyScaffoldCI Γ σ ss P :=
   { adequacy := S.adequacyWitness }
 
-end BlockOpenedAdequacyWitnessScaffoldCI
+end BlockOpenedAdequacyProviderScaffoldCI
 
 /--
 Build opened block-body adequacy witnesses from statement-level block adequacy
@@ -188,13 +188,13 @@ noncomputable def blockBodyAdequacyCI_of_stmtBlockAdequacy_and_executionBridge
 Opened block-body adequacy witness scaffold from an explicit statement-level
 adequacy witness and a witness-producing execution bridge.
 -/
-noncomputable def blockOpenedAdequacyWitnessScaffoldCI_of_stmtAdequacyWitness_and_executionToStmtWitnessBridge
+noncomputable def blockOpenedAdequacyProviderScaffoldCI_of_stmtAdequacy_and_executionToStmtWitnessBridge
     {Γ : TypeEnv} {σ σ0 : State} {ss : StmtBlock}
     (hentry : BodyClosureBoundaryCI Γ σ (.block ss))
     (hopen : OpenScope σ σ0)
     (A : BodyAdequacyCI Γ σ (.block ss) hentry.static.profile)
     (B : OpenedBlockExecutionToStmtWitnessBridgeCI σ σ0 ss) :
-    BlockOpenedAdequacyWitnessScaffoldCI Γ σ0 ss
+    BlockOpenedAdequacyProviderScaffoldCI Γ σ0 ss
       (blockBodyProfile_of_bodyClosureBoundaryCI hentry) :=
   { adequacyWitness :=
       blockBodyAdequacyCI_of_stmtBlockAdequacy_and_executionBridge
@@ -209,14 +209,14 @@ This adapter is intentionally noncomputable because the top-level
 block witness route be used before the final destructive replacement of
 `BodyAdequacyCI`.
 -/
-noncomputable def blockOpenedAdequacyWitnessScaffoldCI_of_executionToStmtWitnessBridge
+noncomputable def blockOpenedAdequacyProviderScaffoldCI_of_executionToStmtWitnessBridge
     {Γ : TypeEnv} {σ σ0 : State} {ss : StmtBlock}
     (hentry : BodyClosureBoundaryCI Γ σ (.block ss))
     (hopen : OpenScope σ σ0)
     (B : OpenedBlockExecutionToStmtWitnessBridgeCI σ σ0 ss) :
-    BlockOpenedAdequacyWitnessScaffoldCI Γ σ0 ss
+    BlockOpenedAdequacyProviderScaffoldCI Γ σ0 ss
       (blockBodyProfile_of_bodyClosureBoundaryCI hentry) :=
-  blockOpenedAdequacyWitnessScaffoldCI_of_stmtAdequacyWitness_and_executionToStmtWitnessBridge
+  blockOpenedAdequacyProviderScaffoldCI_of_stmtAdequacy_and_executionToStmtWitnessBridge
     hentry hopen
     hentry.adequacy
     B
@@ -232,7 +232,7 @@ noncomputable def blockOpenedAdequacyScaffoldCI_of_executionToStmtWitnessBridge
     (B : OpenedBlockExecutionToStmtWitnessBridgeCI σ σ0 ss) :
     BlockOpenedAdequacyScaffoldCI Γ σ0 ss
       (blockBodyProfile_of_bodyClosureBoundaryCI hentry) :=
-  (blockOpenedAdequacyWitnessScaffoldCI_of_executionToStmtWitnessBridge
+  (blockOpenedAdequacyProviderScaffoldCI_of_executionToStmtWitnessBridge
     hentry hopen B).toOpenedAdequacyScaffoldCI
 
 /--
@@ -278,7 +278,7 @@ noncomputable def blockBodyClosureBoundaryCI_of_bodyClosureBoundaryCI_opened_via
       blockBodyDynamicBoundary_of_bodyClosureBoundaryCI_opened hentry hopen
     adequacy := by
       simpa [blockBodyStaticBoundary_of_bodyClosureBoundaryCI_profile hentry] using
-        ((blockOpenedAdequacyWitnessScaffoldCI_of_executionToStmtWitnessBridge
+        ((blockOpenedAdequacyProviderScaffoldCI_of_executionToStmtWitnessBridge
           hentry hopen B).adequacyWitness) }
 
 /--
