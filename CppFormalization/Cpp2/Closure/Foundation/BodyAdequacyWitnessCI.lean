@@ -50,6 +50,29 @@ def toBodyAdequacy
       let w := A.returnWitness hstep
       exact ⟨w.val, w.property⟩ }
 
+/--
+Classical bridge from proof-only statement adequacy to witness-producing
+adequacy.
+
+This is intentionally noncomputable: it selects the profile output hidden behind
+the `Prop`-level existential in `BodyAdequacyCI`.  Prefer theorem-backed
+witness providers when available; this adapter exists for compatibility during
+the migration.
+-/
+noncomputable def ofBodyAdequacy
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    {P : BodyControlProfile Γ st}
+    (A : BodyAdequacyCI Γ σ st P) :
+    BodyAdequacyWitnessCI Γ σ st P :=
+  { normalWitness := by
+      intro σ' hstep
+      let h := A.normalSound hstep
+      exact ⟨Classical.choose h, Classical.choose_spec h⟩
+    returnWitness := by
+      intro rv σ' hstep
+      let h := A.returnSound hstep
+      exact ⟨Classical.choose h, Classical.choose_spec h⟩ }
+
 end BodyAdequacyWitnessCI
 
 /--
@@ -90,6 +113,27 @@ def toBlockBodyAdequacy
       intro rv σ' hstep
       let w := A.returnWitness hstep
       exact ⟨w.val, w.property⟩ }
+
+/--
+Classical bridge from proof-only opened block adequacy to witness-producing
+opened block adequacy.
+
+As with `BodyAdequacyWitnessCI.ofBodyAdequacy`, this is a compatibility adapter
+for the migration period.
+-/
+noncomputable def ofBlockBodyAdequacy
+    {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
+    {P : BlockBodyControlProfile Γ ss}
+    (A : BlockBodyAdequacyCI Γ σ ss P) :
+    BlockBodyAdequacyWitnessCI Γ σ ss P :=
+  { normalWitness := by
+      intro σ' hstep
+      let h := A.normalSound hstep
+      exact ⟨Classical.choose h, Classical.choose_spec h⟩
+    returnWitness := by
+      intro rv σ' hstep
+      let h := A.returnSound hstep
+      exact ⟨Classical.choose h, Classical.choose_spec h⟩ }
 
 end BlockBodyAdequacyWitnessCI
 
