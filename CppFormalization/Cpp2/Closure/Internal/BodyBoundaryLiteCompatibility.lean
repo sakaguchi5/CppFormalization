@@ -267,22 +267,16 @@ noncomputable def stmtAdequacyCI_of_lite
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (P : StmtBodyProfileLite Γ st)
     (A : StmtBodyAdequacyLite Γ σ P) :
-    BodyAdequacyCI Γ σ st (bodyControlProfile_of_profileLite P) := by
-  refine
-    { normalSound := ?_
-      returnSound := ?_
-      normalWitness := ?_
-      returnWitness := ?_ }
-  · intro σ' hstep
-    exact stmtNormalSound_of_lite P A hstep
-  · intro rv σ' hstep
-    exact stmtReturnSound_of_lite P A hstep
-  · intro σ' hstep
-    let h := stmtNormalSound_of_lite P A hstep
-    exact ⟨Classical.choose h, Classical.choose_spec h⟩
-  · intro rv σ' hstep
-    let h := stmtReturnSound_of_lite P A hstep
-    exact ⟨Classical.choose h, Classical.choose_spec h⟩
+    BodyAdequacyCI Γ σ st (bodyControlProfile_of_profileLite P) :=
+  BodyAdequacyCI.ofWitness
+    (normalWitness := by
+      intro σ' hstep
+      let h := stmtNormalSound_of_lite P A hstep
+      exact ⟨Classical.choose h, Classical.choose_spec h⟩)
+    (returnWitness := by
+      intro rv σ' hstep
+      let h := stmtReturnSound_of_lite P A hstep
+      exact ⟨Classical.choose h, Classical.choose_spec h⟩)
 
 noncomputable def BodyClosureBoundaryLite.toBodyReadyCI
     {Γ : TypeEnv} {σ : State} {st : CppStmt}

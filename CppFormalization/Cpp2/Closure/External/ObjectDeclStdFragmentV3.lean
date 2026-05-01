@@ -596,24 +596,14 @@ theorem noReturnBigStep
 /-- Adequacy of the cert-induced control profile. -/
 def bodyAdequacyCI
     (c : ObjectDeclRuntimeCert) :
-    BodyAdequacyCI c.Γ c.σ c.targetStmt c.bodyControlProfile := by
-  refine
-    { normalSound := ?_
-      returnSound := ?_
-      normalWitness := ?_
-      returnWitness := ?_ }
-  ·
-    intro σ' hstep
-    exact ⟨c.normalOut, rfl⟩
-  ·
-    intro rv σ' hstep
-    exact False.elim (c.noReturnBigStep hstep)
-  ·
-    intro σ' hstep
-    exact ⟨c.normalOut, rfl⟩
-  ·
-    intro rv σ' hstep
-    exact False.elim (c.noReturnBigStep hstep)
+    BodyAdequacyCI c.Γ c.σ c.targetStmt c.bodyControlProfile :=
+  BodyAdequacyCI.ofWitness
+    (normalWitness := by
+      intro σ' hstep
+      exact ⟨c.normalOut, rfl⟩)
+    (returnWitness := by
+      intro rv σ' hstep
+      exact False.elim (c.noReturnBigStep hstep))
 
 /-- Fully assembled CI closure boundary extracted from the cert. -/
 def bodyClosureBoundaryCI

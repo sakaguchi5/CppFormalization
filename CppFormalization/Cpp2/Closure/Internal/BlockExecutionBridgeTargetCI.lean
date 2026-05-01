@@ -103,22 +103,9 @@ noncomputable def blockOpenedAdequacyScaffoldCI_of_executionToStmtBridge
     (B : OpenedBlockExecutionToStmtBridgeCI σ σ0 ss) :
     BlockOpenedAdequacyScaffoldCI Γ σ0 ss
       (blockBodyProfile_of_bodyClosureBoundaryCI hentry) :=
-  { adequacy :=
-      { normalSound := by
-          intro σ1 hstepOpened
-          rcases B.normalToStmt hstepOpened with ⟨σ2, hstmt⟩
-          let w := hentry.adequacy.normalWitness hstmt
-          refine ⟨blockNormalOut_of_stmtBlockNormalOut w.val, ?_⟩
-          simp [blockBodyProfile_of_bodyClosureBoundaryCI,
-            blockBodySummary_of_stmtBodySummary, w.property]
-        returnSound := by
-          intro rv σ1 hstepOpened
-          rcases B.returnToStmt hstepOpened with ⟨σ2, hstmt⟩
-          let w := hentry.adequacy.returnWitness hstmt
-          refine ⟨blockReturnOut_of_stmtBlockReturnOut w.val, ?_⟩
-          simp [blockBodyProfile_of_bodyClosureBoundaryCI,
-            blockBodySummary_of_stmtBodySummary, w.property]
-        normalWitness := by
+    { adequacy :=
+        BlockBodyAdequacyCI.ofWitness
+        (normalWitness := by
           intro σ1 hstepOpened
           let hstmtEx := B.normalToStmt hstepOpened
           let σ2 := Classical.choose hstmtEx
@@ -127,9 +114,8 @@ noncomputable def blockOpenedAdequacyScaffoldCI_of_executionToStmtBridge
           let w := hentry.adequacy.normalWitness hstmt
           refine ⟨blockNormalOut_of_stmtBlockNormalOut w.val, ?_⟩
           simp [blockBodyProfile_of_bodyClosureBoundaryCI,
-            blockBodySummary_of_stmtBodySummary, w.property]
-
-        returnWitness := by
+            blockBodySummary_of_stmtBodySummary, w.property])
+        (returnWitness := by
           intro rv σ1 hstepOpened
           let hstmtEx := B.returnToStmt hstepOpened
           let σ2 := Classical.choose hstmtEx
@@ -138,7 +124,7 @@ noncomputable def blockOpenedAdequacyScaffoldCI_of_executionToStmtBridge
           let w := hentry.adequacy.returnWitness hstmt
           refine ⟨blockReturnOut_of_stmtBlockReturnOut w.val, ?_⟩
           simp [blockBodyProfile_of_bodyClosureBoundaryCI,
-            blockBodySummary_of_stmtBodySummary, w.property] } }
+            blockBodySummary_of_stmtBodySummary, w.property]) }
 
 /--
 Witness-producing opened block-body adequacy scaffold.

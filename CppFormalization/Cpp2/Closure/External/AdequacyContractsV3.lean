@@ -32,28 +32,20 @@ noncomputable def canonicalAdequacyV3_ofContracts
     (hgen : R.generates m st)
     (hrefl : R.supportsReflection m Γ st) :
     BodyAdequacyCI Γ σ st
-      (canonicalProfileV3 (R := R) (m := m) (Γ := Γ) (st := st) hgen hrefl) := by
-  refine
-    { normalSound := ?_
-      returnSound := ?_
-      normalWitness := ?_
-      returnWitness := ?_ }
-  · intro σ' hstep
-    exact canonical_profile_normal_sound_v3_of_normalCompat
-      H.normal hgen hrefl hstep
-  · intro rv σ' hstep
-    exact canonical_profile_return_sound_v3_of_returnCompat
-      H.returned hgen hrefl hstep
-  · intro σ' hstep
-    let h :=
-      canonical_profile_normal_sound_v3_of_normalCompat
-        H.normal hgen hrefl hstep
-    exact ⟨Classical.choose h, Classical.choose_spec h⟩
-  · intro rv σ' hstep
-    let h :=
-      canonical_profile_return_sound_v3_of_returnCompat
-        H.returned hgen hrefl hstep
-    exact ⟨Classical.choose h, Classical.choose_spec h⟩
+      (canonicalProfileV3 (R := R) (m := m) (Γ := Γ) (st := st) hgen hrefl) :=
+  BodyAdequacyCI.ofWitness
+    (normalWitness := by
+      intro σ' hstep
+      let h :=
+        canonical_profile_normal_sound_v3_of_normalCompat
+          H.normal hgen hrefl hstep
+      exact ⟨Classical.choose h, Classical.choose_spec h⟩)
+    (returnWitness := by
+      intro rv σ' hstep
+      let h :=
+        canonical_profile_return_sound_v3_of_returnCompat
+          H.returned hgen hrefl hstep
+      exact ⟨Classical.choose h, Classical.choose_spec h⟩)
 /--
 Build the honest canonical glue object from:
 - a compatibility predicate, and

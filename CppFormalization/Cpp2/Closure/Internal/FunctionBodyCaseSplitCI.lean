@@ -983,16 +983,15 @@ noncomputable def toBodyAdequacyCI
     {P : BodyControlProfile Θ t}
     (A : SeqTailAdequacySupportCI Θ σ1 t P) :
     BodyAdequacyCI Θ σ1 t P :=
-  { normalSound := A.normal.normalSound
-    returnSound := A.returned.returnSound
-    normalWitness := by
+  BodyAdequacyCI.ofWitness
+    (normalWitness := by
       intro σ2 hstep
       let h := A.normal.normalSound hstep
-      exact ⟨Classical.choose h, Classical.choose_spec h⟩
-    returnWitness := by
+      exact ⟨Classical.choose h, Classical.choose_spec h⟩)
+    (returnWitness := by
       intro rv σ2 hstep
       let h := A.returned.returnSound hstep
-      exact ⟨Classical.choose h, Classical.choose_spec h⟩ }
+      exact ⟨Classical.choose h, Classical.choose_spec h⟩)
 
 end SeqTailAdequacySupportCI
 
@@ -1125,21 +1124,15 @@ def toBodyAdequacyCI
     {P : BodyControlProfile Γ s}
     (A : SeqLeftAdequacySupportCI Γ σ s t P) :
     BodyAdequacyCI Γ σ s P :=
-  { normalSound := by
+  BodyAdequacyCI.ofWitness
+    (normalWitness := by
       intro σ1 hstep
       let r := A.normal.normalRoute hstep
-      exact ⟨⟨r.Θ, r.hleft⟩, r.hprofile⟩
-    returnSound := by
-      intro rv σ' hstep
-      exact (A.returned.returnDecision hstep).toExists
-    normalWitness := by
-      intro σ1 hstep
-      let r := A.normal.normalRoute hstep
-      exact ⟨⟨r.Θ, r.hleft⟩, r.hprofile⟩
-    returnWitness := by
+      exact ⟨⟨r.Θ, r.hleft⟩, r.hprofile⟩)
+    (returnWitness := by
       intro rv σ' hstep
       let d := A.returned.returnDecision hstep
-      exact ⟨⟨d.Delta, d.hleft⟩, d.hprofile⟩ }
+      exact ⟨⟨d.Delta, d.hleft⟩, d.hprofile⟩)
 
 end SeqLeftAdequacySupportCI
 
@@ -2184,20 +2177,15 @@ def toBodyAdequacyCI
     {P : BodyControlProfile Γ st}
     (A : IteBranchAdequacySupportCI Γ σ st P) :
     BodyAdequacyCI Γ σ st P :=
-  { normalSound := by
-      intro σ' hstep
-      exact (A.normalDecision hstep).toExists
-    returnSound := by
-      intro rv σ' hstep
-      exact (A.returnDecision hstep).toExists
-    normalWitness := by
+  BodyAdequacyCI.ofWitness
+    (normalWitness := by
       intro σ' hstep
       let d := A.normalDecision hstep
-      exact ⟨⟨d.Delta, d.hty⟩, d.hprofile⟩
-    returnWitness := by
+      exact ⟨⟨d.Delta, d.hty⟩, d.hprofile⟩)
+    (returnWitness := by
       intro rv σ' hstep
       let d := A.returnDecision hstep
-      exact ⟨⟨d.Delta, d.hty⟩, d.hprofile⟩ }
+      exact ⟨⟨d.Delta, d.hty⟩, d.hprofile⟩)
 
 end IteBranchAdequacySupportCI
 

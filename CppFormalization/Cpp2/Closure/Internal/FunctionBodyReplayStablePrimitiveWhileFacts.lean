@@ -386,48 +386,32 @@ def while_tail_adequacy_after_body_normal
     (hready : BodyReadyCI Γ σ (.whileStmt c body))
     (hcond : BigStepValue σ c (.bool true))
     (hbodyStep : BigStepStmt σ body .normal σ') :
-    BodyAdequacyCI Γ σ' (.whileStmt c body) hready.static.profile := by
-  refine
-    { normalSound := ?_
-      returnSound := ?_
-      normalWitness := ?_
-      returnWitness := ?_ }
-  · intro σ2 htail
-    exact hready.adequacy.normalSound
-      (BigStepStmt.whileTrueNormal hcond hbodyStep htail)
-  · intro rv σ2 htail
-    exact hready.adequacy.returnSound
-      (BigStepStmt.whileTrueNormal hcond hbodyStep htail)
-  · intro σ2 htail
-    exact hready.adequacy.normalWitness
-      (BigStepStmt.whileTrueNormal hcond hbodyStep htail)
-  · intro rv σ2 htail
-    exact hready.adequacy.returnWitness
-      (BigStepStmt.whileTrueNormal hcond hbodyStep htail)
+    BodyAdequacyCI Γ σ' (.whileStmt c body) hready.static.profile :=
+  BodyAdequacyCI.ofWitness
+    (normalWitness := by
+      intro σ2 htail
+      exact hready.adequacy.normalWitness
+        (BigStepStmt.whileTrueNormal hcond hbodyStep htail))
+    (returnWitness := by
+      intro rv σ2 htail
+      exact hready.adequacy.returnWitness
+        (BigStepStmt.whileTrueNormal hcond hbodyStep htail))
 
 def while_tail_adequacy_after_body_continue
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
     (hready : BodyReadyCI Γ σ (.whileStmt c body))
     (hcond : BigStepValue σ c (.bool true))
     (hbodyStep : BigStepStmt σ body .continueResult σ') :
-    BodyAdequacyCI Γ σ' (.whileStmt c body) hready.static.profile := by
-  refine
-    { normalSound := ?_
-      returnSound := ?_
-      normalWitness := ?_
-      returnWitness := ?_ }
-  · intro σ2 htail
-    exact hready.adequacy.normalSound
-      (BigStepStmt.whileTrueContinue hcond hbodyStep htail)
-  · intro rv σ2 htail
-    exact hready.adequacy.returnSound
-      (BigStepStmt.whileTrueContinue hcond hbodyStep htail)
-  · intro σ2 htail
-    exact hready.adequacy.normalWitness
-      (BigStepStmt.whileTrueContinue hcond hbodyStep htail)
-  · intro rv σ2 htail
-    exact hready.adequacy.returnWitness
-      (BigStepStmt.whileTrueContinue hcond hbodyStep htail)
+    BodyAdequacyCI Γ σ' (.whileStmt c body) hready.static.profile :=
+  BodyAdequacyCI.ofWitness
+    (normalWitness := by
+      intro σ2 htail
+      exact hready.adequacy.normalWitness
+        (BigStepStmt.whileTrueContinue hcond hbodyStep htail))
+    (returnWitness := by
+      intro rv σ2 htail
+      exact hready.adequacy.returnWitness
+        (BigStepStmt.whileTrueContinue hcond hbodyStep htail))
 
 /--
 Post-state top-level while adequacy witness provider for replay-stable primitive
