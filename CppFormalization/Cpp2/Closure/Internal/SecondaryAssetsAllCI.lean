@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyWitnessCI
+import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Internal.SecondarySeqAssetsCI
 import CppFormalization.Cpp2.Closure.Internal.IteBranchAdequacyAssetsCI
 import CppFormalization.Cpp2.Closure.Internal.SmallReusableWrappersCI

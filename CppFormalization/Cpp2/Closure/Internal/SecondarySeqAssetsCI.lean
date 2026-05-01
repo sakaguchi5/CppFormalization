@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyWitnessCI
+import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseSplitCI
 
 namespace Cpp
@@ -194,15 +194,16 @@ noncomputable def toBodyAdequacyWitnessCI
     {Θ : TypeEnv} {σ1 : State} {t : CppStmt}
     {P : BodyControlProfile Θ t}
     (A : SeqTailAdequacySupportCI Θ σ1 t P) :
-    BodyAdequacyWitnessCI Θ σ1 t P :=
-  { normalWitness := by
+    BodyAdequacyCI Θ σ1 t P :=
+  BodyAdequacyCI.ofWitness
+    (normalWitness := by
       intro σ2 hstep
       let h := A.normal.normalSound hstep
-      exact ⟨Classical.choose h, Classical.choose_spec h⟩
-    returnWitness := by
+      exact ⟨Classical.choose h, Classical.choose_spec h⟩)
+    (returnWitness := by
       intro rv σ2 hstep
       let h := A.returned.returnSound hstep
-      exact ⟨Classical.choose h, Classical.choose_spec h⟩ }
+      exact ⟨Classical.choose h, Classical.choose_spec h⟩)
 
 end SeqTailAdequacySupportCI
 
@@ -216,7 +217,7 @@ The existing `SeqTailStaticAdequacyPayloadCI` remains proof-only through
 structure SeqTailStaticAdequacyWitnessPayloadCI
     (Θ : TypeEnv) (σ1 : State) (t : CppStmt) : Type where
   static : BodyStaticBoundaryCI Θ t
-  adequacyWitness : BodyAdequacyWitnessCI Θ σ1 t static.profile
+  adequacyWitness : BodyAdequacyCI Θ σ1 t static.profile
 
 namespace SeqTailStaticAdequacyWitnessPayloadCI
 
@@ -257,15 +258,16 @@ def toBodyAdequacyWitnessCI
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
     (A : SeqLeftAdequacySupportCI Γ σ s t P) :
-    BodyAdequacyWitnessCI Γ σ s P :=
-  { normalWitness := by
+    BodyAdequacyCI Γ σ s P :=
+  BodyAdequacyCI.ofWitness
+    (normalWitness := by
       intro σ1 hstep
       let r := A.normal.normalRoute hstep
-      exact ⟨⟨r.Θ, r.hleft⟩, r.hprofile⟩
-    returnWitness := by
+      exact ⟨⟨r.Θ, r.hleft⟩, r.hprofile⟩)
+    (returnWitness := by
       intro rv σ' hstep
       let d := A.returned.returnDecision hstep
-      exact ⟨⟨d.Delta, d.hleft⟩, d.hprofile⟩ }
+      exact ⟨⟨d.Delta, d.hleft⟩, d.hprofile⟩)
 
 end SeqLeftAdequacySupportCI
 
@@ -276,7 +278,7 @@ noncomputable def seq_left_adequacy_witness_ci_of_entry
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (hstatic : BodyStaticBoundaryCI Γ s) :
-    BodyAdequacyWitnessCI Γ σ s hstatic.profile :=
+    BodyAdequacyCI Γ σ s hstatic.profile :=
   (seq_left_adequacy_support_ci_of_entry hentry hstatic).toBodyAdequacyWitnessCI
 
 end Cpp

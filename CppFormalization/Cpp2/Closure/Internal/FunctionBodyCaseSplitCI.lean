@@ -5,7 +5,6 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyStructuralBoundary
 import CppFormalization.Cpp2.Closure.Foundation.BodyControlProfile
 import CppFormalization.Cpp2.Closure.Foundation.BodyDynamicBoundary
 import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
-import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyWitnessCI
 import CppFormalization.Cpp2.Closure.Internal.HeadTailReturnAwareRoutesCI
 import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.StmtControlPreservation
@@ -2353,7 +2352,7 @@ witness-producing adequacy layer.
 def ofBodyAdequacyWitness
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (S : IteBranchProfileSlotPayloadCI Γ st)
-    (A : BodyAdequacyWitnessCI Γ σ st S.toProfile) :
+    (A : BodyAdequacyCI Γ σ st S.toProfile) :
     IteBranchSlotAdequacySupportCI Γ σ st S :=
   { normalDecision := by
       intro σ' hstep
@@ -2385,7 +2384,7 @@ from one branch adequacy package.
 axiom ite_then_adequacy_witness_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    BodyAdequacyWitnessCI Γ σ s
+    BodyAdequacyCI Γ σ s
       (ite_then_profile_slot_payload_ci_of_entry hentry).toProfile
 
 /--
@@ -2396,7 +2395,7 @@ This replaces the two channel-specific else-branch runtime-decision axioms.
 axiom ite_else_adequacy_witness_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    BodyAdequacyWitnessCI Γ σ t
+    BodyAdequacyCI Γ σ t
       (ite_else_profile_slot_payload_ci_of_entry hentry).toProfile
 
 /--
@@ -2531,7 +2530,7 @@ provider.
 structure IteBranchStaticAdequacyWitnessCI
     (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
   static : BodyStaticBoundaryCI Γ st
-  adequacyWitness : BodyAdequacyWitnessCI Γ σ st static.profile
+  adequacyWitness : BodyAdequacyCI Γ σ st static.profile
 
 namespace IteBranchStaticAdequacyWitnessCI
 
@@ -2541,7 +2540,7 @@ def toStaticAdequacyCI
     (B : IteBranchStaticAdequacyWitnessCI Γ σ st) :
     IteBranchStaticAdequacyCI Γ σ st :=
   { static := B.static
-    adequacy := B.adequacyWitness.toBodyAdequacy }
+    adequacy := B.adequacyWitness }
 
 end IteBranchStaticAdequacyWitnessCI
 
@@ -2551,7 +2550,7 @@ Then-branch witness adequacy transported to the actual static boundary profile.
 noncomputable def ite_then_adequacy_witness_ci_of_static_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    BodyAdequacyWitnessCI Γ σ s (ite_then_static_ci_of_entry hentry).profile := by
+    BodyAdequacyCI Γ σ s (ite_then_static_ci_of_entry hentry).profile := by
   simpa [ite_then_static_ci_of_entry, IteBranchStaticScaffoldCI.toBodyStaticBoundaryCI,
     IteBranchStaticScaffoldCI.profile, ite_then_static_scaffold_ci_of_entry,
     ite_then_profile_payload_ci_of_entry, IteBranchProfilePayloadCI.ofSlotPayload]
@@ -2563,7 +2562,7 @@ Else-branch witness adequacy transported to the actual static boundary profile.
 noncomputable def ite_else_adequacy_witness_ci_of_static_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    BodyAdequacyWitnessCI Γ σ t (ite_else_static_ci_of_entry hentry).profile := by
+    BodyAdequacyCI Γ σ t (ite_else_static_ci_of_entry hentry).profile := by
   simpa [ite_else_static_ci_of_entry, IteBranchStaticScaffoldCI.toBodyStaticBoundaryCI,
     IteBranchStaticScaffoldCI.profile, ite_else_static_scaffold_ci_of_entry,
     ite_else_profile_payload_ci_of_entry, IteBranchProfilePayloadCI.ofSlotPayload]

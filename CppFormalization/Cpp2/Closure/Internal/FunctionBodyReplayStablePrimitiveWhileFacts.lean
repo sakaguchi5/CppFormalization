@@ -1,6 +1,6 @@
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
-import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyWitnessCI
+import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI
 import CppFormalization.Cpp2.Closure.Internal.WhileBodyClassCI
 import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
@@ -313,12 +313,12 @@ structure WhileTailAdequacyWitnessProviderCI
     ∀ {σ1 : State},
       BigStepValue σ c (.bool true) →
       BigStepStmt σ body .normal σ1 →
-      BodyAdequacyWitnessCI Γ σ1 (.whileStmt c body) static.profile
+      BodyAdequacyCI Γ σ1 (.whileStmt c body) static.profile
   afterContinue :
     ∀ {σ1 : State},
       BigStepValue σ c (.bool true) →
       BigStepStmt σ body .continueResult σ1 →
-      BodyAdequacyWitnessCI Γ σ1 (.whileStmt c body) static.profile
+      BodyAdequacyCI Γ σ1 (.whileStmt c body) static.profile
 
 namespace WhileTailAdequacyWitnessProviderCI
 
@@ -330,10 +330,10 @@ def toWhileTailAdequacyProviderCI
     WhileTailAdequacyProviderCI Γ σ c body static :=
   { afterNormal := by
       intro σ1 hcond hstep
-      exact (P.afterNormal hcond hstep).toBodyAdequacy
+      exact P.afterNormal hcond hstep
     afterContinue := by
       intro σ1 hcond hstep
-      exact (P.afterContinue hcond hstep).toBodyAdequacy }
+      exact P.afterContinue hcond hstep }
 
 end WhileTailAdequacyWitnessProviderCI
 
@@ -347,17 +347,16 @@ noncomputable def while_tail_adequacy_witness_after_body_normal
     (hready : BodyReadyCI Γ σ (.whileStmt c body))
     (hcond : BigStepValue σ c (.bool true))
     (hbodyStep : BigStepStmt σ body .normal σ') :
-    BodyAdequacyWitnessCI Γ σ' (.whileStmt c body) hready.static.profile :=
-  { normalWitness := by
+    BodyAdequacyCI Γ σ' (.whileStmt c body) hready.static.profile :=
+  BodyAdequacyCI.ofWitness
+    (normalWitness := by
       intro σ2 htail
-      exact
-        (BodyAdequacyWitnessCI.ofBodyAdequacy hready.adequacy).normalWitness
-          (BigStepStmt.whileTrueNormal hcond hbodyStep htail)
-    returnWitness := by
+      exact hready.adequacy.normalWitness
+        (BigStepStmt.whileTrueNormal hcond hbodyStep htail))
+    (returnWitness := by
       intro rv σ2 htail
-      exact
-        (BodyAdequacyWitnessCI.ofBodyAdequacy hready.adequacy).returnWitness
-          (BigStepStmt.whileTrueNormal hcond hbodyStep htail) }
+      exact hready.adequacy.returnWitness
+        (BigStepStmt.whileTrueNormal hcond hbodyStep htail))
 
 /--
 Witness-producing post-state adequacy after a replay-stable primitive
@@ -369,17 +368,16 @@ noncomputable def while_tail_adequacy_witness_after_body_continue
     (hready : BodyReadyCI Γ σ (.whileStmt c body))
     (hcond : BigStepValue σ c (.bool true))
     (hbodyStep : BigStepStmt σ body .continueResult σ') :
-    BodyAdequacyWitnessCI Γ σ' (.whileStmt c body) hready.static.profile :=
-  { normalWitness := by
+    BodyAdequacyCI Γ σ' (.whileStmt c body) hready.static.profile :=
+  BodyAdequacyCI.ofWitness
+    (normalWitness := by
       intro σ2 htail
-      exact
-        (BodyAdequacyWitnessCI.ofBodyAdequacy hready.adequacy).normalWitness
-          (BigStepStmt.whileTrueContinue hcond hbodyStep htail)
-    returnWitness := by
+      exact hready.adequacy.normalWitness
+        (BigStepStmt.whileTrueContinue hcond hbodyStep htail))
+    (returnWitness := by
       intro rv σ2 htail
-      exact
-        (BodyAdequacyWitnessCI.ofBodyAdequacy hready.adequacy).returnWitness
-          (BigStepStmt.whileTrueContinue hcond hbodyStep htail) }
+      exact hready.adequacy.returnWitness
+        (BigStepStmt.whileTrueContinue hcond hbodyStep htail))
 
 def while_tail_adequacy_after_body_normal
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}

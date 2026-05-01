@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyWitnessCI
+import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureCI
 
 namespace Cpp
@@ -134,7 +134,7 @@ This is the provider-facing analogue of `BlockOpenedAdequacyScaffoldCI`.
 structure BlockOpenedAdequacyWitnessScaffoldCI
     (Γ : TypeEnv) (σ : State) (ss : StmtBlock)
     (P : BlockBodyControlProfile Γ ss) : Type where
-  adequacyWitness : BlockBodyAdequacyWitnessCI Γ σ ss P
+  adequacyWitness : BlockBodyAdequacyCI Γ σ ss P
 
 namespace BlockOpenedAdequacyWitnessScaffoldCI
 
@@ -144,7 +144,7 @@ def toOpenedAdequacyScaffoldCI
     {P : BlockBodyControlProfile Γ ss}
     (S : BlockOpenedAdequacyWitnessScaffoldCI Γ σ ss P) :
     BlockOpenedAdequacyScaffoldCI Γ σ ss P :=
-  { adequacy := S.adequacyWitness.toBlockBodyAdequacy }
+  { adequacy := S.adequacyWitness }
 
 end BlockOpenedAdequacyWitnessScaffoldCI
 
@@ -160,11 +160,12 @@ noncomputable def blockBodyAdequacyWitnessCI_of_stmtBlockAdequacyWitness_and_exe
     {Γ : TypeEnv} {σ σ0 : State} {ss : StmtBlock}
     (hentry : BodyClosureBoundaryCI Γ σ (.block ss))
     (_ : OpenScope σ σ0)
-    (A : BodyAdequacyWitnessCI Γ σ (.block ss) hentry.static.profile)
+    (A : BodyAdequacyCI Γ σ (.block ss) hentry.static.profile)
     (B : OpenedBlockExecutionToStmtWitnessBridgeCI σ σ0 ss) :
-    BlockBodyAdequacyWitnessCI Γ σ0 ss
+    BlockBodyAdequacyCI Γ σ0 ss
       (blockBodyProfile_of_bodyClosureBoundaryCI hentry) :=
-  { normalWitness := by
+  BlockBodyAdequacyCI.ofWitness
+    (normalWitness := by
       intro σ1 hstepOpened
       let hstmt := B.normalToStmt hstepOpened
       let w := A.normalWitness hstmt.property
@@ -172,8 +173,8 @@ noncomputable def blockBodyAdequacyWitnessCI_of_stmtBlockAdequacyWitness_and_exe
         ⟨blockNormalOut_of_stmtBlockNormalOut w.val,
           by
             simp [blockBodyProfile_of_bodyClosureBoundaryCI,
-              blockBodySummary_of_stmtBodySummary, w.property]⟩
-    returnWitness := by
+              blockBodySummary_of_stmtBodySummary, w.property]⟩)
+    (returnWitness := by
       intro rv σ1 hstepOpened
       let hstmt := B.returnToStmt hstepOpened
       let w := A.returnWitness hstmt.property
@@ -181,7 +182,7 @@ noncomputable def blockBodyAdequacyWitnessCI_of_stmtBlockAdequacyWitness_and_exe
         ⟨blockReturnOut_of_stmtBlockReturnOut w.val,
           by
             simp [blockBodyProfile_of_bodyClosureBoundaryCI,
-              blockBodySummary_of_stmtBodySummary, w.property]⟩ }
+              blockBodySummary_of_stmtBodySummary, w.property]⟩)
 
 /--
 Opened block-body adequacy witness scaffold from an explicit statement-level
@@ -191,7 +192,7 @@ noncomputable def blockOpenedAdequacyWitnessScaffoldCI_of_stmtAdequacyWitness_an
     {Γ : TypeEnv} {σ σ0 : State} {ss : StmtBlock}
     (hentry : BodyClosureBoundaryCI Γ σ (.block ss))
     (hopen : OpenScope σ σ0)
-    (A : BodyAdequacyWitnessCI Γ σ (.block ss) hentry.static.profile)
+    (A : BodyAdequacyCI Γ σ (.block ss) hentry.static.profile)
     (B : OpenedBlockExecutionToStmtWitnessBridgeCI σ σ0 ss) :
     BlockOpenedAdequacyWitnessScaffoldCI Γ σ0 ss
       (blockBodyProfile_of_bodyClosureBoundaryCI hentry) :=
@@ -217,7 +218,7 @@ noncomputable def blockOpenedAdequacyWitnessScaffoldCI_of_executionToStmtWitness
       (blockBodyProfile_of_bodyClosureBoundaryCI hentry) :=
   blockOpenedAdequacyWitnessScaffoldCI_of_stmtAdequacyWitness_and_executionToStmtWitnessBridge
     hentry hopen
-    (BodyAdequacyWitnessCI.ofBodyAdequacy hentry.adequacy)
+    hentry.adequacy
     B
 
 /--
@@ -278,7 +279,7 @@ noncomputable def blockBodyClosureBoundaryCI_of_bodyClosureBoundaryCI_opened_via
     adequacy := by
       simpa [blockBodyStaticBoundary_of_bodyClosureBoundaryCI_profile hentry] using
         ((blockOpenedAdequacyWitnessScaffoldCI_of_executionToStmtWitnessBridge
-          hentry hopen B).adequacyWitness.toBlockBodyAdequacy) }
+          hentry hopen B).adequacyWitness) }
 
 /--
 Callback-based block statement closure using an explicit opened-execution bridge.

@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyWitnessCI
+import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseSplitCI
 
 namespace Cpp
