@@ -16,7 +16,7 @@ because tail-return provenance depends on the selected left-normal slot.
 The witness-provider migration adds witness-producing adapters for the already
 route-aware sequence adequacy packages.  These adapters make the future
 `BodyAdequacyCI` provider replacement non-disruptive: the sequence case can
-already produce `BodyAdequacyWitnessCI` where downstream Type-level data is
+already produce `BodyAdequacyCI` where downstream Type-level data is
 needed.
 -/
 
@@ -184,35 +184,12 @@ def toNormalPayload
 
 end SeqHeadNormalSelectedRouteCI
 
-namespace SeqTailAdequacySupportCI
-
-/--
-Forget the channel-split tail support to a witness-producing body adequacy
-provider.
--/
-noncomputable def toBodyAdequacyWitnessCI
-    {Θ : TypeEnv} {σ1 : State} {t : CppStmt}
-    {P : BodyControlProfile Θ t}
-    (A : SeqTailAdequacySupportCI Θ σ1 t P) :
-    BodyAdequacyCI Θ σ1 t P :=
-  BodyAdequacyCI.ofWitness
-    (normalWitness := by
-      intro σ2 hstep
-      let h := A.normal.normalSound hstep
-      exact ⟨Classical.choose h, Classical.choose_spec h⟩)
-    (returnWitness := by
-      intro rv σ2 hstep
-      let h := A.returned.returnSound hstep
-      exact ⟨Classical.choose h, Classical.choose_spec h⟩)
-
-end SeqTailAdequacySupportCI
-
 /--
 Witness-producing tail static+adequacy payload.
 
 The existing `SeqTailStaticAdequacyPayloadCI` remains proof-only through
 `SeqTailAdequacySupportCI`.  This payload exposes the same tail boundary as a
-`BodyAdequacyWitnessCI`, which is the shape needed by the provider migration.
+`BodyAdequacyCI`, which is the shape needed by the provider migration.
 -/
 structure SeqTailStaticAdequacyWitnessPayloadCI
     (Θ : TypeEnv) (σ1 : State) (t : CppStmt) : Type where
@@ -248,29 +225,6 @@ noncomputable def toStaticAdequacyCI
 
 end SeqTailStaticAdequacyWitnessPayloadCI
 
-namespace SeqLeftAdequacySupportCI
-
-/--
-Forget the route-aware/runtime-decision sequence support to a witness-producing
-body adequacy provider for the left side.
--/
-def toBodyAdequacyWitnessCI
-    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
-    {P : BodyControlProfile Γ s}
-    (A : SeqLeftAdequacySupportCI Γ σ s t P) :
-    BodyAdequacyCI Γ σ s P :=
-  BodyAdequacyCI.ofWitness
-    (normalWitness := by
-      intro σ1 hstep
-      let r := A.normal.normalRoute hstep
-      exact ⟨⟨r.Θ, r.hleft⟩, r.hprofile⟩)
-    (returnWitness := by
-      intro rv σ' hstep
-      let d := A.returned.returnDecision hstep
-      exact ⟨⟨d.Delta, d.hleft⟩, d.hprofile⟩)
-
-end SeqLeftAdequacySupportCI
-
 /--
 Witness-producing compatibility name for the extracted left sequence boundary.
 -/
@@ -279,6 +233,6 @@ noncomputable def seq_left_adequacy_witness_ci_of_entry
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (hstatic : BodyStaticBoundaryCI Γ s) :
     BodyAdequacyCI Γ σ s hstatic.profile :=
-  (seq_left_adequacy_support_ci_of_entry hentry hstatic).toBodyAdequacyWitnessCI
+  (seq_left_adequacy_support_ci_of_entry hentry hstatic).toBodyAdequacyCI
 
 end Cpp

@@ -21,7 +21,7 @@ statement-level `.block ss` executions, so that the existing top-level
 `BodyAdequacyCI` can be reused honestly.
 
 The witness-provider migration adds a data-carrying variant of this bridge.  It
-lets the opened block route produce `BlockBodyAdequacyWitnessCI` directly, while
+lets the opened block route produce `BlockBodyAdequacyCI` directly, while
 the older proof-only adequacy scaffold remains available by forgetting the
 witnesses.
 -/
@@ -156,7 +156,7 @@ This is the non-classical core of the block witness route.  It still relies on
 the block payload projection functions, but it no longer chooses profile outputs
 from `BodyAdequacyCI.normalSound` / `returnSound`.
 -/
-noncomputable def blockBodyAdequacyWitnessCI_of_stmtBlockAdequacyWitness_and_executionBridge
+noncomputable def blockBodyAdequacyCI_of_stmtBlockAdequacy_and_executionBridge
     {Γ : TypeEnv} {σ σ0 : State} {ss : StmtBlock}
     (hentry : BodyClosureBoundaryCI Γ σ (.block ss))
     (_ : OpenScope σ σ0)
@@ -197,7 +197,7 @@ noncomputable def blockOpenedAdequacyWitnessScaffoldCI_of_stmtAdequacyWitness_an
     BlockOpenedAdequacyWitnessScaffoldCI Γ σ0 ss
       (blockBodyProfile_of_bodyClosureBoundaryCI hentry) :=
   { adequacyWitness :=
-      blockBodyAdequacyWitnessCI_of_stmtBlockAdequacyWitness_and_executionBridge
+      blockBodyAdequacyCI_of_stmtBlockAdequacy_and_executionBridge
         hentry hopen A B }
 
 /--

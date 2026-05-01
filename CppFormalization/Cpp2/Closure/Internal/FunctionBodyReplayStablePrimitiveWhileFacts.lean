@@ -27,7 +27,7 @@ Witness-provider migration:
 - add a witness-producing tail adequacy provider in parallel with the existing
   proof-only provider;
 - keep the existing proof-only route source-compatible;
-- expose replay-stable primitive while tail adequacy as `BodyAdequacyWitnessCI`
+- expose replay-stable primitive while tail adequacy as `BodyAdequacyCI`
   so the final `BodyAdequacyCI` provider replacement has a local landing zone.
 -/
 

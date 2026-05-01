@@ -85,7 +85,7 @@ structure ExternalCompatibleCaseV3
 A witness-producing external compatibility package.
 
 The primitive fields now return subtype witnesses rather than `Prop`-level
-existentials.  This matches the direction of `BodyAdequacyWitnessCI`: an
+existentials.  This matches the direction of `BodyAdequacyCI`: an
 external interface that wants to construct downstream Type-level packages should
 carry the selected canonical-profile output as data.  Proof-only soundness is
 recovered below by forgetting the witnesses.
