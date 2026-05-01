@@ -1,3 +1,4 @@
+import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyWitnessCI
 import CppFormalization.Cpp2.Closure.Internal.SecondarySeqAssetsCI
 import CppFormalization.Cpp2.Closure.Internal.IteBranchAdequacyAssetsCI
 import CppFormalization.Cpp2.Closure.Internal.SmallReusableWrappersCI
@@ -19,4 +20,9 @@ Patch 5:
 - opened block execution bridge target
 - opened block-body adequacy from that bridge
 - block statement closure route using the explicit bridge
+
+Witness-provider migration pre-patch:
+- statement/block witness-producing adequacy providers
+- Type-level ite slot inversion
+- witness-producing branch adequacy to slot-aware support
 -/

@@ -1,4 +1,5 @@
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
+import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyWitnessCI
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmap
 import CppFormalization.Cpp2.Closure.Internal.SecondaryAssetsAllCI
 import CppFormalization.Cpp2.Closure.Internal.Transport.All
