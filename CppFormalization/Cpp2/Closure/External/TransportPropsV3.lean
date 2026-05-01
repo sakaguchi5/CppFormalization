@@ -28,7 +28,7 @@ private theorem bodyNormalWitness_unique
 
 private theorem bodyReturnWitness_unique
     {Γ : TypeEnv} {st : CppStmt}
-    {p : BodyControlProfile Γ  st}
+    {p : BodyControlProfile Γ st}
     (a b :
       { out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ st Δ} //
         p.summary.returnOut = some out }) :
@@ -38,7 +38,6 @@ private theorem bodyReturnWitness_unique
     a.property.symm.trans b.property
   exact Option.some.inj hsome
 
-
 /-- `BodyAdequacyCI` is propositionally proof-irrelevant at a fixed profile. -/
 theorem bodyAdequacy_eq
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
@@ -46,13 +45,9 @@ theorem bodyAdequacy_eq
     (A B : BodyAdequacyCI Γ σ st p) :
     A = B := by
   cases A with
-  | mk AnormalSound AreturnSound AnormalWitness AreturnWitness =>
+  | mk AnormalWitness AreturnWitness =>
   cases B with
-  | mk BnormalSound BreturnSound BnormalWitness BreturnWitness =>
-  have hNormalSound : @AnormalSound = @BnormalSound := by
-    exact Subsingleton.elim _ _
-  have hReturnSound : @AreturnSound = @BreturnSound := by
-    exact Subsingleton.elim _ _
+  | mk BnormalWitness BreturnWitness =>
   have hNormalWitness : @AnormalWitness = @BnormalWitness := by
     funext σ' hstep
     exact bodyNormalWitness_unique
@@ -63,8 +58,6 @@ theorem bodyAdequacy_eq
     exact bodyReturnWitness_unique
       (AreturnWitness (rv := rv) (σ' := σ') hstep)
       (BreturnWitness (rv := rv) (σ' := σ') hstep)
-  cases hNormalSound
-  cases hReturnSound
   cases hNormalWitness
   cases hReturnWitness
   rfl
