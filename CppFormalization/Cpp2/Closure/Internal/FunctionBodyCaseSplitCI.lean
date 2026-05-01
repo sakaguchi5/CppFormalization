@@ -5,6 +5,7 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyStructuralBoundary
 import CppFormalization.Cpp2.Closure.Foundation.BodyControlProfile
 import CppFormalization.Cpp2.Closure.Foundation.BodyDynamicBoundary
 import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
+import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyWitnessCI
 import CppFormalization.Cpp2.Closure.Internal.HeadTailReturnAwareRoutesCI
 import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.StmtControlPreservation
@@ -2212,89 +2213,257 @@ def toAdequacySupport
 
 end IteBranchSlotAdequacySupportCI
 
-/--
-Remaining then-branch normal runtime-decision obligation.
-
-An actual normal execution of the then branch must use the then-normal slot selected by the branch-local profile payload.
--/
-axiom ite_then_normal_slot_runtime_decision_ci_of_entry
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    ∀ {σ' : State}
-      (hstep : BigStepStmt σ s .normal σ'),
-      IteBranchNormalSlotRuntimeDecisionCI Γ σ s
-        (ite_then_profile_slot_payload_ci_of_entry hentry)
-        hstep
+namespace IteBranchProfileSlotPayloadCI
 
 /--
-Remaining then-branch return runtime-decision obligation.
+Type-level inversion of a normal summary equality for a slot-generated branch
+profile.
 
-An actual return execution of the then branch must use the then-return slot selected by the branch-local profile payload.
+This is purely structural `Option.map` inversion; it is not a semantic adequacy
+theorem.
 -/
-axiom ite_then_return_slot_runtime_decision_ci_of_entry
+def normalSlotWitness_of_toProfile_normalOut_eq_some
+    {Γ : TypeEnv} {st : CppStmt}
+    (S : IteBranchProfileSlotPayloadCI Γ st)
+    {out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ st Δ}}
+    (h : S.toProfile.summary.normalOut = some out) :
+    { n : IteBranchNormalSlotCI Γ st //
+      S.normalSlot = some n ∧ IteBranchNormalSlotCI.out n = out } := by
+  cases hslot : S.normalSlot with
+  | none =>
+      simp [IteBranchProfileSlotPayloadCI.toProfile, hslot] at h
+  | some n =>
+      refine ⟨n, ?_⟩
+      constructor
+      · rfl
+      · simpa [IteBranchProfileSlotPayloadCI.toProfile, hslot] using h
+
+/--
+Invert a normal summary equality for a slot-generated branch profile.
+
+This is the proof-only projection of
+`normalSlotWitness_of_toProfile_normalOut_eq_some`.
+-/
+theorem normalSlot_of_toProfile_normalOut_eq_some
+    {Γ : TypeEnv} {st : CppStmt}
+    (S : IteBranchProfileSlotPayloadCI Γ st)
+    {out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ st Δ}}
+    (h : S.toProfile.summary.normalOut = some out) :
+    ∃ n : IteBranchNormalSlotCI Γ st,
+      S.normalSlot = some n ∧ IteBranchNormalSlotCI.out n = out := by
+  let w := S.normalSlotWitness_of_toProfile_normalOut_eq_some h
+  exact ⟨w.val, w.property⟩
+
+/--
+Type-level inversion of a return summary equality for a slot-generated branch
+profile.
+-/
+def returnSlotWitness_of_toProfile_returnOut_eq_some
+    {Γ : TypeEnv} {st : CppStmt}
+    (S : IteBranchProfileSlotPayloadCI Γ st)
+    {out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ st Δ}}
+    (h : S.toProfile.summary.returnOut = some out) :
+    { r : IteBranchReturnSlotCI Γ st //
+      S.returnSlot = some r ∧ IteBranchReturnSlotCI.out r = out } := by
+  cases hslot : S.returnSlot with
+  | none =>
+      simp [IteBranchProfileSlotPayloadCI.toProfile, hslot] at h
+  | some r =>
+      refine ⟨r, ?_⟩
+      constructor
+      · rfl
+      · simpa [IteBranchProfileSlotPayloadCI.toProfile, hslot] using h
+
+/--
+Invert a return summary equality for a slot-generated branch profile.
+
+This is the proof-only projection of
+`returnSlotWitness_of_toProfile_returnOut_eq_some`.
+-/
+theorem returnSlot_of_toProfile_returnOut_eq_some
+    {Γ : TypeEnv} {st : CppStmt}
+    (S : IteBranchProfileSlotPayloadCI Γ st)
+    {out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ st Δ}}
+    (h : S.toProfile.summary.returnOut = some out) :
+    ∃ r : IteBranchReturnSlotCI Γ st,
+      S.returnSlot = some r ∧ IteBranchReturnSlotCI.out r = out := by
+  let w := S.returnSlotWitness_of_toProfile_returnOut_eq_some h
+  exact ⟨w.val, w.property⟩
+
+end IteBranchProfileSlotPayloadCI
+
+namespace IteBranchSlotAdequacySupportCI
+
+/--
+Convert ordinary branch-local adequacy for `S.toProfile` into slot-aware
+adequacy support for `S`.
+
+This remains the classical bridge from proof-only adequacy to a Type-level slot
+support package.  The `ofBodyAdequacyWitness` route below is the preferred route
+when witness-producing adequacy is available.
+-/
+noncomputable def ofBodyAdequacy
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (S : IteBranchProfileSlotPayloadCI Γ st)
+    (A : BodyAdequacyCI Γ σ st S.toProfile) :
+    IteBranchSlotAdequacySupportCI Γ σ st S :=
+  { normalDecision := by
+      intro σ' hstep
+      let houtEx := A.normalSound hstep
+      let out := Classical.choose houtEx
+      have hout : S.toProfile.summary.normalOut = some out :=
+        Classical.choose_spec houtEx
+      let w := S.normalSlotWitness_of_toProfile_normalOut_eq_some hout
+      exact
+        { Delta := w.val.Δ
+          hty := w.val.hty
+          hslot := w.property.1 }
+    returnDecision := by
+      intro rv σ' hstep
+      let houtEx := A.returnSound hstep
+      let out := Classical.choose houtEx
+      have hout : S.toProfile.summary.returnOut = some out :=
+        Classical.choose_spec houtEx
+      let w := S.returnSlotWitness_of_toProfile_returnOut_eq_some hout
+      exact
+        { Delta := w.val.Δ
+          hty := w.val.hty
+          hslot := w.property.1 } }
+
+/--
+Convert witness-producing branch-local adequacy for `S.toProfile` into
+slot-aware adequacy support for `S`.
+
+Unlike `ofBodyAdequacy`, this route does not need to choose the profile output
+from a `Prop`-level existential; the profile witness is supplied directly by the
+witness-producing adequacy layer.
+-/
+def ofBodyAdequacyWitness
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (S : IteBranchProfileSlotPayloadCI Γ st)
+    (A : BodyAdequacyWitnessCI Γ σ st S.toProfile) :
+    IteBranchSlotAdequacySupportCI Γ σ st S :=
+  { normalDecision := by
+      intro σ' hstep
+      let hout := A.normalWitness hstep
+      let w := S.normalSlotWitness_of_toProfile_normalOut_eq_some hout.property
+      exact
+        { Delta := w.val.Δ
+          hty := w.val.hty
+          hslot := w.property.1 }
+    returnDecision := by
+      intro rv σ' hstep
+      let hout := A.returnWitness hstep
+      let w := S.returnSlotWitness_of_toProfile_returnOut_eq_some hout.property
+      exact
+        { Delta := w.val.Δ
+          hty := w.val.hty
+          hslot := w.property.1 } }
+
+end IteBranchSlotAdequacySupportCI
+
+/--
+Remaining then-branch witness-producing adequacy obligation.
+
+This replaces the two channel-specific then-branch runtime-decision axioms.
+The branch-local adequacy provider is indexed by the selected then-branch slot
+payload profile, so the normal/return channel decisions are derived uniformly
+from one branch adequacy package.
+-/
+axiom ite_then_adequacy_witness_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    ∀ {rv : Option Value} {σ' : State}
-      (hstep : BigStepStmt σ s (.returnResult rv) σ'),
-      IteBranchReturnSlotRuntimeDecisionCI Γ σ s
-        (ite_then_profile_slot_payload_ci_of_entry hentry)
-        hstep
+    BodyAdequacyWitnessCI Γ σ s
+      (ite_then_profile_slot_payload_ci_of_entry hentry).toProfile
+
+/--
+Remaining else-branch witness-producing adequacy obligation.
+
+This replaces the two channel-specific else-branch runtime-decision axioms.
+-/
+axiom ite_else_adequacy_witness_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    BodyAdequacyWitnessCI Γ σ t
+      (ite_else_profile_slot_payload_ci_of_entry hentry).toProfile
 
 /--
 Compatibility package for then-branch slot-aware adequacy support.
-
-The primitive obligations are now split by control channel.  This package exists
-only to preserve the existing downstream surface.
+The primitive obligation is now one witness-producing branch-local adequacy
+provider, not two separate runtime-decision axioms.
 -/
 noncomputable def ite_then_slot_adequacy_support_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
     IteBranchSlotAdequacySupportCI Γ σ s
       (ite_then_profile_slot_payload_ci_of_entry hentry) :=
-  { normalDecision := ite_then_normal_slot_runtime_decision_ci_of_entry hentry
-    returnDecision := ite_then_return_slot_runtime_decision_ci_of_entry hentry }
-
-/--
-Remaining else-branch normal runtime-decision obligation.
-
-An actual normal execution of the else branch must use the else-normal slot selected by the branch-local profile payload.
--/
-axiom ite_else_normal_slot_runtime_decision_ci_of_entry
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    ∀ {σ' : State}
-      (hstep : BigStepStmt σ t .normal σ'),
-      IteBranchNormalSlotRuntimeDecisionCI Γ σ t
-        (ite_else_profile_slot_payload_ci_of_entry hentry)
-        hstep
-
-/--
-Remaining else-branch return runtime-decision obligation.
-
-An actual return execution of the else branch must use the else-return slot selected by the branch-local profile payload.
--/
-axiom ite_else_return_slot_runtime_decision_ci_of_entry
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    ∀ {rv : Option Value} {σ' : State}
-      (hstep : BigStepStmt σ t (.returnResult rv) σ'),
-      IteBranchReturnSlotRuntimeDecisionCI Γ σ t
-        (ite_else_profile_slot_payload_ci_of_entry hentry)
-        hstep
+  IteBranchSlotAdequacySupportCI.ofBodyAdequacyWitness
+    (ite_then_profile_slot_payload_ci_of_entry hentry)
+    (ite_then_adequacy_witness_ci_of_entry hentry)
 
 /--
 Compatibility package for else-branch slot-aware adequacy support.
-
-The primitive obligations are now split by control channel.  This package exists
-only to preserve the existing downstream surface.
 -/
 noncomputable def ite_else_slot_adequacy_support_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
     IteBranchSlotAdequacySupportCI Γ σ t
       (ite_else_profile_slot_payload_ci_of_entry hentry) :=
-  { normalDecision := ite_else_normal_slot_runtime_decision_ci_of_entry hentry
-    returnDecision := ite_else_return_slot_runtime_decision_ci_of_entry hentry }
+  IteBranchSlotAdequacySupportCI.ofBodyAdequacyWitness
+    (ite_else_profile_slot_payload_ci_of_entry hentry)
+    (ite_else_adequacy_witness_ci_of_entry hentry)
+
+/--
+Compatibility name for the old then normal runtime-decision surface.
+This is now a definition derived from the then witness-producing adequacy
+provider, not a primitive axiom.
+-/
+noncomputable def ite_then_normal_slot_runtime_decision_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    ∀ {σ' : State} (hstep : BigStepStmt σ s .normal σ'),
+      IteBranchNormalSlotRuntimeDecisionCI Γ σ s
+        (ite_then_profile_slot_payload_ci_of_entry hentry) hstep :=
+  (ite_then_slot_adequacy_support_ci_of_entry hentry).normalDecision
+
+/--
+Compatibility name for the old then return runtime-decision surface.
+This is now derived from the then witness-producing adequacy provider.
+-/
+noncomputable def ite_then_return_slot_runtime_decision_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    ∀ {rv : Option Value} {σ' : State}
+      (hstep : BigStepStmt σ s (.returnResult rv) σ'),
+      IteBranchReturnSlotRuntimeDecisionCI Γ σ s
+        (ite_then_profile_slot_payload_ci_of_entry hentry) hstep :=
+  (ite_then_slot_adequacy_support_ci_of_entry hentry).returnDecision
+
+/--
+Compatibility name for the old else normal runtime-decision surface.
+This is now derived from the else witness-producing adequacy provider.
+-/
+noncomputable def ite_else_normal_slot_runtime_decision_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    ∀ {σ' : State} (hstep : BigStepStmt σ t .normal σ'),
+      IteBranchNormalSlotRuntimeDecisionCI Γ σ t
+        (ite_else_profile_slot_payload_ci_of_entry hentry) hstep :=
+  (ite_else_slot_adequacy_support_ci_of_entry hentry).normalDecision
+
+/--
+Compatibility name for the old else return runtime-decision surface.
+This is now derived from the else witness-producing adequacy provider.
+-/
+noncomputable def ite_else_return_slot_runtime_decision_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    ∀ {rv : Option Value} {σ' : State}
+      (hstep : BigStepStmt σ t (.returnResult rv) σ'),
+      IteBranchReturnSlotRuntimeDecisionCI Γ σ t
+        (ite_else_profile_slot_payload_ci_of_entry hentry) hstep :=
+  (ite_else_slot_adequacy_support_ci_of_entry hentry).returnDecision
+
 /-- Compatibility profile-level adequacy support for the then branch. -/
 noncomputable def ite_then_adequacy_support_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
