@@ -1,5 +1,6 @@
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
+import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyWitnessCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI
 import CppFormalization.Cpp2.Closure.Internal.WhileBodyClassCI
 import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
@@ -21,6 +22,13 @@ This file is now routed through the honest decomposition:
   `WhileTailAdequacyProviderCI`;
 - the old direct `WhileTailBoundaryKitCI` construction is retained only as a
   compatibility projection from the reentry-based support.
+
+Witness-provider migration:
+- add a witness-producing tail adequacy provider in parallel with the existing
+  proof-only provider;
+- keep the existing proof-only route source-compatible;
+- expose replay-stable primitive while tail adequacy as `BodyAdequacyWitnessCI`
+  so the final `BodyAdequacyCI` provider replacement has a local landing zone.
 -/
 
 /-! ## theorem-backed replay-stable primitive while tail boundary -/
@@ -291,6 +299,88 @@ def replay_stable_primitive_loopReentryKernelCI
       exfalso
       exact replay_stable_primitive_stmt_no_continue hstable hstep }
 
+/--
+Witness-producing tail adequacy provider for a while statement.
+
+This is the provider-facing analogue of `WhileTailAdequacyProviderCI`.  It is
+kept in this replay-stable facts layer for now so the existing while kernel and
+class interfaces remain source-compatible during the migration.
+-/
+structure WhileTailAdequacyWitnessProviderCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (static : BodyStaticBoundaryCI Γ (.whileStmt c body)) : Type where
+  afterNormal :
+    ∀ {σ1 : State},
+      BigStepValue σ c (.bool true) →
+      BigStepStmt σ body .normal σ1 →
+      BodyAdequacyWitnessCI Γ σ1 (.whileStmt c body) static.profile
+  afterContinue :
+    ∀ {σ1 : State},
+      BigStepValue σ c (.bool true) →
+      BigStepStmt σ body .continueResult σ1 →
+      BodyAdequacyWitnessCI Γ σ1 (.whileStmt c body) static.profile
+
+namespace WhileTailAdequacyWitnessProviderCI
+
+/-- Forget a witness-producing tail adequacy provider to the existing proof-only API. -/
+def toWhileTailAdequacyProviderCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    {static : BodyStaticBoundaryCI Γ (.whileStmt c body)}
+    (P : WhileTailAdequacyWitnessProviderCI (σ := σ) (c := c) (body := body) static) :
+    WhileTailAdequacyProviderCI Γ σ c body static :=
+  { afterNormal := by
+      intro σ1 hcond hstep
+      exact (P.afterNormal hcond hstep).toBodyAdequacy
+    afterContinue := by
+      intro σ1 hcond hstep
+      exact (P.afterContinue hcond hstep).toBodyAdequacy }
+
+end WhileTailAdequacyWitnessProviderCI
+
+/--
+Witness-producing post-state adequacy after a replay-stable primitive body-normal
+step.  The witness is obtained by transporting the original top-level while
+adequacy along the concrete `whileTrueNormal` execution route.
+-/
+noncomputable def while_tail_adequacy_witness_after_body_normal
+    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
+    (hready : BodyReadyCI Γ σ (.whileStmt c body))
+    (hcond : BigStepValue σ c (.bool true))
+    (hbodyStep : BigStepStmt σ body .normal σ') :
+    BodyAdequacyWitnessCI Γ σ' (.whileStmt c body) hready.static.profile :=
+  { normalWitness := by
+      intro σ2 htail
+      exact
+        (BodyAdequacyWitnessCI.ofBodyAdequacy hready.adequacy).normalWitness
+          (BigStepStmt.whileTrueNormal hcond hbodyStep htail)
+    returnWitness := by
+      intro rv σ2 htail
+      exact
+        (BodyAdequacyWitnessCI.ofBodyAdequacy hready.adequacy).returnWitness
+          (BigStepStmt.whileTrueNormal hcond hbodyStep htail) }
+
+/--
+Witness-producing post-state adequacy after a replay-stable primitive
+body-continue step.  This is the continue-channel analogue of
+`while_tail_adequacy_witness_after_body_normal`.
+-/
+noncomputable def while_tail_adequacy_witness_after_body_continue
+    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
+    (hready : BodyReadyCI Γ σ (.whileStmt c body))
+    (hcond : BigStepValue σ c (.bool true))
+    (hbodyStep : BigStepStmt σ body .continueResult σ') :
+    BodyAdequacyWitnessCI Γ σ' (.whileStmt c body) hready.static.profile :=
+  { normalWitness := by
+      intro σ2 htail
+      exact
+        (BodyAdequacyWitnessCI.ofBodyAdequacy hready.adequacy).normalWitness
+          (BigStepStmt.whileTrueContinue hcond hbodyStep htail)
+    returnWitness := by
+      intro rv σ2 htail
+      exact
+        (BodyAdequacyWitnessCI.ofBodyAdequacy hready.adequacy).returnWitness
+          (BigStepStmt.whileTrueContinue hcond hbodyStep htail) }
+
 def while_tail_adequacy_after_body_normal
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
     (hready : BodyReadyCI Γ σ (.whileStmt c body))
@@ -322,6 +412,26 @@ def while_tail_adequacy_after_body_continue
   · intro rv σ2 htail
     exact hready.adequacy.returnSound
       (BigStepStmt.whileTrueContinue hcond hbodyStep htail)
+
+/--
+Post-state top-level while adequacy witness provider for replay-stable primitive
+bodies.
+
+This is the witness-producing companion of
+`replay_stable_primitive_whileTailAdequacyProviderCI`.
+-/
+noncomputable def replay_stable_primitive_whileTailAdequacyWitnessProviderCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) :
+    @WhileTailAdequacyWitnessProviderCI Γ σ c body hentry.static := -- @を使ってσを明示 :=
+  { afterNormal := by
+      intro σ1 hcond hstep
+      exact while_tail_adequacy_witness_after_body_normal
+        hentry.toBodyReadyCI hcond hstep
+    afterContinue := by
+      intro σ1 hcond hstep
+      exact while_tail_adequacy_witness_after_body_continue
+        hentry.toBodyReadyCI hcond hstep }
 
 /--
 Post-state top-level while adequacy provider for replay-stable primitive bodies.
