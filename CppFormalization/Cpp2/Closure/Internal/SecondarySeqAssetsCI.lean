@@ -13,7 +13,8 @@ intermediate packages that make the later axiom replacement targets honest:
 normal-slot selection and return-slot selection must be chosen together,
 because tail-return provenance depends on the selected left-normal slot.
 
-The witness-provider migration adds witness-producing adapters for the already
+The provider-facing sequence assets add adapters for the already route-aware
+sequence adequacy packages.
 route-aware sequence adequacy packages.  These adapters make the future
 `BodyAdequacyCI` provider replacement non-disruptive: the sequence case can
 already produce `BodyAdequacyCI` where downstream Type-level data is

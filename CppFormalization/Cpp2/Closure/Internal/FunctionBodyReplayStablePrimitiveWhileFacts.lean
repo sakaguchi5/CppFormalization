@@ -23,12 +23,11 @@ This file is now routed through the honest decomposition:
 - the old direct `WhileTailBoundaryKitCI` construction is retained only as a
   compatibility projection from the reentry-based support.
 
-Witness-provider migration:
-- add a witness-producing tail adequacy provider in parallel with the existing
+Provider-facing replay-stable while-tail adequacy:
+- add a data-carrying tail adequacy provider in parallel with the existing
   proof-only provider;
 - keep the existing proof-only route source-compatible;
-- expose replay-stable primitive while tail adequacy as `BodyAdequacyCI`
-  so the final `BodyAdequacyCI` provider replacement has a local landing zone.
+- expose replay-stable primitive while-tail adequacy as `BodyAdequacyCI`.
 -/
 
 /-! ## theorem-backed replay-stable primitive while tail boundary -/
@@ -306,7 +305,7 @@ This is the provider-facing analogue of `WhileTailAdequacyProviderCI`.  It is
 kept in this replay-stable facts layer for now so the existing while kernel and
 class interfaces remain source-compatible during the migration.
 -/
-structure hileTailAdequacyProviderDataCI
+structure WhileTailAdequacyProviderDataCI
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (static : BodyStaticBoundaryCI Γ (.whileStmt c body)) : Type where
   afterNormal :
@@ -320,13 +319,13 @@ structure hileTailAdequacyProviderDataCI
       BigStepStmt σ body .continueResult σ1 →
       BodyAdequacyCI Γ σ1 (.whileStmt c body) static.profile
 
-namespace hileTailAdequacyProviderDataCI
+namespace WhileTailAdequacyProviderDataCI
 
 /-- Forget a witness-producing tail adequacy provider to the existing proof-only API. -/
 def toWhileTailAdequacyProviderCI
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     {static : BodyStaticBoundaryCI Γ (.whileStmt c body)}
-    (P : hileTailAdequacyProviderDataCI (σ := σ) (c := c) (body := body) static) :
+    (P : WhileTailAdequacyProviderDataCI (σ := σ) (c := c) (body := body) static) :
     WhileTailAdequacyProviderCI Γ σ c body static :=
   { afterNormal := by
       intro σ1 hcond hstep
@@ -335,7 +334,7 @@ def toWhileTailAdequacyProviderCI
       intro σ1 hcond hstep
       exact P.afterContinue hcond hstep }
 
-end hileTailAdequacyProviderDataCI
+end WhileTailAdequacyProviderDataCI
 
 
 /--
@@ -383,10 +382,10 @@ bodies.
 This is the witness-producing companion of
 `replay_stable_primitive_whileTailAdequacyProviderCI`.
 -/
-noncomputable def replay_stable_primitive_hileTailAdequacyProviderDataCI
+noncomputable def replay_stable_primitive_whileTailAdequacyProviderDataCI
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) :
-    @hileTailAdequacyProviderDataCI Γ σ c body hentry.static := -- @を使ってσを明示 :=
+    @WhileTailAdequacyProviderDataCI Γ σ c body hentry.static := -- @を使ってσを明示 :=
   { afterNormal := by
       intro σ1 hcond hstep
       exact while_tail_adequacy_after_body_normal

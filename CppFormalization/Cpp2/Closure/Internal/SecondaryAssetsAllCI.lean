@@ -21,7 +21,7 @@ Patch 5:
 - opened block-body adequacy from that bridge
 - block statement closure route using the explicit bridge
 
-Witness-provider migration pre-patch:
+Provider-facing secondary assets:
 - statement/block witness-producing adequacy providers
 - Type-level ite slot inversion
 - witness-producing branch adequacy to slot-aware support

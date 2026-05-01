@@ -20,7 +20,7 @@ operational bridge from actual opened block-body executions back to
 statement-level `.block ss` executions, so that the existing top-level
 `BodyAdequacyCI` can be reused honestly.
 
-The witness-provider migration adds a data-carrying variant of this bridge.  It
+The provider-facing route adds a data-carrying variant of this bridge.  It
 lets the opened block route produce `BlockBodyAdequacyCI` directly, while
 the older proof-only adequacy scaffold remains available by forgetting the
 witnesses.
@@ -204,9 +204,9 @@ noncomputable def blockOpenedAdequacyProviderScaffoldCI_of_stmtAdequacy_and_exec
 Compatibility route from the existing proof-only top-level boundary to an opened
 block-body adequacy witness scaffold.
 
-This adapter is intentionally noncomputable because the top-level
-`BodyClosureBoundaryCI` still stores proof-only `BodyAdequacyCI`.  It lets the
-block witness route be used before the final destructive replacement of
+This adapter is intentionally noncomputable because it connects the
+statement-level block adequacy provider with the opened-block execution bridge.
+It lets the block provider route reuse the canonical witness-producing
 `BodyAdequacyCI`.
 -/
 noncomputable def blockOpenedAdequacyProviderScaffoldCI_of_executionToStmtWitnessBridge
