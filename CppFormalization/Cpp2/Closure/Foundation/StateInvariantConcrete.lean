@@ -31,6 +31,30 @@ def shadowingCompatible (Γ : TypeEnv) (σ : State) : Prop :=
 def frameDepthAgreement (Γ : TypeEnv) (σ : State) : Prop :=
   Γ.scopes.length = σ.scopes.length
 
+/--
+1 個の type frame と 1 個の runtime frame が、名前集合について双方向に一致する。
+
+forward:
+- type decl があれば matching runtime binding がある
+
+backward:
+- runtime binding があれば matching type decl がある
+-/
+def frameDeclBindingExactAt (Γfr : TypeFrame) (σfr : ScopeFrame) : Prop :=
+  (∀ x d,
+      Γfr.decls x = some d →
+      ∃ b, σfr.binds x = some b ∧ DeclMatchesBinding d b) ∧
+  (∀ x b,
+      σfr.binds x = some b →
+      ∃ d, Γfr.decls x = some d ∧ DeclMatchesBinding d b)
+
+/-- 各深さで frame-local exactness が成り立つ。 -/
+def framewiseDeclBindingExact (Γ : TypeEnv) (σ : State) : Prop :=
+  ∀ (k : Nat) Γfr σfr,
+    Γ.scopes[k]? = some Γfr →
+    σ.scopes[k]? = some σfr →
+    frameDeclBindingExactAt Γfr σfr
+
 def ownedAddressesNoDupPerFrame (σ : State) : Prop :=
   ∀ (k : Nat) (fr : ScopeFrame), σ.scopes[k]? = some fr → fr.locals.Nodup
 
@@ -58,6 +82,7 @@ def refBindingsNeverOwned (σ : State) : Prop :=
 
 structure ScopedTypedStateConcreteKernel (Γ : TypeEnv) (σ : State) : Prop where
   frameDepth : frameDepthAgreement Γ σ
+  namesExact : framewiseDeclBindingExact Γ σ
   shadowing : shadowingCompatible Γ σ
   objectDeclRealized : ∀ {k x τ}, typeFrameDeclObject Γ k x τ → ∃ a, runtimeFrameBindsObject σ k x τ a ∧ runtimeFrameOwnsAddress σ k a ∧ heapLiveTypedAt σ a τ
   refDeclRealized : ∀ {k x τ}, typeFrameDeclRef Γ k x τ → ∃ a, runtimeFrameBindsRef σ k x τ a ∧ heapLiveTypedAt σ a τ
@@ -76,6 +101,7 @@ structure ScopedTypedStateConcreteOwnership (σ : State) : Prop where
 
 structure ScopedTypedStateConcrete (Γ : TypeEnv) (σ : State) : Prop where
   frameDepth : frameDepthAgreement Γ σ
+  namesExact : framewiseDeclBindingExact Γ σ
   shadowing : shadowingCompatible Γ σ
   objectDeclRealized : ∀ {k x τ}, typeFrameDeclObject Γ k x τ → ∃ a, runtimeFrameBindsObject σ k x τ a ∧ runtimeFrameOwnsAddress σ k a ∧ heapLiveTypedAt σ a τ
   refDeclRealized : ∀ {k x τ}, typeFrameDeclRef Γ k x τ → ∃ a, runtimeFrameBindsRef σ k x τ a ∧ heapLiveTypedAt σ a τ
@@ -95,6 +121,7 @@ namespace ScopedTypedStateConcrete
 
 def kernel {Γ : TypeEnv} {σ : State} (h : ScopedTypedStateConcrete Γ σ) : ScopedTypedStateConcreteKernel Γ σ :=
   { frameDepth := h.frameDepth
+    namesExact := h.namesExact
     shadowing := h.shadowing
     objectDeclRealized := h.objectDeclRealized
     refDeclRealized := h.refDeclRealized

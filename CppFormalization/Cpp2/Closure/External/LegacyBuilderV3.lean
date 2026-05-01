@@ -32,7 +32,7 @@ structure LegacyCertificateV3
   hdyn : F.establishesDynamic n Γ σ st
   hgen : R.generates m st
   hstruct : R.establishesStructural m Γ st
-  hprof : R.establishesProfile m Γ st
+  hstatic : R.establishesStatic m Γ st
   hcompat : G.compatible n m Γ σ st
 
 namespace LegacyCertificateV3
@@ -43,7 +43,7 @@ noncomputable def oldBoundary
     (c : LegacyCertificateV3 F R) :
     BodyClosureBoundaryCI c.Γ c.σ c.st :=
   fragments_establish_body_closure_boundary
-    c.G c.huse c.hdyn c.hgen c.hstruct c.hprof c.hcompat
+    c.G c.huse c.hdyn c.hgen c.hstruct c.hstatic c.hcompat
 
 /-- The corresponding old ready witness extracted from the official boundary. -/
 noncomputable def oldReady
@@ -52,12 +52,14 @@ noncomputable def oldReady
     BodyReadyCI c.Γ c.σ c.st :=
   (oldBoundary c).toBodyReadyCI
 
-/-- The remaining old core-membership witness. -/
+/-- The core-membership witness carried by the legacy reflection package. -/
 def oldCore
     {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}
     (c : LegacyCertificateV3 F R) :
     CoreBigStepFragment c.st :=
-  reflection_fragment_generates_core c.hgen
+  (R.mkReflection
+    (m := c.m) (Γ := c.Γ) (st := c.st)
+    c.hgen c.hstruct c.hstatic).core
 
 /-- Explicit V3 pieces obtained from the refactored legacy bridge. -/
 noncomputable def oldExternalPieces
@@ -65,7 +67,7 @@ noncomputable def oldExternalPieces
     (c : LegacyCertificateV3 F R) :
     ExternalPiecesV3 c.Γ c.σ c.st :=
   externalPiecesV3_of_legacy_external_assumptions
-    c.G c.huse c.hdyn c.hgen c.hstruct c.hprof c.hcompat
+    c.G c.huse c.hdyn c.hgen c.hstruct c.hstatic c.hcompat
 
 end LegacyCertificateV3
 
@@ -158,13 +160,13 @@ theorem legacyGlueExternalPiecesV3_boundary_eq_old
       exact legacy_ready_vs_glue_boundaryCoherent c
     _ = c.oldBoundary := legacyReadyExternalPiecesV3_boundary_eq_old c
 
-/-- Visible-package level route coherence for the lifted legacy family. -/
+/-- Observable-package level route coherence for the lifted legacy family. -/
 theorem legacy_ready_vs_glue_packageCoherent
     {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}
     (c : LegacyCertificateV3 F R) :
     PackageCoherentV3
-      (legacyReadyExternalPiecesV3 c).toVisiblePieces
-      (legacyGlueExternalPiecesV3 c).toVisiblePieces := by
+      (legacyReadyExternalPiecesV3 c).toObservablePieces
+      (legacyGlueExternalPiecesV3 c).toObservablePieces := by
   let B := legacyCertificateFamilyV3 F R
   simpa [legacyReadyExternalPiecesV3, legacyGlueExternalPiecesV3, B] using
     (B.ready_vs_glue_packageCoherent c)

@@ -3,21 +3,8 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
 
 namespace Cpp
 
-/-!
-# Closure.Foundation.LoopBodyBoundaryCompatibility
-
-`LoopBodyBoundaryCI` と既存の top-level / while 語彙の橋渡し。
-
-方針:
-- loop body の local 4-channel profile から、
-  enclosing `while` に必要な static payload を回復する。
-- ただし `while` 自体の dynamic / adequacy をここでは組み立てない。
-  それは `LoopReentryKernelCI` と actual `while` case analysis の責務である。
--/
-
 namespace LoopBodyControlProfile
 
-/-- closed-at-start な normal typing witness を取り出す。 -/
 @[simp] theorem normalTyping
     {Γ : TypeEnv} {body : CppStmt}
     (P : LoopBodyControlProfile Γ body) :
@@ -25,7 +12,6 @@ namespace LoopBodyControlProfile
   rcases P.normalClosed with ⟨h, _⟩
   exact h
 
-/-- closed-at-start な break typing witness を取り出す。 -/
 @[simp] theorem breakTyping
     {Γ : TypeEnv} {body : CppStmt}
     (P : LoopBodyControlProfile Γ body) :
@@ -33,7 +19,6 @@ namespace LoopBodyControlProfile
   rcases P.breakClosed with ⟨h, _⟩
   exact h
 
-/-- closed-at-start な continue typing witness を取り出す。 -/
 @[simp] theorem continueTyping
     {Γ : TypeEnv} {body : CppStmt}
     (P : LoopBodyControlProfile Γ body) :
@@ -119,7 +104,6 @@ end LoopBodyControlProfile
 
 namespace LoopBodyStructuralBoundary
 
-/-- loop-body scopedness から enclosing `while` の top-level break scopedness を得る。 -/
 @[simp] theorem toWhileBreakScoped
     {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
     (h : LoopBodyStructuralBoundary Γ body) :
@@ -127,7 +111,6 @@ namespace LoopBodyStructuralBoundary
   simpa [BreakWellScoped, BreakWellScopedInLoop]
     using h.breakScoped
 
-/-- loop-body scopedness から enclosing `while` の top-level continue scopedness を得る。 -/
 @[simp] theorem toWhileContinueScoped
     {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
     (h : LoopBodyStructuralBoundary Γ body) :
@@ -139,13 +122,10 @@ namespace LoopBodyStructuralBoundary
 def toWhileStructural
     {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
     (h : LoopBodyStructuralBoundary Γ body)
-    (hc : HasValueType Γ c (.base .bool))
-    (hwfCond : WellFormedValue c)
-    (hp : LoopBodyControlProfile Γ body) :
+    (hwfCond : WellFormedValue c):
     BodyStructuralBoundary Γ (.whileStmt c body) :=
   { wf := by
       exact And.intro hwfCond h.wf
-    typed0 := hp.whileTyped0 hc
     breakScoped := h.toWhileBreakScoped
     continueScoped := h.toWhileContinueScoped }
 
@@ -153,7 +133,6 @@ end LoopBodyStructuralBoundary
 
 namespace LoopBodyBoundaryCI
 
-/-- assembled loop-body boundary から enclosing `while` の top-level control profile を得る。 -/
 def toWhileProfile
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (h : LoopBodyBoundaryCI Γ σ body)
@@ -161,14 +140,19 @@ def toWhileProfile
     BodyControlProfile Γ (.whileStmt c body) :=
   h.profile.toWhileProfile hc
 
-/-- assembled loop-body boundary から enclosing `while` の structural layer を得る。 -/
+def toWhileEntry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (h : LoopBodyBoundaryCI Γ σ body)
+    (hc : HasValueType Γ c (.base .bool)) :
+    BodyEntryWitness Γ (.whileStmt c body) :=
+  .normal (h.profile.whileNormalOut hc)
+
 def toWhileStructural
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (h : LoopBodyBoundaryCI Γ σ body)
-    (hc : HasValueType Γ c (.base .bool))
     (hwfCond : WellFormedValue c) :
     BodyStructuralBoundary Γ (.whileStmt c body) :=
-  h.structural.toWhileStructural hc hwfCond h.profile
+  h.structural.toWhileStructural hwfCond
 
 end LoopBodyBoundaryCI
 

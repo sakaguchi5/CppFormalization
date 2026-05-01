@@ -1,5 +1,6 @@
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteDeclRealization
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteOwnershipAssembly
+import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteStrengthening
 
 namespace Cpp
 
@@ -129,6 +130,182 @@ section TypeEnvLocalLemmas
     refine ⟨b, ?_, hmatch⟩
     simpa [lookupBinding_declareRefState_other (σ := σ) (τ := τ) (x := x) (y := y) (a := a) hy] using hb
 
+private theorem frameDeclBindingExactAt_insertTop
+    {Γfr : TypeFrame} {σfr : ScopeFrame}
+    {x : Ident} {d : DeclInfo} {b : Binding} :
+    frameDeclBindingExactAt Γfr σfr →
+    Γfr.decls x = none →
+    σfr.binds x = none →
+    DeclMatchesBinding d b →
+    frameDeclBindingExactAt
+      { Γfr with decls := fun y => if y = x then some d else Γfr.decls y }
+      { σfr with binds := fun y => if y = x then some b else σfr.binds y } := by
+  intro hexact hdeclFresh hbindFresh hmatch
+  constructor
+  · intro y d' hdecl
+    by_cases hy : y = x
+    · subst hy
+      have hd' : d' = d := by
+        simpa [hdeclFresh] using hdecl.symm
+      subst hd'
+      exact ⟨b, by simp, hmatch⟩
+    · have hdeclOld : Γfr.decls y = some d' := by
+        simpa [hy] using hdecl
+      rcases frameDeclBindingExactAt_forward hexact hdeclOld with ⟨b', hb', hmatch'⟩
+      exact ⟨b', by simpa [hy] using hb', hmatch'⟩
+  · intro y b' hbind
+    by_cases hy : y = x
+    · subst hy
+      have hb' : b' = b := by
+        simpa [hbindFresh] using hbind.symm
+      subst hb'
+      exact ⟨d, by simp , hmatch⟩
+    · have hbindOld : σfr.binds y = some b' := by
+        simpa [hy] using hbind
+      rcases frameDeclBindingExactAt_backward hexact hbindOld with ⟨d', hdecl', hmatch'⟩
+      exact ⟨d', by simpa [hy] using hdecl', hmatch'⟩
+
+theorem framewiseDeclBindingExact_declareTypeObject_declareObjectState_from_topFrameFresh
+    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {ov : Option Value}
+    {Γtop : TypeFrame} :
+    frameDepthAgreement Γ σ →
+    framewiseDeclBindingExact Γ σ →
+    Γ.scopes[0]? = some Γtop →
+    Γtop.decls x = none →
+    topFrameBindingFresh σ x →
+    framewiseDeclBindingExact (declareTypeObject Γ x τ) (declareObjectState σ τ x ov) := by
+  intro hdepth hexact hΓ0 hfreshType hfreshRuntime
+  intro k Γfr σfr hkΓ hkσ
+  cases hG : Γ.scopes with
+  | nil =>
+      simp [hG] at hΓ0
+  | cons Γtop0 Γrest =>
+      cases hS : σ.scopes with
+      | nil =>
+          unfold frameDepthAgreement at hdepth
+          simp [hG, hS] at hdepth
+      | cons σtop σrest =>
+          cases k with
+          | zero =>
+              have hExact0 : frameDeclBindingExactAt Γtop0 σtop :=
+                hexact 0 Γtop0 σtop (by simp [hG]) (by simp [hS])
+
+              have hΓtopEq : Γtop0 = Γtop := by
+                simpa [hG] using hΓ0
+              rw [hΓtopEq] at hExact0
+
+              have hTypeFresh0 : Γtop.decls x = none := hfreshType
+              have hRunFresh0 : σtop.binds x = none := hfreshRuntime σtop (by simp [hS])
+
+              have hTop :
+                  frameDeclBindingExactAt
+                    { Γtop with decls := fun y => if y = x then some (.object τ) else Γtop.decls y }
+                    { σtop with
+                      binds := fun y => if y = x then some (.object τ σ.next) else σtop.binds y,
+                      locals := σ.next :: σtop.locals } :=
+                frameDeclBindingExactAt_insertTop
+                  hExact0 hTypeFresh0 hRunFresh0 (by simp [DeclMatchesBinding])
+
+              have hΓfr : Γfr = { Γtop with decls := fun y => if y = x then some (.object τ) else Γtop.decls y } := by
+                simp [declareTypeObject, insertTopDecl, hG] at hkΓ
+                rw [hΓtopEq] at hkΓ
+                exact hkΓ.symm
+
+              have hσfr : σfr = { σtop with
+                  binds := fun y => if y = x then some (.object τ σ.next) else σtop.binds y,
+                  locals := σ.next :: σtop.locals } := by
+                simp [declareObjectState, recordLocal, bindTopBinding, writeHeap, hS] at hkσ
+                exact hkσ.symm
+              rw [hΓfr, hσfr]
+              exact hTop
+          | succ j =>
+              have hkΓOld : Γ.scopes[(j + 1)]? = some Γfr := by
+                simpa [declareTypeObject, insertTopDecl, hG] using hkΓ
+              have hkσOld : σ.scopes[(j + 1)]? = some σfr := by
+                simpa [declareObjectState, recordLocal, bindTopBinding, writeHeap, hS] using hkσ
+              exact hexact (j + 1) Γfr σfr hkΓOld hkσOld
+
+theorem framewiseDeclBindingExact_declareTypeRef_declareRefState_from_topFrameFresh
+    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {a : Nat}
+    {Γtop : TypeFrame} :
+    frameDepthAgreement Γ σ →
+    framewiseDeclBindingExact Γ σ →
+    Γ.scopes[0]? = some Γtop →
+    Γtop.decls x = none →
+    topFrameBindingFresh σ x →
+    framewiseDeclBindingExact (declareTypeRef Γ x τ) (declareRefState σ τ x a) := by
+  intro hdepth hexact hΓ0 hfreshType hfreshRuntime
+  intro k Γfr σfr hkΓ hkσ
+  cases hG : Γ.scopes with
+  | nil =>
+      simp [hG] at hΓ0
+  | cons Γtop0 Γrest =>
+      cases hS : σ.scopes with
+      | nil =>
+          unfold frameDepthAgreement at hdepth
+          simp [hG, hS] at hdepth
+      | cons σtop σrest =>
+          cases k with
+          | zero =>
+              -- --- インデックス 0 (最上位フレーム) のケース ---
+              have hExact0 : frameDeclBindingExactAt Γtop0 σtop :=
+                hexact 0 Γtop0 σtop (by simp [hG]) (by simp [hS])
+
+              have hΓtopEq : Γtop0 = Γtop := by
+                simpa [hG] using hΓ0
+              rw [hΓtopEq] at hExact0
+
+              have hTypeFresh0 : Γtop.decls x = none := hfreshType
+              have hRunFresh0 : σtop.binds x = none := hfreshRuntime σtop (by simp [hS])
+              -- 参照宣言の場合、locals は変化しないためそのまま定義
+              have hTop :
+                  frameDeclBindingExactAt
+                    { Γtop with decls := fun y => if y = x then some (.ref τ) else Γtop.decls y }
+                    { σtop with binds := fun y => if y = x then some (.ref τ a) else σtop.binds y } :=
+                frameDeclBindingExactAt_insertTop
+                  hExact0 hTypeFresh0 hRunFresh0 (by simp [DeclMatchesBinding])
+              -- Γfr の導出
+              have hΓfr : Γfr = { Γtop with decls := fun y => if y = x then some (.ref τ) else Γtop.decls y } := by
+                simp [declareTypeRef, insertTopDecl, hG] at hkΓ
+                rw [hΓtopEq] at hkΓ
+                exact hkΓ.symm
+              -- σfr の導出 (参照の場合は binds の更新のみ)
+              have hσfr : σfr = { σtop with binds := fun y => if y = x then some (.ref τ a) else σtop.binds y } := by
+                simp [declareRefState, bindTopBinding, hS] at hkσ
+                exact hkσ.symm
+
+              rw [hΓfr, hσfr]
+              exact hTop
+          | succ j =>
+              have hkΓOld : Γ.scopes[(j + 1)]? = some Γfr := by
+                simpa [declareTypeRef, insertTopDecl, hG] using hkΓ
+              have hkσOld : σ.scopes[(j + 1)]? = some σfr := by
+                simpa [declareRefState, bindTopBinding, hS] using hkσ
+              exact hexact (j + 1) Γfr σfr hkΓOld hkσOld
+
+theorem framewiseDeclBindingExact_declareTypeObject_declareObjectStateWithNext
+    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {ov : Option Value} {aNext : Nat}
+    {Γtop : TypeFrame} :
+    frameDepthAgreement Γ σ →
+    framewiseDeclBindingExact Γ σ →
+    Γ.scopes[0]? = some Γtop →
+    Γtop.decls x = none →
+    topFrameBindingFresh σ x →
+    framewiseDeclBindingExact
+      (declareTypeObject Γ x τ)
+      (declareObjectStateWithNext σ τ x ov aNext) := by
+  intro hdepth hexact hΓ0 hfreshType hfreshRuntime
+  have hold :
+      framewiseDeclBindingExact
+        (declareTypeObject Γ x τ)
+        (declareObjectState σ τ x ov) :=
+    framewiseDeclBindingExact_declareTypeObject_declareObjectState_from_topFrameFresh
+      hdepth hexact hΓ0 hfreshType hfreshRuntime
+  intro k Γfr σfr hkΓ hkσ
+  have hkσOld : (declareObjectState σ τ x ov).scopes[k]? = some σfr := by
+    simpa [scopes_declareObjectStateWithNext_eq_old] using hkσ
+  exact hold k Γfr σfr hkΓ hkσOld
+
 end TypeEnvLocalLemmas
 
 namespace DeclareObjectReadyStrong
@@ -159,6 +336,8 @@ theorem kernel_after_declareObjectState
         (Γ := Γ) (σ := σ) (x := x) (τ := τ) (ov := ov) h.concrete.frameDepth
       shadowing := shadowingCompatible_declareTypeObject_declareObjectState
         (Γ := Γ) (σ := σ) (x := x) (τ := τ) (ov := ov) h.concrete.shadowing
+      namesExact :=framewiseDeclBindingExact_declareTypeObject_declareObjectState_from_topFrameFresh
+        h.concrete.frameDepth h.concrete.namesExact hΓ0 (h.typeFresh _ hΓ0) (h.topFrameFresh hΓ0)
       objectDeclRealized := objectDeclRealized_after_declareObjectState
         (h := h) (hΓ0 := hΓ0) (τ := τ) (ov := ov)
       refDeclRealized := refDeclRealized_after_declareObjectState
@@ -210,6 +389,7 @@ theorem kernel_after_declareObjectState
   refine
     { frameDepth := hker.frameDepth
       shadowing := hker.shadowing
+      namesExact := hker.namesExact
       objectDeclRealized := hker.objectDeclRealized
       refDeclRealized := hker.refDeclRealized
       ownedAddressNamed := hown.ownedAddressNamed
@@ -244,6 +424,8 @@ theorem kernel_after_declareRefState
         (Γ := Γ) (σ := σ) (x := x) (τ := τ) (a := a) h.concrete.frameDepth
       shadowing := shadowingCompatible_declareTypeRef_declareRefState
         (Γ := Γ) (σ := σ) (x := x) (τ := τ) (a := a) h.concrete.shadowing
+      namesExact :=framewiseDeclBindingExact_declareTypeRef_declareRefState_from_topFrameFresh
+        h.concrete.frameDepth h.concrete.namesExact hΓ0 (h.typeFresh _ hΓ0) (h.topFrameFresh hΓ0)
       objectDeclRealized := objectDeclRealized_after_declareRefState
         (h := h) (hΓ0 := hΓ0) (τ := τ) (a := a)
       refDeclRealized := refDeclRealized_after_declareRefState
@@ -288,6 +470,7 @@ theorem kernel_after_declareRefState
   refine
     { frameDepth := hker.frameDepth
       shadowing := hker.shadowing
+      namesExact := hker.namesExact
       objectDeclRealized := hker.objectDeclRealized
       refDeclRealized := hker.refDeclRealized
       ownedAddressNamed := hown.ownedAddressNamed
@@ -333,6 +516,8 @@ theorem kernel_after_declareObjectStateWithNext
         rcases hold.shadowing y d hdecl with ⟨b, hb, hmatch⟩
         refine ⟨b, ?_, hmatch⟩
         simpa [lookupBinding, scopes_declareObjectStateWithNext_eq_old] using hb
+      namesExact := framewiseDeclBindingExact_declareTypeObject_declareObjectStateWithNext
+        h.ready.concrete.frameDepth h.ready.concrete.namesExact hΓ0 (h.ready.typeFresh _ hΓ0) (h.ready.topFrameFresh hΓ0)
       objectDeclRealized :=
         objectDeclRealized_after_declareObjectStateWithNext
           (h := h) (hΓ0 := hΓ0)
@@ -384,6 +569,7 @@ theorem concrete_after_declareObjectStateWithNext
   refine
     { frameDepth := hker.frameDepth
       shadowing := hker.shadowing
+      namesExact := hker.namesExact
       objectDeclRealized := hker.objectDeclRealized
       refDeclRealized := hker.refDeclRealized
       objectBindingSound := hker.objectBindingSound

@@ -30,22 +30,25 @@ noncomputable def externalPiecesV3_of_legacy_external_assumptions
     (hdyn : F.establishesDynamic n Γ σ st)
     (hgen : R.generates m st)
     (hstruct : R.establishesStructural m Γ st)
-    (hprof : R.establishesProfile m Γ st)
+    (hstatic : R.establishesStatic m Γ st)
     (hcompat : G.compatible n m Γ σ st) :
     ExternalPiecesV3 Γ σ st := by
-  let hb : BodyClosureBoundaryCI Γ σ st :=
-    fragments_establish_body_closure_boundary
-      G huse hdyn hgen hstruct hprof hcompat
-  let hc : CoreBigStepFragment st :=
-    reflection_fragment_generates_core hgen
-  exact
-    { structural := hb.structural
-      profile := hb.profile
-      dynamic := hb.dynamic
-      core := hc
-      adequacy := hb.adequacy }
+  let rt : RuntimePiecesLegacy Γ σ st :=
+    F.mkRuntime (n := n) (Γ := Γ) (σ := σ) (st := st) huse hdyn
+  let rf : ReflectionPiecesLegacy Γ st :=
+    R.mkReflection (m := m) (Γ := Γ) (st := st) hgen hstruct hstatic
+  refine
+    { structural := rf.structural
+      static := rf.static
+      dynamic := rt.dynamic
+      core := rf.core
+      adequacy := ?_ }
+  simpa [rf] using
+    (G.mkAdequacy
+      (n := n) (m := m) (Γ := Γ) (σ := σ) (st := st)
+      huse hdyn hgen hstruct hstatic hcompat)
 
-/-- The V3 `core` projection is definitionally the remaining legacy core bridge. -/
+/-- The V3 `core` projection is the core membership carried by the legacy reflection package. -/
 theorem externalPiecesV3_of_legacy_external_assumptions_core
     {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}
     (G : VerifiedExternalGlueLegacy F R)
@@ -55,11 +58,14 @@ theorem externalPiecesV3_of_legacy_external_assumptions_core
     (hdyn : F.establishesDynamic n Γ σ st)
     (hgen : R.generates m st)
     (hstruct : R.establishesStructural m Γ st)
-    (hprof : R.establishesProfile m Γ st)
+    (hstatic : R.establishesStatic m Γ st)
     (hcompat : G.compatible n m Γ σ st) :
     (externalPiecesV3_of_legacy_external_assumptions
-      G huse hdyn hgen hstruct hprof hcompat).core
-      = reflection_fragment_generates_core hgen := by
+      G huse hdyn hgen hstruct hstatic hcompat).core
+      =
+    (R.mkReflection
+      (m := m) (Γ := Γ) (st := st)
+      hgen hstruct hstatic).core := by
   rfl
 
 theorem externalPiecesV3_of_legacy_external_assumptions_boundary
@@ -71,20 +77,22 @@ theorem externalPiecesV3_of_legacy_external_assumptions_boundary
     (hdyn : F.establishesDynamic n Γ σ st)
     (hgen : R.generates m st)
     (hstruct : R.establishesStructural m Γ st)
-    (hprof : R.establishesProfile m Γ st)
+    (hstatic : R.establishesStatic m Γ st)
     (hcompat : G.compatible n m Γ σ st) :
     (externalPiecesV3_of_legacy_external_assumptions
-      G huse hdyn hgen hstruct hprof hcompat).toBodyBoundary
+      G huse hdyn hgen hstruct hstatic hcompat).toBodyBoundary
       =
     fragments_establish_body_closure_boundary
-      G huse hdyn hgen hstruct hprof hcompat := by
+      G huse hdyn hgen hstruct hstatic hcompat := by
   let hb : BodyClosureBoundaryCI Γ σ st :=
     fragments_establish_body_closure_boundary
-      G huse hdyn hgen hstruct hprof hcompat
-  change mkBodyClosureBoundaryCI hb.structural hb.profile hb.dynamic hb.adequacy = hb
+      G huse hdyn hgen hstruct hstatic hcompat
+  change
+    mkBodyClosureBoundaryCI
+      hb.structural hb.static hb.dynamic hb.adequacy
+      = hb
   cases hb
   rfl
-
 
 /-- Legacy name for the assembled body boundary route into V3. -/
 noncomputable def legacyAssembleBodyBoundaryV3
@@ -96,11 +104,11 @@ noncomputable def legacyAssembleBodyBoundaryV3
     (hdyn : F.establishesDynamic n Γ σ st)
     (hgen : R.generates m st)
     (hstruct : R.establishesStructural m Γ st)
-    (hprof : R.establishesProfile m Γ st)
+    (hstatic : R.establishesStatic m Γ st)
     (hcompat : G.compatible n m Γ σ st) :
     BodyClosureBoundaryCI Γ σ st :=
   (externalPiecesV3_of_legacy_external_assumptions
-    G huse hdyn hgen hstruct hprof hcompat).toBodyBoundary
+    G huse hdyn hgen hstruct hstatic hcompat).toBodyBoundary
 
 /-- The renamed legacy assembled route agrees with the direct legacy theorem. -/
 theorem legacyAssembleBodyBoundaryV3_eq_old
@@ -112,14 +120,14 @@ theorem legacyAssembleBodyBoundaryV3_eq_old
     (hdyn : F.establishesDynamic n Γ σ st)
     (hgen : R.generates m st)
     (hstruct : R.establishesStructural m Γ st)
-    (hprof : R.establishesProfile m Γ st)
+    (hstatic : R.establishesStatic m Γ st)
     (hcompat : G.compatible n m Γ σ st) :
     legacyAssembleBodyBoundaryV3
-      G huse hdyn hgen hstruct hprof hcompat
+      G huse hdyn hgen hstruct hstatic hcompat
       =
     fragments_establish_body_closure_boundary
-      G huse hdyn hgen hstruct hprof hcompat :=
+      G huse hdyn hgen hstruct hstatic hcompat :=
   externalPiecesV3_of_legacy_external_assumptions_boundary
-    G huse hdyn hgen hstruct hprof hcompat
+    G huse hdyn hgen hstruct hstatic hcompat
 
 end Cpp

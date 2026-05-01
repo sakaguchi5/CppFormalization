@@ -2,9 +2,9 @@ import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.ReadinessInversions
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
-import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCI
-import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelCI
-import CppFormalization.Cpp2.Closure.Internal.WhileNormalPreservation
+import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
+import CppFormalization.Cpp2.Closure.Internal.WhileReentryReadyKernelCI
+import CppFormalization.Cpp2.Closure.Internal.BlockNormalPreservation
 import CppFormalization.Cpp2.Closure.Foundation.ReadinessSemanticsBridge
 import CppFormalization.Cpp2.Lemmas.ExprTypeUniqueness
 import CppFormalization.Cpp2.Lemmas.TransitionDeterminism
@@ -15,40 +15,14 @@ namespace Cpp
 /-!
 # Proof.Preservation.StmtControlKernelSupport
 
-`StmtControlKernel` で使う while / assign / block-open-scope の補助層。
+`StmtControlKernel` / `StmtControlPreservationV2` で使う while / assign /
+block-open-scope の補助層。
 main recursor から support obligations を分離して、
 compatibility recursion 本体を読みやすく保つ。
 -/
 
-/-- while compatibility branch が必要とする局所文脈。 -/
-structure WhileCompatCtx
-    (Γ : TypeEnv) (σ : State) (c : ValExpr) (body : CppStmt) : Type where
-  condReady : ExprReadyConcrete Γ σ c (.base .bool)
-  bodyBoundary : LoopBodyBoundaryCI Γ σ body
-  reentry : LoopReentryKernelCI Γ c body
 
-abbrev WhileCtxProvider : Type :=
-  ∀ {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt},
-    HasValueType Γ c (.base .bool) →
-    HasTypeStmtCI .normalK Γ body Γ →
-    HasTypeStmtCI .breakK Γ body Γ →
-    HasTypeStmtCI .continueK Γ body Γ →
-    ScopedTypedStateConcrete Γ σ →
-    StmtReadyConcrete Γ σ (.whileStmt c body) →
-    WhileCompatCtx Γ σ c body
-
-def whileCtxOf
-    (mkWhileCtx : WhileCtxProvider)
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
-    (hc : HasValueType Γ c (.base .bool))
-    (hN : HasTypeStmtCI .normalK Γ body Γ)
-    (hB : HasTypeStmtCI .breakK Γ body Γ)
-    (hC : HasTypeStmtCI .continueK Γ body Γ)
-    (hsc : ScopedTypedStateConcrete Γ σ)
-    (hreadyWhile : StmtReadyConcrete Γ σ (.whileStmt c body)) :
-    WhileCompatCtx Γ σ c body :=
-  mkWhileCtx hc hN hB hC hsc hreadyWhile
-
+/-- body branch IH から 1-step 後の concrete state を得るだけの補助。 -/
 theorem whileBodyConcrete
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
     (ihBody :
@@ -61,7 +35,7 @@ theorem whileBodyConcrete
   exact ihBody hsc (while_ready_body_data hreadyWhile)
 
 theorem whileTailReadyNormal
-    (mkWhileCtx : WhileCtxProvider)
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
     (hc : HasValueType Γ c (.base .bool))
     (hN : HasTypeStmtCI .normalK Γ body Γ)
@@ -71,15 +45,11 @@ theorem whileTailReadyNormal
     (hreadyWhile : StmtReadyConcrete Γ σ (.whileStmt c body))
     (hbody : BigStepStmt σ body .normal σ') :
     StmtReadyConcrete Γ σ' (.whileStmt c body) := by
-  let wctx := whileCtxOf mkWhileCtx hc hN hB hC hsc hreadyWhile
-  exact while_ready_after_body_normal_of_kernel
-    wctx.reentry
-    wctx.condReady
-    wctx.bodyBoundary
-    hbody
+  let K := mkWhileReentry hc hN hB hC hsc hreadyWhile
+  exact whileStmtReady_after_normal hc K hbody
 
 theorem whileTailReadyContinue
-    (mkWhileCtx : WhileCtxProvider)
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
     (hc : HasValueType Γ c (.base .bool))
     (hN : HasTypeStmtCI .normalK Γ body Γ)
@@ -89,12 +59,160 @@ theorem whileTailReadyContinue
     (hreadyWhile : StmtReadyConcrete Γ σ (.whileStmt c body))
     (hbody : BigStepStmt σ body .continueResult σ') :
     StmtReadyConcrete Γ σ' (.whileStmt c body) := by
-  let wctx := whileCtxOf mkWhileCtx hc hN hB hC hsc hreadyWhile
-  exact while_ready_after_body_continue_of_kernel
-    wctx.reentry
-    wctx.condReady
-    wctx.bodyBoundary
-    hbody
+  let K := mkWhileReentry hc hN hB hC hsc hreadyWhile
+  exact whileStmtReady_after_continue hc K hbody
+
+theorem whileNormalNormalCase
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ0 σ1 σ2 : State} {c : ValExpr} {body : CppStmt}
+    (hc : HasValueType Γ c (.base .bool))
+    (hN : HasTypeStmtCI .normalK Γ body Γ)
+    (hB : HasTypeStmtCI .breakK Γ body Γ)
+    (hC : HasTypeStmtCI .continueK Γ body Γ)
+    (hbody : BigStepStmt σ0 body .normal σ1)
+    (ihBody :
+      ScopedTypedStateConcrete Γ σ0 →
+      StmtReadyConcrete Γ σ0 body →
+      ScopedTypedStateConcrete Γ σ1)
+    (ihTail :
+      ScopedTypedStateConcrete Γ σ1 →
+      StmtReadyConcrete Γ σ1 (.whileStmt c body) →
+      ScopedTypedStateConcrete Γ σ2) :
+    ScopedTypedStateConcrete Γ σ0 →
+    StmtReadyConcrete Γ σ0 (.whileStmt c body) →
+    ScopedTypedStateConcrete Γ σ2 := by
+  intro hsc_in hreadyWhile
+  have hsc1 : ScopedTypedStateConcrete Γ σ1 :=
+    whileBodyConcrete ihBody hsc_in hreadyWhile
+  have hreadyTail : StmtReadyConcrete Γ σ1 (.whileStmt c body) :=
+    whileTailReadyNormal mkWhileReentry hc hN hB hC hsc_in hreadyWhile hbody
+  exact ihTail hsc1 hreadyTail
+
+theorem whileBreakCase
+    {Γ : TypeEnv} {σ0 σ1 : State} {c : ValExpr} {body : CppStmt}
+    (ihBody :
+      ScopedTypedStateConcrete Γ σ0 →
+      StmtReadyConcrete Γ σ0 body →
+      ScopedTypedStateConcrete Γ σ1) :
+    ScopedTypedStateConcrete Γ σ0 →
+    StmtReadyConcrete Γ σ0 (.whileStmt c body) →
+    ScopedTypedStateConcrete Γ σ1 := by
+  intro hsc_in hreadyWhile
+  exact whileBodyConcrete ihBody hsc_in hreadyWhile
+
+theorem whileContinueNormalCase
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ0 σ1 σ2 : State} {c : ValExpr} {body : CppStmt}
+    (hc : HasValueType Γ c (.base .bool))
+    (hN : HasTypeStmtCI .normalK Γ body Γ)
+    (hB : HasTypeStmtCI .breakK Γ body Γ)
+    (hC : HasTypeStmtCI .continueK Γ body Γ)
+    (hbody : BigStepStmt σ0 body .continueResult σ1)
+    (ihBody :
+      ScopedTypedStateConcrete Γ σ0 →
+      StmtReadyConcrete Γ σ0 body →
+      ScopedTypedStateConcrete Γ σ1)
+    (ihTail :
+      ScopedTypedStateConcrete Γ σ1 →
+      StmtReadyConcrete Γ σ1 (.whileStmt c body) →
+      ScopedTypedStateConcrete Γ σ2) :
+    ScopedTypedStateConcrete Γ σ0 →
+    StmtReadyConcrete Γ σ0 (.whileStmt c body) →
+    ScopedTypedStateConcrete Γ σ2 := by
+  intro hsc_in hreadyWhile
+  have hsc1 : ScopedTypedStateConcrete Γ σ1 :=
+    whileBodyConcrete ihBody hsc_in hreadyWhile
+  have hreadyTail : StmtReadyConcrete Γ σ1 (.whileStmt c body) :=
+    whileTailReadyContinue mkWhileReentry hc hN hB hC hsc_in hreadyWhile hbody
+  exact ihTail hsc1 hreadyTail
+
+theorem whileNormalReturnCase
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ Δ : TypeEnv} {σ0 σ1 σ2 : State} {c : ValExpr} {body : CppStmt}
+    (hc : HasValueType Γ c (.base .bool))
+    (hN : HasTypeStmtCI .normalK Γ body Γ)
+    (hB : HasTypeStmtCI .breakK Γ body Γ)
+    (hC : HasTypeStmtCI .continueK Γ body Γ)
+    (hbody : BigStepStmt σ0 body .normal σ1)
+    (ihBody :
+      ScopedTypedStateConcrete Γ σ0 →
+      StmtReadyConcrete Γ σ0 body →
+      ScopedTypedStateConcrete Γ σ1)
+    (ihTail :
+      ScopedTypedStateConcrete Γ σ1 →
+      StmtReadyConcrete Γ σ1 (.whileStmt c body) →
+      ScopedTypedStateConcrete Δ σ2) :
+    ScopedTypedStateConcrete Γ σ0 →
+    StmtReadyConcrete Γ σ0 (.whileStmt c body) →
+    ScopedTypedStateConcrete Δ σ2 := by
+  intro hsc_in hreadyWhile
+  have hsc1 : ScopedTypedStateConcrete Γ σ1 :=
+    whileBodyConcrete ihBody hsc_in hreadyWhile
+  have hreadyTail : StmtReadyConcrete Γ σ1 (.whileStmt c body) :=
+    whileTailReadyNormal mkWhileReentry hc hN hB hC hsc_in hreadyWhile hbody
+  exact ihTail hsc1 hreadyTail
+
+theorem whileContinueReturnCase
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ Δ : TypeEnv} {σ0 σ1 σ2 : State} {c : ValExpr} {body : CppStmt}
+    (hc : HasValueType Γ c (.base .bool))
+    (hN : HasTypeStmtCI .normalK Γ body Γ)
+    (hB : HasTypeStmtCI .breakK Γ body Γ)
+    (hC : HasTypeStmtCI .continueK Γ body Γ)
+    (hbody : BigStepStmt σ0 body .continueResult σ1)
+    (ihBody :
+      ScopedTypedStateConcrete Γ σ0 →
+      StmtReadyConcrete Γ σ0 body →
+      ScopedTypedStateConcrete Γ σ1)
+    (ihTail :
+      ScopedTypedStateConcrete Γ σ1 →
+      StmtReadyConcrete Γ σ1 (.whileStmt c body) →
+      ScopedTypedStateConcrete Δ σ2) :
+    ScopedTypedStateConcrete Γ σ0 →
+    StmtReadyConcrete Γ σ0 (.whileStmt c body) →
+    ScopedTypedStateConcrete Δ σ2 := by
+  intro hsc_in hreadyWhile
+  have hsc1 : ScopedTypedStateConcrete Γ σ1 :=
+    whileBodyConcrete ihBody hsc_in hreadyWhile
+  have hreadyTail : StmtReadyConcrete Γ σ1 (.whileStmt c body) :=
+    whileTailReadyContinue mkWhileReentry hc hN hB hC hsc_in hreadyWhile hbody
+  exact ihTail hsc1 hreadyTail
+
+theorem whileReturnLeafCase
+    {Γ Δ : TypeEnv} {σ0 σ1 : State} {c : ValExpr} {body : CppStmt}
+    (ihBody :
+      ScopedTypedStateConcrete Γ σ0 →
+      StmtReadyConcrete Γ σ0 body →
+      ScopedTypedStateConcrete Δ σ1) :
+    ScopedTypedStateConcrete Γ σ0 →
+    StmtReadyConcrete Γ σ0 (.whileStmt c body) →
+    ScopedTypedStateConcrete Δ σ1 := by
+  intro hsc_in hreadyWhile
+  exact ihBody hsc_in (while_ready_body_data hreadyWhile)
+
+theorem blockStmtCase
+    {k : ControlKind} {Γ Θ : TypeEnv} {ss : StmtBlock}
+    {σ σ0 σ1 σ2 : State}
+    {htyB : HasTypeBlockCI k (pushTypeScope Γ) ss Θ}
+    {hopen : OpenScope σ σ0}
+    {hclose : CloseScope σ1 σ2}
+    (ihBlk :
+      ScopedTypedStateConcrete (pushTypeScope Γ) σ0 →
+      BlockReadyConcrete (pushTypeScope Γ) σ0 ss →
+      ScopedTypedStateConcrete Θ σ1) :
+    ScopedTypedStateConcrete Γ σ →
+    StmtReadyConcrete Γ σ (.block ss) →
+    ScopedTypedStateConcrete Γ σ2 := by
+  intro hsc_in hready_block
+  have hsc_open : ScopedTypedStateConcrete (pushTypeScope Γ) σ0 :=
+    openScope_preserves_scoped_typed_state_concrete hsc_in hopen
+  have hreadyBody : BlockReadyConcrete (pushTypeScope Γ) σ0 ss :=
+    block_ready_opened_body hready_block hopen
+  have hsc_body : ScopedTypedStateConcrete Θ σ1 :=
+    ihBlk hsc_open hreadyBody
+  have hExt : TopFrameExtensionOf Γ Θ :=
+    block_ci_topFrameExtension htyB
+  exact closeScope_preserves_outer_from_topFrameExtension hExt hsc_body hclose
 
 theorem assign_ready_data
     {Γ : TypeEnv} {σ : State} {p : PlaceExpr} {e : ValExpr} :

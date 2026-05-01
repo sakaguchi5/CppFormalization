@@ -35,29 +35,19 @@ Provided routes:
   the earlier direct legacy bridge.
 
 Main redesign point:
-- reflection chooses one package `(structural, profile, core)` together,
-- glue proves adequacy only for that chosen profile,
-- ready assembly carries explicit coherence back to the visible package side.
+- reflection chooses one package `(structural, static, core)` together,
+- glue proves adequacy only for the profile projected from that chosen static package,
+- ready assembly carries explicit coherence back to the observable package side.
 
 Stage 2B comparison vocabulary:
-- `PackageCoherentV3` is the strong visible-package comparison notion,
-- `BoundaryCoherentV3` is the official quotient used by closure theorems.
+- `ObservablePiecesV3` is the official package-level carrier,
+- `PackageCoherentV3` is the strong observable-package comparison notion,
+- `BoundaryCoherentV3` is the official quotient used by closure theorems,
+- `VisiblePiecesV3` is deliberately not part of the V3 public vocabulary.
 
 Stage 2C family canonicity vocabulary:
 - `RuntimePackageUniqueV3` says runtime artifacts are target-canonical,
 - `ReflectionPackageUniqueV3` says reflection artifacts are target-canonical,
-- `canonicalVisiblePiecesV3_wellDefined` records that visible package choice no
-  longer depends on which supporting artifact was used.
-
-Refactoring support vocabulary:
-- `TransportV3` isolates profile-index transport / cast lemmas,
-- `TransportPropsV3` isolates small proof-irrelevance transport lemmas,
-- `AssembleLemmasV3` isolates generic low-level assembly projections.
-
-Stage 7/8 preparatory vocabulary:
-- `SplitBuilderV3` removes the single-certificate assumption and packages
-  separate runtime-side and reflection-side artifacts into the same V3 routes,
-- `ToySplitBuilderV3` shows that this split presentation is already inhabited on
-  the first concrete family and lands on the same official quotient as the
-  earlier hand-written toy routes.
+- `canonicalObservablePiecesV3_wellDefined` records that observable package choice
+  no longer depends on which supporting artifact was used.
 -/

@@ -6,11 +6,11 @@ namespace Cpp
 structure RuntimePiecesLegacy (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
   dynamic : BodyDynamicBoundary Γ σ st
 
-/-- Legacy reflection-side package: keep structural and profile chosen together. -/
+/-- Legacy reflection-side package: structural + assembled static package + core membership. -/
 structure ReflectionPiecesLegacy (Γ : TypeEnv) (st : CppStmt) : Type where
   structural : BodyStructuralBoundary Γ st
-  profile : BodyControlProfile Γ st
-
+  static : BodyStaticBoundaryCI Γ st
+  core : CoreBigStepFragment st
 /--
 Legacy std fragment interface.
 
@@ -33,20 +33,22 @@ structure VerifiedStdFragment where
 Legacy reflection fragment interface.
 
 Minimal upgrade:
-- keep the old predicate names (`generates`, `establishesStructural`, `establishesProfile`);
-- add a constructor returning the actual reflection package.
+- keep the old predicate names (`generates`, `establishesStructural`,
+  `establishesStatic`);
+- add a constructor returning the actual reflection package, including core
+  membership for the generated statement.
 -/
 structure VerifiedReflectionFragment where
   Meta : Type
   generates : Meta → CppStmt → Prop
   establishesStructural : Meta → TypeEnv → CppStmt → Prop
-  establishesProfile : Meta → TypeEnv → CppStmt → Prop
+  establishesStatic : Meta → TypeEnv → CppStmt → Prop
 
   mkReflection :
     ∀ {m : Meta} {Γ : TypeEnv} {st : CppStmt},
       generates m st →
       establishesStructural m Γ st →
-      establishesProfile m Γ st →
+      establishesStatic m Γ st →
       ReflectionPiecesLegacy Γ st
 
 /--
@@ -65,27 +67,15 @@ structure VerifiedExternalGlueLegacy
       (hdyn : F.establishesDynamic n Γ σ st) →
       (hgen : R.generates m st) →
       (hstruct : R.establishesStructural m Γ st) →
-      (hprof : R.establishesProfile m Γ st) →
+      (hstatic : R.establishesStatic m Γ st) →
       (hcompat : compatible n m Γ σ st) →
       BodyAdequacyCI Γ σ st
-        ((R.mkReflection (m := m) (Γ := Γ) (st := st) hgen hstruct hprof).profile)
-
-/--
-Still keep this as the remaining core-membership bridge for the legacy interface.
-
-This can be removed later if `ReflectionPiecesLegacy` is extended with
-`core : CoreBigStepFragment st`.
--/
-axiom reflection_fragment_generates_core
-    {R : VerifiedReflectionFragment} {m : R.Meta} {st : CppStmt} :
-    R.generates m st →
-    CoreBigStepFragment st
-
+        ((R.mkReflection (m := m) (Γ := Γ) (st := st) hgen hstruct hstatic).static.profile)
 /--
 Assembled boundary is no longer axiomatic.
 It is built definitionally from:
 - std-side runtime package,
-- reflection-side structural/profile package,
+- reflection-side structural/static package,
 - glue-produced adequacy.
 -/
 noncomputable def fragments_establish_body_closure_boundary
@@ -97,20 +87,22 @@ noncomputable def fragments_establish_body_closure_boundary
     (hdyn : F.establishesDynamic n Γ σ st)
     (hgen : R.generates m st)
     (hstruct : R.establishesStructural m Γ st)
-    (hprof : R.establishesProfile m Γ st)
+    (hstatic : R.establishesStatic m Γ st)
     (hcompat : G.compatible n m Γ σ st) :
     BodyClosureBoundaryCI Γ σ st := by
-  let hrun : RuntimePiecesLegacy Γ σ st :=
-    F.mkRuntime huse hdyn
-  let hrefl : ReflectionPiecesLegacy Γ st :=
-    R.mkReflection hgen hstruct hprof
-  let hadeq : BodyAdequacyCI Γ σ st hrefl.profile :=
-    G.mkAdequacy huse hdyn hgen hstruct hprof hcompat
-  exact
+  let rt : RuntimePiecesLegacy Γ σ st :=
+    F.mkRuntime (n := n) (Γ := Γ) (σ := σ) (st := st) huse hdyn
+  let rf : ReflectionPiecesLegacy Γ st :=
+    R.mkReflection (m := m) (Γ := Γ) (st := st) hgen hstruct hstatic
+  refine
     mkBodyClosureBoundaryCI
-      hrefl.structural
-      hrefl.profile
-      hrun.dynamic
-      hadeq
+      rf.structural
+      rf.static
+      rt.dynamic
+      ?_
+  simpa [rf] using
+    (G.mkAdequacy
+      (n := n) (m := m) (Γ := Γ) (σ := σ) (st := st)
+      huse hdyn hgen hstruct hstatic hcompat)
 
 end Cpp

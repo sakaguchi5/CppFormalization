@@ -1,6 +1,6 @@
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryLite
 import CppFormalization.Cpp2.Closure.Foundation.ReadinessInversions
-import CppFormalization.Cpp2.Closure.Transitions.Minor.OpenScopeDecomposition
+import CppFormalization.Cpp2.Closure.Transitions.Scope.OpenPreservation
 
 namespace Cpp
 namespace BlockBodyBoundaryTransportLite

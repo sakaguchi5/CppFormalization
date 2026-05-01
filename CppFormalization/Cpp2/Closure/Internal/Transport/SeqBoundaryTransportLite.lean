@@ -44,25 +44,30 @@ theorem seq_tail_dynamic_of_left_normal
     {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt}
     (hd : BodyDynamicBoundary Γ σ (.seq s t))
     (hN : HasTypeStmtCI .normalK Γ s Δ)
-    (hstepS : BigStepStmt σ s .normal σ') :
+    (hstepS : BigStepStmt σ s .normal σ')
+    (hpresS :
+      ScopedTypedStateConcrete Γ σ →
+      StmtReadyConcrete Γ σ s →
+      BigStepStmt σ s .normal σ' →
+      ScopedTypedStateConcrete Δ σ') :
     BodyDynamicBoundary Δ σ' t := by
   have hreadyS : StmtReadyConcrete Γ σ s :=
-  stmtReadyConcrete_seq_left hd.safe
-  refine
-    { state := ?_
-      safe := ?_ }
-  · exact
-      InternalClosureRoadmapCI.stmt_normal_preserves_scoped_typed_state
-        hN
-        hreadyS
-        hstepS
-        hd.state
-  · exact
-      InternalClosureRoadmapCI.seq_left_normal_preserves_stmt_ready
-        hN
-        hd.safe
-        hstepS
-        hd.state
+    seq_ready_left hd.safe
+
+  have hstate' : ScopedTypedStateConcrete Δ σ' :=
+    hpresS hd.state hreadyS hstepS
+
+  have hreadyTail : StmtReadyConcrete Δ σ' t :=
+    seq_ready_right_after_left_normal
+      hN
+      hstate'
+      hd.safe
+      hstepS
+
+  exact
+    BodyDynamicBoundary.intro_of_concrete_and_stmtReadyConcrete
+      hstate'
+      hreadyTail
 
 /-! ## adequacy projection -/
 
@@ -102,13 +107,18 @@ def seq_tail_boundary_of_left_normal_mk
     (hs : BodyStructuralBoundaryLite (.seq s t))
     (hd : BodyDynamicBoundary Γ σ (.seq s t))
     (ha : StmtBodyAdequacyLite Γ σ (.seq hN P₁ P₂))
-    (hstepS : BigStepStmt σ s .normal σ') :
+    (hstepS : BigStepStmt σ s .normal σ')
+    (hpresS :
+      ScopedTypedStateConcrete Γ σ →
+      StmtReadyConcrete Γ σ s →
+      BigStepStmt σ s .normal σ' →
+      ScopedTypedStateConcrete Δ σ') :
     BodyClosureBoundaryLite Δ σ' t := by
   exact
     mkBodyClosureBoundaryLite
       (seq_tail_structural_of_parent hs hN)
       P₂
-      (seq_tail_dynamic_of_left_normal hd hN hstepS)
+      (seq_tail_dynamic_of_left_normal hd hN hstepS hpresS)
       (seq_tail_adequacy_of_left_normal ha hstepS)
 
 /-- Assembled boundary 版の seq tail transport theorem. -/
@@ -119,13 +129,18 @@ def seq_tail_boundary_of_left_normal
     {hN : HasTypeStmtCI .normalK Γ s Δ}
     (h : BodyClosureBoundaryLite Γ σ (.seq s t))
     (hprof : h.profile = .seq hN P₁ P₂)
-    (hstepS : BigStepStmt σ s .normal σ') :
+    (hstepS : BigStepStmt σ s .normal σ')
+    (hpresS :
+      ScopedTypedStateConcrete Γ σ →
+      StmtReadyConcrete Γ σ s →
+      BigStepStmt σ s .normal σ' →
+      ScopedTypedStateConcrete Δ σ') :
     BodyClosureBoundaryLite Δ σ' t := by
   cases h with
   | mk hs hp hd ha =>
       cases hprof
       exact seq_tail_boundary_of_left_normal_mk
-        (hs := hs) (hd := hd) (ha := ha) hstepS
+        (hs := hs) (hd := hd) (ha := ha) hstepS hpresS
 
 end SeqBoundaryTransportLite
 end Cpp

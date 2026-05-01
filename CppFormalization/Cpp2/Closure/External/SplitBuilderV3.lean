@@ -85,15 +85,15 @@ structure SplitArtifactFamilyV3 where
       (mkReady huse hsuppRun hgen hsuppRefl hcompat).toStructural =
         (mkReflection hgen hsuppRefl).structural
 
-  profile_eq :
+  static_eq :
     ∀ {n : RuntimeName} {m : ReflectionMeta} {Γ : TypeEnv} {σ : State} {st : CppStmt}
       (huse : uses n)
       (hsuppRun : supportsRuntime n Γ σ st)
       (hgen : generates m st)
       (hsuppRefl : supportsReflection m Γ st)
       (hcompat : compatible n m Γ σ st),
-      (mkReady huse hsuppRun hgen hsuppRefl hcompat).toProfile =
-        (mkReflection hgen hsuppRefl).profile
+      (mkReady huse hsuppRun hgen hsuppRefl hcompat).static =
+        (mkReflection hgen hsuppRefl).static
 
 namespace SplitArtifactFamilyV3
 
@@ -115,7 +115,7 @@ def toReadyAssembly (A : SplitArtifactFamilyV3) :
   mkReady := A.mkReady
   dynamic_eq := A.dynamic_eq
   structural_eq := A.structural_eq
-  profile_eq := A.profile_eq
+  static_eq := A.static_eq
 
 def mkAdequacy_from_compatible
     (A : SplitArtifactFamilyV3)
@@ -126,11 +126,12 @@ def mkAdequacy_from_compatible
     (hgen : A.generates m st)
     (hsuppRefl : A.supportsReflection m Γ st)
     (hcompat : A.compatible n m Γ σ st) :
-    BodyAdequacyCI Γ σ st ((A.mkReflection hgen hsuppRefl).profile) :=
+    BodyAdequacyCI Γ σ st ((A.mkReflection hgen hsuppRefl).static.profile) :=
   let hready := A.mkReady huse hsuppRun hgen hsuppRefl hcompat
-  let hprof := A.profile_eq huse hsuppRun hgen hsuppRefl hcompat
-  match (A.mkReflection hgen hsuppRefl).profile, hprof with
-  | _, rfl => hready.toAdequacy
+  castBodyAdequacy
+    (congrArg BodyStaticBoundaryCI.profile
+      (A.static_eq huse hsuppRun hgen hsuppRefl hcompat))
+    hready.toAdequacy
 
 def toGlue (A : SplitArtifactFamilyV3) :
     VerifiedExternalGlueV3 A.toStdFragment A.toReflectionFragment where
@@ -185,6 +186,8 @@ theorem readyExternalPieces_boundary
       (hsuppRefl := hsuppRefl)
       (hcompat := hcompat))
 
+
+
 theorem readyExternalPieces_packageCoherent
     (A : SplitArtifactFamilyV3)
     {n : A.RuntimeName} {m : A.ReflectionMeta}
@@ -195,8 +198,8 @@ theorem readyExternalPieces_packageCoherent
     (hsuppRefl : A.supportsReflection m Γ st)
     (hcompat : A.compatible n m Γ σ st) :
     PackageCoherentV3
-      (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces
-      (canonicalVisiblePiecesV3 (F := A.toStdFragment) (R := A.toReflectionFragment) huse hsuppRun hgen hsuppRefl) := by
+      (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces
+      (canonicalObservablePiecesV3 (F := A.toStdFragment) (R := A.toReflectionFragment) huse hsuppRun hgen hsuppRefl) := by
   simpa [readyExternalPieces] using
     (externalPieces_of_ready_v3_packageCoherent
       (A := A.toReadyAssembly)
@@ -205,6 +208,110 @@ theorem readyExternalPieces_packageCoherent
       (hgen := hgen)
       (hsuppRefl := hsuppRefl)
       (hcompat := hcompat))
+------------ここから補題
+def routeReady
+    (A : SplitArtifactFamilyV3)
+    {n : A.RuntimeName} {m : A.ReflectionMeta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : A.uses n)
+    (hsuppRun : A.supportsRuntime n Γ σ st)
+    (hgen : A.generates m st)
+    (hsuppRefl : A.supportsReflection m Γ st)
+    (hcompat : A.compatible n m Γ σ st) :
+    BodyReadyCI Γ σ st :=
+  A.mkReady huse hsuppRun hgen hsuppRefl hcompat
+
+theorem routeReady_structural_eq
+    (A : SplitArtifactFamilyV3)
+    {n : A.RuntimeName} {m : A.ReflectionMeta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : A.uses n)
+    (hsuppRun : A.supportsRuntime n Γ σ st)
+    (hgen : A.generates m st)
+    (hsuppRefl : A.supportsReflection m Γ st)
+    (hcompat : A.compatible n m Γ σ st) :
+    (A.routeReady huse hsuppRun hgen hsuppRefl hcompat).structural =
+      (A.mkReflection hgen hsuppRefl).structural := by
+  simp
+
+theorem routeReady_static_eq
+    (A : SplitArtifactFamilyV3)
+    {n : A.RuntimeName} {m : A.ReflectionMeta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : A.uses n)
+    (hsuppRun : A.supportsRuntime n Γ σ st)
+    (hgen : A.generates m st)
+    (hsuppRefl : A.supportsReflection m Γ st)
+    (hcompat : A.compatible n m Γ σ st) :
+    (A.routeReady huse hsuppRun hgen hsuppRefl hcompat).static =
+      (A.mkReflection hgen hsuppRefl).static := by
+  simpa [routeReady] using
+    (A.static_eq huse hsuppRun hgen hsuppRefl hcompat)
+
+theorem routeReady_dynamic_eq
+    (A : SplitArtifactFamilyV3)
+    {n : A.RuntimeName} {m : A.ReflectionMeta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : A.uses n)
+    (hsuppRun : A.supportsRuntime n Γ σ st)
+    (hgen : A.generates m st)
+    (hsuppRefl : A.supportsReflection m Γ st)
+    (hcompat : A.compatible n m Γ σ st) :
+    (A.routeReady huse hsuppRun hgen hsuppRefl hcompat).dynamic =
+      (A.mkRuntime huse hsuppRun).dynamic := by
+  simp
+
+theorem glueExternalPieces_toBodyBoundary_cast
+    (A : SplitArtifactFamilyV3)
+    {n : A.RuntimeName} {m : A.ReflectionMeta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : A.uses n)
+    (hsuppRun : A.supportsRuntime n Γ σ st)
+    (hgen : A.generates m st)
+    (hsuppRefl : A.supportsReflection m Γ st)
+    (hcompat : A.compatible n m Γ σ st) :
+    (A.glueExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toBodyBoundary =
+      mkBodyClosureBoundaryCI
+        (A.mkReflection hgen hsuppRefl).structural
+        (A.mkReflection hgen hsuppRefl).static
+        (A.mkRuntime huse hsuppRun).dynamic
+        (castBodyAdequacy
+          (congrArg BodyStaticBoundaryCI.profile
+            (A.routeReady_static_eq huse hsuppRun hgen hsuppRefl hcompat))
+          (A.routeReady huse hsuppRun hgen hsuppRefl hcompat).toAdequacy) := by
+  simp [SplitArtifactFamilyV3.glueExternalPieces,
+    assembleExternalPiecesV3,
+    ExternalPiecesV3.toBodyBoundary,
+    SplitArtifactFamilyV3.toGlue,
+    SplitArtifactFamilyV3.toStdFragment,
+    SplitArtifactFamilyV3.toReflectionFragment,
+    SplitArtifactFamilyV3.mkAdequacy_from_compatible,
+    routeReady]
+----------------ここまで補題
+/--
+The direct glue route induces the same closure boundary as the split-family
+ready witness.
+
+The only non-definitional step is the static-package transport: the glue route
+assembles adequacy against the reflection-selected static package, while the
+ready boundary is indexed by the ready witness's own static package.
+-/
+theorem glueExternalPieces_boundary
+    (A : SplitArtifactFamilyV3)
+    {n : A.RuntimeName} {m : A.ReflectionMeta}
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (huse : A.uses n)
+    (hsuppRun : A.supportsRuntime n Γ σ st)
+    (hgen : A.generates m st)
+    (hsuppRefl : A.supportsReflection m Γ st)
+    (hcompat : A.compatible n m Γ σ st) :
+    (A.glueExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toBodyBoundary =
+      (A.mkReady huse hsuppRun hgen hsuppRefl hcompat).toClosureBoundary := by
+  rw [A.glueExternalPieces_toBodyBoundary_cast huse hsuppRun hgen hsuppRefl hcompat]
+  simp only [BodyReadyCI.toClosureBoundary]
+  let hstatic := A.routeReady_static_eq huse hsuppRun hgen hsuppRefl hcompat
+  rw [mkBodyClosureBoundaryCI_static_transport (hstatic := hstatic)]
+  rfl
 
 theorem glueExternalPieces_packageCoherent
     (A : SplitArtifactFamilyV3)
@@ -216,8 +323,8 @@ theorem glueExternalPieces_packageCoherent
     (hsuppRefl : A.supportsReflection m Γ st)
     (hcompat : A.compatible n m Γ σ st) :
     PackageCoherentV3
-      (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces
-      (canonicalVisiblePiecesV3 (F := A.toStdFragment) (R := A.toReflectionFragment) huse hsuppRun hgen hsuppRefl) := by
+      (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces
+      (canonicalObservablePiecesV3  (F := A.toStdFragment) (R := A.toReflectionFragment) huse hsuppRun hgen hsuppRefl) := by
   simpa [glueExternalPieces] using
     (assembleExternalPiecesV3_packageCoherent
       (G := A.toGlue)
@@ -237,17 +344,17 @@ theorem ready_vs_glue_packageCoherent
     (hsuppRefl : A.supportsReflection m Γ st)
     (hcompat : A.compatible n m Γ σ st) :
     PackageCoherentV3
-      (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces
-      (A.glueExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces := by
+      (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces
+      (A.glueExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces := by
   change
-    (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces =
-      (A.glueExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces
+    (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces =
+      (A.glueExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces
   calc
-    (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces =
-        canonicalVisiblePiecesV3 huse hsuppRun hgen hsuppRefl := by
+    (A.readyExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces =
+        canonicalObservablePiecesV3  huse hsuppRun hgen hsuppRefl := by
       exact A.readyExternalPieces_packageCoherent huse hsuppRun hgen hsuppRefl hcompat
     _ =
-        (A.glueExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces := by
+        (A.glueExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces := by
       symm
       exact A.glueExternalPieces_packageCoherent huse hsuppRun hgen hsuppRefl hcompat
 
@@ -263,8 +370,8 @@ theorem glue_readyInduced_packageCoherent
     PackageCoherentV3
       (externalPieces_of_ready_v3
         (readyAssembly_of_glue_v3 A.toGlue)
-        huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces
-      (A.glueExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces := by
+        huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces
+      (A.glueExternalPieces huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces := by
   simpa [glueExternalPieces] using
     (externalPieces_of_ready_from_glue_v3_packageCoherent
       (G := A.toGlue)

@@ -278,35 +278,48 @@ def stmtAdequacyCI_of_lite
 
 def BodyClosureBoundaryLite.toBodyReadyCI
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (h : BodyClosureBoundaryLite Γ σ st) :
+    (h : BodyClosureBoundaryLite Γ σ st)
+    (root : BodyEntryWitness Γ st)
+    (rootCoherent :
+      BodyRootCoherent
+        (bodyControlProfile_of_profileLite h.profile)
+        root) :
     BodyReadyCI Γ σ st := by
   refine
-    { wf := h.structural.wf
-      typed0 := wellTypedFrom_of_profileLite h.profile
-      breakScoped := h.structural.breakScoped
-      continueScoped := h.structural.continueScoped
-      state := h.dynamic.state
-      safe := h.dynamic.safe
-      summary := stmtSummary_of_profileLite h.profile
-      normalSound := ?_
-      returnSound := ?_ }
-  · intro σ' hstep
-    exact (stmtAdequacyCI_of_lite h.profile h.adequacy).normalSound hstep
-  · intro rv σ' hstep
-    exact (stmtAdequacyCI_of_lite h.profile h.adequacy).returnSound hstep
+    { structural :=
+        { wf := h.structural.wf
+          breakScoped := h.structural.breakScoped
+          continueScoped := h.structural.continueScoped }
+      static :=
+        { typed0 := wellTypedFrom_of_profileLite h.profile
+          profile := bodyControlProfile_of_profileLite h.profile
+          root := root
+          rootCoherent := rootCoherent }
+      dynamic := h.dynamic
+      adequacy := ?_ }
+  exact stmtAdequacyCI_of_lite h.profile h.adequacy
 
 def BodyClosureBoundaryLite.toBodyClosureBoundaryCI
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (h : BodyClosureBoundaryLite Γ σ st) :
+    (h : BodyClosureBoundaryLite Γ σ st)
+    (root : BodyEntryWitness Γ st)
+    (rootCoherent :
+      BodyRootCoherent
+        (bodyControlProfile_of_profileLite h.profile)
+        root) :
     BodyClosureBoundaryCI Γ σ st := by
   refine
-    mkBodyClosureBoundaryCI
-      { wf := h.structural.wf
-        typed0 := wellTypedFrom_of_profileLite h.profile
-        breakScoped := h.structural.breakScoped
-        continueScoped := h.structural.continueScoped }
-      (bodyControlProfile_of_profileLite h.profile)
-      h.dynamic
-      (stmtAdequacyCI_of_lite h.profile h.adequacy)
+    { structural :=
+        { wf := h.structural.wf
+          breakScoped := h.structural.breakScoped
+          continueScoped := h.structural.continueScoped }
+      static :=
+        { typed0 := wellTypedFrom_of_profileLite h.profile
+          profile := bodyControlProfile_of_profileLite h.profile
+          root := root
+          rootCoherent := rootCoherent }
+      dynamic := h.dynamic
+      adequacy := ?_ }
+  exact stmtAdequacyCI_of_lite h.profile h.adequacy
 
 end Cpp

@@ -30,7 +30,7 @@ structure ToySplitReflectionArtifactV3 where
   Γ : TypeEnv
   st : CppStmt
   structural : BodyStructuralBoundary Γ st
-  profile : BodyControlProfile Γ st
+  static : BodyStaticBoundaryCI Γ st
   core : CoreBigStepFragment st
 
 def ToyReadyCertificate.toSplitRuntimeArtifact
@@ -42,7 +42,7 @@ def ToyReadyCertificate.toSplitReflectionArtifact
   { Γ := c.Γ
     st := c.st
     structural := c.ready.toStructural
-    profile := c.ready.toProfile
+    static := c.ready.static
     core := c.core }
 
 def toySplitMkReflection
@@ -54,22 +54,26 @@ def toySplitMkReflection
   rcases hsupp with ⟨rfl, rfl⟩
   exact
     { structural := m.structural
-      profile := m.profile
+      static := m.static
       core := m.core }
-
 
 @[simp] theorem toySplitMkReflection_structural_heq
     (m : ToySplitReflectionArtifactV3)
     {Γ : TypeEnv} {st : CppStmt}
-    (hgen : st = m.st)
+    (_hgen : st = m.st)
     (hsupp : Γ = m.Γ ∧ st = m.st) :
-    HEq (toySplitMkReflection m hgen hsupp).structural m.structural := by
-  cases m with
-  | mk mΓ mst mstruct mprof mcore =>
-      rcases hsupp with ⟨hΓ, hst⟩
-      subst Γ
-      subst st
-      simp
+    HEq (toySplitMkReflection m _hgen hsupp).structural m.structural := by
+  rcases hsupp with ⟨rfl, rfl⟩
+  rfl
+
+@[simp] theorem toySplitMkReflection_static_heq
+    (m : ToySplitReflectionArtifactV3)
+    {Γ : TypeEnv} {st : CppStmt}
+    (_hgen : st = m.st)
+    (hsupp : Γ = m.Γ ∧ st = m.st) :
+    HEq (toySplitMkReflection m _hgen hsupp).static m.static := by
+  rcases hsupp with ⟨rfl, rfl⟩
+  rfl
 
 
 @[simp] theorem toySplitMkReflection_profile_heq
@@ -77,13 +81,22 @@ def toySplitMkReflection
     {Γ : TypeEnv} {st : CppStmt}
     (hgen : st = m.st)
     (hsupp : Γ = m.Γ ∧ st = m.st) :
-    HEq (toySplitMkReflection m hgen hsupp).profile m.profile := by
+    HEq (toySplitMkReflection m hgen hsupp).static.profile m.static.profile := by
   cases m with
   | mk mΓ mst mstruct mprof mcore =>
       rcases hsupp with ⟨hΓ, hst⟩
       subst Γ
       subst st
       simp [toySplitMkReflection]
+
+@[simp] theorem toySplitMkReflection_entry_heq
+    (m : ToySplitReflectionArtifactV3)
+    {Γ : TypeEnv} {st : CppStmt}
+    (hgen : st = m.st)
+    (hsupp : Γ = m.Γ ∧ st = m.st) :
+    HEq (toySplitMkReflection m hgen hsupp).static.root m.static.root := by
+  rcases hsupp with ⟨rfl, rfl⟩
+  rfl
 
 def toySplitFamilyV3 : SplitArtifactFamilyV3 where
   RuntimeName := ToySplitRuntimeArtifactV3
@@ -109,9 +122,8 @@ def toySplitFamilyV3 : SplitArtifactFamilyV3 where
   compatible := fun n m Γ σ st =>
     n.Γ = Γ ∧ n.σ = σ ∧ n.st = st ∧
     m.Γ = Γ ∧ m.st = st ∧
-    -- ∃ を使わず、推移律から導かれるはずの直接の等式を書く
     HEq n.ready.toStructural m.structural ∧
-    HEq n.ready.toProfile m.profile
+    HEq n.ready.static m.static
 
   mkReady := by
     intro n m Γ σ st _ _ _ _ hcompat
@@ -127,20 +139,24 @@ def toySplitFamilyV3 : SplitArtifactFamilyV3 where
   structural_eq := by
     intro n m Γ σ st huse hsuppRun hgen hsuppRefl hcompat
     rcases hsuppRun with ⟨rfl, rfl, rfl⟩
-    rcases hsuppRefl with ⟨_, _⟩
+    have hsuppRefl : n.Γ = m.Γ ∧ n.st = m.st := by
+      rcases hcompat with ⟨_, _, _, hmΓ, hmst, _, _⟩
+      exact ⟨hmΓ.symm, hmst.symm⟩
     rcases hcompat with ⟨_, _, _, _, _, hstruct, _⟩
     simp
 
-  profile_eq := by
+  static_eq := by
     intro n m Γ σ st huse hsuppRun hgen hsuppRefl hcompat
     rcases hsuppRun with ⟨rfl, rfl, rfl⟩
-    rcases hcompat with ⟨_, _, _, _, _, _, hprof⟩
+    rcases hcompat with ⟨_, _, _, _, _, _, hstatic⟩
     have hmk :
-        HEq (toySplitMkReflection m hgen hsuppRefl).profile m.profile :=
-      toySplitMkReflection_profile_heq m hgen hsuppRefl
-    change n.ready.toProfile =
-      (toySplitMkReflection m hgen hsuppRefl).profile
-    exact eq_of_heq (HEq.trans hprof (HEq.symm hmk))
+      HEq (toySplitMkReflection m hgen hsuppRefl).static m.static :=
+    toySplitMkReflection_static_heq m hgen hsuppRefl
+    have hfinal :
+      HEq n.ready.static (toySplitMkReflection m hgen hsuppRefl).static :=
+      HEq.trans hstatic (HEq.symm hmk)
+    exact eq_of_heq hfinal
+
 
 theorem toySplit_uses (c : ToyReadyCertificate) :
     toySplitFamilyV3.uses c.toSplitRuntimeArtifact := by
@@ -207,8 +223,8 @@ theorem toySplit_glue_certificate_closure
 theorem toySplit_ready_vs_glue_packageCoherent
     (c : ToyReadyCertificate) :
     PackageCoherentV3
-      (toySplitReadyExternalPiecesV3 c).toVisiblePieces
-      (toySplitGlueExternalPiecesV3 c).toVisiblePieces := by
+      (toySplitReadyExternalPiecesV3 c).toObservablePieces
+      (toySplitGlueExternalPiecesV3 c).toObservablePieces := by
   exact toySplitFamilyV3.ready_vs_glue_packageCoherent
     (toySplit_uses c)
     (toySplit_supportsRuntime c)
@@ -259,7 +275,7 @@ theorem toySplitFamilyV3_mkReady_eq (c : ToyReadyCertificate) :
       (toySplit_compatible c)
       = c.ready
   unfold toySplitFamilyV3
-  rcases toySplit_compatible c with ⟨_, _, _, _, _, _, _⟩
+  rcases toySplit_compatible c with ⟨_, _, _, _, _, _, _, _⟩
   rfl
 
 /-- Split Family の readyExternalPieces が提供する境界の正当性 -/
@@ -297,16 +313,25 @@ theorem toySplit_builder_ready_boundary_eq_handwritten
   rw [toySplitReadyExternalPiecesV3_boundary_eq]
   rw [toyExternalPiecesV3_boundary_eq_ready]
 
+
+
 /-- 補題A: Split版の Glue と Ready の境界は（コヒーレンスにより）一致する -/
 theorem toySplit_glue_boundary_eq_ready_boundary
     (c : ToyReadyCertificate) :
     (toySplitGlueExternalPiecesV3 c).toBodyBoundary =
     (toySplitReadyExternalPiecesV3 c).toBodyBoundary := by
-  -- コヒーレンスを取り出す
-  let h := toySplit_glue_readyInduced_boundaryCoherent c
-  -- BoundaryCoherentV3 は定義上、境界の一致を意味するため、対称性を取って適用
-  symm
-  exact h
+  -- 1. calc の各ステップを「どの等式を使っているか」がわかる最小限の記述にする
+  calc
+    (toySplitGlueExternalPiecesV3 c).toBodyBoundary
+      = (toySplitFamilyV3.mkReady (toySplit_uses c) (toySplit_supportsRuntime c)
+          (toySplit_generates c) (toySplit_supportsReflection c)
+          (toySplit_compatible c)).toClosureBoundary := by
+        apply toySplitFamilyV3.glueExternalPieces_boundary _ _ _ _ _
+    _ = c.ready.toClosureBoundary := by
+        rw [toySplitFamilyV3_mkReady_eq c]
+    _ = (toySplitReadyExternalPiecesV3 c).toBodyBoundary := by
+        rw [toySplitReadyExternalPiecesV3_boundary_eq c]
+
 
 /-- 補題B: Split版の GlueExternalPieces が提供する境界の正当性 -/
 theorem toySplitGlueExternalPiecesV3_boundary_eq

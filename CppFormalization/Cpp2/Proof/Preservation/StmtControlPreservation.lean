@@ -764,6 +764,7 @@ theorem block_normal_control_compatible
   simpa using (block_compat_claim hstep) hty
 
 theorem stmt_normal_preserves_scoped_typed_state_concrete
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ Δ : TypeEnv} {σ σ' : State} {s : CppStmt} :
     HasTypeStmtCI .normalK Γ s Δ →
     ScopedTypedStateConcrete Γ σ →
@@ -772,9 +773,11 @@ theorem stmt_normal_preserves_scoped_typed_state_concrete
     ScopedTypedStateConcrete Δ σ' := by
   intro hty hσ hready hstep
   exact stmt_control_preserves_scoped_typed_state_of_compatible
+    mkWhileReentry
     (stmt_normal_control_compatible hty hstep) hσ hready
 
 theorem block_body_normal_preserves_scoped_typed_state_concrete
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ Δ : TypeEnv} {σ σ' : State} {ss : StmtBlock} :
     HasTypeBlockCI .normalK Γ ss Δ →
     ScopedTypedStateConcrete Γ σ →
@@ -783,9 +786,11 @@ theorem block_body_normal_preserves_scoped_typed_state_concrete
     ScopedTypedStateConcrete Δ σ' := by
   intro hty hσ hready hstep
   exact block_control_preserves_scoped_typed_state_of_compatible
+    mkWhileReentry
     (block_normal_control_compatible hty hstep) hσ hready
 
 theorem stmt_break_preserves_scoped_typed_state_concrete
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ Δ : TypeEnv} {σ σ' : State} {s : CppStmt}
     (hty : HasTypeStmtCI .breakK Γ s Δ)
     (hstep : BigStepStmt σ s .breakResult σ')
@@ -794,9 +799,10 @@ theorem stmt_break_preserves_scoped_typed_state_concrete
     StmtReadyConcrete Γ σ s →
     ScopedTypedStateConcrete Δ σ' := by
   intro hσ hready
-  exact stmt_control_preserves_scoped_typed_state_of_compatible hcomp hσ hready
+  exact stmt_control_preserves_scoped_typed_state_of_compatible mkWhileReentry hcomp hσ hready
 
 theorem stmt_continue_preserves_scoped_typed_state_concrete
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ Δ : TypeEnv} {σ σ' : State} {s : CppStmt}
     (hty : HasTypeStmtCI .continueK Γ s Δ)
     (hstep : BigStepStmt σ s .continueResult σ')
@@ -805,9 +811,10 @@ theorem stmt_continue_preserves_scoped_typed_state_concrete
     StmtReadyConcrete Γ σ s →
     ScopedTypedStateConcrete Δ σ' := by
   intro hσ hready
-  exact stmt_control_preserves_scoped_typed_state_of_compatible hcomp hσ hready
+  exact stmt_control_preserves_scoped_typed_state_of_compatible mkWhileReentry hcomp hσ hready
 
 theorem stmt_return_preserves_scoped_typed_state_concrete
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ Δ : TypeEnv} {σ σ' : State} {s : CppStmt} {rv : Option Value}
     (hty : HasTypeStmtCI .returnK Γ s Δ)
     (hstep : BigStepStmt σ s (.returnResult rv) σ')
@@ -816,9 +823,10 @@ theorem stmt_return_preserves_scoped_typed_state_concrete
     StmtReadyConcrete Γ σ s →
     ScopedTypedStateConcrete Δ σ' := by
   intro hσ hready
-  exact stmt_control_preserves_scoped_typed_state_of_compatible hcomp hσ hready
+  exact stmt_control_preserves_scoped_typed_state_of_compatible mkWhileReentry hcomp hσ hready
 
 theorem block_body_break_preserves_scoped_typed_state_concrete
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ Δ : TypeEnv} {σ σ' : State} {ss : StmtBlock}
     (hty : HasTypeBlockCI .breakK Γ ss Δ)
     (hstep : BigStepBlock σ ss .breakResult σ')
@@ -827,9 +835,10 @@ theorem block_body_break_preserves_scoped_typed_state_concrete
     BlockReadyConcrete Γ σ ss →
     ScopedTypedStateConcrete Δ σ' := by
   intro hσ hready
-  exact block_control_preserves_scoped_typed_state_of_compatible hcomp hσ hready
+  exact block_control_preserves_scoped_typed_state_of_compatible mkWhileReentry hcomp hσ hready
 
 theorem block_body_continue_preserves_scoped_typed_state_concrete
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ Δ : TypeEnv} {σ σ' : State} {ss : StmtBlock}
     (hty : HasTypeBlockCI .continueK Γ ss Δ)
     (hstep : BigStepBlock σ ss .continueResult σ')
@@ -838,9 +847,10 @@ theorem block_body_continue_preserves_scoped_typed_state_concrete
     BlockReadyConcrete Γ σ ss →
     ScopedTypedStateConcrete Δ σ' := by
   intro hσ hready
-  exact block_control_preserves_scoped_typed_state_of_compatible hcomp hσ hready
+  exact block_control_preserves_scoped_typed_state_of_compatible mkWhileReentry hcomp hσ hready
 
 theorem block_body_return_preserves_scoped_typed_state_concrete
+    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ Δ : TypeEnv} {σ σ' : State} {ss : StmtBlock} {rv : Option Value}
     (hty : HasTypeBlockCI .returnK Γ ss Δ)
     (hstep : BigStepBlock σ ss (.returnResult rv) σ')
@@ -849,6 +859,6 @@ theorem block_body_return_preserves_scoped_typed_state_concrete
     BlockReadyConcrete Γ σ ss →
     ScopedTypedStateConcrete Δ σ' := by
   intro hσ hready
-  exact block_control_preserves_scoped_typed_state_of_compatible hcomp hσ hready
+  exact block_control_preserves_scoped_typed_state_of_compatible mkWhileReentry hcomp hσ hready
 
 end Cpp

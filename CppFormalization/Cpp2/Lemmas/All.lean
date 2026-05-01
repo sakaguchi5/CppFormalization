@@ -1,3 +1,5 @@
+import CppFormalization.Cpp2.Lemmas.AssignWriteFootprint
+import CppFormalization.Cpp2.Lemmas.BigStepScopeDepth
 import CppFormalization.Cpp2.Lemmas.ControlExclusion
 import CppFormalization.Cpp2.Lemmas.RuntimeObjectCoreWithNext
 import CppFormalization.Cpp2.Lemmas.RuntimeState

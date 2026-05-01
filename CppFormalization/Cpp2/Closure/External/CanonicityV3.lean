@@ -16,7 +16,7 @@ for a fixed target `(Γ, σ, st)` or `(Γ, st)`, different artifact names / meta
 that support that same target should not yield different observable packages.
 
 This file therefore records family-level uniqueness / canonicity assumptions and
-extracts the visible consequences needed by later builder layers.
+extracts the observable consequences needed by later builder layers.
 -/
 
 
@@ -85,6 +85,30 @@ theorem ReflectionPackageUniqueV3.structural_eq
       (R.mkReflection hgen₂ hsupp₂).structural := by
   exact congrArg (fun p => p.structural) (huniq hgen₁ hsupp₁ hgen₂ hsupp₂)
 
+theorem ReflectionPackageUniqueV3.static_eq
+    {R : VerifiedReflectionFragmentV3}
+    (huniq : ReflectionPackageUniqueV3 R)
+    {m₁ m₂ : R.Meta} {Γ : TypeEnv} {st : CppStmt}
+    (hgen₁ : R.generates m₁ st) (hsupp₁ : R.supportsReflection m₁ Γ st)
+    (hgen₂ : R.generates m₂ st) (hsupp₂ : R.supportsReflection m₂ Γ st) :
+    (R.mkReflection hgen₁ hsupp₁).static =
+      (R.mkReflection hgen₂ hsupp₂).static := by
+  exact congrArg (fun p => p.static)
+    (huniq hgen₁ hsupp₁ hgen₂ hsupp₂)
+
+/-- Profile equality projected from reflection-package static canonicity. -/
+theorem ReflectionPackageUniqueV3.static_profile_eq
+    {R : VerifiedReflectionFragmentV3}
+    (huniq : ReflectionPackageUniqueV3 R)
+    {m₁ m₂ : R.Meta} {Γ : TypeEnv} {st : CppStmt}
+    (hgen₁ : R.generates m₁ st) (hsupp₁ : R.supportsReflection m₁ Γ st)
+    (hgen₂ : R.generates m₂ st) (hsupp₂ : R.supportsReflection m₂ Γ st) :
+    (R.mkReflection hgen₁ hsupp₁).static.profile =
+      (R.mkReflection hgen₂ hsupp₂).static.profile := by
+  exact congrArg BodyStaticBoundaryCI.profile
+    (huniq.static_eq hgen₁ hsupp₁ hgen₂ hsupp₂)
+
+/-- Compatibility alias.  Prefer `ReflectionPackageUniqueV3.static_profile_eq`. -/
 theorem ReflectionPackageUniqueV3.profile_eq
     {R : VerifiedReflectionFragmentV3}
     (huniq : ReflectionPackageUniqueV3 R)
@@ -93,7 +117,7 @@ theorem ReflectionPackageUniqueV3.profile_eq
     (hgen₂ : R.generates m₂ st) (hsupp₂ : R.supportsReflection m₂ Γ st) :
     (R.mkReflection hgen₁ hsupp₁).profile =
       (R.mkReflection hgen₂ hsupp₂).profile := by
-  exact congrArg (fun p => p.profile) (huniq hgen₁ hsupp₁ hgen₂ hsupp₂)
+  exact huniq.static_profile_eq hgen₁ hsupp₁ hgen₂ hsupp₂
 
 
 theorem ReflectionPackageUniqueV3.core_eq
@@ -107,7 +131,7 @@ theorem ReflectionPackageUniqueV3.core_eq
   exact congrArg (fun p => p.core) (huniq hgen₁ hsupp₁ hgen₂ hsupp₂)
 
 
-theorem canonicalVisiblePiecesV3_wellDefined
+theorem canonicalObservablePiecesV3_wellDefined
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (hrununiq : RuntimePackageUniqueV3 F)
     (hrefluniq : ReflectionPackageUniqueV3 R)
@@ -117,37 +141,37 @@ theorem canonicalVisiblePiecesV3_wellDefined
     (hgen₁ : R.generates m₁ st) (hsuppRefl₁ : R.supportsReflection m₁ Γ st)
     (huse₂ : F.uses n₂) (hsuppRun₂ : F.supportsRuntime n₂ Γ σ st)
     (hgen₂ : R.generates m₂ st) (hsuppRefl₂ : R.supportsReflection m₂ Γ st) :
-    canonicalVisiblePiecesV3 huse₁ hsuppRun₁ hgen₁ hsuppRefl₁ =
-      canonicalVisiblePiecesV3 huse₂ hsuppRun₂ hgen₂ hsuppRefl₂ := by
-  unfold canonicalVisiblePiecesV3
-  unfold visiblePiecesOfPackagesV3
+    canonicalObservablePiecesV3 huse₁ hsuppRun₁ hgen₁ hsuppRefl₁ =
+      canonicalObservablePiecesV3 huse₂ hsuppRun₂ hgen₂ hsuppRefl₂ := by
+  unfold canonicalObservablePiecesV3
+  unfold observablePiecesOfPackagesV3
   have hrun : F.mkRuntime huse₁ hsuppRun₁ = F.mkRuntime huse₂ hsuppRun₂ :=
     hrununiq huse₁ hsuppRun₁ huse₂ hsuppRun₂
   have hrefl : R.mkReflection hgen₁ hsuppRefl₁ = R.mkReflection hgen₂ hsuppRefl₂ :=
     hrefluniq hgen₁ hsuppRefl₁ hgen₂ hsuppRefl₂
   calc
-    visiblePiecesOfPackagesV3
+    observablePiecesOfPackagesV3
         (F.mkRuntime huse₁ hsuppRun₁)
         (R.mkReflection hgen₁ hsuppRefl₁)
       =
-        visiblePiecesOfPackagesV3
+        observablePiecesOfPackagesV3
           (F.mkRuntime huse₂ hsuppRun₂)
           (R.mkReflection hgen₁ hsuppRefl₁) := by
             exact congrArg
               (fun rp =>
-                visiblePiecesOfPackagesV3 rp (R.mkReflection hgen₁ hsuppRefl₁))
+                observablePiecesOfPackagesV3 rp (R.mkReflection hgen₁ hsuppRefl₁))
               hrun
     _ =
-        visiblePiecesOfPackagesV3
+        observablePiecesOfPackagesV3
           (F.mkRuntime huse₂ hsuppRun₂)
           (R.mkReflection hgen₂ hsuppRefl₂) := by
             exact congrArg
               (fun fp =>
-                visiblePiecesOfPackagesV3 (F.mkRuntime huse₂ hsuppRun₂) fp)
+                observablePiecesOfPackagesV3 (F.mkRuntime huse₂ hsuppRun₂) fp)
               hrefl
 
 
-theorem canonicalVisiblePiecesV3_packageCoherent
+theorem canonicalObservablePiecesV3_packageCoherent
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (hrununiq : RuntimePackageUniqueV3 F)
     (hrefluniq : ReflectionPackageUniqueV3 R)
@@ -158,9 +182,9 @@ theorem canonicalVisiblePiecesV3_packageCoherent
     (huse₂ : F.uses n₂) (hsuppRun₂ : F.supportsRuntime n₂ Γ σ st)
     (hgen₂ : R.generates m₂ st) (hsuppRefl₂ : R.supportsReflection m₂ Γ st) :
     PackageCoherentV3
-      (canonicalVisiblePiecesV3 huse₁ hsuppRun₁ hgen₁ hsuppRefl₁)
-      (canonicalVisiblePiecesV3 huse₂ hsuppRun₂ hgen₂ hsuppRefl₂) := by
-  exact canonicalVisiblePiecesV3_wellDefined hrununiq hrefluniq
+      (canonicalObservablePiecesV3 huse₁ hsuppRun₁ hgen₁ hsuppRefl₁)
+      (canonicalObservablePiecesV3 huse₂ hsuppRun₂ hgen₂ hsuppRefl₂) := by
+  exact canonicalObservablePiecesV3_wellDefined hrununiq hrefluniq
     huse₁ hsuppRun₁ hgen₁ hsuppRefl₁ huse₂ hsuppRun₂ hgen₂ hsuppRefl₂
 
 end Cpp

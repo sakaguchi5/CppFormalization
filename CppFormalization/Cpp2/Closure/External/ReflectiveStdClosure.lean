@@ -12,13 +12,13 @@ theorem reflective_std_function_body_closure
     F.establishesDynamic n Γ σ st →
     R.generates m st →
     R.establishesStructural m Γ st →
-    R.establishesProfile m Γ st →
+    R.establishesStatic m Γ st →
     G.compatible n m Γ σ st →
     (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
-  intro huse hdyn hgen hstruct hprof hcompat
+  intro huse hdyn hgen hstruct hstatic hcompat
   let p : ExternalPiecesV3 Γ σ st :=
     externalPiecesV3_of_legacy_external_assumptions
-      G huse hdyn hgen hstruct hprof hcompat
+      G huse hdyn hgen hstruct hstatic hcompat
   exact
     InternalClosureRoadmap.function_body_progress_or_diverges
       p.core p.toBodyBoundary
@@ -32,13 +32,13 @@ theorem reflective_std_closure_theorem
     F.establishesDynamic n Γ σ st →
     R.generates m st →
     R.establishesStructural m Γ st →
-    R.establishesProfile m Γ st →
+    R.establishesStatic m Γ st →
     G.compatible n m Γ σ st →
     BigStepStmtTerminates σ st ∨ BigStepStmtDiv σ st := by
-  intro huse hdyn hgen hstruct hprof hcompat
+  intro huse hdyn hgen hstruct hstatic hcompat
   let p : ExternalPiecesV3 Γ σ st :=
     externalPiecesV3_of_legacy_external_assumptions
-      G huse hdyn hgen hstruct hprof hcompat
+      G huse hdyn hgen hstruct hstatic hcompat
   exact
     InternalClosureRoadmap.stmt_terminates_or_diverges
       p.core p.toBodyBoundary

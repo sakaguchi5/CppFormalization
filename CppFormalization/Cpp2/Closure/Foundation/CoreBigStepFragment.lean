@@ -17,7 +17,7 @@ def structural (c : CoreBigStepCert) :
 
 def profile (c : CoreBigStepCert) :
     BodyControlProfile c.Γ c.st :=
-  c.closure.profile
+  c.closure.static.profile
 
 def dynamic (c : CoreBigStepCert) :
     BodyDynamicBoundary c.Γ c.σ c.st :=
@@ -33,13 +33,13 @@ def bodyReady (c : CoreBigStepCert) :
 
 @[simp] theorem bodyReadyCI_safe
     (c : CoreBigStepCert) :
-    c.bodyReadyCI.safe = c.dynamic.safe :=
-  rfl
+    c.bodyReadyCI.dynamic.safe = c.dynamic.safe := by
+  simp
 
 @[simp] theorem bodyReadyCI_state
     (c : CoreBigStepCert) :
-    c.bodyReadyCI.state = c.dynamic.state :=
-  rfl
+    c.bodyReadyCI.dynamic.state = c.dynamic.state := by
+  simp
 
 end CoreBigStepCert
 

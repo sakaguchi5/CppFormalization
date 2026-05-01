@@ -264,15 +264,17 @@ theorem bigStepPlace_of_pushScope
     BigStepPlace σ p a := by
   intro h
   cases h with
-  | varObject hbind =>
-      exact BigStepPlace.varObject (by simpa using hbind)
-  | varRef hbind =>
-      exact BigStepPlace.varRef (by simpa using hbind)
-  | deref hval hheap halive =>
-      exact BigStepPlace.deref
-        (bigStepValue_of_pushScope hval)
+  | varObject hlookup =>
+      exact .varObject (by
+        simpa [lookupBinding, lookupBindingFrames, pushScope, emptyScopeFrame] using hlookup)
+  | varRef hlookup =>
+      exact .varRef (by
+        simpa [lookupBinding, lookupBindingFrames, pushScope, emptyScopeFrame] using hlookup)
+  | deref hv hheap halive =>
+      exact .deref
+        (bigStepValue_of_pushScope hv)
         (by simpa [pushScope] using hheap)
-        (by simpa [pushScope] using halive)
+        halive
 
 theorem bigStepValue_of_pushScope
     {σ : State} {e : ValExpr} {v : Value} :
@@ -281,39 +283,39 @@ theorem bigStepValue_of_pushScope
   intro h
   cases h with
   | litBool =>
-      exact BigStepValue.litBool
+      exact .litBool
   | litInt =>
-      exact BigStepValue.litInt
-  | load hplace hheap halive hval =>
-      exact BigStepValue.load
-        (bigStepPlace_of_pushScope hplace)
+      exact .litInt
+  | load hp hheap halive hval =>
+      exact .load
+        (bigStepPlace_of_pushScope hp)
         (by simpa [pushScope] using hheap)
-        (by simpa [pushScope] using halive)
-        (by simpa using hval)
-  | addrOf hplace =>
-      exact BigStepValue.addrOf (bigStepPlace_of_pushScope hplace)
+        halive
+        hval
+  | addrOf hp =>
+      exact .addrOf (bigStepPlace_of_pushScope hp)
   | add h1 h2 =>
-      exact BigStepValue.add
+      exact .add
         (bigStepValue_of_pushScope h1)
         (bigStepValue_of_pushScope h2)
   | sub h1 h2 =>
-      exact BigStepValue.sub
+      exact .sub
         (bigStepValue_of_pushScope h1)
         (bigStepValue_of_pushScope h2)
   | mul h1 h2 =>
-      exact BigStepValue.mul
+      exact .mul
         (bigStepValue_of_pushScope h1)
         (bigStepValue_of_pushScope h2)
   | eq h1 h2 =>
-      exact BigStepValue.eq
+      exact .eq
         (bigStepValue_of_pushScope h1)
         (bigStepValue_of_pushScope h2)
   | lt h1 h2 =>
-      exact BigStepValue.lt
+      exact .lt
         (bigStepValue_of_pushScope h1)
         (bigStepValue_of_pushScope h2)
   | not h =>
-      exact BigStepValue.not (bigStepValue_of_pushScope h)
+      exact .not (bigStepValue_of_pushScope h)
 
 end
 

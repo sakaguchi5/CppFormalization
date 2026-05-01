@@ -1,8 +1,8 @@
 
 import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.TypingCI
-import CppFormalization.Cpp2.Closure.Transitions.Minor.OpenScopeDecomposition
-
+import CppFormalization.Cpp2.Closure.Transitions.Scope.OpenPreservation
+import CppFormalization.Cpp2.Closure.Transitions.Scope.ClosePreservation
 namespace Cpp
 
 /-!
@@ -28,11 +28,11 @@ namespace Cpp
 def BlockBodyPreservesWithinOpenScope
     (Γ : TypeEnv) (ss : StmtBlock) : Prop :=
   ∀ {Θ : TypeEnv} {σ0 σ1 : State},
-    TopFrameExtensionOf Γ Θ →
-    HasTypeBlockCI .normalK (pushTypeScope Γ) ss Θ →
-    ScopedTypedStateConcrete (pushTypeScope Γ) σ0 →
-    BlockReadyConcrete (pushTypeScope Γ) σ0 ss →
-    BigStepBlock σ0 ss .normal σ1 →
+    TopFrameExtensionOf Γ Θ ->
+    HasTypeBlockCI .normalK (pushTypeScope Γ) ss Θ ->
+    ScopedTypedStateConcrete (pushTypeScope Γ) σ0 ->
+    BlockReadyConcrete (pushTypeScope Γ) σ0 ss ->
+    BigStepBlock σ0 ss .normal σ1 ->
     ScopedTypedStateConcrete Θ σ1
 
 
@@ -40,34 +40,38 @@ def BlockBodyPreservesWithinOpenScope
    2. typing / readiness / operational 分解
    ========================================================= -/
 
-axiom block_typing_data
+theorem block_typing_data
     {Γ Δ : TypeEnv} {ss : StmtBlock} :
-    HasTypeStmtCI .normalK Γ (.block ss) Δ →
+    HasTypeStmtCI .normalK Γ (.block ss) Δ ->
     Δ = Γ ∧ ∃ Θ,
       TopFrameExtensionOf Γ Θ ∧
-      HasTypeBlockCI .normalK (pushTypeScope Γ) ss Θ
+      HasTypeBlockCI .normalK (pushTypeScope Γ) ss Θ := by
+  intro h
+  cases h with
+  | block hB =>
+      exact ⟨rfl, _, block_ci_topFrameExtension hB, hB⟩
 
-axiom block_ready_opened_body
+theorem block_ready_opened_body
     {Γ : TypeEnv} {σ σ0 : State} {ss : StmtBlock} :
-    StmtReadyConcrete Γ σ (.block ss) →
-    OpenScope σ σ0 →
-    BlockReadyConcrete (pushTypeScope Γ) σ0 ss
+    StmtReadyConcrete Γ σ (.block ss) ->
+    OpenScope σ σ0 ->
+    BlockReadyConcrete (pushTypeScope Γ) σ0 ss := by
+  intro hready hopen
+  cases hready with
+  | block hbody =>
+      simpa [OpenScope] using (hopen ▸ hbody)
 
-axiom block_normal_data
+theorem block_normal_data
     {σ σ' : State} {ss : StmtBlock} :
-    BigStepStmt σ (.block ss) .normal σ' →
+    BigStepStmt σ (.block ss) .normal σ' ->
     ∃ σ0 σ1,
       OpenScope σ σ0 ∧
       BigStepBlock σ0 ss .normal σ1 ∧
-      CloseScope σ1 σ'
-
-axiom closeScope_preserves_outer_from_topFrameExtension
-    {Γ Θ : TypeEnv} {σ σ' : State} :
-    TopFrameExtensionOf Γ Θ →
-    ScopedTypedStateConcrete Θ σ →
-    CloseScope σ σ' →
-    ScopedTypedStateConcrete Γ σ'
-
+      CloseScope σ1 σ' := by
+  intro h
+  cases h with
+  | block hopen hbody hclose =>
+      exact ⟨_, _, hopen, hbody, hclose⟩
 
 /- =========================================================
    3. generic theorem
@@ -75,11 +79,11 @@ axiom closeScope_preserves_outer_from_topFrameExtension
 
 theorem block_normal_preserves_scoped_typed_state_from_body
     {Γ Δ : TypeEnv} {σ σ' : State} {ss : StmtBlock} :
-    HasTypeStmtCI .normalK Γ (.block ss) Δ →
-    ScopedTypedStateConcrete Γ σ →
-    StmtReadyConcrete Γ σ (.block ss) →
-    BigStepStmt σ (.block ss) .normal σ' →
-    BlockBodyPreservesWithinOpenScope Γ ss →
+    HasTypeStmtCI .normalK Γ (.block ss) Δ ->
+    ScopedTypedStateConcrete Γ σ ->
+    StmtReadyConcrete Γ σ (.block ss) ->
+    BigStepStmt σ (.block ss) .normal σ' ->
+    BlockBodyPreservesWithinOpenScope Γ ss ->
     ScopedTypedStateConcrete Δ σ' := by
   intro hty hσ hready hstep hbody
   rcases block_typing_data hty with ⟨hΔ, Θ, hExt, hbodyTy⟩
@@ -95,11 +99,11 @@ theorem block_normal_preserves_scoped_typed_state_from_body
 
 theorem block_normal_preserves_scoped_typed_state_concrete
     {Γ Δ : TypeEnv} {σ σ' : State} {ss : StmtBlock} :
-    HasTypeStmtCI .normalK Γ (.block ss) Δ →
-    ScopedTypedStateConcrete Γ σ →
-    StmtReadyConcrete Γ σ (.block ss) →
-    BigStepStmt σ (.block ss) .normal σ' →
-    BlockBodyPreservesWithinOpenScope Γ ss →
+    HasTypeStmtCI .normalK Γ (.block ss) Δ ->
+    ScopedTypedStateConcrete Γ σ ->
+    StmtReadyConcrete Γ σ (.block ss) ->
+    BigStepStmt σ (.block ss) .normal σ' ->
+    BlockBodyPreservesWithinOpenScope Γ ss ->
     ScopedTypedStateConcrete Δ σ' := by
   intro hty hσ hready hstep hbody
   exact block_normal_preserves_scoped_typed_state_from_body

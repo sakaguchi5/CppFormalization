@@ -22,13 +22,16 @@ namespace Cpp
    1. operational 分解
    ========================================================= -/
 
-axiom seq_normal_data
+theorem seq_normal_data
     {σ σ' : State} {s t : CppStmt} :
     BigStepStmt σ (.seq s t) .normal σ' →
     ∃ σ1,
       BigStepStmt σ s .normal σ1 ∧
-      BigStepStmt σ1 t .normal σ'
-
+      BigStepStmt σ1 t .normal σ' := by
+  intro h
+  cases h with
+  | seqNormal hs ht =>
+      exact ⟨_, hs, ht⟩
 
 /- =========================================================
    2. 左右の subproof から全体 preservation を組み立てる
@@ -55,14 +58,17 @@ theorem seq_normal_preserves_scoped_typed_state_from_subproofs
   intro htySeq hσ hreadySeq hstepSeq hleft hright
   rcases seq_typing_data htySeq with ⟨Θ, htyLeft, htyRight⟩
   rcases seq_normal_data hstepSeq with ⟨σ1, hleftStep, hrightStep⟩
-  have hreadyLeft : StmtReadyConcrete Γ σ s :=
-    seq_ready_left hreadySeq
-  have hσ1 : ScopedTypedStateConcrete Θ σ1 :=
-    hleft htyLeft hreadyLeft hleftStep
-  have hreadyRight : StmtReadyConcrete Θ σ1 t :=
-    seq_ready_right_after_left_normal htyLeft hσ1 hreadySeq hleftStep
+  have hpost :
+      ScopedTypedStateConcrete Θ σ1 ∧ StmtReadyConcrete Θ σ1 t := by
+    exact
+      seq_left_normal_preserves_ready_of_left_preservation
+        (Γ := Γ) (Δ := Θ) (σ := σ) (σ' := σ1) (s := s) (t := t)
+        (hpres := by
+          intro htyLeft' _hσ0 hreadyLeft0 hstepLeft0
+          exact hleft htyLeft' hreadyLeft0 hstepLeft0)
+        htyLeft hreadySeq hleftStep hσ
+  rcases hpost with ⟨hσ1, hreadyRight⟩
   exact hright htyRight hσ1 hreadyRight hrightStep
-
 
 /- =========================================================
    3. statement 全体の normal preservation を仮定した簡約版

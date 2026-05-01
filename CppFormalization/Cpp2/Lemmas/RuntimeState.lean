@@ -33,10 +33,12 @@ namespace Cpp
     lookupBinding ({ σ with next := n }) x = lookupBinding σ x := by
   rfl
 
+/-- Heap writes do not change the runtime scope stack. -/
 @[simp] theorem scopes_writeHeap
     (σ : State) (a : Nat) (c : Cell) :
     (writeHeap σ a c).scopes = σ.scopes := by
   rfl
+
 /-
 @[simp] theorem next_writeHeap
     (σ : State) (a : Nat) (c : Cell) :
@@ -123,24 +125,20 @@ namespace Cpp
     unfold lookupBindingFrames
     simp [h_scopes]
 
+/-- Killing one address does not change the runtime scope stack. -/
 @[simp] theorem scopes_killAddr
     (σ : State) (a : Nat) :
     (killAddr σ a).scopes = σ.scopes := by
   unfold killAddr
-  split
-  · rfl
-  · unfold writeHeap
-    rfl
+  split <;> simp [writeHeap]
 
 @[simp] theorem next_killAddr
     (σ : State) (a : Nat) :
     (killAddr σ a).next = σ.next := by
   unfold killAddr
-  split
-  · rfl
-  · unfold writeHeap
-    rfl
+  split <;> simp [writeHeap]
 
+/-- Killing locals only changes heap liveness; it does not change the scope stack. -/
 @[simp] theorem scopes_killLocals
     (σ : State) (ls : List Nat) :
     (killLocals σ ls).scopes = σ.scopes := by

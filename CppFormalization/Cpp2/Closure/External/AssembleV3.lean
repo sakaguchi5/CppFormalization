@@ -5,37 +5,82 @@ namespace Cpp
 /-!
 # Closure.External.AssembleV3
 
-Visible entry object for the V3 external assembly layer.
+Observable V3 assembly after the static-layer redesign.
 
-Public-route policy after locating the remaining lie:
-
-- explicit glue route remains available as a low-level specialization;
-- generic `Compat -> canonicalGlueV3` route remains available as a *provisional*
-  shortcut inherited from `AdequacyKernelV3`;
-- the honest public canonical route is now the contract-based route
-  `Compat + CanonicalAdequacyContractsV3 -> canonicalGlueV3_ofContracts`.
+`VisiblePiecesV3` is intentionally not defined here.  The official package-level
+view is `ObservablePiecesV3`; the full external package is `ExternalPiecesV3`.
 -/
 
-/-- Explicit low-level external package. -/
-structure ExternalPiecesV3 (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
+/--
+The official observable package view used by `PackageCoherentV3`.
+
+Important: this is no longer profile-only.  The static package is observed as
+one coherent unit, because `typed0`, `root`, and `profile` must not be compared
+independently after the static-layer redesign.
+-/
+structure ObservablePiecesV3 (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
+  structural : BodyStructuralBoundary Γ st
+  static : BodyStaticBoundaryCI Γ st
+  dynamic : BodyDynamicBoundary Γ σ st
+
+/--
+A weaker profile-only view.
+
+This exists only for diagnostics or explicitly legacy/profile-only comparison
+statements.  It must not be used as the carrier of `PackageCoherentV3` or as the
+main route-coherence notion.
+-/
+structure ProfileObservablePiecesV3 (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
   structural : BodyStructuralBoundary Γ st
   profile : BodyControlProfile Γ st
   dynamic : BodyDynamicBoundary Γ σ st
-  core : CoreBigStepFragment st
-  adequacy : BodyAdequacyCI Γ σ st profile
 
-/-- Official assembled closure boundary extracted from explicit pieces. -/
-def ExternalPiecesV3.toBodyBoundary
+namespace ObservablePiecesV3
+
+def toProfileObservable
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (p : ObservablePiecesV3 Γ σ st) :
+    ProfileObservablePiecesV3 Γ σ st :=
+  { structural := p.structural
+    profile := p.static.profile
+    dynamic := p.dynamic }
+
+end ObservablePiecesV3
+structure ExternalPiecesV3 (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
+  structural : BodyStructuralBoundary Γ st
+  static : BodyStaticBoundaryCI Γ st
+  dynamic : BodyDynamicBoundary Γ σ st
+  core : CoreBigStepFragment st
+  adequacy : BodyAdequacyCI Γ σ st static.profile
+
+namespace ExternalPiecesV3
+
+def toBodyBoundary
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (p : ExternalPiecesV3 Γ σ st) :
     BodyClosureBoundaryCI Γ σ st :=
   mkBodyClosureBoundaryCI
     p.structural
-    p.profile
+    p.static
     p.dynamic
     p.adequacy
 
-/-- Original low-level route using an explicit glue object. -/
+def toObservablePieces
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (p : ExternalPiecesV3 Γ σ st) :
+    ObservablePiecesV3 Γ σ st :=
+  { structural := p.structural
+    static := p.static
+    dynamic := p.dynamic }
+
+def toProfileObservablePieces
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (p : ExternalPiecesV3 Γ σ st) :
+    ProfileObservablePiecesV3 Γ σ st :=
+  p.toObservablePieces.toProfileObservable
+
+end ExternalPiecesV3
+
 noncomputable def assembleExternalPiecesV3
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (G : VerifiedExternalGlueV3 F R)
@@ -49,15 +94,15 @@ noncomputable def assembleExternalPiecesV3
     ExternalPiecesV3 Γ σ st := by
   let hrun : RuntimePiecesV3 Γ σ st := F.mkRuntime huse hsuppRun
   let hrefl : ReflectionPiecesV3 Γ st := R.mkReflection hgen hsuppRefl
-  let hadeq : BodyAdequacyCI Γ σ st hrefl.profile := G.mkAdequacy huse hsuppRun hgen hsuppRefl hcompat
+  let hadeq : BodyAdequacyCI Γ σ st hrefl.static.profile :=
+    G.mkAdequacy huse hsuppRun hgen hsuppRefl hcompat
   exact
     { structural := hrefl.structural
-      profile := hrefl.profile
+      static := hrefl.static
       dynamic := hrun.dynamic
       core := hrefl.core
       adequacy := hadeq }
 
-/-- Original low-level boundary route using an explicit glue object. -/
 noncomputable def assembleBodyBoundaryV3
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (G : VerifiedExternalGlueV3 F R)
@@ -71,124 +116,24 @@ noncomputable def assembleBodyBoundaryV3
     BodyClosureBoundaryCI Γ σ st :=
   (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).toBodyBoundary
 
-/--
-Provisional shortcut inherited from `AdequacyKernelV3`.
-
-This route is retained for compatibility, but it should no longer be treated as
-the honest canonical surface.
--/
-noncomputable def assembleExternalPiecesFromCompatV3
+theorem assembleExternalPiecesV3_toBodyBoundary
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
-    (Compat : CompatibilityPredicateV3 F R)
+    (G : VerifiedExternalGlueV3 F R)
     {n : F.Name} {m : R.Meta}
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (huse : F.uses n)
     (hsuppRun : F.supportsRuntime n Γ σ st)
     (hgen : R.generates m st)
     (hsuppRefl : R.supportsReflection m Γ st)
-    (hcompat : Compat n m Γ σ st) :
-    ExternalPiecesV3 Γ σ st :=
-  assembleExternalPiecesV3
-    (F := F) (R := R)
-    (canonicalGlueV3 (F := F) (R := R) Compat)
-    huse hsuppRun hgen hsuppRefl hcompat
-
-/-- Provisional shortcut boundary route inherited from `AdequacyKernelV3`. -/
-noncomputable def assembleBodyBoundaryFromCompatV3
-    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
-    (Compat : CompatibilityPredicateV3 F R)
-    {n : F.Name} {m : R.Meta}
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (huse : F.uses n)
-    (hsuppRun : F.supportsRuntime n Γ σ st)
-    (hgen : R.generates m st)
-    (hsuppRefl : R.supportsReflection m Γ st)
-    (hcompat : Compat n m Γ σ st) :
-    BodyClosureBoundaryCI Γ σ st :=
-  (assembleExternalPiecesFromCompatV3
-    (F := F) (R := R) Compat
-    huse hsuppRun hgen hsuppRefl hcompat).toBodyBoundary
-
-/--
-Honest canonical route:
-build the glue object from the explicit pair of adequacy contracts.
--/
-noncomputable def assembleExternalPiecesFromContractsV3
-    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
-    (Compat : CompatibilityPredicateV3 F R)
-    (H : CanonicalAdequacyContractsV3 R)
-    {n : F.Name} {m : R.Meta}
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (huse : F.uses n)
-    (hsuppRun : F.supportsRuntime n Γ σ st)
-    (hgen : R.generates m st)
-    (hsuppRefl : R.supportsReflection m Γ st)
-    (hcompat : Compat n m Γ σ st) :
-    ExternalPiecesV3 Γ σ st :=
-  assembleExternalPiecesV3
-    (F := F) (R := R)
-    (canonicalGlueV3_ofContracts (F := F) (R := R) Compat H)
-    huse hsuppRun hgen hsuppRefl hcompat
-
-/-- Honest canonical boundary route from explicit contracts. -/
-noncomputable def assembleBodyBoundaryFromContractsV3
-    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
-    (Compat : CompatibilityPredicateV3 F R)
-    (H : CanonicalAdequacyContractsV3 R)
-    {n : F.Name} {m : R.Meta}
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (huse : F.uses n)
-    (hsuppRun : F.supportsRuntime n Γ σ st)
-    (hgen : R.generates m st)
-    (hsuppRefl : R.supportsReflection m Γ st)
-    (hcompat : Compat n m Γ σ st) :
-    BodyClosureBoundaryCI Γ σ st :=
-  (assembleExternalPiecesFromContractsV3
-    (F := F) (R := R) Compat H
-    huse hsuppRun hgen hsuppRefl hcompat).toBodyBoundary
-
-/-- The contract-based route is definitionally the explicit route with `canonicalGlueV3_ofContracts`. -/
-theorem assembleExternalPiecesFromContractsV3_eq_explicit
-    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
-    (Compat : CompatibilityPredicateV3 F R)
-    (H : CanonicalAdequacyContractsV3 R)
-    {n : F.Name} {m : R.Meta}
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (huse : F.uses n)
-    (hsuppRun : F.supportsRuntime n Γ σ st)
-    (hgen : R.generates m st)
-    (hsuppRefl : R.supportsReflection m Γ st)
-    (hcompat : Compat n m Γ σ st) :
-    assembleExternalPiecesFromContractsV3
-      (F := F) (R := R) Compat H
-      huse hsuppRun hgen hsuppRefl hcompat
-      =
-    assembleExternalPiecesV3
-      (F := F) (R := R)
-      (canonicalGlueV3_ofContracts (F := F) (R := R) Compat H)
-      huse hsuppRun hgen hsuppRefl hcompat := by
-  rfl
-
-/-- Likewise for the assembled boundary. -/
-theorem assembleBodyBoundaryFromContractsV3_eq_explicit
-    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
-    (Compat : CompatibilityPredicateV3 F R)
-    (H : CanonicalAdequacyContractsV3 R)
-    {n : F.Name} {m : R.Meta}
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (huse : F.uses n)
-    (hsuppRun : F.supportsRuntime n Γ σ st)
-    (hgen : R.generates m st)
-    (hsuppRefl : R.supportsReflection m Γ st)
-    (hcompat : Compat n m Γ σ st) :
-    assembleBodyBoundaryFromContractsV3
-      (F := F) (R := R) Compat H
-      huse hsuppRun hgen hsuppRefl hcompat
-      =
-    assembleBodyBoundaryV3
-      (F := F) (R := R)
-      (canonicalGlueV3_ofContracts (F := F) (R := R) Compat H)
-      huse hsuppRun hgen hsuppRefl hcompat := by
+    (hcompat : G.compatible n m Γ σ st) :
+    let hrun := F.mkRuntime huse hsuppRun
+    let hrefl := R.mkReflection hgen hsuppRefl
+    (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).toBodyBoundary =
+      mkBodyClosureBoundaryCI
+        hrefl.structural
+        hrefl.static
+        hrun.dynamic
+        (G.mkAdequacy huse hsuppRun hgen hsuppRefl hcompat) := by
   rfl
 
 end Cpp

@@ -1,0 +1,5 @@
+import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.Shape
+import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.RuntimeTransport
+import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.Ownership
+import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.Realizers
+import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.Preservation

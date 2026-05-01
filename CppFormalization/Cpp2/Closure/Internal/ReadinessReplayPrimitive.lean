@@ -1,5 +1,6 @@
 import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
+import CppFormalization.Cpp2.Closure.Internal.AssignTransportKernel
 import CppFormalization.Cpp2.Closure.Internal.PrimitiveStmtNormalPreservation
 
 namespace Cpp
@@ -17,7 +18,7 @@ while / seq / block の replay を進めるとき、primitive case に本当に�
 このファイルでは:
 - replay-stable primitive を `skip / exprStmt / assign` に限定する
 - `skip / exprStmt` は theorem で閉じる
-- `assign` は place / expr の replay を kernel axiom として切り出し、
+- `assign` の replay は `AssignTransportKernel` へ束ねた primitive obligations を使って
   statement replay を theorem として組み立てる
 -/
 
@@ -68,33 +69,49 @@ theorem exprStmt_stmt_ready_replay_concrete
 
 
 /- =========================================================
-   2. assign replay kernel
-
-   `assign` の replay で本当に難しいのは、post-state で
-   - 同じ place が引き続き live であること
-   - 同じ rhs expr が引き続き ready であること
-
-   である。これは pointer / aliasing / load を含むので、ここでは kernel axiom として
-   切り出し、statement-level replay は theorem で組み立てる。
+   2. assign replay via bundled transport kernel
    ========================================================= -/
 
-axiom assign_place_ready_replay_concrete
+theorem assign_stmt_ready_replay_concrete_with_effect
     {Γ : TypeEnv} {σ σ' : State}
-    {p : PlaceExpr} {e : ValExpr} {τ : CppType} :
+    {p : PlaceExpr} {e : ValExpr} :
     ScopedTypedStateConcrete Γ σ' →
-    PlaceReadyConcrete Γ σ p τ →
+    StmtReadyConcrete Γ σ (.assign p e) →
     BigStepStmt σ (.assign p e) .normal σ' →
-    PlaceReadyConcrete Γ σ' p τ
-
-axiom assign_expr_ready_replay_concrete
-    {Γ : TypeEnv} {σ σ' : State}
-    {p : PlaceExpr} {e : ValExpr} {τ : CppType} :
-    HasValueType Γ e τ →
-    ScopedTypedStateConcrete Γ σ' →
-    ExprReadyConcrete Γ σ e τ →
-    BigStepStmt σ (.assign p e) .normal σ' →
-    ExprReadyConcrete Γ σ' e τ
-
+    ∃ τ v,
+      HasPlaceType Γ p τ ∧
+      HasValueType Γ e τ ∧
+      ValueCompat v τ ∧
+      AssignWriteEffect σ σ' p v ∧
+      StmtReadyConcrete Γ σ' (.assign p e) := by
+  intro hσ' hready hstep
+  cases hready with
+  | assign hpty hpready hvty heready =>
+      let hready0 : StmtReadyConcrete Γ σ (.assign p e) :=
+        StmtReadyConcrete.assign hpty hpready hvty heready
+      have hEff :
+          ∃ τ v,
+            Γ = Γ ∧
+            HasPlaceType Γ p τ ∧
+            PlaceReadyConcrete Γ σ p τ ∧
+            HasValueType Γ e τ ∧
+            ValueCompat v τ ∧
+            AssignWriteEffect σ σ' p v := by
+        simpa using
+          (assign_stmt_normal_write_effect
+            (Γ := Γ) (Δ := Γ) (σ := σ) (σ' := σ')
+            (p := p) (e := e)
+            (HasTypeStmtCI.assign hpty hvty) hready0 hstep)
+      rcases hEff with
+        ⟨τ, v, _hΔ, hpty', _hpready', hvty', hvcompat, hwrite⟩
+      have hτ : τ = _ := hasPlaceType_unique hpty' hpty
+      subst hτ
+      have hpreadyPost : PlaceReadyConcrete Γ σ' p _ :=
+        assign_place_ready_replay_concrete hσ' hpready hstep
+      have hereadyPost : ExprReadyConcrete Γ σ' e _ :=
+        assign_expr_ready_replay_concrete hvty hσ' heready hstep
+      refine ⟨_, v, hpty, hvty, hvcompat, hwrite, ?_⟩
+      exact StmtReadyConcrete.assign hpty hpreadyPost hvty hereadyPost
 
 theorem assign_stmt_ready_replay_concrete
     {Γ : TypeEnv} {σ σ' : State}
@@ -104,12 +121,11 @@ theorem assign_stmt_ready_replay_concrete
     BigStepStmt σ (.assign p e) .normal σ' →
     StmtReadyConcrete Γ σ' (.assign p e) := by
   intro hσ' hready hstep
-  cases hready with
-  | assign hpty hpready hvty heready =>
-      refine StmtReadyConcrete.assign hpty ?_ hvty ?_
-      · exact assign_place_ready_replay_concrete hσ' hpready hstep
-      · exact assign_expr_ready_replay_concrete hvty hσ' heready hstep
-
+  rcases assign_stmt_ready_replay_concrete_with_effect
+      (Γ := Γ) (σ := σ) (σ' := σ') (p := p) (e := e)
+      hσ' hready hstep with
+    ⟨_τ, _v, _hpty, _hvty, _hvcompat, _hwrite, hreadyPost⟩
+  exact hreadyPost
 
 /- =========================================================
    3. bundled replay theorem for the stable primitive base

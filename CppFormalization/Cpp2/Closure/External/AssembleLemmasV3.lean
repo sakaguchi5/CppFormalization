@@ -27,7 +27,7 @@ theorem assembleExternalPiecesV3_structural
   unfold assembleExternalPiecesV3
   rfl
 
-theorem assembleExternalPiecesV3_profile
+theorem assembleExternalPiecesV3_static
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (G : VerifiedExternalGlueV3 F R)
     {n : F.Name} {m : R.Meta}
@@ -37,9 +37,8 @@ theorem assembleExternalPiecesV3_profile
     (hgen : R.generates m st)
     (hsuppRefl : R.supportsReflection m Γ st)
     (hcompat : G.compatible n m Γ σ st) :
-    (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).profile =
-      (R.mkReflection hgen hsuppRefl).profile := by
-  unfold assembleExternalPiecesV3
+    (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).static =
+      (R.mkReflection hgen hsuppRefl).static := by
   rfl
 
 theorem assembleExternalPiecesV3_dynamic
@@ -87,7 +86,7 @@ theorem assembleExternalPiecesV3_adequacy
   unfold assembleExternalPiecesV3
   rfl
 
-@[simp] theorem assembleExternalPiecesV3_toVisiblePieces
+theorem assembleExternalPiecesV3_toObservablePieces
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
     (G : VerifiedExternalGlueV3 F R)
     {n : F.Name} {m : R.Meta}
@@ -97,8 +96,8 @@ theorem assembleExternalPiecesV3_adequacy
     (hgen : R.generates m st)
     (hsuppRefl : R.supportsReflection m Γ st)
     (hcompat : G.compatible n m Γ σ st) :
-    (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces =
-      canonicalVisiblePiecesV3 huse hsuppRun hgen hsuppRefl := by
+    (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces =
+      canonicalObservablePiecesV3 huse hsuppRun hgen hsuppRefl := by
   rfl
 
 theorem assembleExternalPiecesV3_packageCoherent
@@ -112,25 +111,10 @@ theorem assembleExternalPiecesV3_packageCoherent
     (hsuppRefl : R.supportsReflection m Γ st)
     (hcompat : G.compatible n m Γ σ st) :
     PackageCoherentV3
-      (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).toVisiblePieces
-      (canonicalVisiblePiecesV3 huse hsuppRun hgen hsuppRefl) := by
+      (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).toObservablePieces
+      (canonicalObservablePiecesV3 huse hsuppRun hgen hsuppRefl) := by
   rfl
 
-theorem assembleExternalPiecesV3_toBodyBoundary
-    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
-    (G : VerifiedExternalGlueV3 F R)
-    {n : F.Name} {m : R.Meta}
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (huse : F.uses n)
-    (hsuppRun : F.supportsRuntime n Γ σ st)
-    (hgen : R.generates m st)
-    (hsuppRefl : R.supportsReflection m Γ st)
-    (hcompat : G.compatible n m Γ σ st) :
-    (assembleExternalPiecesV3 G huse hsuppRun hgen hsuppRefl hcompat).toBodyBoundary =
-      { structural := (R.mkReflection hgen hsuppRefl).structural
-        profile := (R.mkReflection hgen hsuppRefl).profile
-        dynamic := (F.mkRuntime huse hsuppRun).dynamic
-        adequacy := G.mkAdequacy huse hsuppRun hgen hsuppRefl hcompat } := by
-  rfl
+
 
 end Cpp
