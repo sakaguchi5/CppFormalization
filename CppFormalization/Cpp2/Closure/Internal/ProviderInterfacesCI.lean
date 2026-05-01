@@ -82,37 +82,69 @@ structure ExternalCompatibleCaseV3
   hcompat : compatible n m Γ σ st
 
 /--
-A soundness-carrying external compatibility package.
+A witness-producing external compatibility package.
 
-Unlike a bare provider, this structure makes compatibility itself the carrier of
-profile soundness: normal/return soundness is required for every
-`ExternalCompatibleCaseV3` accepted by the compatibility predicate.
+The primitive fields now return subtype witnesses rather than `Prop`-level
+existentials.  This matches the direction of `BodyAdequacyWitnessCI`: an
+external interface that wants to construct downstream Type-level packages should
+carry the selected canonical-profile output as data.  Proof-only soundness is
+recovered below by forgetting the witnesses.
 -/
 structure ExternalSoundnessCompatibilityV3
     (F : VerifiedStdFragmentV3) (R : VerifiedReflectionFragmentV3) : Type where
   compatible : CompatibilityPredicateV3 F R
 
-  normalSound :
+  normalWitness :
     ∀ {Γ : TypeEnv} {σ : State} {st : CppStmt}
       (C : ExternalCompatibleCaseV3 F R compatible Γ σ st)
       {σ' : State},
       BigStepStmt σ st .normal σ' →
-      ∃ out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ st Δ},
+      { out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ st Δ} //
         (canonicalProfileV3
           (R := R) (m := C.m) (Γ := Γ) (st := st)
-          C.hgen C.hrefl).summary.normalOut = some out
+          C.hgen C.hrefl).summary.normalOut = some out }
 
-  returnSound :
+  returnWitness :
     ∀ {Γ : TypeEnv} {σ : State} {st : CppStmt}
       (C : ExternalCompatibleCaseV3 F R compatible Γ σ st)
       {rv : Option Value} {σ' : State},
       BigStepStmt σ st (.returnResult rv) σ' →
-      ∃ out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ st Δ},
+      { out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ st Δ} //
         (canonicalProfileV3
           (R := R) (m := C.m) (Γ := Γ) (st := st)
-          C.hgen C.hrefl).summary.returnOut = some out
+          C.hgen C.hrefl).summary.returnOut = some out }
 
 namespace ExternalSoundnessCompatibilityV3
+
+/-- Forget the witness-producing normal provider to proof-only soundness. -/
+theorem normalSound
+    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
+    (S : ExternalSoundnessCompatibilityV3 F R)
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (C : ExternalCompatibleCaseV3 F R S.compatible Γ σ st)
+    {σ' : State}
+    (hstep : BigStepStmt σ st .normal σ') :
+    ∃ out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ st Δ},
+      (canonicalProfileV3
+        (R := R) (m := C.m) (Γ := Γ) (st := st)
+        C.hgen C.hrefl).summary.normalOut = some out := by
+  let w := S.normalWitness C hstep
+  exact ⟨w.val, w.property⟩
+
+/-- Forget the witness-producing return provider to proof-only soundness. -/
+theorem returnSound
+    {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
+    (S : ExternalSoundnessCompatibilityV3 F R)
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (C : ExternalCompatibleCaseV3 F R S.compatible Γ σ st)
+    {rv : Option Value} {σ' : State}
+    (hstep : BigStepStmt σ st (.returnResult rv) σ') :
+    ∃ out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ st Δ},
+      (canonicalProfileV3
+        (R := R) (m := C.m) (Γ := Γ) (st := st)
+        C.hgen C.hrefl).summary.returnOut = some out := by
+  let w := S.returnWitness C hstep
+  exact ⟨w.val, w.property⟩
 
 /--
 Build a concrete external glue object from soundness-carrying compatibility,
@@ -140,9 +172,9 @@ noncomputable def toGlue
         (R := R) (m := m) (Γ := Γ) (σ := σ) (st := st)
         hgen hrefl
         (fun {_} hstep =>
-          S.normalSound C hstep)
+          normalSound S C hstep)
         (fun {_} {_} hstep =>
-          S.returnSound C hstep)
+          returnSound S C hstep)
 
 end ExternalSoundnessCompatibilityV3
 

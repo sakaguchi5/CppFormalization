@@ -1,3 +1,4 @@
+import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyWitnessCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseSplitCI
 
 namespace Cpp
@@ -11,6 +12,12 @@ This file does not remove existing axioms directly.  It adds coherent
 intermediate packages that make the later axiom replacement targets honest:
 normal-slot selection and return-slot selection must be chosen together,
 because tail-return provenance depends on the selected left-normal slot.
+
+The witness-provider migration adds witness-producing adapters for the already
+route-aware sequence adequacy packages.  These adapters make the future
+`BodyAdequacyCI` provider replacement non-disruptive: the sequence case can
+already produce `BodyAdequacyWitnessCI` where downstream Type-level data is
+needed.
 -/
 
 /--
@@ -176,5 +183,100 @@ def toNormalPayload
         R.selected, SeqLeftNormalSlotCI.out] }
 
 end SeqHeadNormalSelectedRouteCI
+
+namespace SeqTailAdequacySupportCI
+
+/--
+Forget the channel-split tail support to a witness-producing body adequacy
+provider.
+-/
+noncomputable def toBodyAdequacyWitnessCI
+    {Θ : TypeEnv} {σ1 : State} {t : CppStmt}
+    {P : BodyControlProfile Θ t}
+    (A : SeqTailAdequacySupportCI Θ σ1 t P) :
+    BodyAdequacyWitnessCI Θ σ1 t P :=
+  { normalWitness := by
+      intro σ2 hstep
+      let h := A.normal.normalSound hstep
+      exact ⟨Classical.choose h, Classical.choose_spec h⟩
+    returnWitness := by
+      intro rv σ2 hstep
+      let h := A.returned.returnSound hstep
+      exact ⟨Classical.choose h, Classical.choose_spec h⟩ }
+
+end SeqTailAdequacySupportCI
+
+/--
+Witness-producing tail static+adequacy payload.
+
+The existing `SeqTailStaticAdequacyPayloadCI` remains proof-only through
+`SeqTailAdequacySupportCI`.  This payload exposes the same tail boundary as a
+`BodyAdequacyWitnessCI`, which is the shape needed by the provider migration.
+-/
+structure SeqTailStaticAdequacyWitnessPayloadCI
+    (Θ : TypeEnv) (σ1 : State) (t : CppStmt) : Type where
+  static : BodyStaticBoundaryCI Θ t
+  adequacyWitness : BodyAdequacyWitnessCI Θ σ1 t static.profile
+
+namespace SeqTailStaticAdequacyWitnessPayloadCI
+
+/-- Forget the witness-producing tail payload to the existing proof-only payload. -/
+def toStaticAdequacyPayloadCI
+    {Θ : TypeEnv} {σ1 : State} {t : CppStmt}
+    (p : SeqTailStaticAdequacyWitnessPayloadCI Θ σ1 t) :
+    SeqTailStaticAdequacyPayloadCI Θ σ1 t :=
+  { static := p.static
+    support :=
+      { normal :=
+          { normalSound := by
+              intro σ2 hstep
+              let w := p.adequacyWitness.normalWitness hstep
+              exact ⟨w.val, w.property⟩ }
+        returned :=
+          { returnSound := by
+              intro rv σ2 hstep
+              let w := p.adequacyWitness.returnWitness hstep
+              exact ⟨w.val, w.property⟩ } } }
+
+/-- Forget the witness-producing tail payload to the older static+adequacy API. -/
+def toStaticAdequacyCI
+    {Θ : TypeEnv} {σ1 : State} {t : CppStmt}
+    (p : SeqTailStaticAdequacyWitnessPayloadCI Θ σ1 t) :
+    SeqTailStaticAdequacyCI Θ σ1 t :=
+  (p.toStaticAdequacyPayloadCI).toStaticAdequacyCI
+
+end SeqTailStaticAdequacyWitnessPayloadCI
+
+namespace SeqLeftAdequacySupportCI
+
+/--
+Forget the route-aware/runtime-decision sequence support to a witness-producing
+body adequacy provider for the left side.
+-/
+def toBodyAdequacyWitnessCI
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (A : SeqLeftAdequacySupportCI Γ σ s t P) :
+    BodyAdequacyWitnessCI Γ σ s P :=
+  { normalWitness := by
+      intro σ1 hstep
+      let r := A.normal.normalRoute hstep
+      exact ⟨⟨r.Θ, r.hleft⟩, r.hprofile⟩
+    returnWitness := by
+      intro rv σ' hstep
+      let d := A.returned.returnDecision hstep
+      exact ⟨⟨d.Delta, d.hleft⟩, d.hprofile⟩ }
+
+end SeqLeftAdequacySupportCI
+
+/--
+Witness-producing compatibility name for the extracted left sequence boundary.
+-/
+noncomputable def seq_left_adequacy_witness_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (hstatic : BodyStaticBoundaryCI Γ s) :
+    BodyAdequacyWitnessCI Γ σ s hstatic.profile :=
+  (seq_left_adequacy_support_ci_of_entry hentry hstatic).toBodyAdequacyWitnessCI
 
 end Cpp
