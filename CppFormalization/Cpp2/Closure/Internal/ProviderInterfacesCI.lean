@@ -62,46 +62,57 @@ structure AssignVarReadTransportKernel : Type where
       (∃ a, BigStepPlace σ' (.var x) a ∧ CellReadableTyped σ' a τ)
 
 /--
+A concrete compatible runtime/reflection case for a fixed statement and state.
+
+This packages the runtime name, reflection metadata, support proofs, and the
+actual compatibility proof into one value.  The profile itself is still the
+reflection-side canonical profile, but soundness is stated only for cases that
+are genuinely compatible with the runtime side.
+-/
+structure ExternalCompatibleCaseV3
+    (F : VerifiedStdFragmentV3) (R : VerifiedReflectionFragmentV3)
+    (compatible : CompatibilityPredicateV3 F R)
+    (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
+  n : F.Name
+  m : R.Meta
+  huses : F.uses n
+  hruntime : F.supportsRuntime n Γ σ st
+  hgen : R.generates m st
+  hrefl : R.supportsReflection m Γ st
+  hcompat : compatible n m Γ σ st
+
+/--
 A soundness-carrying external compatibility package.
 
-The existing `CompatibilityPredicateV3` is only a predicate.  This record is a
-future replacement target for the two generic canonical-profile soundness
-axioms: soundness should be carried by the external compatibility/interface, not
-globally assumed.
+Unlike a bare provider, this structure makes compatibility itself the carrier of
+profile soundness: normal/return soundness is required for every
+`ExternalCompatibleCaseV3` accepted by the compatibility predicate.
 -/
-structure ExternalSoundnessProviderV3
+structure ExternalSoundnessCompatibilityV3
     (F : VerifiedStdFragmentV3) (R : VerifiedReflectionFragmentV3) : Type where
   compatible : CompatibilityPredicateV3 F R
 
   normalSound :
-    ∀ {n : F.Name} {m : R.Meta}
-      {Γ : TypeEnv} {σ : State} {st : CppStmt}
-      (_ : F.uses n)
-      (_ : F.supportsRuntime n Γ σ st)
-      (hgen : R.generates m st)
-      (hrefl : R.supportsReflection m Γ st)
-      (_ : compatible n m Γ σ st)
-      {σ' : State}
-      (_ : BigStepStmt σ st .normal σ'),
+    ∀ {Γ : TypeEnv} {σ : State} {st : CppStmt}
+      (C : ExternalCompatibleCaseV3 F R compatible Γ σ st)
+      {σ' : State},
+      BigStepStmt σ st .normal σ' →
       ∃ out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ st Δ},
-        (canonicalProfileV3 (R := R) (m := m) (Γ := Γ) (st := st)
-          hgen hrefl).summary.normalOut = some out
+        (canonicalProfileV3
+          (R := R) (m := C.m) (Γ := Γ) (st := st)
+          C.hgen C.hrefl).summary.normalOut = some out
 
   returnSound :
-    ∀ {n : F.Name} {m : R.Meta}
-      {Γ : TypeEnv} {σ : State} {st : CppStmt}
-      (_ : F.uses n)
-      (_ : F.supportsRuntime n Γ σ st)
-      (hgen : R.generates m st)
-      (hrefl : R.supportsReflection m Γ st)
-      (_ : compatible n m Γ σ st)
-      {rv : Option Value} {σ' : State}
-      (_ : BigStepStmt σ st (.returnResult rv) σ'),
+    ∀ {Γ : TypeEnv} {σ : State} {st : CppStmt}
+      (C : ExternalCompatibleCaseV3 F R compatible Γ σ st)
+      {rv : Option Value} {σ' : State},
+      BigStepStmt σ st (.returnResult rv) σ' →
       ∃ out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ st Δ},
-        (canonicalProfileV3 (R := R) (m := m) (Γ := Γ) (st := st)
-          hgen hrefl).summary.returnOut = some out
+        (canonicalProfileV3
+          (R := R) (m := C.m) (Γ := Γ) (st := st)
+          C.hgen C.hrefl).summary.returnOut = some out
 
-namespace ExternalSoundnessProviderV3
+namespace ExternalSoundnessCompatibilityV3
 
 /--
 Build a concrete external glue object from soundness-carrying compatibility,
@@ -109,20 +120,30 @@ without using the generic canonical-profile soundness axioms.
 -/
 noncomputable def toGlue
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
-    (S : ExternalSoundnessProviderV3 F R) :
+    (S : ExternalSoundnessCompatibilityV3 F R) :
     VerifiedExternalGlueV3 F R where
   compatible := S.compatible
   mkAdequacy := by
     intro n m Γ σ st huses hruntime hgen hrefl hcompat
+
+    let C : ExternalCompatibleCaseV3 F R S.compatible Γ σ st :=
+      { n := n
+        m := m
+        huses := huses
+        hruntime := hruntime
+        hgen := hgen
+        hrefl := hrefl
+        hcompat := hcompat }
+
     exact
       canonicalAdequacyOfSoundnessV3
         (R := R) (m := m) (Γ := Γ) (σ := σ) (st := st)
         hgen hrefl
         (fun {_} hstep =>
-          S.normalSound huses hruntime hgen hrefl hcompat hstep)
+          S.normalSound C hstep)
         (fun {_} {_} hstep =>
-          S.returnSound huses hruntime hgen hrefl hcompat hstep)
+          S.returnSound C hstep)
 
-end ExternalSoundnessProviderV3
+end ExternalSoundnessCompatibilityV3
 
 end Cpp
