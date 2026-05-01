@@ -107,17 +107,38 @@ noncomputable def blockOpenedAdequacyScaffoldCI_of_executionToStmtBridge
       { normalSound := by
           intro σ1 hstepOpened
           rcases B.normalToStmt hstepOpened with ⟨σ2, hstmt⟩
-          rcases hentry.adequacy.normalSound hstmt with ⟨out, hout⟩
-          refine ⟨blockNormalOut_of_stmtBlockNormalOut out, ?_⟩
+          let w := hentry.adequacy.normalWitness hstmt
+          refine ⟨blockNormalOut_of_stmtBlockNormalOut w.val, ?_⟩
           simp [blockBodyProfile_of_bodyClosureBoundaryCI,
-            blockBodySummary_of_stmtBodySummary, hout]
+            blockBodySummary_of_stmtBodySummary, w.property]
         returnSound := by
           intro rv σ1 hstepOpened
           rcases B.returnToStmt hstepOpened with ⟨σ2, hstmt⟩
-          rcases hentry.adequacy.returnSound hstmt with ⟨out, hout⟩
-          refine ⟨blockReturnOut_of_stmtBlockReturnOut out, ?_⟩
+          let w := hentry.adequacy.returnWitness hstmt
+          refine ⟨blockReturnOut_of_stmtBlockReturnOut w.val, ?_⟩
           simp [blockBodyProfile_of_bodyClosureBoundaryCI,
-            blockBodySummary_of_stmtBodySummary, hout] } }
+            blockBodySummary_of_stmtBodySummary, w.property]
+        normalWitness := by
+          intro σ1 hstepOpened
+          let hstmtEx := B.normalToStmt hstepOpened
+          let σ2 := Classical.choose hstmtEx
+          have hstmt : BigStepStmt σ (.block ss) .normal σ2 :=
+            Classical.choose_spec hstmtEx
+          let w := hentry.adequacy.normalWitness hstmt
+          refine ⟨blockNormalOut_of_stmtBlockNormalOut w.val, ?_⟩
+          simp [blockBodyProfile_of_bodyClosureBoundaryCI,
+            blockBodySummary_of_stmtBodySummary, w.property]
+
+        returnWitness := by
+          intro rv σ1 hstepOpened
+          let hstmtEx := B.returnToStmt hstepOpened
+          let σ2 := Classical.choose hstmtEx
+          have hstmt : BigStepStmt σ (.block ss) (.returnResult rv) σ2 :=
+            Classical.choose_spec hstmtEx
+          let w := hentry.adequacy.returnWitness hstmt
+          refine ⟨blockReturnOut_of_stmtBlockReturnOut w.val, ?_⟩
+          simp [blockBodyProfile_of_bodyClosureBoundaryCI,
+            blockBodySummary_of_stmtBodySummary, w.property] } }
 
 /--
 Witness-producing opened block-body adequacy scaffold.

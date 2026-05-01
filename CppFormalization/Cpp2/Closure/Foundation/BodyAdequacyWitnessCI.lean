@@ -5,20 +5,20 @@ namespace Cpp
 /-!
 # Closure.Foundation.BodyAdequacyWitnessCI
 
-Witness-producing adequacy providers.
+Compatibility aliases for the witness-provider migration.
 
-`BodyAdequacyCI` and `BlockBodyAdequacyCI` remain the proof-only adequacy
-interfaces.  The witness-producing versions below are the non-breaking migration
-layer used when downstream constructions must build Type-level packages from
-actual exits.
+`BodyAdequacyCI` and `BlockBodyAdequacyCI` now carry witness-producing fields in
+the main records.  The `*WitnessCI` records remain as a lightweight compatibility
+surface for code that was written during the migration.  The forgetful adapters
+now preserve the witness fields explicitly.
 -/
 
 /--
-Witness-producing version of statement-body adequacy.
+Compatibility witness-producing version of statement-body adequacy.
 
-This carries the same mathematical content as `BodyAdequacyCI`, but returns the
-selected profile witness as Type-level data rather than hiding it behind a
-`Prop`-level existential.
+New code may use `BodyAdequacyCI` directly via its `normalWitness` and
+`returnWitness` fields.  This record remains useful as an explicit provider
+surface where a distinct name improves readability.
 -/
 structure BodyAdequacyWitnessCI
     (Γ : TypeEnv) (σ : State) (st : CppStmt)
@@ -35,52 +35,30 @@ structure BodyAdequacyWitnessCI
 
 namespace BodyAdequacyWitnessCI
 
-/-- Forget a witness-producing adequacy provider to ordinary proof-only adequacy. -/
+/-- Convert a compatibility witness provider to the main adequacy record. -/
 def toBodyAdequacy
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     {P : BodyControlProfile Γ st}
     (A : BodyAdequacyWitnessCI Γ σ st P) :
     BodyAdequacyCI Γ σ st P :=
-  { normalSound := by
-      intro σ' hstep
-      let w := A.normalWitness hstep
-      exact ⟨w.val, w.property⟩
-    returnSound := by
-      intro rv σ' hstep
-      let w := A.returnWitness hstep
-      exact ⟨w.val, w.property⟩ }
+  BodyAdequacyCI.ofWitness A.normalWitness A.returnWitness
 
-/--
-Classical bridge from proof-only statement adequacy to witness-producing
-adequacy.
-
-This is intentionally noncomputable: it selects the profile output hidden behind
-the `Prop`-level existential in `BodyAdequacyCI`.  Prefer theorem-backed
-witness providers when available; this adapter exists for compatibility during
-the migration.
--/
-noncomputable def ofBodyAdequacy
+/-- Extract the compatibility witness provider from the main adequacy record. -/
+def ofBodyAdequacy
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     {P : BodyControlProfile Γ st}
     (A : BodyAdequacyCI Γ σ st P) :
     BodyAdequacyWitnessCI Γ σ st P :=
-  { normalWitness := by
-      intro σ' hstep
-      let h := A.normalSound hstep
-      exact ⟨Classical.choose h, Classical.choose_spec h⟩
-    returnWitness := by
-      intro rv σ' hstep
-      let h := A.returnSound hstep
-      exact ⟨Classical.choose h, Classical.choose_spec h⟩ }
+  { normalWitness := A.normalWitness
+    returnWitness := A.returnWitness }
 
 end BodyAdequacyWitnessCI
 
 /--
-Witness-producing version of opened block-body adequacy.
+Compatibility witness-producing version of opened block-body adequacy.
 
-This is the block analogue of `BodyAdequacyWitnessCI`; it is kept separate from
-`BlockBodyAdequacyCI` so the current proof-only boundary interface remains
-source-compatible during the migration.
+New code may use `BlockBodyAdequacyCI` directly via its `normalWitness` and
+`returnWitness` fields.  This record remains as an explicit provider surface.
 -/
 structure BlockBodyAdequacyWitnessCI
     (Γ : TypeEnv) (σ : State) (ss : StmtBlock)
@@ -99,41 +77,22 @@ structure BlockBodyAdequacyWitnessCI
 
 namespace BlockBodyAdequacyWitnessCI
 
-/-- Forget a block witness-producing adequacy provider to ordinary proof-only adequacy. -/
+/-- Convert a compatibility block witness provider to the main adequacy record. -/
 def toBlockBodyAdequacy
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
     {P : BlockBodyControlProfile Γ ss}
     (A : BlockBodyAdequacyWitnessCI Γ σ ss P) :
     BlockBodyAdequacyCI Γ σ ss P :=
-  { normalSound := by
-      intro σ' hstep
-      let w := A.normalWitness hstep
-      exact ⟨w.val, w.property⟩
-    returnSound := by
-      intro rv σ' hstep
-      let w := A.returnWitness hstep
-      exact ⟨w.val, w.property⟩ }
+  BlockBodyAdequacyCI.ofWitness A.normalWitness A.returnWitness
 
-/--
-Classical bridge from proof-only opened block adequacy to witness-producing
-opened block adequacy.
-
-As with `BodyAdequacyWitnessCI.ofBodyAdequacy`, this is a compatibility adapter
-for the migration period.
--/
-noncomputable def ofBlockBodyAdequacy
+/-- Extract the compatibility block witness provider from the main adequacy record. -/
+def ofBlockBodyAdequacy
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
     {P : BlockBodyControlProfile Γ ss}
     (A : BlockBodyAdequacyCI Γ σ ss P) :
     BlockBodyAdequacyWitnessCI Γ σ ss P :=
-  { normalWitness := by
-      intro σ' hstep
-      let h := A.normalSound hstep
-      exact ⟨Classical.choose h, Classical.choose_spec h⟩
-    returnWitness := by
-      intro rv σ' hstep
-      let h := A.returnSound hstep
-      exact ⟨Classical.choose h, Classical.choose_spec h⟩ }
+  { normalWitness := A.normalWitness
+    returnWitness := A.returnWitness }
 
 end BlockBodyAdequacyWitnessCI
 

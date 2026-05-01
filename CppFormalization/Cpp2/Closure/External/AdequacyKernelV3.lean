@@ -157,11 +157,19 @@ noncomputable def canonicalAdequacyOfSoundnessV3
       (canonicalProfileV3 (R := R) (m := m) (Γ := Γ) (st := st) hgen hrefl) := by
   refine
     { normalSound := ?_
-      returnSound := ?_ }
+      returnSound := ?_
+      normalWitness := ?_
+      returnWitness := ?_ }
   · intro σ' hstep
     exact hNormal hstep
   · intro rv σ' hstep
     exact hReturn hstep
+  · intro σ' hstep
+    let h := hNormal hstep
+    exact ⟨Classical.choose h, Classical.choose_spec h⟩
+  · intro rv σ' hstep
+    let h := hReturn hstep
+    exact ⟨Classical.choose h, Classical.choose_spec h⟩
 
 /--
 Canonical adequacy witness obtained by applying the two kernel axioms to the

@@ -239,7 +239,7 @@ def toStaticAdequacyPayloadCI
               exact ⟨w.val, w.property⟩ } } }
 
 /-- Forget the witness-producing tail payload to the older static+adequacy API. -/
-def toStaticAdequacyCI
+noncomputable def toStaticAdequacyCI
     {Θ : TypeEnv} {σ1 : State} {t : CppStmt}
     (p : SeqTailStaticAdequacyWitnessPayloadCI Θ σ1 t) :
     SeqTailStaticAdequacyCI Θ σ1 t :=

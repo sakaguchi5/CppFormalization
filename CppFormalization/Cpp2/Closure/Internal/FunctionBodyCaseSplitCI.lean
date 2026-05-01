@@ -978,13 +978,21 @@ structure SeqTailAdequacySupportCI
 namespace SeqTailAdequacySupportCI
 
 /-- Forget the channel-split tail support to ordinary `BodyAdequacyCI`. -/
-def toBodyAdequacyCI
+noncomputable def toBodyAdequacyCI
     {Θ : TypeEnv} {σ1 : State} {t : CppStmt}
     {P : BodyControlProfile Θ t}
     (A : SeqTailAdequacySupportCI Θ σ1 t P) :
     BodyAdequacyCI Θ σ1 t P :=
   { normalSound := A.normal.normalSound
-    returnSound := A.returned.returnSound }
+    returnSound := A.returned.returnSound
+    normalWitness := by
+      intro σ2 hstep
+      let h := A.normal.normalSound hstep
+      exact ⟨Classical.choose h, Classical.choose_spec h⟩
+    returnWitness := by
+      intro rv σ2 hstep
+      let h := A.returned.returnSound hstep
+      exact ⟨Classical.choose h, Classical.choose_spec h⟩ }
 
 end SeqTailAdequacySupportCI
 
@@ -998,7 +1006,7 @@ structure SeqTailStaticAdequacyPayloadCI
   support : SeqTailAdequacySupportCI Θ σ1 t static.profile
 
 /-- Compatibility package for the older tail scaffold API. -/
-def SeqTailStaticAdequacyPayloadCI.toStaticAdequacyCI
+noncomputable def SeqTailStaticAdequacyPayloadCI.toStaticAdequacyCI
     {Θ : TypeEnv} {σ1 : State} {t : CppStmt}
     (p : SeqTailStaticAdequacyPayloadCI Θ σ1 t) :
     SeqTailStaticAdequacyCI Θ σ1 t :=
@@ -1123,7 +1131,15 @@ def toBodyAdequacyCI
       exact ⟨⟨r.Θ, r.hleft⟩, r.hprofile⟩
     returnSound := by
       intro rv σ' hstep
-      exact (A.returned.returnDecision hstep).toExists }
+      exact (A.returned.returnDecision hstep).toExists
+    normalWitness := by
+      intro σ1 hstep
+      let r := A.normal.normalRoute hstep
+      exact ⟨⟨r.Θ, r.hleft⟩, r.hprofile⟩
+    returnWitness := by
+      intro rv σ' hstep
+      let d := A.returned.returnDecision hstep
+      exact ⟨⟨d.Delta, d.hleft⟩, d.hprofile⟩ }
 
 end SeqLeftAdequacySupportCI
 
@@ -1294,7 +1310,7 @@ noncomputable def seq_left_adequacy_support_ci_of_entry
     returned := seq_left_return_adequacy_ci_of_entry hentry hstatic }
 
 /-- Compatibility name for downstream callers. -/
-def seq_left_adequacy_ci_of_entry
+noncomputable def seq_left_adequacy_ci_of_entry
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (hstatic : BodyStaticBoundaryCI Γ s) :
@@ -1369,7 +1385,7 @@ This replaces the old bare-witness obligation
 `route.Θ`, because that is the only environment justified by the selected
 head-normal route.
 -/
-def seq_tail_static_adequacy_ci_of_head_normal_route
+noncomputable def seq_tail_static_adequacy_ci_of_head_normal_route
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
     (_hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
@@ -2173,7 +2189,15 @@ def toBodyAdequacyCI
       exact (A.normalDecision hstep).toExists
     returnSound := by
       intro rv σ' hstep
-      exact (A.returnDecision hstep).toExists }
+      exact (A.returnDecision hstep).toExists
+    normalWitness := by
+      intro σ' hstep
+      let d := A.normalDecision hstep
+      exact ⟨⟨d.Delta, d.hty⟩, d.hprofile⟩
+    returnWitness := by
+      intro rv σ' hstep
+      let d := A.returnDecision hstep
+      exact ⟨⟨d.Delta, d.hty⟩, d.hprofile⟩ }
 
 end IteBranchAdequacySupportCI
 

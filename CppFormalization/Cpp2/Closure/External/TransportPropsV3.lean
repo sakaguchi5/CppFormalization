@@ -14,14 +14,59 @@ interfaces. The lemmas here are about dependent equality bookkeeping, not
 about the conceptual content of the builder itself.
 -/
 
+private theorem bodyNormalWitness_unique
+    {Γ : TypeEnv} {st : CppStmt}
+    {p : BodyControlProfile Γ st}
+    (a b :
+      { out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ st Δ} //
+        p.summary.normalOut = some out }) :
+    a = b := by
+  apply Subtype.ext
+  have hsome : some a.val = some b.val :=
+    a.property.symm.trans b.property
+  exact Option.some.inj hsome
+
+private theorem bodyReturnWitness_unique
+    {Γ : TypeEnv} {st : CppStmt}
+    {p : BodyControlProfile Γ  st}
+    (a b :
+      { out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ st Δ} //
+        p.summary.returnOut = some out }) :
+    a = b := by
+  apply Subtype.ext
+  have hsome : some a.val = some b.val :=
+    a.property.symm.trans b.property
+  exact Option.some.inj hsome
+
+
 /-- `BodyAdequacyCI` is propositionally proof-irrelevant at a fixed profile. -/
 theorem bodyAdequacy_eq
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     {p : BodyControlProfile Γ st}
     (A B : BodyAdequacyCI Γ σ st p) :
     A = B := by
-  cases A
-  cases B
-  simp
+  cases A with
+  | mk AnormalSound AreturnSound AnormalWitness AreturnWitness =>
+  cases B with
+  | mk BnormalSound BreturnSound BnormalWitness BreturnWitness =>
+  have hNormalSound : @AnormalSound = @BnormalSound := by
+    exact Subsingleton.elim _ _
+  have hReturnSound : @AreturnSound = @BreturnSound := by
+    exact Subsingleton.elim _ _
+  have hNormalWitness : @AnormalWitness = @BnormalWitness := by
+    funext σ' hstep
+    exact bodyNormalWitness_unique
+      (AnormalWitness (σ' := σ') hstep)
+      (BnormalWitness (σ' := σ') hstep)
+  have hReturnWitness : @AreturnWitness = @BreturnWitness := by
+    funext rv σ' hstep
+    exact bodyReturnWitness_unique
+      (AreturnWitness (rv := rv) (σ' := σ') hstep)
+      (BreturnWitness (rv := rv) (σ' := σ') hstep)
+  cases hNormalSound
+  cases hReturnSound
+  cases hNormalWitness
+  cases hReturnWitness
+  rfl
 
 end Cpp

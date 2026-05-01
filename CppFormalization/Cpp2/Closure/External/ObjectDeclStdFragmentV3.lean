@@ -599,7 +599,15 @@ def bodyAdequacyCI
     BodyAdequacyCI c.Γ c.σ c.targetStmt c.bodyControlProfile := by
   refine
     { normalSound := ?_
-      returnSound := ?_ }
+      returnSound := ?_
+      normalWitness := ?_
+      returnWitness := ?_ }
+  ·
+    intro σ' hstep
+    exact ⟨c.normalOut, rfl⟩
+  ·
+    intro rv σ' hstep
+    exact False.elim (c.noReturnBigStep hstep)
   ·
     intro σ' hstep
     exact ⟨c.normalOut, rfl⟩

@@ -263,20 +263,28 @@ end
 
 /-! ## 3. 組立層: flat CI adequacy / boundary assembly -/
 
-def stmtAdequacyCI_of_lite
+noncomputable def stmtAdequacyCI_of_lite
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (P : StmtBodyProfileLite Γ st)
     (A : StmtBodyAdequacyLite Γ σ P) :
     BodyAdequacyCI Γ σ st (bodyControlProfile_of_profileLite P) := by
   refine
     { normalSound := ?_
-      returnSound := ?_ }
+      returnSound := ?_
+      normalWitness := ?_
+      returnWitness := ?_ }
   · intro σ' hstep
     exact stmtNormalSound_of_lite P A hstep
   · intro rv σ' hstep
     exact stmtReturnSound_of_lite P A hstep
+  · intro σ' hstep
+    let h := stmtNormalSound_of_lite P A hstep
+    exact ⟨Classical.choose h, Classical.choose_spec h⟩
+  · intro rv σ' hstep
+    let h := stmtReturnSound_of_lite P A hstep
+    exact ⟨Classical.choose h, Classical.choose_spec h⟩
 
-def BodyClosureBoundaryLite.toBodyReadyCI
+noncomputable def BodyClosureBoundaryLite.toBodyReadyCI
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (h : BodyClosureBoundaryLite Γ σ st)
     (root : BodyEntryWitness Γ st)
@@ -299,7 +307,7 @@ def BodyClosureBoundaryLite.toBodyReadyCI
       adequacy := ?_ }
   exact stmtAdequacyCI_of_lite h.profile h.adequacy
 
-def BodyClosureBoundaryLite.toBodyClosureBoundaryCI
+noncomputable def BodyClosureBoundaryLite.toBodyClosureBoundaryCI
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (h : BodyClosureBoundaryLite Γ σ st)
     (root : BodyEntryWitness Γ st)

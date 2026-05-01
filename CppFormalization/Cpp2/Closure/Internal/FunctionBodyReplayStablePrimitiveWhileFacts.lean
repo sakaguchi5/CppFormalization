@@ -389,12 +389,20 @@ def while_tail_adequacy_after_body_normal
     BodyAdequacyCI Γ σ' (.whileStmt c body) hready.static.profile := by
   refine
     { normalSound := ?_
-      returnSound := ?_ }
+      returnSound := ?_
+      normalWitness := ?_
+      returnWitness := ?_ }
   · intro σ2 htail
     exact hready.adequacy.normalSound
       (BigStepStmt.whileTrueNormal hcond hbodyStep htail)
   · intro rv σ2 htail
     exact hready.adequacy.returnSound
+      (BigStepStmt.whileTrueNormal hcond hbodyStep htail)
+  · intro σ2 htail
+    exact hready.adequacy.normalWitness
+      (BigStepStmt.whileTrueNormal hcond hbodyStep htail)
+  · intro rv σ2 htail
+    exact hready.adequacy.returnWitness
       (BigStepStmt.whileTrueNormal hcond hbodyStep htail)
 
 def while_tail_adequacy_after_body_continue
@@ -405,12 +413,20 @@ def while_tail_adequacy_after_body_continue
     BodyAdequacyCI Γ σ' (.whileStmt c body) hready.static.profile := by
   refine
     { normalSound := ?_
-      returnSound := ?_ }
+      returnSound := ?_
+      normalWitness := ?_
+      returnWitness := ?_ }
   · intro σ2 htail
     exact hready.adequacy.normalSound
       (BigStepStmt.whileTrueContinue hcond hbodyStep htail)
   · intro rv σ2 htail
     exact hready.adequacy.returnSound
+      (BigStepStmt.whileTrueContinue hcond hbodyStep htail)
+  · intro σ2 htail
+    exact hready.adequacy.normalWitness
+      (BigStepStmt.whileTrueContinue hcond hbodyStep htail)
+  · intro rv σ2 htail
+    exact hready.adequacy.returnWitness
       (BigStepStmt.whileTrueContinue hcond hbodyStep htail)
 
 /--
