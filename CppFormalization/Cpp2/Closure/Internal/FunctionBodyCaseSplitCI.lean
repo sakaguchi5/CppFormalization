@@ -2306,36 +2306,29 @@ end IteBranchProfileSlotPayloadCI
 namespace IteBranchSlotAdequacySupportCI
 
 /--
-Convert ordinary branch-local adequacy for `S.toProfile` into slot-aware
+Convert branch-local `BodyAdequacyCI` for `S.toProfile` into slot-aware
 adequacy support for `S`.
 
-This remains the classical bridge from proof-only adequacy to a Type-level slot
-support package.  The `ofBodyAdequacyWitness` route below is the preferred route
-when witness-producing adequacy is available.
+The adequacy provider supplies the normal/return profile witness directly, and
+the slot payload inverts it into the corresponding selected slot.
 -/
-noncomputable def ofBodyAdequacy
+def ofBodyAdequacy
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (S : IteBranchProfileSlotPayloadCI Γ st)
     (A : BodyAdequacyCI Γ σ st S.toProfile) :
     IteBranchSlotAdequacySupportCI Γ σ st S :=
   { normalDecision := by
       intro σ' hstep
-      let houtEx := A.normalSound hstep
-      let out := Classical.choose houtEx
-      have hout : S.toProfile.summary.normalOut = some out :=
-        Classical.choose_spec houtEx
-      let w := S.normalSlotWitness_of_toProfile_normalOut_eq_some hout
+      let hout := A.normalWitness hstep
+      let w := S.normalSlotWitness_of_toProfile_normalOut_eq_some hout.property
       exact
         { Delta := w.val.Δ
           hty := w.val.hty
           hslot := w.property.1 }
     returnDecision := by
       intro rv σ' hstep
-      let houtEx := A.returnSound hstep
-      let out := Classical.choose houtEx
-      have hout : S.toProfile.summary.returnOut = some out :=
-        Classical.choose_spec houtEx
-      let w := S.returnSlotWitness_of_toProfile_returnOut_eq_some hout
+      let hout := A.returnWitness hstep
+      let w := S.returnSlotWitness_of_toProfile_returnOut_eq_some hout.property
       exact
         { Delta := w.val.Δ
           hty := w.val.hty
