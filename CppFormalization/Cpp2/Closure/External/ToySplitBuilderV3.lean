@@ -48,7 +48,6 @@ def ToyReadyCertificate.toSplitReflectionArtifact
 def toySplitMkReflection
     (m : ToySplitReflectionArtifactV3)
     {Γ : TypeEnv} {st : CppStmt}
-    (_hgen : st = m.st)
     (hsupp : Γ = m.Γ ∧ st = m.st) :
     ReflectionPiecesV3 Γ st := by
   rcases hsupp with ⟨rfl, rfl⟩
@@ -60,30 +59,26 @@ def toySplitMkReflection
 @[simp] theorem toySplitMkReflection_structural_heq
     (m : ToySplitReflectionArtifactV3)
     {Γ : TypeEnv} {st : CppStmt}
-    (_hgen : st = m.st)
     (hsupp : Γ = m.Γ ∧ st = m.st) :
-    HEq (toySplitMkReflection m _hgen hsupp).structural m.structural := by
+    HEq (toySplitMkReflection m hsupp).structural m.structural := by
   rcases hsupp with ⟨rfl, rfl⟩
   rfl
 
 @[simp] theorem toySplitMkReflection_static_heq
     (m : ToySplitReflectionArtifactV3)
     {Γ : TypeEnv} {st : CppStmt}
-    (_hgen : st = m.st)
     (hsupp : Γ = m.Γ ∧ st = m.st) :
-    HEq (toySplitMkReflection m _hgen hsupp).static m.static := by
+    HEq (toySplitMkReflection m hsupp).static m.static := by
   rcases hsupp with ⟨rfl, rfl⟩
   rfl
-
 
 @[simp] theorem toySplitMkReflection_profile_heq
     (m : ToySplitReflectionArtifactV3)
     {Γ : TypeEnv} {st : CppStmt}
-    (hgen : st = m.st)
     (hsupp : Γ = m.Γ ∧ st = m.st) :
-    HEq (toySplitMkReflection m hgen hsupp).static.profile m.static.profile := by
+    HEq (toySplitMkReflection m hsupp).static.profile m.static.profile := by
   cases m with
-  | mk mΓ mst mstruct mprof mcore =>
+  | mk mΓ mst mstruct mstatic mcore =>
       rcases hsupp with ⟨hΓ, hst⟩
       subst Γ
       subst st
@@ -94,7 +89,7 @@ def toySplitMkReflection
     {Γ : TypeEnv} {st : CppStmt}
     (hgen : st = m.st)
     (hsupp : Γ = m.Γ ∧ st = m.st) :
-    HEq (toySplitMkReflection m hgen hsupp).static.root m.static.root := by
+    HEq (toySplitMkReflection m hsupp).static.root m.static.root := by
   rcases hsupp with ⟨rfl, rfl⟩
   rfl
 
@@ -117,7 +112,7 @@ def toySplitFamilyV3 : SplitArtifactFamilyV3 where
 
   mkReflection := by
     intro m Γ st hgen hsupp
-    exact toySplitMkReflection m hgen hsupp
+    exact toySplitMkReflection m hsupp
 
   compatible := fun n m Γ σ st =>
     n.Γ = Γ ∧ n.σ = σ ∧ n.st = st ∧
@@ -150,10 +145,10 @@ def toySplitFamilyV3 : SplitArtifactFamilyV3 where
     rcases hsuppRun with ⟨rfl, rfl, rfl⟩
     rcases hcompat with ⟨_, _, _, _, _, _, hstatic⟩
     have hmk :
-      HEq (toySplitMkReflection m hgen hsuppRefl).static m.static :=
-    toySplitMkReflection_static_heq m hgen hsuppRefl
+      HEq (toySplitMkReflection m hsuppRefl).static m.static :=
+    toySplitMkReflection_static_heq m hsuppRefl
     have hfinal :
-      HEq n.ready.static (toySplitMkReflection m hgen hsuppRefl).static :=
+      HEq n.ready.static (toySplitMkReflection m hsuppRefl).static :=
       HEq.trans hstatic (HEq.symm hmk)
     exact eq_of_heq hfinal
 

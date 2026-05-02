@@ -330,7 +330,7 @@ def toRuntime (c : ObjectDeclRuntimeCert) : RuntimePiecesV3 c.Γ c.σ c.targetSt
     (c : ObjectDeclRuntimeCert) (h : c.initExpr = none) :
     (h ▸ c.toRuntime : RuntimePiecesV3 c.Γ c.σ (CppStmt.declareObj c.τ c.x none))
     = mkRuntime_none h := by
-  rcases c with ⟨Γ, σ, x, τ, ov, (_ | e), init, ready, objTy⟩
+  rcases c with ⟨Γ, σ, x, τ, ov, (_ | e), _, _, _⟩
   · rfl
   · nomatch h
 
@@ -338,7 +338,7 @@ def toRuntime (c : ObjectDeclRuntimeCert) : RuntimePiecesV3 c.Γ c.σ c.targetSt
     (c : ObjectDeclRuntimeCert) {e : ValExpr} (h : c.initExpr = some e) :
     (h ▸ c.toRuntime : RuntimePiecesV3 c.Γ c.σ (CppStmt.declareObj c.τ c.x (some e)))
     = mkRuntime_some h := by
-  rcases c with ⟨Γ, σ, x, τ, ov, (_ | e'), init, ready, objTy⟩
+  rcases c with ⟨Γ, σ, x, τ, ov, (_ | e'), _, _, _⟩
   · nomatch h
   · injection h with h_eq
     subst h_eq

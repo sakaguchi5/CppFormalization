@@ -103,7 +103,6 @@ theorem compat_static_eq
     (B : ReadyCertificateFamilyV3)
     {n : B.toStdFragment.Name} {m : B.toReflectionFragment.Meta}
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (hsuppRun : B.toStdFragment.supportsRuntime n Γ σ st)
     (hgen : B.toReflectionFragment.generates m st)
     (hsuppRefl : B.toReflectionFragment.supportsReflection m Γ st)
     (hcompat : n = m ∧ Γ = B.targetΓ n ∧ σ = B.targetσ n ∧ st = B.targetSt n) :
@@ -129,8 +128,8 @@ def toReadyAssembly (B : ReadyCertificateFamilyV3) :
   structural_eq := fun _huse _hsuppRun hgen hsuppRefl hcompat =>
     compat_structural_eq B  hgen hsuppRefl hcompat
 
-  static_eq := fun _huse hsuppRun hgen hsuppRefl hcompat =>
-    compat_static_eq B hsuppRun hgen hsuppRefl hcompat
+  static_eq := fun _huse _hsuppRun hgen hsuppRefl hcompat =>
+    compat_static_eq B hgen hsuppRefl hcompat
 
 def mkAdequacy_from_compatible
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
@@ -316,7 +315,6 @@ theorem readyAssembly_profile_self
   have h :=
     congrArg BodyStaticBoundaryCI.profile
       (compat_static_eq B
-        (hsuppRun := B.supportsRuntime_self c)
         (hgen := B.generates_self c)
         (hsuppRefl := B.supportsReflection_self c)
         (hcompat := B.compatible_self c))

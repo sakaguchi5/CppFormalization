@@ -89,22 +89,28 @@ structure LoopBodyAdequacyCI
     (Γ : TypeEnv) (σ : State) (body : CppStmt)
     (P : LoopBodyControlProfile Γ body) : Type where
   normalSound :
-    ∀ {σ' : State} (_hstep : BigStepStmt σ body .normal σ'),
-      ∃ out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ body Δ},
-        P.summary.normalOut = some out
+    ∀ {σ' : State},
+      BigStepStmt σ body .normal σ' →
+        ∃ out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ body Δ},
+          P.summary.normalOut = some out
+
   breakSound :
-    ∀ {σ' : State} (_hstep : BigStepStmt σ body .breakResult σ'),
-      ∃ out : {Δ : TypeEnv // HasTypeStmtCI .breakK Γ body Δ},
-        P.summary.breakOut = some out
+    ∀ {σ' : State},
+      BigStepStmt σ body .breakResult σ' →
+        ∃ out : {Δ : TypeEnv // HasTypeStmtCI .breakK Γ body Δ},
+          P.summary.breakOut = some out
+
   continueSound :
-    ∀ {σ' : State} (_hstep : BigStepStmt σ body .continueResult σ'),
-      ∃ out : {Δ : TypeEnv // HasTypeStmtCI .continueK Γ body Δ},
-        P.summary.continueOut = some out
+    ∀ {σ' : State},
+      BigStepStmt σ body .continueResult σ' →
+        ∃ out : {Δ : TypeEnv // HasTypeStmtCI .continueK Γ body Δ},
+          P.summary.continueOut = some out
+
   returnSound :
-    ∀ {rv : Option Value} {σ' : State}
-      (_hstep : BigStepStmt σ body (.returnResult rv) σ'),
-      ∃ out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ body Δ},
-        P.summary.returnOut = some out
+    ∀ {rv : Option Value} {σ' : State},
+      BigStepStmt σ body (.returnResult rv) σ' →
+        ∃ out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ body Δ},
+          P.summary.returnOut = some out
 
 /-- assembled 4-layer boundary for a single `while` body. -/
 structure LoopBodyBoundaryCI (Γ : TypeEnv) (σ : State) (body : CppStmt) : Type where

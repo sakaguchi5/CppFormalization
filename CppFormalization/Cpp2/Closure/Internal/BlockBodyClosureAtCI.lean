@@ -36,14 +36,16 @@ structure BlockBodyAdequacyAtCI
     (Γ : TypeEnv) (σ : State) (ss : StmtBlock)
     (P : BlockBodyControlProfileAt Γ ss) : Type where
   normalSound :
-    ∀ {σ' : State} (_hstep : BigStepBlock σ ss .normal σ'),
-      ∃ out : {Δ : TypeEnv // HasTypeBlockCI .normalK Γ ss Δ},
-        P.summary.normalOut = some out
+    ∀ {σ' : State},
+      BigStepBlock σ ss .normal σ' →
+        ∃ out : {Δ : TypeEnv // HasTypeBlockCI .normalK Γ ss Δ},
+          P.summary.normalOut = some out
+
   returnSound :
-    ∀ {rv : Option Value} {σ' : State}
-      (_hstep : BigStepBlock σ ss (.returnResult rv) σ'),
-      ∃ out : {Δ : TypeEnv // HasTypeBlockCI .returnK Γ ss Δ},
-        P.summary.returnOut = some out
+    ∀ {rv : Option Value} {σ' : State},
+      BigStepBlock σ ss (.returnResult rv) σ' →
+        ∃ out : {Δ : TypeEnv // HasTypeBlockCI .returnK Γ ss Δ},
+          P.summary.returnOut = some out
 
 /-- Current-environment block-body static boundary. -/
 structure BlockBodyStaticBoundaryAtCI

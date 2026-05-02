@@ -23,17 +23,17 @@ are derived namespace theorems.
 structure BodyAdequacyCI
     (Γ : TypeEnv) (σ : State) (st : CppStmt)
     (P : BodyControlProfile Γ st) : Type where
-  /-- Witness-producing normal adequacy used by provider-facing downstream code. -/
   normalWitness :
-    ∀ {σ' : State} (_hstep : BigStepStmt σ st .normal σ'),
-      { out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ st Δ} //
-        P.summary.normalOut = some out }
-  /-- Witness-producing return adequacy used by provider-facing downstream code. -/
+    ∀ {σ' : State},
+      BigStepStmt σ st .normal σ' →
+        { out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ st Δ} //
+          P.summary.normalOut = some out }
+
   returnWitness :
-    ∀ {rv : Option Value} {σ' : State}
-      (_hstep : BigStepStmt σ st (.returnResult rv) σ'),
-      { out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ st Δ} //
-        P.summary.returnOut = some out }
+    ∀ {rv : Option Value} {σ' : State},
+      BigStepStmt σ st (.returnResult rv) σ' →
+        { out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ st Δ} //
+          P.summary.returnOut = some out }
 
 namespace BodyAdequacyCI
 
@@ -65,14 +65,15 @@ def ofWitness
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     {P : BodyControlProfile Γ st}
     (normalWitness :
-      ∀ {σ' : State} (_hstep : BigStepStmt σ st .normal σ'),
-        { out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ st Δ} //
-          P.summary.normalOut = some out })
+      ∀ {σ' : State},
+        BigStepStmt σ st .normal σ' →
+          { out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ st Δ} //
+            P.summary.normalOut = some out })
     (returnWitness :
-      ∀ {rv : Option Value} {σ' : State}
-        (_hstep : BigStepStmt σ st (.returnResult rv) σ'),
-        { out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ st Δ} //
-          P.summary.returnOut = some out }) :
+      ∀ {rv : Option Value} {σ' : State},
+        BigStepStmt σ st (.returnResult rv) σ' →
+          { out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ st Δ} //
+            P.summary.returnOut = some out }) :
     BodyAdequacyCI Γ σ st P :=
   { normalWitness := normalWitness
     returnWitness := returnWitness }
@@ -83,19 +84,19 @@ end BodyAdequacyCI
 structure BlockBodyAdequacyCI
     (Γ : TypeEnv) (σ : State) (ss : StmtBlock)
     (P : BlockBodyControlProfile Γ ss) : Type where
-  /-- Witness-producing normal adequacy used by provider-facing downstream code. -/
   normalWitness :
-    ∀ {σ' : State} (_hstep : BigStepBlock σ ss .normal σ'),
-      { out : {Δ : TypeEnv //
-          HasTypeBlockCI .normalK (pushTypeScope Γ) ss Δ} //
-        P.summary.normalOut = some out }
-  /-- Witness-producing return adequacy used by provider-facing downstream code. -/
+    ∀ {σ' : State},
+      BigStepBlock σ ss .normal σ' →
+        { out : {Δ : TypeEnv //
+            HasTypeBlockCI .normalK (pushTypeScope Γ) ss Δ} //
+          P.summary.normalOut = some out }
+
   returnWitness :
-    ∀ {rv : Option Value} {σ' : State}
-      (_hstep : BigStepBlock σ ss (.returnResult rv) σ'),
-      { out : {Δ : TypeEnv //
-          HasTypeBlockCI .returnK (pushTypeScope Γ) ss Δ} //
-        P.summary.returnOut = some out }
+    ∀ {rv : Option Value} {σ' : State},
+      BigStepBlock σ ss (.returnResult rv) σ' →
+        { out : {Δ : TypeEnv //
+            HasTypeBlockCI .returnK (pushTypeScope Γ) ss Δ} //
+          P.summary.returnOut = some out }
 
 namespace BlockBodyAdequacyCI
 
@@ -129,16 +130,17 @@ def ofWitness
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
     {P : BlockBodyControlProfile Γ ss}
     (normalWitness :
-      ∀ {σ' : State} (_hstep : BigStepBlock σ ss .normal σ'),
-        { out : {Δ : TypeEnv //
-            HasTypeBlockCI .normalK (pushTypeScope Γ) ss Δ} //
-          P.summary.normalOut = some out })
+      ∀ {σ' : State},
+        BigStepBlock σ ss .normal σ' →
+          { out : {Δ : TypeEnv //
+              HasTypeBlockCI .normalK (pushTypeScope Γ) ss Δ} //
+            P.summary.normalOut = some out })
     (returnWitness :
-      ∀ {rv : Option Value} {σ' : State}
-        (_hstep : BigStepBlock σ ss (.returnResult rv) σ'),
-        { out : {Δ : TypeEnv //
-            HasTypeBlockCI .returnK (pushTypeScope Γ) ss Δ} //
-          P.summary.returnOut = some out }) :
+      ∀ {rv : Option Value} {σ' : State},
+        BigStepBlock σ ss (.returnResult rv) σ' →
+          { out : {Δ : TypeEnv //
+              HasTypeBlockCI .returnK (pushTypeScope Γ) ss Δ} //
+            P.summary.returnOut = some out }) :
     BlockBodyAdequacyCI Γ σ ss P :=
   { normalWitness := normalWitness
     returnWitness := returnWitness }
