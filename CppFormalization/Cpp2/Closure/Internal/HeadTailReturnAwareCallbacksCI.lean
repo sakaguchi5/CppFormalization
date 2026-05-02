@@ -13,8 +13,7 @@ Callback-shaped CI surfaces for the low-level return-aware head/tail assembly.
 
 /-- Callback-shaped CI route for statement sequencing. -/
 theorem seq_function_body_closure_boundary_ci_return_aware_from_callbacks
-    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
-    (_hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    {σ : State} {s t : CppStmt}
     (headClosure :
       (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨
         BigStepStmtDiv σ s)
@@ -29,8 +28,7 @@ theorem seq_function_body_closure_boundary_ci_return_aware_from_callbacks
 
 /-- Callback-shaped CI route for block-body cons. -/
 theorem block_cons_function_body_closure_boundary_ci_return_aware_from_callbacks
-    {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
-    (_hentry : BlockBodyReadyConcreteAtCI Γ σ (.cons s ss))
+    {σ : State} {s : CppStmt} {ss : StmtBlock}
     (headClosure :
       (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨
         BigStepStmtDiv σ s)

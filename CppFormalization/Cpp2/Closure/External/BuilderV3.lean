@@ -90,8 +90,6 @@ theorem compat_structural_eq
     (B : ReadyCertificateFamilyV3)
     {n : B.toStdFragment.Name} {m : B.toReflectionFragment.Meta}
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (_ : B.toStdFragment.uses n)
-    (_ : B.toStdFragment.supportsRuntime n Γ σ st)
     (hgen : B.toReflectionFragment.generates m st)
     (hsuppRefl : B.toReflectionFragment.supportsReflection m Γ st)
     (hcompat : n = m ∧ Γ = B.targetΓ n ∧ σ = B.targetσ n ∧ st = B.targetSt n) :
@@ -105,7 +103,6 @@ theorem compat_static_eq
     (B : ReadyCertificateFamilyV3)
     {n : B.toStdFragment.Name} {m : B.toReflectionFragment.Meta}
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (_huse : B.toStdFragment.uses n)
     (hsuppRun : B.toStdFragment.supportsRuntime n Γ σ st)
     (hgen : B.toReflectionFragment.generates m st)
     (hsuppRefl : B.toReflectionFragment.supportsReflection m Γ st)
@@ -116,21 +113,6 @@ theorem compat_static_eq
   rcases hsuppRefl with ⟨_, _⟩
   unfold ReadyCertificateFamilyV3.toReflectionFragment
   dsimp [mkReady_from_compatible]
-
-theorem compat_profile_eq
-    (B : ReadyCertificateFamilyV3)
-    {n : B.toStdFragment.Name} {m : B.toReflectionFragment.Meta}
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (_ : B.toStdFragment.uses n)
-    (_ : B.toStdFragment.supportsRuntime n Γ σ st)
-    (hgen : B.toReflectionFragment.generates m st)
-    (hsuppRefl : B.toReflectionFragment.supportsReflection m Γ st)
-    (hcompat : n = m ∧ Γ = B.targetΓ n ∧ σ = B.targetσ n ∧ st = B.targetSt n) :
-    (mkReady_from_compatible B hcompat).toProfile =
-      (B.toReflectionFragment.mkReflection hgen hsuppRefl).profile := by
-  rcases hcompat with ⟨rfl, rfl, rfl, rfl⟩
-  rcases hsuppRefl with ⟨_, _⟩
-  rfl
 
 /-- The canonical high-level ready assembly generated from the family. -/
 def toReadyAssembly (B : ReadyCertificateFamilyV3) :
@@ -144,11 +126,11 @@ def toReadyAssembly (B : ReadyCertificateFamilyV3) :
   dynamic_eq := fun huse hsuppRun hgen hsuppRefl hcompat =>
     compat_dynamic_eq B huse hsuppRun hgen hsuppRefl hcompat
 
-  structural_eq := fun huse hsuppRun hgen hsuppRefl hcompat =>
-    compat_structural_eq B huse hsuppRun hgen hsuppRefl hcompat
+  structural_eq := fun _huse _hsuppRun hgen hsuppRefl hcompat =>
+    compat_structural_eq B  hgen hsuppRefl hcompat
 
-  static_eq := fun huse hsuppRun hgen hsuppRefl hcompat =>
-    compat_static_eq B huse hsuppRun hgen hsuppRefl hcompat
+  static_eq := fun _huse hsuppRun hgen hsuppRefl hcompat =>
+    compat_static_eq B hsuppRun hgen hsuppRefl hcompat
 
 def mkAdequacy_from_compatible
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}
@@ -334,7 +316,6 @@ theorem readyAssembly_profile_self
   have h :=
     congrArg BodyStaticBoundaryCI.profile
       (compat_static_eq B
-        (_huse := B.uses_self c)
         (hsuppRun := B.supportsRuntime_self c)
         (hgen := B.generates_self c)
         (hsuppRefl := B.supportsReflection_self c)

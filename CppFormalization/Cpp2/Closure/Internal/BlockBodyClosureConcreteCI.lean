@@ -235,8 +235,7 @@ theorem blockBodyReadyConcreteAtCI_cons_tail_after_head_normal
 
 /-- `nil` opened block body closes immediately with fallthrough in the CI route. -/
 theorem nil_block_body_function_closure_concrete_refined_at_ci
-    {Γ : TypeEnv} {σ : State}
-    (_h : BlockBodyReadyConcreteAtCI Γ σ .nil) :
+    {σ : State} :
     (∃ ex σ', BigStepFunctionBlockBody σ .nil ex σ') ∨ BigStepBlockDiv σ .nil := by
   left
   refine ⟨.fellThrough, σ, ?_⟩
@@ -268,13 +267,9 @@ This is the profile-independent live route for `cons` in the CI current-env
 layer.  It does not require a `normalOut` payload itself.  If the head returns,
 the tail is never queried.  If the head is normal, the supplied
 `tailAfterHeadNormal` callback is used.
-
-The existing normal-channel theorem below is now just one way of producing the
-`tailAfterHeadNormal` callback.
 -/
 theorem cons_block_body_function_closure_concrete_refined_at_ci_return_aware
-    {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
-    (_h : BlockBodyReadyConcreteAtCI Γ σ (.cons s ss))
+    {σ : State} {s : CppStmt} {ss : StmtBlock}
     (headClosure :
       (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨ BigStepStmtDiv σ s)
     (tailAfterHeadNormal :
@@ -317,7 +312,6 @@ theorem cons_block_body_function_closure_concrete_refined_at_ci_with_headClosure
     blockBodyReadyConcreteAtCI_cons_head_of_normalOut h out
   exact
     cons_block_body_function_closure_concrete_refined_at_ci_return_aware
-      h
       (headClosure hheadReady)
       (blockBodyReadyConcreteAtCI_tailClosure_after_head_normal
         mkWhileReentry h out htail)
@@ -361,8 +355,8 @@ theorem block_body_function_closure_concrete_refined_at_ci
       (h : BlockBodyReadyConcreteAtCI Γ σ ss),
       (∃ out, h.profile.summary.normalOut = some out) →
       (∃ ex σ', BigStepFunctionBlockBody σ ss ex σ') ∨ BigStepBlockDiv σ ss
-  | _, _, .nil, h, _hN =>
-      nil_block_body_function_closure_concrete_refined_at_ci h
+  | _, _, .nil, _, _hN =>
+      nil_block_body_function_closure_concrete_refined_at_ci
   | _, _, .cons _ _, h, hN =>
       cons_block_body_function_closure_concrete_refined_at_ci mkWhileReentry h hN
         (fun htail htailN =>
@@ -389,8 +383,8 @@ theorem block_body_function_closure_concrete_refined_at_ci_with_headClosure
       (∃ out, h.profile.summary.normalOut = some out) →
       (∃ ex σ', BigStepFunctionBlockBody σ ss ex σ') ∨
         BigStepBlockDiv σ ss
-  | _, _, .nil, h, _hN =>
-      nil_block_body_function_closure_concrete_refined_at_ci h
+  | _, _, .nil, _, _hN =>
+      nil_block_body_function_closure_concrete_refined_at_ci
   | _, _, .cons _ _, h, hN =>
       cons_block_body_function_closure_concrete_refined_at_ci_with_headClosure
         mkWhileReentry

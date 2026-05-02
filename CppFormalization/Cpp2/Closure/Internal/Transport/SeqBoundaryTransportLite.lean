@@ -22,9 +22,8 @@ E-lite 補正後の `seq` transport theorem 群。
 
 /-- Parent seq structural boundary から tail lite structural boundary を再構成する。 -/
 theorem seq_tail_structural_of_parent
-    {Γ Δ : TypeEnv} {s t : CppStmt}
-    (hs : BodyStructuralBoundaryLite (.seq s t))
-    (_hN : HasTypeStmtCI .normalK Γ s Δ) :
+    {s t : CppStmt}
+    (hs : BodyStructuralBoundaryLite (.seq s t)) :
     BodyStructuralBoundaryLite t := by
   have hwf : WellFormedStmt s ∧ WellFormedStmt t := by
     simpa [WellFormedStmt] using hs.wf
@@ -116,7 +115,7 @@ def seq_tail_boundary_of_left_normal_mk
     BodyClosureBoundaryLite Δ σ' t := by
   exact
     mkBodyClosureBoundaryLite
-      (seq_tail_structural_of_parent hs hN)
+      (seq_tail_structural_of_parent hs)
       P₂
       (seq_tail_dynamic_of_left_normal hd hN hstepS hpresS)
       (seq_tail_adequacy_of_left_normal ha hstepS)

@@ -8,21 +8,32 @@ This replaces the old `a.lean` scratch file and centralizes the mutual proofs.
 
 namespace Cpp
 
-private def StmtBreakGoal
-    {σ : State} {st : CppStmt} {ctrl : CtrlResult} {σ' : State}
-    (_h : BigStepStmt σ st ctrl σ') : Prop :=
+private abbrev StmtBreakGoal
+    {st : CppStmt}
+    (ctrl : CtrlResult) : Prop :=
   ctrl = .breakResult → BreakWellScopedAt 0 st → False
 
-private def BlockBreakGoal
-    {σ : State} {ss : StmtBlock} {ctrl : CtrlResult} {σ' : State}
-    (_h : BigStepBlock σ ss ctrl σ') : Prop :=
+private abbrev BlockBreakGoal
+    {ss : StmtBlock}
+    (ctrl : CtrlResult) : Prop :=
   ctrl = .breakResult → BreakWellScopedBlockAt 0 ss → False
+
+private abbrev StmtBreakCore : Prop :=
+  ∀ {σ st ctrl σ'},
+    BigStepStmt σ st ctrl σ' →
+      StmtBreakGoal (st := st) ctrl
+
+private abbrev BlockBreakCore : Prop :=
+  ∀ {σ ss ctrl σ'},
+    BigStepBlock σ ss ctrl σ' →
+      BlockBreakGoal (ss := ss) ctrl
 
 -- mutual theorem を使うことで、1つの証明構造で両方を同時に解決します
 mutual
   private theorem stmt_break_goal
       {σ : State} {st : CppStmt} {ctrl : CtrlResult} {σ' : State}
-      (h : BigStepStmt σ st ctrl σ') : StmtBreakGoal h :=
+      (h : BigStepStmt σ st ctrl σ') :
+      StmtBreakGoal (st := st) ctrl :=
     match h with
     | .skip => fun hctrl _ => by cases hctrl
     | .expr _  => fun hctrl _ => by cases hctrl
@@ -30,44 +41,48 @@ mutual
     | .declareObjNone _ => fun hctrl _ => by cases hctrl
     | .declareObjSome _ _ => fun hctrl _ => by cases hctrl
     | .declareRef _ _ => fun hctrl _ => by cases hctrl
-    -- seqNormal: t の結果が break かどうかを確認
-    | .seqNormal hs ht => fun hctrl hsc => stmt_break_goal ht hctrl hsc.2
-    -- seqBreak: s 自体が break した場合
-    | .seqBreak hs => fun _ hsc => stmt_break_goal hs rfl hsc.1
+    | .seqNormal hs ht => fun hctrl hsc =>
+        stmt_break_goal ht hctrl hsc.2
+    | .seqBreak hs => fun _ hsc =>
+        stmt_break_goal hs rfl hsc.1
     | .seqContinue _ => fun hctrl _ => by cases hctrl
     | .seqReturn _ => fun hctrl _ => by cases hctrl
-    | .iteTrue _ hs => fun hctrl hsc => stmt_break_goal hs hctrl hsc.1
-    | .iteFalse _ ht => fun hctrl hsc => stmt_break_goal ht hctrl hsc.2
+    | .iteTrue _ hs => fun hctrl hsc =>
+        stmt_break_goal hs hctrl hsc.1
+    | .iteFalse _ ht => fun hctrl hsc =>
+        stmt_break_goal ht hctrl hsc.2
     | .whileFalse _ => fun hctrl _ => by cases hctrl
     | .whileTrueNormal _ _ hwhile => fun hctrl hsc =>
         stmt_break_goal hwhile hctrl hsc
-    -- while 内の break は normal に変換されるため、BigStepStmt の結果が .breakResult になることはない
     | .whileTrueBreak _ hb => fun hctrl _ => by cases hctrl
     | .whileTrueContinue _ _ hwhile => fun hctrl hsc =>
         stmt_break_goal hwhile hctrl hsc
     | .whileTrueReturn _ _ => fun hctrl _ => by cases hctrl
-    | .block _ hss _ => fun hctrl hsc => block_break_goal hss hctrl (by simpa [BreakWellScopedAt] using hsc)
-    -- breakStmt: ここが核心。BreakWellScopedAt 0 .breakStmt = False なので矛盾。
-    | .breakStmt => fun _ hsc => by simp [BreakWellScopedAt] at hsc
+    | .block _ hss _ => fun hctrl hsc =>
+        block_break_goal hss hctrl (by simpa [BreakWellScopedAt] using hsc)
+    | .breakStmt => fun _ hsc => by
+        simp [BreakWellScopedAt] at hsc
     | .continueStmt => fun hctrl _ => by cases hctrl
     | .returnNoneStmt => fun hctrl _ => by cases hctrl
     | .returnSome _ => fun hctrl _ => by cases hctrl
 
   private theorem block_break_goal
       {σ : State} {ss : StmtBlock} {ctrl : CtrlResult} {σ' : State}
-      (h : BigStepBlock σ ss ctrl σ') : BlockBreakGoal h :=
+      (h : BigStepBlock σ ss ctrl σ') :
+      BlockBreakGoal (ss := ss) ctrl :=
     match h with
     | .nil => fun hctrl _ => by cases hctrl
-    | .consNormal hs hss => fun hctrl hsc => block_break_goal hss hctrl hsc.2
-    | .consBreak hs => fun _ hsc => stmt_break_goal hs rfl hsc.1
+    | .consNormal hs hss => fun hctrl hsc =>
+        block_break_goal hss hctrl hsc.2
+    | .consBreak hs => fun _ hsc =>
+        stmt_break_goal hs rfl hsc.1
     | .consContinue _ => fun hctrl _ => by cases hctrl
     | .consReturn _ => fun hctrl _ => by cases hctrl
 end
 
 
 private theorem stmt_block_break_not_scoped_core :
-    (∀ {σ st ctrl σ'} (h : BigStepStmt σ st ctrl σ'), StmtBreakGoal h) ∧
-    (∀ {σ ss ctrl σ'} (h : BigStepBlock σ ss ctrl σ'), BlockBreakGoal h) := by
+    StmtBreakCore ∧ BlockBreakCore := by
   refine ⟨?_, ?_⟩
   · intro σ st ctrl σ' h
     exact stmt_break_goal h
@@ -87,20 +102,32 @@ private theorem block_break_not_scoped
   exact stmt_block_break_not_scoped_core.2 h rfl hsc
 
 
-private def StmtContinueGoal
-    {σ : State} {st : CppStmt} {ctrl : CtrlResult} {σ' : State}
-    (_h : BigStepStmt σ st ctrl σ') : Prop :=
+
+private abbrev StmtContinueGoal
+    {st : CppStmt}
+    (ctrl : CtrlResult) : Prop :=
   ctrl = .continueResult → ContinueWellScopedAt 0 st → False
 
-private def BlockContinueGoal
-    {σ : State} {ss : StmtBlock} {ctrl : CtrlResult} {σ' : State}
-    (_h : BigStepBlock σ ss ctrl σ') : Prop :=
+private abbrev BlockContinueGoal
+    {ss : StmtBlock}
+    (ctrl : CtrlResult) : Prop :=
   ctrl = .continueResult → ContinueWellScopedBlockAt 0 ss → False
+
+private abbrev StmtContinueCore : Prop :=
+  ∀ {σ st ctrl σ'},
+    BigStepStmt σ st ctrl σ' →
+      StmtContinueGoal (st := st) ctrl
+
+private abbrev BlockContinueCore : Prop :=
+  ∀ {σ ss ctrl σ'},
+    BigStepBlock σ ss ctrl σ' →
+      BlockContinueGoal (ss := ss) ctrl
 
 mutual
   private theorem stmt_continue_goal
       {σ : State} {st : CppStmt} {ctrl : CtrlResult} {σ' : State}
-      (h : BigStepStmt σ st ctrl σ') : StmtContinueGoal h :=
+      (h : BigStepStmt σ st ctrl σ') :
+      StmtContinueGoal (st := st) ctrl :=
     match h with
     | .skip => fun hctrl _ => by cases hctrl
     | .expr _ => fun hctrl _ => by cases hctrl
@@ -136,7 +163,8 @@ mutual
 
   private theorem block_continue_goal
       {σ : State} {ss : StmtBlock} {ctrl : CtrlResult} {σ' : State}
-      (h : BigStepBlock σ ss ctrl σ') : BlockContinueGoal h :=
+      (h : BigStepBlock σ ss ctrl σ') :
+      BlockContinueGoal (ss := ss) ctrl :=
     match h with
     | .nil => fun hctrl _ => by cases hctrl
     | .consNormal hs hss => fun hctrl hsc =>
@@ -148,8 +176,7 @@ mutual
 end
 
 private theorem stmt_block_continue_not_scoped_core :
-    (∀ {σ st ctrl σ'} (h : BigStepStmt σ st ctrl σ'), StmtContinueGoal h) ∧
-    (∀ {σ ss ctrl σ'} (h : BigStepBlock σ ss ctrl σ'), BlockContinueGoal h) := by
+    StmtContinueCore ∧ BlockContinueCore := by
   refine ⟨?_, ?_⟩
   · intro σ st ctrl σ' h
     exact stmt_continue_goal h
