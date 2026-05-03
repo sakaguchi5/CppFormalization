@@ -86,25 +86,42 @@ private def while_body_returnOut?_of_static
   match s.profile.summary.returnOut with
   | none => none
   | some out =>
-      let ⟨_, _, _, hR⟩ := while_return_typing_data out.2
-      some ⟨out.1, hR⟩
+      some ⟨out.1, (while_return_typing_data out.2).2.2.2⟩
 
 def whileEntryBoundaryCI_of_bodyClosureBoundaryCI
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
     BodyClosureBoundaryCI Γ σ (.whileStmt c body) →
     WhileEntryBoundaryCI Γ σ c body := by
   intro h
-  rcases while_entry_static_of_root h.static.root with ⟨hc, hN, hB, hC⟩
-  refine
-    { hc := hc
-      hN := hN
-      hB := hB
-      hC := hC
+  exact
+    { hc := (while_entry_static_of_root h.static.root).1
+      hN := (while_entry_static_of_root h.static.root).2.1
+      hB := (while_entry_static_of_root h.static.root).2.2.1
+      hC := (while_entry_static_of_root h.static.root).2.2.2
       hR? := while_body_returnOut?_of_static h.static
       state := h.dynamic.state
-      condReady := ?_
-      bodyReady := ?_ }
-  · exact stmtReadyConcrete_while_cond h.dynamic.safe
-  · exact stmtReadyConcrete_while_body h.dynamic.safe
+      condReady := stmtReadyConcrete_while_cond h.dynamic.safe
+      bodyReady := stmtReadyConcrete_while_body h.dynamic.safe }
+
+/--
+Return channel exposed by the entry-projected loop-body profile.
+
+If the top-level `while` static profile has a return channel, then the
+`WhileEntryBoundaryCI`-projected loop-body profile exposes the corresponding
+body return channel.
+-/
+theorem whileEntryBoundaryCI_toLoopBodyProfile_returnOut_of_static
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
+    {outW : {Δ : TypeEnv //
+        HasTypeStmtCI .returnK Γ (.whileStmt c body) Δ}}
+    (hW : hentry.static.profile.summary.returnOut = some outW) :
+    (whileEntryBoundaryCI_of_bodyClosureBoundaryCI hentry).toLoopBodyProfile.summary.returnOut =
+      some ⟨outW.1, (while_return_typing_data outW.2).2.2.2⟩ := by
+  change
+    while_body_returnOut?_of_static hentry.static =
+      some ⟨outW.1, (while_return_typing_data outW.2).2.2.2⟩
+  simp [while_body_returnOut?_of_static, hW]
+
 
 end Cpp
