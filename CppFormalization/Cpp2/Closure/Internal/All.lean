@@ -74,6 +74,7 @@ import CppFormalization.Cpp2.Closure.Internal.WhileReentryReadyKernelCI
 import CppFormalization.Cpp2.Closure.Internal.WhileReplayStablePrimitiveFacts
 import CppFormalization.Cpp2.Closure.Internal.WhileStrongThinSeparatedAssignFacts
 import CppFormalization.Cpp2.Closure.Internal.WhileTailReentryProviderSplitCI
+import CppFormalization.Cpp2.Closure.Internal.WhileTailAdequacyProviderSplitCI
 
 /-!
 # Closure.Internal.All

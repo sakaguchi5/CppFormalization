@@ -3,7 +3,7 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseSplitCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI
-import CppFormalization.Cpp2.Closure.Internal.WhileTailReentryProviderSplitCI
+import CppFormalization.Cpp2.Closure.Internal.WhileTailAdequacyProviderSplitCI
 import CppFormalization.Cpp2.Closure.Internal.LoopBodyFunctionClosureCI
 
 namespace Cpp
@@ -18,12 +18,12 @@ constructor-level case-driver body.
 - ここでは closed theorem は作らない。
 - while は同じ syntax `(.whileStmt c body)` への tail 再帰を持つので、
   case-driver 本体は明示的な recursive hypothesis を引数に取る。
-- `while` branch uses the condition-first split-provider route.
+- `while` branch uses the condition-first post-adequacy-split route.
   It avoids the older unconditional loop-body return exposure compatibility
   shell, the direct tail-boundary-kit extraction shell, the wrapper that hides
-  `whileTailBoundaryReentryProviderCI_of_bodyClosureBoundaryCI`, and now exposes
-  the provider's two remaining components: delimiter reentry and post-state
-  tail adequacy.
+  `whileTailBoundaryReentryProviderCI_of_bodyClosureBoundaryCI`, the provider
+  wrapper that hides delimiter reentry plus tail adequacy, and now also exposes
+  the two post-state tail adequacy channels: normal and continue.
 - `seq` branch は route-aware な
   `seq_function_body_closure_boundary_ci_honest` を正規 surface として使う。
 -/
@@ -99,10 +99,11 @@ theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body
             IH (st := t) hfragT helseBoundary)
   | whileStmt c body =>
       exact
-        while_function_body_closure_boundary_ci_of_currentBoundary_splitProvider
+        while_function_body_closure_boundary_ci_of_currentBoundary_splitPostAdequacy
           hentry
           (whileTailReentryKernelCI_of_bodyClosureBoundaryCI hentry)
-          (whileTailAdequacyProviderCI_of_bodyClosureBoundaryCI hentry)
+          (whileTailNormalAdequacyCI_of_bodyClosureBoundaryCI hentry)
+          (whileTailContinueAdequacyCI_of_bodyClosureBoundaryCI hentry)
           (fun {σ1} htailBoundary =>
             IH (st := .whileStmt c body) hfrag htailBoundary)
   | block ss =>
