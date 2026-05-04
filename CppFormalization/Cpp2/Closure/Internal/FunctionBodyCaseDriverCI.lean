@@ -18,9 +18,10 @@ constructor-level case-driver body.
 - ここでは closed theorem は作らない。
 - while は同じ syntax `(.whileStmt c body)` への tail 再帰を持つので、
   case-driver 本体は明示的な recursive hypothesis を引数に取る。
-- `while` branch now uses the condition-first current-boundary route:
-  it avoids the older unconditional loop-body return exposure compatibility
-  shell and the direct tail-boundary-kit extraction shell.
+- `while` branch uses the condition-first reentry-provider route.
+  It avoids the older unconditional loop-body return exposure compatibility
+  shell, the direct tail-boundary-kit extraction shell, and now also avoids the
+  wrapper that hides `whileTailBoundaryReentryProviderCI_of_bodyClosureBoundaryCI`.
 - `seq` branch は route-aware な
   `seq_function_body_closure_boundary_ci_honest` を正規 surface として使う。
 -/
@@ -96,8 +97,9 @@ theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body
             IH (st := t) hfragT helseBoundary)
   | whileStmt c body =>
       exact
-        while_function_body_closure_boundary_ci_of_currentBoundary
+        while_function_body_closure_boundary_ci_of_currentBoundary_reentryProvider
           hentry
+          (whileTailBoundaryReentryProviderCI_of_bodyClosureBoundaryCI hentry)
           (fun {σ1} htailBoundary =>
             IH (st := .whileStmt c body) hfrag htailBoundary)
   | block ss =>
