@@ -3,6 +3,7 @@ import CppFormalization.Cpp2.Boundary.FunctionBody
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.WhileEntryBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCI
+import CppFormalization.Cpp2.Closure.Foundation.ReadinessSemanticsBridge
 import CppFormalization.Cpp2.Closure.Internal.LoopBodyFunctionClosureCI
 import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelCI
 import CppFormalization.Cpp2.Semantics.Divergence
@@ -233,6 +234,34 @@ structure WhileLoopBodyReturnExposureCI
           hentry.static.profile.summary.returnOut = some outW
 
 /--
+Conditional exposure theorem for loop-body returns.
+
+C++ reading:
+if the while condition has evaluated to `true`, then an actual `return` from
+the body is also an actual `return` from the whole `while` statement.
+Therefore the top-level while adequacy exposes a return channel.
+
+This theorem is deliberately conditional on `hcondTrue`.  Without that premise,
+a body return step does not imply that the while statement itself returns,
+because the condition might evaluate to `false` and the body might not run.
+-/
+def whileLoopBodyReturnExposureCI_of_bodyClosureBoundaryCI_of_condTrue
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
+    (hcondTrue : BigStepValue σ c (.bool true)) :
+    WhileLoopBodyReturnExposureCI hentry := by
+  refine { exposeReturn := ?_ }
+  intro rv σ' hbodyReturn
+
+  have hwhileReturn :
+      BigStepStmt σ (.whileStmt c body) (.returnResult rv) σ' :=
+    BigStepStmt.whileTrueReturn hcondTrue hbodyReturn
+
+  let w := hentry.adequacy.returnWitness hwhileReturn
+  exact ⟨w.val, w.property⟩
+
+
+/--
 Build the old local return-adequacy provider from the cleaner two-part split:
 1. expose a whole-`while` return channel when the body actually returns;
 2. project that whole-`while` return channel to the body return channel.
@@ -267,6 +296,26 @@ def whileLoopBodyReturnProfileProjectionCI_of_bodyClosureBoundaryCI
   · exact
       whileEntryBoundaryCI_toLoopBodyProfile_returnOut_of_static
         hentry hW
+
+/--
+The loop-body return adequacy provider available once the current condition has
+actually evaluated to `true`.
+
+This is the theorem-backed replacement route for the return case of one
+executed iteration.
+-/
+def loopBodyReturnAdequacyProviderCI_of_condTrue
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
+    (hcondTrue : BigStepValue σ c (.bool true)) :
+    LoopBodyReturnAdequacyProviderCI Γ σ body
+      (whileEntryBoundaryCI_of_bodyClosureBoundaryCI hentry).toLoopBodyProfile :=
+  loopBodyReturnAdequacyProviderCI_of_staticProjection
+    hentry
+    (whileLoopBodyReturnProfileProjectionCI_of_bodyClosureBoundaryCI hentry)
+    (whileLoopBodyReturnExposureCI_of_bodyClosureBoundaryCI_of_condTrue
+      hentry hcondTrue)
+
 /--
 Dynamic residual shell for the canonical boundary route after the static split.
 
@@ -398,6 +447,196 @@ theorem whileBodyProgressOrDiverges_of_bodyClosureBoundaryCI
     loop_body_function_progress_or_diverges_ci
       (whileLoopBoundaryCI_of_bodyClosureBoundaryCI hentry)
 
+/- Add the following helper theorems before `while_function_body_closure_boundary_ci_honest`. -/
+
+/--
+A ready boolean while condition can evaluate to either `false` or `true`.
+
+This is the condition-progress step needed before the while kernel can follow
+the actual C++ execution order.
+-/
+theorem whileConditionEvalBool_of_bodyClosureBoundaryCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) :
+    BigStepValue σ c (.bool false) ∨ BigStepValue σ c (.bool true) := by
+  let hcurrent : WhileEntryBoundaryCI Γ σ c body :=
+    whileEntryBoundaryCI_of_bodyClosureBoundaryCI hentry
+  rcases expr_ready_to_bigstep hcurrent.condReady with ⟨v, hv⟩
+  have hcompat : ValueCompat v (.base .bool) :=
+    expr_ready_eval_compat hcurrent.condReady hv
+  cases hcompat
+  rename_i b
+  cases b
+  · exact Or.inl hv
+  · exact Or.inr hv
+
+/--
+Wrap a tail function-body result after one normal body iteration.
+-/
+theorem whileFunctionBody_of_tail_after_normal
+    {σ σ1 σ2 : State} {c : ValExpr} {body : CppStmt} {ex : FunctionExit}
+    (hcondTrue : BigStepValue σ c (.bool true))
+    (hbodyNormal : BigStepStmt σ body .normal σ1)
+    (htail : BigStepFunctionBody σ1 (.whileStmt c body) ex σ2) :
+    BigStepFunctionBody σ (.whileStmt c body) ex σ2 := by
+  cases ex with
+  | fellThrough =>
+      have htailStmt : BigStepStmt σ1 (.whileStmt c body) .normal σ2 := by
+        simpa using (BigStepFunctionBody.to_stmt htail)
+      exact
+        BigStepFunctionBody.fallthrough
+          (BigStepStmt.whileTrueNormal hcondTrue hbodyNormal htailStmt)
+  | returned rv =>
+      have htailStmt : BigStepStmt σ1 (.whileStmt c body) (.returnResult rv) σ2 := by
+        simpa using (BigStepFunctionBody.to_stmt htail)
+      exact
+        BigStepFunctionBody.returning
+          (BigStepStmt.whileTrueNormal hcondTrue hbodyNormal htailStmt)
+
+/--
+Wrap a tail function-body result after one continue body iteration.
+-/
+theorem whileFunctionBody_of_tail_after_continue
+    {σ σ1 σ2 : State} {c : ValExpr} {body : CppStmt} {ex : FunctionExit}
+    (hcondTrue : BigStepValue σ c (.bool true))
+    (hbodyContinue : BigStepStmt σ body .continueResult σ1)
+    (htail : BigStepFunctionBody σ1 (.whileStmt c body) ex σ2) :
+    BigStepFunctionBody σ (.whileStmt c body) ex σ2 := by
+  cases ex with
+  | fellThrough =>
+      have htailStmt : BigStepStmt σ1 (.whileStmt c body) .normal σ2 := by
+        simpa using (BigStepFunctionBody.to_stmt htail)
+      exact
+        BigStepFunctionBody.fallthrough
+          (BigStepStmt.whileTrueContinue hcondTrue hbodyContinue htailStmt)
+  | returned rv =>
+      have htailStmt : BigStepStmt σ1 (.whileStmt c body) (.returnResult rv) σ2 := by
+        simpa using (BigStepFunctionBody.to_stmt htail)
+      exact
+        BigStepFunctionBody.returning
+          (BigStepStmt.whileTrueContinue hcondTrue hbodyContinue htailStmt)
+
+/--
+Lift a tail closure result through a normal body iteration.
+-/
+theorem whileClosureResult_of_tail_after_normal
+    {σ σ1 : State} {c : ValExpr} {body : CppStmt}
+    (hcondTrue : BigStepValue σ c (.bool true))
+    (hbodyNormal : BigStepStmt σ body .normal σ1)
+    (htail :
+      (∃ ex σ2, BigStepFunctionBody σ1 (.whileStmt c body) ex σ2) ∨
+        BigStepStmtDiv σ1 (.whileStmt c body)) :
+    (∃ ex σ2, BigStepFunctionBody σ (.whileStmt c body) ex σ2) ∨
+      BigStepStmtDiv σ (.whileStmt c body) := by
+  cases htail with
+  | inl hterm =>
+      rcases hterm with ⟨ex, σ2, hfb⟩
+      exact Or.inl
+        ⟨ex, σ2,
+          whileFunctionBody_of_tail_after_normal hcondTrue hbodyNormal hfb⟩
+  | inr hdiv =>
+      exact Or.inr
+        (BigStepStmtDiv.whileIter hcondTrue (Or.inl hbodyNormal) hdiv)
+
+/--
+Lift a tail closure result through a continue body iteration.
+-/
+theorem whileClosureResult_of_tail_after_continue
+    {σ σ1 : State} {c : ValExpr} {body : CppStmt}
+    (hcondTrue : BigStepValue σ c (.bool true))
+    (hbodyContinue : BigStepStmt σ body .continueResult σ1)
+    (htail :
+      (∃ ex σ2, BigStepFunctionBody σ1 (.whileStmt c body) ex σ2) ∨
+        BigStepStmtDiv σ1 (.whileStmt c body)) :
+    (∃ ex σ2, BigStepFunctionBody σ (.whileStmt c body) ex σ2) ∨
+      BigStepStmtDiv σ (.whileStmt c body) := by
+  cases htail with
+  | inl hterm =>
+      rcases hterm with ⟨ex, σ2, hfb⟩
+      exact Or.inl
+        ⟨ex, σ2,
+          whileFunctionBody_of_tail_after_continue hcondTrue hbodyContinue hfb⟩
+  | inr hdiv =>
+      exact Or.inr
+        (BigStepStmtDiv.whileIter hcondTrue (Or.inr hbodyContinue) hdiv)
+
+
+/-
+Honest while case theorem.
+
+必要なものを明示する:
+- current entry の top-level closure boundary
+- current iteration の loop-body local boundary
+- current iteration 自身の local progress/divergence
+- normal / continue 後の tail-boundary reconstruction
+- tail `while` そのものの recursive closure hypothesis
+-/
+
+/--
+Honest while case theorem.
+
+This follows the C++ execution order:
+1. evaluate the condition;
+2. if false, the while falls through;
+3. if true, execute the body;
+4. body normal / continue re-enter the tail while;
+5. body break falls through;
+6. body return returns from the function body;
+7. body divergence makes the whole while diverge.
+-/
+theorem while_function_body_closure_boundary_ci_honest
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (_htyWhile : HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ)
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
+    (_hloop : LoopBodyBoundaryCI Γ σ body)
+    (hbodyClosure :
+      (∃ ctrl σ1, BigStepStmt σ body ctrl σ1) ∨ BigStepStmtDiv σ body)
+    (htailBoundary : WhileTailBoundaryKitCI Γ σ c body)
+    (htailClosure :
+      ∀ {σ1 : State},
+        BodyClosureBoundaryCI Γ σ1 (.whileStmt c body) →
+        (∃ ex σ2, BigStepFunctionBody σ1 (.whileStmt c body) ex σ2) ∨
+          BigStepStmtDiv σ1 (.whileStmt c body)) :
+    (∃ ex σ', BigStepFunctionBody σ (.whileStmt c body) ex σ') ∨
+      BigStepStmtDiv σ (.whileStmt c body) := by
+  rcases whileConditionEvalBool_of_bodyClosureBoundaryCI hentry with hcondFalse | hcondTrue
+  · exact Or.inl
+      ⟨.fellThrough, σ,
+        BigStepFunctionBody.fallthrough
+          (BigStepStmt.whileFalse hcondFalse)⟩
+  · cases hbodyClosure with
+    | inr hbodyDiv =>
+        exact Or.inr
+          (BigStepStmtDiv.whileBody hcondTrue hbodyDiv)
+    | inl hbodyTerm =>
+        rcases hbodyTerm with ⟨ctrl, σ1, hbodyStep⟩
+        cases ctrl with
+        | normal =>
+            exact
+              whileClosureResult_of_tail_after_normal
+                hcondTrue
+                hbodyStep
+                (htailClosure
+                  (htailBoundary.afterNormal hcondTrue hbodyStep))
+        | breakResult =>
+            exact Or.inl
+              ⟨.fellThrough, σ1,
+                BigStepFunctionBody.fallthrough
+                  (BigStepStmt.whileTrueBreak hcondTrue hbodyStep)⟩
+        | continueResult =>
+            exact
+              whileClosureResult_of_tail_after_continue
+                hcondTrue
+                hbodyStep
+                (htailClosure
+                  (htailBoundary.afterContinue hcondTrue hbodyStep))
+        | returnResult rv =>
+            exact Or.inl
+              ⟨.returned rv, σ1,
+                BigStepFunctionBody.returning
+                  (BigStepStmt.whileTrueReturn hcondTrue hbodyStep)⟩
+
+
 /--
 Tail-boundary reconstruction shell extracted from a top-level `while` closure boundary.
 
@@ -413,31 +652,5 @@ axiom whileTailBoundaryKitCI_of_bodyClosureBoundaryCI
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
     BodyClosureBoundaryCI Γ σ (.whileStmt c body) →
     WhileTailBoundaryKitCI Γ σ c body
-
-/--
-Honest while case theorem.
-
-必要なものを明示する:
-- current entry の top-level closure boundary
-- current iteration の loop-body local boundary
-- current iteration 自身の local progress/divergence
-- normal / continue 後の tail-boundary reconstruction
-- tail `while` そのものの recursive closure hypothesis
--/
-axiom while_function_body_closure_boundary_ci_honest
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
-    (htyWhile : HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ)
-    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
-    (hloop : LoopBodyBoundaryCI Γ σ body)
-    (hbodyClosure :
-      (∃ ctrl σ1, BigStepStmt σ body ctrl σ1) ∨ BigStepStmtDiv σ body)
-    (htailBoundary : WhileTailBoundaryKitCI Γ σ c body)
-    (htailClosure :
-      ∀ {σ1 : State},
-        BodyClosureBoundaryCI Γ σ1 (.whileStmt c body) →
-        (∃ ex σ2, BigStepFunctionBody σ1 (.whileStmt c body) ex σ2) ∨
-          BigStepStmtDiv σ1 (.whileStmt c body)) :
-    (∃ ex σ', BigStepFunctionBody σ (.whileStmt c body) ex σ') ∨
-      BigStepStmtDiv σ (.whileStmt c body)
 
 end Cpp
