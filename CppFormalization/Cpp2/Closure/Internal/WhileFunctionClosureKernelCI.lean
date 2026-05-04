@@ -3,7 +3,6 @@ import CppFormalization.Cpp2.Boundary.FunctionBody
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.WhileEntryBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCI
-import CppFormalization.Cpp2.Closure.Foundation.ReadinessSemanticsBridge
 import CppFormalization.Cpp2.Closure.Internal.LoopBodyFunctionClosureCI
 import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelCI
 import CppFormalization.Cpp2.Semantics.Divergence
@@ -197,7 +196,7 @@ Static projection from the top-level `while` return profile to the local
 loop-body return profile.
 
 C++ reading: if the `while` statement has a static `return` channel, that
-channel is not produced by the loop header itself.  It is the body's `return`
+channel is not produced by the loop header itself. It is the body's `return`
 channel lifted through the `while_return` typing rule.
 
 This object is deliberately state-free except for its reference to the assembled
@@ -217,9 +216,9 @@ structure WhileLoopBodyReturnProfileProjectionCI
 /--
 Residual exposure obligation for return-capable loop bodies.
 
-This no longer performs the static projection to the body.  It only says that
+This no longer performs the static projection to the body. It only says that
 if the body actually returns at the current state, the top-level `while` static
-profile has exposed a return channel.  The conversion from that whole-`while`
+profile has exposed a return channel. The conversion from that whole-`while`
 return channel to the body return channel is handled separately by
 `WhileLoopBodyReturnProfileProjectionCI`.
 -/
@@ -241,7 +240,7 @@ if the while condition has evaluated to `true`, then an actual `return` from
 the body is also an actual `return` from the whole `while` statement.
 Therefore the top-level while adequacy exposes a return channel.
 
-This theorem is deliberately conditional on `hcondTrue`.  Without that premise,
+This theorem is deliberately conditional on `hcondTrue`. Without that premise,
 a body return step does not imply that the while statement itself returns,
 because the condition might evaluate to `false` and the body might not run.
 -/
@@ -259,7 +258,6 @@ def whileLoopBodyReturnExposureCI_of_bodyClosureBoundaryCI_of_condTrue
 
   let w := hentry.adequacy.returnWitness hwhileReturn
   exact ⟨w.val, w.property⟩
-
 
 /--
 Build the old local return-adequacy provider from the cleaner two-part split:
@@ -317,11 +315,46 @@ def loopBodyReturnAdequacyProviderCI_of_condTrue
       hentry hcondTrue)
 
 /--
+Condition-true loop-body boundary route.
+
+Once the while condition has actually evaluated to `true`, the body is really
+going to be executed. At that point the body-return exposure obligation is
+theorem-backed by
+`whileLoopBodyReturnExposureCI_of_bodyClosureBoundaryCI_of_condTrue`, so the
+loop-body boundary can be assembled without the unconditional exposure shell.
+-/
+def whileLoopBoundaryCI_of_bodyClosureBoundaryCI_of_condTrue
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
+    (hcondTrue : BigStepValue σ c (.bool true)) :
+    LoopBodyBoundaryCI Γ σ body :=
+  whileLoopBoundaryCI_of_entry_and_returnProvider
+    hentry
+    (whileEntryBoundaryCI_of_bodyClosureBoundaryCI hentry)
+    (loopBodyReturnAdequacyProviderCI_of_condTrue hentry hcondTrue)
+
+/--
+Condition-true local body progress/divergence.
+
+This is the body-progress theorem that should be used inside the true branch of
+a condition-first while proof. It avoids the unconditional
+`whileLoopBodyReturnExposureCI_of_bodyClosureBoundaryCI` compatibility shell.
+-/
+theorem whileBodyProgressOrDiverges_of_bodyClosureBoundaryCI_of_condTrue
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
+    (hcondTrue : BigStepValue σ c (.bool true)) :
+    (∃ ctrl σ1, BigStepStmt σ body ctrl σ1) ∨ BigStepStmtDiv σ body := by
+  exact
+    loop_body_function_progress_or_diverges_ci
+      (whileLoopBoundaryCI_of_bodyClosureBoundaryCI_of_condTrue hentry hcondTrue)
+
+/--
 Dynamic residual shell for the canonical boundary route after the static split.
 
 Compared with the former return-adequacy provider, this no longer needs to know
 how to convert a whole-`while` return typing payload into a body return typing
-payload.  It only exposes that the static profile contains a return channel
+payload. It only exposes that the static profile contains a return channel
 when the body can actually return.
 -/
 axiom whileLoopBodyReturnExposureCI_of_bodyClosureBoundaryCI
@@ -447,8 +480,6 @@ theorem whileBodyProgressOrDiverges_of_bodyClosureBoundaryCI
     loop_body_function_progress_or_diverges_ci
       (whileLoopBoundaryCI_of_bodyClosureBoundaryCI hentry)
 
-/- Add the following helper theorems before `while_function_body_closure_boundary_ci_honest`. -/
-
 /--
 A ready boolean while condition can evaluate to either `false` or `true`.
 
@@ -560,18 +591,6 @@ theorem whileClosureResult_of_tail_after_continue
       exact Or.inr
         (BigStepStmtDiv.whileIter hcondTrue (Or.inr hbodyContinue) hdiv)
 
-
-/-
-Honest while case theorem.
-
-必要なものを明示する:
-- current entry の top-level closure boundary
-- current iteration の loop-body local boundary
-- current iteration 自身の local progress/divergence
-- normal / continue 後の tail-boundary reconstruction
-- tail `while` そのものの recursive closure hypothesis
--/
-
 /--
 Honest while case theorem.
 
@@ -636,21 +655,152 @@ theorem while_function_body_closure_boundary_ci_honest
                 BigStepFunctionBody.returning
                   (BigStepStmt.whileTrueReturn hcondTrue hbodyStep)⟩
 
+/--
+Residual provider for reconstructing the tail `while` boundary from a current
+top-level while boundary.
+
+This is deliberately smaller than a full `WhileTailBoundaryKitCI`:
+- `reentry` reconstructs the post-state dynamic while entry after
+  normal / continue body steps;
+- `tailAdequacy` supplies the remaining post-state adequacy against the same
+  static profile.
+
+The actual `WhileTailBoundaryKitCI` is then assembled theoremically by
+`whileTailBoundaryKitCI_of_loopReentry`.
+-/
+structure WhileTailBoundaryReentryProviderCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) : Type where
+  reentry :
+    LoopReentryKernelCI Γ c body
+  tailAdequacy :
+    WhileTailAdequacyProviderCI Γ σ c body hentry.static
 
 /--
-Tail-boundary reconstruction shell extracted from a top-level `while` closure boundary.
+Assemble the old tail-boundary kit from the smaller reentry provider.
 
-normal / continue の 1 iteration 後に、tail `while` へ渡す top-level closure
-boundary を再構成する責務だけを分離する。
-
-New code should prefer `whileTailBoundaryKitCI_of_loopReentry`, which exposes
-the delimiter reentry kernel and the remaining post-state adequacy obligation
-separately.  This compatibility shell remains only for the current boundary
-route.
+This is the compatibility bridge from the current boundary route to the
+honest route:
+`current entry + current loop body + reentry + post-state adequacy`.
 -/
-axiom whileTailBoundaryKitCI_of_bodyClosureBoundaryCI
+def whileTailBoundaryKitCI_of_reentryProvider
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
+    (P : WhileTailBoundaryReentryProviderCI hentry) :
+    WhileTailBoundaryKitCI Γ σ c body :=
+  whileTailBoundaryKitCI_of_loopReentry
+    hentry
+    (whileEntryBoundaryCI_of_bodyClosureBoundaryCI hentry)
+    (whileLoopBoundaryCI_of_bodyClosureBoundaryCI hentry)
+    P.reentry
+    P.tailAdequacy
+
+/--
+Residual delimiter-reentry shell for the canonical boundary route.
+
+This is only the reentry law:
+after a normal / continue body step, the condition and local loop-body boundary
+can be replayed at the post-state.
+-/
+axiom loopReentryKernelCI_of_bodyClosureBoundaryCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) :
+    LoopReentryKernelCI Γ c body
+
+/--
+Residual post-state adequacy shell for the canonical boundary route.
+
+This is separate from reentry. Reentry supplies the dynamic tail entry;
+this provider supplies adequacy of the tail while against the unchanged static
+profile after normal / continue body steps.
+-/
+axiom whileTailAdequacyProviderCI_of_bodyClosureBoundaryCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) :
+    WhileTailAdequacyProviderCI Γ σ c body hentry.static
+
+/--
+Compatibility provider assembled from the two smaller residual obligations.
+
+This keeps the previous provider name available, but it is no longer an atomic
+shell.
+-/
+noncomputable def whileTailBoundaryReentryProviderCI_of_bodyClosureBoundaryCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) :
+    WhileTailBoundaryReentryProviderCI hentry :=
+  { reentry :=
+      loopReentryKernelCI_of_bodyClosureBoundaryCI hentry
+    tailAdequacy :=
+      whileTailAdequacyProviderCI_of_bodyClosureBoundaryCI hentry }
+
+/--
+Compatibility wrapper for existing callers.
+
+This keeps the old name, but it is no longer a primitive shell.
+It is assembled from `whileTailBoundaryKitCI_of_loopReentry` and the smaller
+reentry-provider shell above.
+-/
+noncomputable def whileTailBoundaryKitCI_of_bodyClosureBoundaryCI
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
     BodyClosureBoundaryCI Γ σ (.whileStmt c body) →
-    WhileTailBoundaryKitCI Γ σ c body
+    WhileTailBoundaryKitCI Γ σ c body := by
+  intro hentry
+  exact
+    whileTailBoundaryKitCI_of_reentryProvider
+      hentry
+      (whileTailBoundaryReentryProviderCI_of_bodyClosureBoundaryCI hentry)
+
+/--
+Condition-first while closure using the reentry-provider route.
+
+This is the clean mainline theorem for `while`:
+- evaluate the condition first;
+- in the false branch, no loop-body boundary is needed;
+- in the true branch, assemble the loop-body boundary using the condition-true
+  return-exposure theorem;
+- assemble the tail-boundary kit from reentry + post-state adequacy.
+
+Therefore this theorem avoids both compatibility shortcuts:
+- unconditional loop-body return exposure;
+- direct tail-boundary kit extraction.
+-/
+theorem while_function_body_closure_boundary_ci_of_reentryProvider_condition_first
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (htyWhile : HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ)
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
+    (P : WhileTailBoundaryReentryProviderCI hentry)
+    (htailClosure :
+      ∀ {σ1 : State},
+        BodyClosureBoundaryCI Γ σ1 (.whileStmt c body) →
+        (∃ ex σ2, BigStepFunctionBody σ1 (.whileStmt c body) ex σ2) ∨
+          BigStepStmtDiv σ1 (.whileStmt c body)) :
+    (∃ ex σ', BigStepFunctionBody σ (.whileStmt c body) ex σ') ∨
+      BigStepStmtDiv σ (.whileStmt c body) := by
+  rcases whileConditionEvalBool_of_bodyClosureBoundaryCI hentry with hcondFalse | hcondTrue
+  · exact Or.inl
+      ⟨.fellThrough, σ,
+        BigStepFunctionBody.fallthrough
+          (BigStepStmt.whileFalse hcondFalse)⟩
+  · let hloop : LoopBodyBoundaryCI Γ σ body :=
+      whileLoopBoundaryCI_of_bodyClosureBoundaryCI_of_condTrue hentry hcondTrue
+    let hbodyClosure :
+        (∃ ctrl σ1, BigStepStmt σ body ctrl σ1) ∨ BigStepStmtDiv σ body :=
+      loop_body_function_progress_or_diverges_ci hloop
+    let htailBoundary : WhileTailBoundaryKitCI Γ σ c body :=
+      whileTailBoundaryKitCI_of_loopReentry
+        hentry
+        (whileEntryBoundaryCI_of_bodyClosureBoundaryCI hentry)
+        hloop
+        P.reentry
+        P.tailAdequacy
+    exact
+      while_function_body_closure_boundary_ci_honest
+        htyWhile
+        hentry
+        hloop
+        hbodyClosure
+        htailBoundary
+        htailClosure
 
 end Cpp
