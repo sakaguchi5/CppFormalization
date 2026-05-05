@@ -33,6 +33,7 @@ import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapCI
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapConcrete
 import CppFormalization.Cpp2.Closure.Internal.LoopBodyDynamicReplayContinueStateTheoremsCI
 import CppFormalization.Cpp2.Closure.Internal.LoopBodyDynamicReplayStateTheoremsCI
+import CppFormalization.Cpp2.Closure.Internal.LoopBodyIterationReadyReplayCI
 import CppFormalization.Cpp2.Closure.Internal.LoopBodyFunctionClosureCI
 import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelCI
 import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelSplitCI

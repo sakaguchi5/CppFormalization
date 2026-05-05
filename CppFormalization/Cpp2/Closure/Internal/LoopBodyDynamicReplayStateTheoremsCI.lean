@@ -28,7 +28,7 @@ invariant.
 The residual normal-side dynamic obligation after state preservation has been
 removed: only body readiness replay remains.
 -/
-structure loopBodyReadyAfterNormalCI
+structure LoopBodyReadyAfterNormalCI
     (Γ : TypeEnv) (_c : ValExpr) (body : CppStmt) : Type where
   body_ready_after_normal :
     ∀ {σ σ' : State},
@@ -66,7 +66,7 @@ plus the genuinely residual body-readiness replay component.
 def loopBodyDynamicAfterNormalSplitCI_of_state_preservation
     (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
-    (hready : loopBodyReadyAfterNormalCI Γ c body) :
+    (hready : LoopBodyReadyAfterNormalCI Γ c body) :
     LoopBodyDynamicAfterNormalSplitCI Γ c body :=
   { state_after_normal := by
       intro σ σ' hbody hstep
@@ -82,7 +82,7 @@ component.  This is useful when comparing the old and strengthened surfaces.
 def loopBodyReadyAfterNormalCI_of_dynamic_split
     {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
     (D : LoopBodyDynamicAfterNormalSplitCI Γ c body) :
-    loopBodyReadyAfterNormalCI Γ c body :=
+    LoopBodyReadyAfterNormalCI Γ c body :=
   { body_ready_after_normal := D.body_ready_after_normal }
 
 /--
@@ -100,7 +100,7 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_splitDynamicR
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
     (hheader : LoopReentryHeaderCI Γ c)
     (hcondNormal : LoopCondAfterNormalCI Γ c body)
-    (hreadyNormal : loopBodyReadyAfterNormalCI Γ c body)
+    (hreadyNormal : LoopBodyReadyAfterNormalCI Γ c body)
     (hadequacyNormal :
       ∀ {σ0 σ1 : State},
         (hbody : LoopBodyBoundaryCI Γ σ0 body) →
@@ -138,3 +138,4 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_splitDynamicR
       htailClosure
 
 end Cpp
+
