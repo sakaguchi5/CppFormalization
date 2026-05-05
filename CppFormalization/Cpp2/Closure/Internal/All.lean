@@ -86,7 +86,10 @@ import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryReplayFactored
 import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryReturnAdequacyReplayCI
 import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryHeaderTheoremsCI
 import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryBackedgeInvariantCI
-
+import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
+import CppFormalization.Cpp2.Closure.Internal.SeqNormalPreservationProviderCI
+import CppFormalization.Cpp2.Closure.Internal.SeqFunctionBodyClosureProviderCI
+import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverProviderCI
 /-!
 # Closure.Internal.All
 
