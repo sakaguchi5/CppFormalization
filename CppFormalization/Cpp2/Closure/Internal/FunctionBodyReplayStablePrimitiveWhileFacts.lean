@@ -177,24 +177,24 @@ def replay_stable_primitive_loop_body_adequacy
     {Γ : TypeEnv} {σ : State} {body : CppStmt}
     (hstable : ReplayStablePrimitiveStmt body)
     (P : LoopBodyControlProfile Γ body) :
-    LoopBodyAdequacyCI Γ σ body P := by
-  refine
-    { normalSound := ?_
-      breakSound := ?_
-      continueSound := ?_
-      returnSound := ?_ }
-  · intro σ' hstep
-    rcases P.normalClosed with ⟨hN, hNout⟩
-    exact ⟨⟨Γ, hN⟩, hNout⟩
-  · intro σ' hstep
-    exfalso
-    exact replay_stable_primitive_stmt_no_break hstable hstep
-  · intro σ' hstep
-    exfalso
-    exact replay_stable_primitive_stmt_no_continue hstable hstep
-  · intro rv σ' hstep
-    exfalso
-    exact replay_stable_primitive_stmt_no_return hstable hstep
+    LoopBodyAdequacyCI Γ σ body P :=
+  LoopBodyAdequacyCI.ofWitness
+    (normalWitness := by
+      intro σ' hstep
+      rcases P.normalClosed with ⟨hN, hNout⟩
+      exact ⟨⟨Γ, hN⟩, hNout⟩)
+    (breakWitness := by
+      intro σ' hstep
+      exfalso
+      exact replay_stable_primitive_stmt_no_break hstable hstep)
+    (continueWitness := by
+      intro σ' hstep
+      exfalso
+      exact replay_stable_primitive_stmt_no_continue hstable hstep)
+    (returnWitness := by
+      intro rv σ' hstep
+      exfalso
+      exact replay_stable_primitive_stmt_no_return hstable hstep)
 
 private theorem replay_stable_primitive_stmt_normal_preserves_state_from_ready
     {Γ : TypeEnv} {σ σ' : State} {st : CppStmt} :
@@ -249,22 +249,23 @@ def replay_stable_primitive_loopBodyBoundary_after_normal
         { state := hσ'
           safe := hsafe' }
       adequacy :=
-        { normalSound := by
+        LoopBodyAdequacyCI.ofWitness
+          (normalWitness := by
             intro σ2 hnormal
             rcases hbody.profile.normalClosed with ⟨hN, hNout⟩
-            exact ⟨⟨Γ, hN⟩, hNout⟩
-          breakSound := by
+            exact ⟨⟨Γ, hN⟩, hNout⟩)
+          (breakWitness := by
             intro σ2 hbreak
             exfalso
-            exact replay_stable_primitive_stmt_no_break hstable hbreak
-          continueSound := by
+            exact replay_stable_primitive_stmt_no_break hstable hbreak)
+          (continueWitness := by
             intro σ2 hcontinue
             exfalso
-            exact replay_stable_primitive_stmt_no_continue hstable hcontinue
-          returnSound := by
+            exact replay_stable_primitive_stmt_no_continue hstable hcontinue)
+          (returnWitness := by
             intro rv σ2 hreturn
             exfalso
-            exact replay_stable_primitive_stmt_no_return hstable hreturn } }
+            exact replay_stable_primitive_stmt_no_return hstable hreturn) }
 
 /--
 Replay-stable primitive bodies provide the delimiter reentry kernel expected by

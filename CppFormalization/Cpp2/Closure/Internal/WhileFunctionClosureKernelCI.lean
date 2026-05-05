@@ -114,6 +114,18 @@ theorem returnSoundExists
   let w := A.returnWitness hstep
   exact ⟨w.val, w.property⟩
 
+/-- Build a loop-body return provider from its witness-producing field. -/
+def ofWitness
+    {Γ : TypeEnv} {σ : State} {body : CppStmt}
+    {P : LoopBodyControlProfile Γ body}
+    (returnWitness :
+      ∀ {rv : Option Value} {σ' : State},
+        BigStepStmt σ body (.returnResult rv) σ' →
+          { out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ body Δ} //
+            P.summary.returnOut = some out }) :
+    LoopBodyReturnAdequacyProviderCI Γ σ body P :=
+  { returnSound := returnWitness }
+
 end LoopBodyReturnAdequacyProviderCI
 
 /--
@@ -127,9 +139,10 @@ noncomputable def loopBodyReturnAdequacyProviderCI_of_returnOut
       ∃ out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ body Δ},
         P.summary.returnOut = some out) :
     LoopBodyReturnAdequacyProviderCI Γ σ body P :=
-  { returnSound := by
+  LoopBodyReturnAdequacyProviderCI.ofWitness
+    (returnWitness := by
       intro _rv _σ' _hstep
-      exact ⟨Classical.choose hout, Classical.choose_spec hout⟩ }
+      exact ⟨Classical.choose hout, Classical.choose_spec hout⟩)
 
 /--
 A return-adequacy provider when body returns are semantically excluded.
@@ -141,9 +154,10 @@ def loopBodyReturnAdequacyProviderCI_of_noReturn
       ∀ {rv : Option Value} {σ' : State},
         ¬ BigStepStmt σ body (.returnResult rv) σ') :
     LoopBodyReturnAdequacyProviderCI Γ σ body P :=
-  { returnSound := by
+  LoopBodyReturnAdequacyProviderCI.ofWitness
+    (returnWitness := by
       intro rv σ' hstep
-      exact False.elim (hno (rv := rv) (σ' := σ') hstep) }
+      exact False.elim (hno (rv := rv) (σ' := σ') hstep))
 
 /--
 Loop-body structural boundary projected from the top-level `while` structural
@@ -178,23 +192,23 @@ def loopBodyAdequacyCI_of_entry_and_returnProvider
     (hcurrent : WhileEntryBoundaryCI Γ σ c body)
     (hreturn :
       LoopBodyReturnAdequacyProviderCI Γ σ body hcurrent.toLoopBodyProfile) :
-    LoopBodyAdequacyCI Γ σ body hcurrent.toLoopBodyProfile := by
-  refine
-    { normalSound := ?_
-      breakSound := ?_
-      continueSound := ?_
-      returnSound := ?_ }
-  · intro _σ' _hstep
-    rcases hcurrent.toLoopBodyProfile.normalClosed with ⟨hN, hEq⟩
-    exact ⟨⟨Γ, hN⟩, hEq⟩
-  · intro _σ' _hstep
-    rcases hcurrent.toLoopBodyProfile.breakClosed with ⟨hB, hEq⟩
-    exact ⟨⟨Γ, hB⟩, hEq⟩
-  · intro _σ' _hstep
-    rcases hcurrent.toLoopBodyProfile.continueClosed with ⟨hC, hEq⟩
-    exact ⟨⟨Γ, hC⟩, hEq⟩
-  · intro rv σ' hstep
-    exact hreturn.returnSound hstep
+    LoopBodyAdequacyCI Γ σ body hcurrent.toLoopBodyProfile :=
+  LoopBodyAdequacyCI.ofWitness
+    (normalWitness := by
+      intro _σ' _hstep
+      rcases hcurrent.toLoopBodyProfile.normalClosed with ⟨hN, hEq⟩
+      exact ⟨⟨Γ, hN⟩, hEq⟩)
+    (breakWitness := by
+      intro _σ' _hstep
+      rcases hcurrent.toLoopBodyProfile.breakClosed with ⟨hB, hEq⟩
+      exact ⟨⟨Γ, hB⟩, hEq⟩)
+    (continueWitness := by
+      intro _σ' _hstep
+      rcases hcurrent.toLoopBodyProfile.continueClosed with ⟨hC, hEq⟩
+      exact ⟨⟨Γ, hC⟩, hEq⟩)
+    (returnWitness := by
+      intro rv σ' hstep
+      exact hreturn.returnWitness hstep)
 
 /--
 Assemble the loop-body boundary from:
@@ -298,10 +312,11 @@ def loopBodyReturnAdequacyProviderCI_of_staticProjection
     (hexpose : WhileLoopBodyReturnExposureCI hentry) :
     LoopBodyReturnAdequacyProviderCI Γ σ body
       (whileEntryBoundaryCI_of_bodyClosureBoundaryCI hentry).toLoopBodyProfile :=
-  { returnSound := by
+  LoopBodyReturnAdequacyProviderCI.ofWitness
+    (returnWitness := by
       intro rv σ' hstep
       let w := hexpose.exposeReturn hstep
-      exact hproj.projectReturn (outW := w.val) w.property }
+      exact hproj.projectReturn (outW := w.val) w.property)
 
 /--
 Static projection for the canonical boundary route.
