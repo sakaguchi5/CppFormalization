@@ -31,6 +31,7 @@ import CppFormalization.Cpp2.Closure.Internal.HeadTailReturnAwareCallbacksCI
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmap
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapCI
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapConcrete
+import CppFormalization.Cpp2.Closure.Internal.LoopBodyDynamicReplaySplitCI
 import CppFormalization.Cpp2.Closure.Internal.LoopBodyFunctionClosureCI
 import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelCI
 import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelSplitCI
