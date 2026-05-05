@@ -33,6 +33,7 @@ import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapCI
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapConcrete
 import CppFormalization.Cpp2.Closure.Internal.LoopBodyFunctionClosureCI
 import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelCI
+import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelSplitCI
 import CppFormalization.Cpp2.Closure.Internal.NormalPathTypingBridge
 import CppFormalization.Cpp2.Closure.Internal.PrimitiveStmtNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.PtrExprAssignTransportKernel
