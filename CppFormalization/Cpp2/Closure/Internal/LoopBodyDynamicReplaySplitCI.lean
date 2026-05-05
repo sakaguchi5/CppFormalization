@@ -37,7 +37,7 @@ structure LoopBodyDynamicAfterNormalSplitCI
       BigStepStmt σ body .normal σ' →
       ScopedTypedStateConcrete Γ σ'
 
-  safe_after_normal :
+  body_ready_after_normal :
     ∀ {σ σ' : State},
       (hbody : LoopBodyBoundaryCI Γ σ body) →
       BigStepStmt σ body .normal σ' →
@@ -52,7 +52,7 @@ structure LoopBodyDynamicAfterContinueSplitCI
       BigStepStmt σ body .continueResult σ' →
       ScopedTypedStateConcrete Γ σ'
 
-  safe_after_continue :
+  body_ready_after_continue :
     ∀ {σ σ' : State},
       (hbody : LoopBodyBoundaryCI Γ σ body) →
       BigStepStmt σ body .continueResult σ' →
@@ -69,7 +69,7 @@ def loopBodyDynamicAfterNormal_of_split
   intro σ σ' hbody hstep
   exact
     { state := D.state_after_normal hbody hstep
-      safe := D.safe_after_normal hbody hstep }
+      safe := D.body_ready_after_normal hbody hstep }
 
 /-- Reassemble post-state dynamic boundary after body-continue from split dynamic obligations. -/
 def loopBodyDynamicAfterContinue_of_split
@@ -82,7 +82,7 @@ def loopBodyDynamicAfterContinue_of_split
   intro σ σ' hbody hstep
   exact
     { state := D.state_after_continue hbody hstep
-      safe := D.safe_after_continue hbody hstep }
+      safe := D.body_ready_after_continue hbody hstep }
 
 /--
 Same-profile normal replay from split dynamic replay plus same-profile
@@ -167,3 +167,4 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_splitDynamicR
       htailClosure
 
 end Cpp
+

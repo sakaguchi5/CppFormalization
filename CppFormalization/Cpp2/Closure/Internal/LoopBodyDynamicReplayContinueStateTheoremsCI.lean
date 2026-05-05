@@ -17,8 +17,8 @@ This file does the continue-side analogue:
 
 The genuinely loop-specific residue is still readiness replay:
 
-- `safe_after_normal`;
-- `safe_after_continue`.
+- `body_ready_after_normal`;
+- `body_ready_after_continue`.
 
 C++ reading: a `continue` from the loop body does not mean the state may stop
 being well-scoped/well-typed.  It only changes the control route back to the
@@ -30,9 +30,9 @@ work is still needed to show the body is ready again.
 The residual continue-side dynamic obligation after state preservation has been
 removed: only body readiness replay remains.
 -/
-structure LoopBodySafeAfterContinueCI
+structure loopBodyReadyAfterContinueCI
     (Γ : TypeEnv) (_c : ValExpr) (body : CppStmt) : Type where
-  safe_after_continue :
+  body_ready_after_continue :
     ∀ {σ σ' : State},
       (hbody : LoopBodyBoundaryCI Γ σ body) →
       BigStepStmt σ body .continueResult σ' →
@@ -70,24 +70,24 @@ plus the genuinely residual body-readiness replay component.
 def loopBodyDynamicAfterContinueSplitCI_of_state_preservation
     (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
-    (hsafe : LoopBodySafeAfterContinueCI Γ c body) :
+    (hready : loopBodyReadyAfterContinueCI Γ c body) :
     LoopBodyDynamicAfterContinueSplitCI Γ c body :=
   { state_after_continue := by
       intro σ σ' hbody hstep
       exact
         loopBody_state_after_continue_of_preservation
           mkWhileReentry hbody hstep
-    safe_after_continue := hsafe.safe_after_continue }
+    body_ready_after_continue := hready.body_ready_after_continue }
 
 /--
 Forget a full continue-side dynamic split to its remaining body-readiness
 component.  This is useful when comparing the old and strengthened surfaces.
 -/
-def loopBodySafeAfterContinueCI_of_dynamic_split
+def loopBodyReadyAfterContinueCI_of_dynamic_split
     {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
     (D : LoopBodyDynamicAfterContinueSplitCI Γ c body) :
-    LoopBodySafeAfterContinueCI Γ c body :=
-  { safe_after_continue := D.safe_after_continue }
+    loopBodyReadyAfterContinueCI Γ c body :=
+  { body_ready_after_continue := D.body_ready_after_continue }
 
 /--
 Current-boundary while closure with both dynamic state components theorem-backed.
@@ -104,14 +104,14 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_splitDynamicR
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
     (hheader : LoopReentryHeaderCI Γ c)
     (hcondNormal : LoopCondAfterNormalCI Γ c body)
-    (hsafeNormal : LoopBodySafeAfterNormalCI Γ c body)
+    (hreadyNormal : loopBodyReadyAfterNormalCI Γ c body)
     (hadequacyNormal :
       ∀ {σ0 σ1 : State},
         (hbody : LoopBodyBoundaryCI Γ σ0 body) →
         BigStepStmt σ0 body .normal σ1 →
         LoopBodyAdequacyCI Γ σ1 body hbody.profile)
     (hcondContinue : LoopCondAfterContinueCI Γ c body)
-    (hsafeContinue : LoopBodySafeAfterContinueCI Γ c body)
+    (hreadyContinue : loopBodyReadyAfterContinueCI Γ c body)
     (hadequacyContinue :
       ∀ {σ0 σ1 : State},
         (hbody : LoopBodyBoundaryCI Γ σ0 body) →
@@ -132,11 +132,11 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_splitDynamicR
       hheader
       hcondNormal
       (loopBodyDynamicAfterNormalSplitCI_of_state_preservation
-        mkWhileReentry hsafeNormal)
+        mkWhileReentry hreadyNormal)
       hadequacyNormal
       hcondContinue
       (loopBodyDynamicAfterContinueSplitCI_of_state_preservation
-        mkWhileReentry hsafeContinue)
+        mkWhileReentry hreadyContinue)
       hadequacyContinue
       hnormal
       hcontinue

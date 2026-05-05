@@ -12,7 +12,7 @@ Theorem-backed state component for loop-body dynamic replay.
 obligation into:
 
 - `state_after_normal` : preservation of `ScopedTypedStateConcrete`;
-- `safe_after_normal`  : replay of `StmtReadyConcrete` for the next body run.
+- `body_ready_after_normal`  : replay of `StmtReadyConcrete` for the next body run.
 
 This file discharges the first component from the existing statement normal
 preservation theorem.  The remaining normal-side dynamic residual is therefore
@@ -28,9 +28,9 @@ invariant.
 The residual normal-side dynamic obligation after state preservation has been
 removed: only body readiness replay remains.
 -/
-structure LoopBodySafeAfterNormalCI
+structure loopBodyReadyAfterNormalCI
     (Γ : TypeEnv) (_c : ValExpr) (body : CppStmt) : Type where
-  safe_after_normal :
+  body_ready_after_normal :
     ∀ {σ σ' : State},
       (hbody : LoopBodyBoundaryCI Γ σ body) →
       BigStepStmt σ body .normal σ' →
@@ -66,24 +66,24 @@ plus the genuinely residual body-readiness replay component.
 def loopBodyDynamicAfterNormalSplitCI_of_state_preservation
     (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
-    (hsafe : LoopBodySafeAfterNormalCI Γ c body) :
+    (hready : loopBodyReadyAfterNormalCI Γ c body) :
     LoopBodyDynamicAfterNormalSplitCI Γ c body :=
   { state_after_normal := by
       intro σ σ' hbody hstep
       exact
         loopBody_state_after_normal_of_preservation
           mkWhileReentry hbody hstep
-    safe_after_normal := hsafe.safe_after_normal }
+    body_ready_after_normal := hready.body_ready_after_normal }
 
 /--
 Forget a full normal-side dynamic split to its remaining body-readiness
 component.  This is useful when comparing the old and strengthened surfaces.
 -/
-def loopBodySafeAfterNormalCI_of_dynamic_split
+def loopBodyReadyAfterNormalCI_of_dynamic_split
     {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
     (D : LoopBodyDynamicAfterNormalSplitCI Γ c body) :
-    LoopBodySafeAfterNormalCI Γ c body :=
-  { safe_after_normal := D.safe_after_normal }
+    loopBodyReadyAfterNormalCI Γ c body :=
+  { body_ready_after_normal := D.body_ready_after_normal }
 
 /--
 Current-boundary while closure with `state_after_normal` theorem-backed.
@@ -100,7 +100,7 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_splitDynamicR
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
     (hheader : LoopReentryHeaderCI Γ c)
     (hcondNormal : LoopCondAfterNormalCI Γ c body)
-    (hsafeNormal : LoopBodySafeAfterNormalCI Γ c body)
+    (hreadyNormal : loopBodyReadyAfterNormalCI Γ c body)
     (hadequacyNormal :
       ∀ {σ0 σ1 : State},
         (hbody : LoopBodyBoundaryCI Γ σ0 body) →
@@ -128,7 +128,7 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_splitDynamicR
       hheader
       hcondNormal
       (loopBodyDynamicAfterNormalSplitCI_of_state_preservation
-        mkWhileReentry hsafeNormal)
+        mkWhileReentry hreadyNormal)
       hadequacyNormal
       hcondContinue
       hdynContinue
