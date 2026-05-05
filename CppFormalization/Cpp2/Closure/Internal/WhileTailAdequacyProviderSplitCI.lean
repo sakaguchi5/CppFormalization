@@ -8,18 +8,18 @@ namespace Cpp
 Split the post-state tail adequacy obligation for `while` into its two actual
 channels: body-normal reentry and body-continue reentry.
 
-This is intentionally more aggressive than merely exposing
-`WhileTailAdequacyProviderCI` as a single component.  The current-boundary while
-case now sees the exact residual obligations that remain after delimiter
-reentry:
+After the loop-body/profile witness-provider refactor, the normal/continue
+post-state adequacy components no longer need to be residual shells.  Both are
+theorem-backed directly from the original top-level while adequacy:
 
-- after a `normal` body step, rebuild adequacy for the tail `while`;
-- after a `continue` body step, rebuild adequacy for the tail `while`.
+- a tail normal step after a body-normal iteration is wrapped by
+  `BigStepStmt.whileTrueNormal`;
+- a tail return step after a body-normal iteration is wrapped by
+  `BigStepStmt.whileTrueNormal`;
+- the continue case is analogous, using `BigStepStmt.whileTrueContinue`.
 
-The existing lower-layer declaration
-`whileTailAdequacyProviderCI_of_bodyClosureBoundaryCI` is still used only as the
-source of the two current shell components.  The point of this file is to make
-those two components the new surface for the next theoremization step.
+The remaining while debt after this file is therefore not post-state adequacy.
+It is the delimiter reentry/dynamic reconstruction side.
 -/
 
 /-- Post-state tail adequacy after a normal body iteration. -/
@@ -56,49 +56,100 @@ def whileTailAdequacyProviderCI_of_post_split
       intro σ1 hcondTrue hbodyContinue
       exact hcontinue.afterContinue hcondTrue hbodyContinue }
 
-/-- The current residual normal-post adequacy component. -/
-noncomputable def whileTailNormalAdequacyCI_of_bodyClosureBoundaryCI
+/--
+Theorem-backed post-state top-level while adequacy after one body-normal
+iteration.
+
+C++ reading: if the current condition evaluated to true and the body finished
+normally, then any subsequent tail-`while` normal/return execution can be
+prefixed by that executed iteration.  The original top-level while adequacy
+therefore already exposes the needed tail normal/return channels.
+-/
+def while_tail_adequacy_after_body_normal_of_entry
+    {Γ : TypeEnv} {σ σ1 : State} {c : ValExpr} {body : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
+    (hcondTrue : BigStepValue σ c (.bool true))
+    (hbodyNormal : BigStepStmt σ body .normal σ1) :
+    BodyAdequacyCI Γ σ1 (.whileStmt c body) hentry.static.profile :=
+  BodyAdequacyCI.ofWitness
+    (normalWitness := by
+      intro σ2 htail
+      exact hentry.adequacy.normalWitness
+        (BigStepStmt.whileTrueNormal hcondTrue hbodyNormal htail))
+    (returnWitness := by
+      intro rv σ2 htail
+      exact hentry.adequacy.returnWitness
+        (BigStepStmt.whileTrueNormal hcondTrue hbodyNormal htail))
+
+/--
+Theorem-backed post-state top-level while adequacy after one body-continue
+iteration.
+
+This is the continue-channel analogue of
+`while_tail_adequacy_after_body_normal_of_entry`.
+-/
+def while_tail_adequacy_after_body_continue_of_entry
+    {Γ : TypeEnv} {σ σ1 : State} {c : ValExpr} {body : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
+    (hcondTrue : BigStepValue σ c (.bool true))
+    (hbodyContinue : BigStepStmt σ body .continueResult σ1) :
+    BodyAdequacyCI Γ σ1 (.whileStmt c body) hentry.static.profile :=
+  BodyAdequacyCI.ofWitness
+    (normalWitness := by
+      intro σ2 htail
+      exact hentry.adequacy.normalWitness
+        (BigStepStmt.whileTrueContinue hcondTrue hbodyContinue htail))
+    (returnWitness := by
+      intro rv σ2 htail
+      exact hentry.adequacy.returnWitness
+        (BigStepStmt.whileTrueContinue hcondTrue hbodyContinue htail))
+
+/-- The theorem-backed normal-post adequacy component. -/
+def whileTailNormalAdequacyCI_of_bodyClosureBoundaryCI
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) :
     WhileTailNormalAdequacyCI hentry :=
   { afterNormal := by
       intro σ1 hcondTrue hbodyNormal
       exact
-        (whileTailAdequacyProviderCI_of_bodyClosureBoundaryCI hentry).afterNormal
-          hcondTrue hbodyNormal }
+        while_tail_adequacy_after_body_normal_of_entry
+          hentry hcondTrue hbodyNormal }
 
-/-- The current residual continue-post adequacy component. -/
-noncomputable def whileTailContinueAdequacyCI_of_bodyClosureBoundaryCI
+/-- The theorem-backed continue-post adequacy component. -/
+def whileTailContinueAdequacyCI_of_bodyClosureBoundaryCI
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) :
     WhileTailContinueAdequacyCI hentry :=
   { afterContinue := by
       intro σ1 hcondTrue hbodyContinue
       exact
-        (whileTailAdequacyProviderCI_of_bodyClosureBoundaryCI hentry).afterContinue
-          hcondTrue hbodyContinue }
+        while_tail_adequacy_after_body_continue_of_entry
+          hentry hcondTrue hbodyContinue }
 
 /--
-Eta sanity check for the current residual adequacy provider through direct
-normal/continue projections.
+Eta sanity check for the theorem-backed split provider.
+
+The old residual-provider eta theorem intentionally no longer states equality
+with `whileTailAdequacyProviderCI_of_bodyClosureBoundaryCI`: the point of this
+patch is that normal/continue post-state adequacy is no longer residual.
 -/
 theorem whileTailAdequacyProviderCI_of_bodyClosureBoundaryCI_eta_post_split
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) :
-    whileTailAdequacyProviderCI_of_bodyClosureBoundaryCI hentry =
-      whileTailAdequacyProviderCI_of_post_split
+    whileTailAdequacyProviderCI_of_post_split
         hentry
-        { afterNormal := by
-            intro σ1 hcondTrue hbodyNormal
-            exact
-              (whileTailAdequacyProviderCI_of_bodyClosureBoundaryCI hentry).afterNormal
-                hcondTrue hbodyNormal }
-        { afterContinue := by
-            intro σ1 hcondTrue hbodyContinue
-            exact
-              (whileTailAdequacyProviderCI_of_bodyClosureBoundaryCI hentry).afterContinue
-                hcondTrue hbodyContinue } := by
-  cases whileTailAdequacyProviderCI_of_bodyClosureBoundaryCI hentry
+        (whileTailNormalAdequacyCI_of_bodyClosureBoundaryCI hentry)
+        (whileTailContinueAdequacyCI_of_bodyClosureBoundaryCI hentry) =
+      { afterNormal := by
+          intro σ1 hcondTrue hbodyNormal
+          exact
+            while_tail_adequacy_after_body_normal_of_entry
+              hentry hcondTrue hbodyNormal
+        afterContinue := by
+          intro σ1 hcondTrue hbodyContinue
+          exact
+            while_tail_adequacy_after_body_continue_of_entry
+              hentry hcondTrue hbodyContinue } := by
   rfl
 
 /--
