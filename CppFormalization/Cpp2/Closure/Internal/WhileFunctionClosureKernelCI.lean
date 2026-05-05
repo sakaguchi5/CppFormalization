@@ -86,14 +86,41 @@ structure LoopBodyReturnAdequacyProviderCI
   returnSound :
     ∀ {rv : Option Value} {σ' : State},
       BigStepStmt σ body (.returnResult rv) σ' →
-        ∃ out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ body Δ},
-          P.summary.returnOut = some out
+        { out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ body Δ} //
+          P.summary.returnOut = some out }
+
+namespace LoopBodyReturnAdequacyProviderCI
+
+/-- Preferred witness-facing name for the loop-body return provider. -/
+def returnWitness
+    {Γ : TypeEnv} {σ : State} {body : CppStmt}
+    {P : LoopBodyControlProfile Γ body}
+    (A : LoopBodyReturnAdequacyProviderCI Γ σ body P)
+    {rv : Option Value} {σ' : State}
+    (hstep : BigStepStmt σ body (.returnResult rv) σ') :
+    { out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ body Δ} //
+      P.summary.returnOut = some out } :=
+  A.returnSound hstep
+
+/-- Proof-only return soundness recovered from the witness provider. -/
+theorem returnSoundExists
+    {Γ : TypeEnv} {σ : State} {body : CppStmt}
+    {P : LoopBodyControlProfile Γ body}
+    (A : LoopBodyReturnAdequacyProviderCI Γ σ body P)
+    {rv : Option Value} {σ' : State}
+    (hstep : BigStepStmt σ body (.returnResult rv) σ') :
+    ∃ out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ body Δ},
+      P.summary.returnOut = some out := by
+  let w := A.returnWitness hstep
+  exact ⟨w.val, w.property⟩
+
+end LoopBodyReturnAdequacyProviderCI
 
 /--
 A trivial return-adequacy provider when the chosen loop-body profile already
 has a return channel.
 -/
-def loopBodyReturnAdequacyProviderCI_of_returnOut
+noncomputable def loopBodyReturnAdequacyProviderCI_of_returnOut
     {Γ : TypeEnv} {σ : State} {body : CppStmt}
     {P : LoopBodyControlProfile Γ body}
     (hout :
@@ -102,7 +129,7 @@ def loopBodyReturnAdequacyProviderCI_of_returnOut
     LoopBodyReturnAdequacyProviderCI Γ σ body P :=
   { returnSound := by
       intro _rv _σ' _hstep
-      exact hout }
+      exact ⟨Classical.choose hout, Classical.choose_spec hout⟩ }
 
 /--
 A return-adequacy provider when body returns are semantically excluded.
@@ -209,9 +236,9 @@ structure WhileLoopBodyReturnProfileProjectionCI
     ∀ {outW : {Δ : TypeEnv //
         HasTypeStmtCI .returnK Γ (.whileStmt c body) Δ}},
       hentry.static.profile.summary.returnOut = some outW →
-        ∃ outB : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ body Δ},
+        { outB : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ body Δ} //
           (whileEntryBoundaryCI_of_bodyClosureBoundaryCI hentry).toLoopBodyProfile.summary.returnOut =
-            some outB
+            some outB }
 
 /--
 Residual exposure obligation for return-capable loop bodies.
@@ -228,9 +255,9 @@ structure WhileLoopBodyReturnExposureCI
   exposeReturn :
     ∀ {rv : Option Value} {σ' : State},
       BigStepStmt σ body (.returnResult rv) σ' →
-        ∃ outW : {Δ : TypeEnv //
-            HasTypeStmtCI .returnK Γ (.whileStmt c body) Δ},
-          hentry.static.profile.summary.returnOut = some outW
+        { outW : {Δ : TypeEnv //
+            HasTypeStmtCI .returnK Γ (.whileStmt c body) Δ} //
+          hentry.static.profile.summary.returnOut = some outW }
 
 /--
 Conditional exposure theorem for loop-body returns.
@@ -273,8 +300,8 @@ def loopBodyReturnAdequacyProviderCI_of_staticProjection
       (whileEntryBoundaryCI_of_bodyClosureBoundaryCI hentry).toLoopBodyProfile :=
   { returnSound := by
       intro rv σ' hstep
-      rcases hexpose.exposeReturn hstep with ⟨outW, hW⟩
-      exact hproj.projectReturn hW }
+      let w := hexpose.exposeReturn hstep
+      exact hproj.projectReturn (outW := w.val) w.property }
 
 /--
 Static projection for the canonical boundary route.
@@ -368,7 +395,7 @@ Compatibility wrapper for existing callers.
 The old residual provider is now a `def`, assembled from the static return
 projection plus the smaller dynamic exposure obligation.
 -/
-def loopBodyReturnAdequacyProviderCI_of_bodyClosureBoundaryCI
+noncomputable def loopBodyReturnAdequacyProviderCI_of_bodyClosureBoundaryCI
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) :
     LoopBodyReturnAdequacyProviderCI Γ σ body
@@ -387,7 +414,7 @@ This is no longer an opaque boundary axiom.  It is assembled from:
 - current-entry projection via `whileEntryBoundaryCI_of_bodyClosureBoundaryCI`;
 - the smaller residual return-adequacy provider above.
 -/
-def whileLoopBoundaryCI_of_bodyClosureBoundaryCI
+noncomputable def whileLoopBoundaryCI_of_bodyClosureBoundaryCI
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) :
     LoopBodyBoundaryCI Γ σ body :=
