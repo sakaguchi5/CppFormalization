@@ -81,6 +81,9 @@ import CppFormalization.Cpp2.Closure.Internal.WhileReplayStablePrimitiveFacts
 import CppFormalization.Cpp2.Closure.Internal.WhileStrongThinSeparatedAssignFacts
 import CppFormalization.Cpp2.Closure.Internal.WhileTailReentryProviderSplitCI
 import CppFormalization.Cpp2.Closure.Internal.WhileTailAdequacyProviderSplitCI
+import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryReplaySurfaceCI
+import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryReplayFactoredSurfaceCI
+import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryReturnAdequacyReplayCI
 
 /-!
 # Closure.Internal.All
