@@ -84,6 +84,8 @@ import CppFormalization.Cpp2.Closure.Internal.WhileTailAdequacyProviderSplitCI
 import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryReplaySurfaceCI
 import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryReplayFactoredSurfaceCI
 import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryReturnAdequacyReplayCI
+import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryHeaderTheoremsCI
+import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryBackedgeInvariantCI
 
 /-!
 # Closure.Internal.All
