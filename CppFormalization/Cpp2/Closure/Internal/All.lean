@@ -102,6 +102,8 @@ import CppFormalization.Cpp2.Closure.Internal.SeqSelectedRoutePayloadDesignCI
 import CppFormalization.Cpp2.Closure.Internal.SeqSelectedTailStaticAdequacySplitCI
 import CppFormalization.Cpp2.Closure.Internal.SeqSelectedTailStaticRouteTypingCI
 import CppFormalization.Cpp2.Closure.Internal.SeqSelectedTailStaticRouteTypingFromSelectionsCI
+import CppFormalization.Cpp2.Closure.Internal.SeqSelectedTailStaticRouteTypingSourceCI
+import CppFormalization.Cpp2.Closure.Internal.SeqSelectedTailStaticRouteTypingReturnDecisionCI
 
 /-!
 # Closure.Internal.All
