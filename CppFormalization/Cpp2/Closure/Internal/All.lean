@@ -99,7 +99,7 @@ import CppFormalization.Cpp2.Closure.Internal.SeqTailRouteBoundaryFactoredCoreSu
 import CppFormalization.Cpp2.Closure.Internal.SeqNonAdequacyTheoremBackedAttemptCI
 import CppFormalization.Cpp2.Closure.Internal.SeqRouteTheoremBackedCoreSupportCI
 import CppFormalization.Cpp2.Closure.Internal.SeqSelectedRoutePayloadDesignCI
-
+import CppFormalization.Cpp2.Closure.Internal.SeqSelectedTailStaticAdequacySplitCI
 
 /-!
 # Closure.Internal.All
