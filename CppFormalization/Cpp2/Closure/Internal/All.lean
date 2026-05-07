@@ -100,6 +100,8 @@ import CppFormalization.Cpp2.Closure.Internal.SeqNonAdequacyTheoremBackedAttempt
 import CppFormalization.Cpp2.Closure.Internal.SeqRouteTheoremBackedCoreSupportCI
 import CppFormalization.Cpp2.Closure.Internal.SeqSelectedRoutePayloadDesignCI
 import CppFormalization.Cpp2.Closure.Internal.SeqSelectedTailStaticAdequacySplitCI
+import CppFormalization.Cpp2.Closure.Internal.SeqSelectedTailStaticRouteTypingCI
+import CppFormalization.Cpp2.Closure.Internal.SeqSelectedTailStaticRouteTypingFromSelectionsCI
 
 /-!
 # Closure.Internal.All
