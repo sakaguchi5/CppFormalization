@@ -91,6 +91,10 @@ import CppFormalization.Cpp2.Closure.Internal.SeqNormalPreservationProviderCI
 import CppFormalization.Cpp2.Closure.Internal.SeqFunctionBodyClosureProviderCI
 import CppFormalization.Cpp2.Closure.Internal.SeqNormalPreservationCoreCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverProviderCI
+import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverCoreSupportCI
+import CppFormalization.Cpp2.Closure.Internal.SeqFunctionBodyClosureBoundaryCoreSupportCI
+import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverBoundaryCoreSupportCI
+import CppFormalization.Cpp2.Closure.Internal.SeqFunctionBodyClosureBoundaryDirectCoreSupportCI
 
 
 /-!
