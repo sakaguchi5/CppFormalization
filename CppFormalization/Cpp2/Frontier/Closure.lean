@@ -3,8 +3,8 @@ import CppFormalization.Cpp2.Frontier.SafetyAxioms
 /-!
 Closure theorems for verified standard and reflection fragments.
 -/
-
 namespace Cpp
+namespace Frontier
 
 structure VerifiedStdFragment where
   Name : Type
@@ -43,4 +43,5 @@ theorem reflective_std_closure_theorem
     std_fragment_preserves_ideal_boundary huse hclosed
   exact ideal_no_stuck hfrag hassm
 
+end Frontier
 end Cpp
