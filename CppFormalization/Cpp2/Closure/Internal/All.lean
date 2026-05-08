@@ -115,6 +115,7 @@ import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverCanonicalSeq
 import CppFormalization.Cpp2.Closure.Internal.SeqCanonicalTailEntryDecisionSourceBridgesCI
 import CppFormalization.Cpp2.Closure.Internal.SeqCanonicalTailEntryCoarseTypingEliminationCI
 import CppFormalization.Cpp2.Closure.Internal.SeqAxiomReplacementTheoremsCI
+import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureCanonicalSeqGlobalShellCI
 
 --
 /-!
