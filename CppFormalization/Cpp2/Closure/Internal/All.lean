@@ -113,6 +113,8 @@ import CppFormalization.Cpp2.Closure.Internal.SeqCanonicalTailEntryMainlineSuppo
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverCanonicalSeqSupportCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverCanonicalSeqWhileReentryCI
 import CppFormalization.Cpp2.Closure.Internal.SeqCanonicalTailEntryDecisionSourceBridgesCI
+import CppFormalization.Cpp2.Closure.Internal.SeqCanonicalTailEntryCoarseTypingEliminationCI
+import CppFormalization.Cpp2.Closure.Internal.SeqAxiomReplacementTheoremsCI
 
 --
 /-!
