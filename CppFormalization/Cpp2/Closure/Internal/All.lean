@@ -1,4 +1,4 @@
--- import CppFormalization.Cpp2.Closure.Internal.ArchitectureRoadmap
+import CppFormalization.Cpp2.Closure.Internal.ArchitectureRoadmap
 import CppFormalization.Cpp2.Closure.Internal.AssignHeadResidualTransportTheorems
 import CppFormalization.Cpp2.Closure.Internal.AssignHeadPushScopeBridges
 import CppFormalization.Cpp2.Closure.Internal.AssignHeadWhileTransportCompat
@@ -86,7 +86,6 @@ import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryReplayFactored
 import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryReturnAdequacyReplayCI
 import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryHeaderTheoremsCI
 import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryBackedgeInvariantCI
-import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.SeqNormalPreservationProviderCI
 import CppFormalization.Cpp2.Closure.Internal.SeqFunctionBodyClosureProviderCI
 import CppFormalization.Cpp2.Closure.Internal.SeqNormalPreservationCoreCI
@@ -116,13 +115,14 @@ import CppFormalization.Cpp2.Closure.Internal.SeqCanonicalTailEntryDecisionSourc
 import CppFormalization.Cpp2.Closure.Internal.SeqCanonicalTailEntryCoarseTypingEliminationCI
 import CppFormalization.Cpp2.Closure.Internal.SeqAxiomReplacementTheoremsCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureCanonicalSeqGlobalShellCI
+import CppFormalization.Cpp2.Closure.Internal.SecondaryAssetsAllCI
 
---
 /-!
 # Closure.Internal.All
 
 Build-coverage aggregate for `Closure.Internal`.
 
-`ArchitectureRoadmap` remains intentionally excluded as a roadmap/debt ledger.
-`Transport.All` is a nested aggregate at `Closure/Internal/Transport/All.lean`.
+This file intentionally imports every current Internal module known to the
+aggregate surface. Roadmap files are included for coverage, not as canonical
+proof dependencies.
 -/
