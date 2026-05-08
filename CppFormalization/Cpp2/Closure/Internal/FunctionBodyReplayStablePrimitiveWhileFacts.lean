@@ -1,5 +1,6 @@
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
+import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI
 import CppFormalization.Cpp2.Closure.Internal.WhileBodyClassCI
 import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
@@ -21,6 +22,12 @@ This file is now routed through the honest decomposition:
   `WhileTailAdequacyProviderCI`;
 - the old direct `WhileTailBoundaryKitCI` construction is retained only as a
   compatibility projection from the reentry-based support.
+
+Provider-facing replay-stable while-tail adequacy:
+- add a data-carrying tail adequacy provider in parallel with the existing
+  proof-only provider;
+- keep the existing proof-only route source-compatible;
+- expose replay-stable primitive while-tail adequacy as `BodyAdequacyCI`.
 -/
 
 /-! ## theorem-backed replay-stable primitive while tail boundary -/
@@ -170,24 +177,24 @@ def replay_stable_primitive_loop_body_adequacy
     {Γ : TypeEnv} {σ : State} {body : CppStmt}
     (hstable : ReplayStablePrimitiveStmt body)
     (P : LoopBodyControlProfile Γ body) :
-    LoopBodyAdequacyCI Γ σ body P := by
-  refine
-    { normalSound := ?_
-      breakSound := ?_
-      continueSound := ?_
-      returnSound := ?_ }
-  · intro σ' hstep
-    rcases P.normalClosed with ⟨hN, hNout⟩
-    exact ⟨⟨Γ, hN⟩, hNout⟩
-  · intro σ' hstep
-    exfalso
-    exact replay_stable_primitive_stmt_no_break hstable hstep
-  · intro σ' hstep
-    exfalso
-    exact replay_stable_primitive_stmt_no_continue hstable hstep
-  · intro rv σ' hstep
-    exfalso
-    exact replay_stable_primitive_stmt_no_return hstable hstep
+    LoopBodyAdequacyCI Γ σ body P :=
+  LoopBodyAdequacyCI.ofWitness
+    (normalWitness := by
+      intro σ' hstep
+      rcases P.normalClosed with ⟨hN, hNout⟩
+      exact ⟨⟨Γ, hN⟩, hNout⟩)
+    (breakWitness := by
+      intro σ' hstep
+      exfalso
+      exact replay_stable_primitive_stmt_no_break hstable hstep)
+    (continueWitness := by
+      intro σ' hstep
+      exfalso
+      exact replay_stable_primitive_stmt_no_continue hstable hstep)
+    (returnWitness := by
+      intro rv σ' hstep
+      exfalso
+      exact replay_stable_primitive_stmt_no_return hstable hstep)
 
 private theorem replay_stable_primitive_stmt_normal_preserves_state_from_ready
     {Γ : TypeEnv} {σ σ' : State} {st : CppStmt} :
@@ -242,22 +249,23 @@ def replay_stable_primitive_loopBodyBoundary_after_normal
         { state := hσ'
           safe := hsafe' }
       adequacy :=
-        { normalSound := by
+        LoopBodyAdequacyCI.ofWitness
+          (normalWitness := by
             intro σ2 hnormal
             rcases hbody.profile.normalClosed with ⟨hN, hNout⟩
-            exact ⟨⟨Γ, hN⟩, hNout⟩
-          breakSound := by
+            exact ⟨⟨Γ, hN⟩, hNout⟩)
+          (breakWitness := by
             intro σ2 hbreak
             exfalso
-            exact replay_stable_primitive_stmt_no_break hstable hbreak
-          continueSound := by
+            exact replay_stable_primitive_stmt_no_break hstable hbreak)
+          (continueWitness := by
             intro σ2 hcontinue
             exfalso
-            exact replay_stable_primitive_stmt_no_continue hstable hcontinue
-          returnSound := by
+            exact replay_stable_primitive_stmt_no_continue hstable hcontinue)
+          (returnWitness := by
             intro rv σ2 hreturn
             exfalso
-            exact replay_stable_primitive_stmt_no_return hstable hreturn } }
+            exact replay_stable_primitive_stmt_no_return hstable hreturn) }
 
 /--
 Replay-stable primitive bodies provide the delimiter reentry kernel expected by
@@ -291,37 +299,102 @@ def replay_stable_primitive_loopReentryKernelCI
       exfalso
       exact replay_stable_primitive_stmt_no_continue hstable hstep }
 
+/--
+Witness-producing tail adequacy provider for a while statement.
+
+This is the provider-facing analogue of `WhileTailAdequacyProviderCI`.  It is
+kept in this replay-stable facts layer for now so the existing while kernel and
+class interfaces remain source-compatible during the migration.
+-/
+structure WhileTailAdequacyProviderDataCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (static : BodyStaticBoundaryCI Γ (.whileStmt c body)) : Type where
+  afterNormal :
+    ∀ {σ1 : State},
+      BigStepValue σ c (.bool true) →
+      BigStepStmt σ body .normal σ1 →
+      BodyAdequacyCI Γ σ1 (.whileStmt c body) static.profile
+  afterContinue :
+    ∀ {σ1 : State},
+      BigStepValue σ c (.bool true) →
+      BigStepStmt σ body .continueResult σ1 →
+      BodyAdequacyCI Γ σ1 (.whileStmt c body) static.profile
+
+namespace WhileTailAdequacyProviderDataCI
+
+/-- Forget a witness-producing tail adequacy provider to the existing proof-only API. -/
+def toWhileTailAdequacyProviderCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    {static : BodyStaticBoundaryCI Γ (.whileStmt c body)}
+    (P : WhileTailAdequacyProviderDataCI (σ := σ) (c := c) (body := body) static) :
+    WhileTailAdequacyProviderCI Γ σ c body static :=
+  { afterNormal := by
+      intro σ1 hcond hstep
+      exact P.afterNormal hcond hstep
+    afterContinue := by
+      intro σ1 hcond hstep
+      exact P.afterContinue hcond hstep }
+
+end WhileTailAdequacyProviderDataCI
+
+
+/--
+Witness-producing post-state adequacy after a replay-stable primitive
+body-continue step.  This is the continue-channel analogue of
+`while_tail_adequacy_after_body_normal`.
+-/
+
 def while_tail_adequacy_after_body_normal
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
     (hready : BodyReadyCI Γ σ (.whileStmt c body))
     (hcond : BigStepValue σ c (.bool true))
     (hbodyStep : BigStepStmt σ body .normal σ') :
-    BodyAdequacyCI Γ σ' (.whileStmt c body) hready.static.profile := by
-  refine
-    { normalSound := ?_
-      returnSound := ?_ }
-  · intro σ2 htail
-    exact hready.adequacy.normalSound
-      (BigStepStmt.whileTrueNormal hcond hbodyStep htail)
-  · intro rv σ2 htail
-    exact hready.adequacy.returnSound
-      (BigStepStmt.whileTrueNormal hcond hbodyStep htail)
+    BodyAdequacyCI Γ σ' (.whileStmt c body) hready.static.profile :=
+  BodyAdequacyCI.ofWitness
+    (normalWitness := by
+      intro σ2 htail
+      exact hready.adequacy.normalWitness
+        (BigStepStmt.whileTrueNormal hcond hbodyStep htail))
+    (returnWitness := by
+      intro rv σ2 htail
+      exact hready.adequacy.returnWitness
+        (BigStepStmt.whileTrueNormal hcond hbodyStep htail))
 
 def while_tail_adequacy_after_body_continue
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
     (hready : BodyReadyCI Γ σ (.whileStmt c body))
     (hcond : BigStepValue σ c (.bool true))
     (hbodyStep : BigStepStmt σ body .continueResult σ') :
-    BodyAdequacyCI Γ σ' (.whileStmt c body) hready.static.profile := by
-  refine
-    { normalSound := ?_
-      returnSound := ?_ }
-  · intro σ2 htail
-    exact hready.adequacy.normalSound
-      (BigStepStmt.whileTrueContinue hcond hbodyStep htail)
-  · intro rv σ2 htail
-    exact hready.adequacy.returnSound
-      (BigStepStmt.whileTrueContinue hcond hbodyStep htail)
+    BodyAdequacyCI Γ σ' (.whileStmt c body) hready.static.profile :=
+  BodyAdequacyCI.ofWitness
+    (normalWitness := by
+      intro σ2 htail
+      exact hready.adequacy.normalWitness
+        (BigStepStmt.whileTrueContinue hcond hbodyStep htail))
+    (returnWitness := by
+      intro rv σ2 htail
+      exact hready.adequacy.returnWitness
+        (BigStepStmt.whileTrueContinue hcond hbodyStep htail))
+
+/--
+Post-state top-level while adequacy witness provider for replay-stable primitive
+bodies.
+
+This is the witness-producing companion of
+`replay_stable_primitive_whileTailAdequacyProviderCI`.
+-/
+noncomputable def replay_stable_primitive_whileTailAdequacyProviderDataCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) :
+    @WhileTailAdequacyProviderDataCI Γ σ c body hentry.static := -- @を使ってσを明示 :=
+  { afterNormal := by
+      intro σ1 hcond hstep
+      exact while_tail_adequacy_after_body_normal
+        hentry.toBodyReadyCI hcond hstep
+    afterContinue := by
+      intro σ1 hcond hstep
+      exact while_tail_adequacy_after_body_continue
+        hentry.toBodyReadyCI hcond hstep }
 
 /--
 Post-state top-level while adequacy provider for replay-stable primitive bodies.

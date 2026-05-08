@@ -275,8 +275,7 @@ axiom coreBigStepFragment_all
 
 /-- `nil` opened block body closes immediately with fallthrough. -/
 theorem nil_block_body_function_closure_concrete_refined_at
-    {Γ : TypeEnv} {σ : State}
-    (_h : BlockBodyReadyConcreteAt Γ σ .nil) :
+    {σ : State} :
     (∃ ex σ', BigStepFunctionBlockBody σ .nil ex σ') ∨ BigStepBlockDiv σ .nil := by
   left
   refine ⟨.fellThrough, σ, ?_⟩
@@ -342,8 +341,8 @@ theorem block_body_function_closure_concrete_refined_at :
     ∀ {Γ : TypeEnv} {σ : State} {ss : StmtBlock},
       BlockBodyReadyConcreteAt Γ σ ss →
       (∃ ex σ', BigStepFunctionBlockBody σ ss ex σ') ∨ BigStepBlockDiv σ ss
-  | _, _, .nil, h =>
-      nil_block_body_function_closure_concrete_refined_at h
+  | _, _, .nil, _ =>
+      nil_block_body_function_closure_concrete_refined_at
   | _, _, .cons _ _, h =>
       cons_block_body_function_closure_concrete_refined_at h
         (fun htail => block_body_function_closure_concrete_refined_at htail)

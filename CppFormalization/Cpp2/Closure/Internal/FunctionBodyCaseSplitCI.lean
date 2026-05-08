@@ -977,13 +977,20 @@ structure SeqTailAdequacySupportCI
 namespace SeqTailAdequacySupportCI
 
 /-- Forget the channel-split tail support to ordinary `BodyAdequacyCI`. -/
-def toBodyAdequacyCI
+noncomputable def toBodyAdequacyCI
     {Θ : TypeEnv} {σ1 : State} {t : CppStmt}
     {P : BodyControlProfile Θ t}
     (A : SeqTailAdequacySupportCI Θ σ1 t P) :
     BodyAdequacyCI Θ σ1 t P :=
-  { normalSound := A.normal.normalSound
-    returnSound := A.returned.returnSound }
+  BodyAdequacyCI.ofWitness
+    (normalWitness := by
+      intro σ2 hstep
+      let h := A.normal.normalSound hstep
+      exact ⟨Classical.choose h, Classical.choose_spec h⟩)
+    (returnWitness := by
+      intro rv σ2 hstep
+      let h := A.returned.returnSound hstep
+      exact ⟨Classical.choose h, Classical.choose_spec h⟩)
 
 end SeqTailAdequacySupportCI
 
@@ -997,7 +1004,7 @@ structure SeqTailStaticAdequacyPayloadCI
   support : SeqTailAdequacySupportCI Θ σ1 t static.profile
 
 /-- Compatibility package for the older tail scaffold API. -/
-def SeqTailStaticAdequacyPayloadCI.toStaticAdequacyCI
+noncomputable def SeqTailStaticAdequacyPayloadCI.toStaticAdequacyCI
     {Θ : TypeEnv} {σ1 : State} {t : CppStmt}
     (p : SeqTailStaticAdequacyPayloadCI Θ σ1 t) :
     SeqTailStaticAdequacyCI Θ σ1 t :=
@@ -1116,13 +1123,15 @@ def toBodyAdequacyCI
     {P : BodyControlProfile Γ s}
     (A : SeqLeftAdequacySupportCI Γ σ s t P) :
     BodyAdequacyCI Γ σ s P :=
-  { normalSound := by
+  BodyAdequacyCI.ofWitness
+    (normalWitness := by
       intro σ1 hstep
       let r := A.normal.normalRoute hstep
-      exact ⟨⟨r.Θ, r.hleft⟩, r.hprofile⟩
-    returnSound := by
+      exact ⟨⟨r.Θ, r.hleft⟩, r.hprofile⟩)
+    (returnWitness := by
       intro rv σ' hstep
-      exact (A.returned.returnDecision hstep).toExists }
+      let d := A.returned.returnDecision hstep
+      exact ⟨⟨d.Delta, d.hleft⟩, d.hprofile⟩)
 
 end SeqLeftAdequacySupportCI
 
@@ -1293,7 +1302,7 @@ noncomputable def seq_left_adequacy_support_ci_of_entry
     returned := seq_left_return_adequacy_ci_of_entry hentry hstatic }
 
 /-- Compatibility name for downstream callers. -/
-def seq_left_adequacy_ci_of_entry
+noncomputable def seq_left_adequacy_ci_of_entry
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (hstatic : BodyStaticBoundaryCI Γ s) :
@@ -1368,7 +1377,7 @@ This replaces the old bare-witness obligation
 `route.Θ`, because that is the only environment justified by the selected
 head-normal route.
 -/
-def seq_tail_static_adequacy_ci_of_head_normal_route
+noncomputable def seq_tail_static_adequacy_ci_of_head_normal_route
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
     (_hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
@@ -2167,12 +2176,15 @@ def toBodyAdequacyCI
     {P : BodyControlProfile Γ st}
     (A : IteBranchAdequacySupportCI Γ σ st P) :
     BodyAdequacyCI Γ σ st P :=
-  { normalSound := by
+  BodyAdequacyCI.ofWitness
+    (normalWitness := by
       intro σ' hstep
-      exact (A.normalDecision hstep).toExists
-    returnSound := by
+      let d := A.normalDecision hstep
+      exact ⟨⟨d.Delta, d.hty⟩, d.hprofile⟩)
+    (returnWitness := by
       intro rv σ' hstep
-      exact (A.returnDecision hstep).toExists }
+      let d := A.returnDecision hstep
+      exact ⟨⟨d.Delta, d.hty⟩, d.hprofile⟩)
 
 end IteBranchAdequacySupportCI
 
@@ -2212,89 +2224,250 @@ def toAdequacySupport
 
 end IteBranchSlotAdequacySupportCI
 
-/--
-Remaining then-branch normal runtime-decision obligation.
-
-An actual normal execution of the then branch must use the then-normal slot selected by the branch-local profile payload.
--/
-axiom ite_then_normal_slot_runtime_decision_ci_of_entry
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    ∀ {σ' : State}
-      (hstep : BigStepStmt σ s .normal σ'),
-      IteBranchNormalSlotRuntimeDecisionCI Γ σ s
-        (ite_then_profile_slot_payload_ci_of_entry hentry)
-        hstep
+namespace IteBranchProfileSlotPayloadCI
 
 /--
-Remaining then-branch return runtime-decision obligation.
+Type-level inversion of a normal summary equality for a slot-generated branch
+profile.
 
-An actual return execution of the then branch must use the then-return slot selected by the branch-local profile payload.
+This is purely structural `Option.map` inversion; it is not a semantic adequacy
+theorem.
 -/
-axiom ite_then_return_slot_runtime_decision_ci_of_entry
+def normalSlotWitness_of_toProfile_normalOut_eq_some
+    {Γ : TypeEnv} {st : CppStmt}
+    (S : IteBranchProfileSlotPayloadCI Γ st)
+    {out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ st Δ}}
+    (h : S.toProfile.summary.normalOut = some out) :
+    { n : IteBranchNormalSlotCI Γ st //
+      S.normalSlot = some n ∧ IteBranchNormalSlotCI.out n = out } := by
+  cases hslot : S.normalSlot with
+  | none =>
+      simp [IteBranchProfileSlotPayloadCI.toProfile, hslot] at h
+  | some n =>
+      refine ⟨n, ?_⟩
+      constructor
+      · rfl
+      · simpa [IteBranchProfileSlotPayloadCI.toProfile, hslot] using h
+
+/--
+Invert a normal summary equality for a slot-generated branch profile.
+
+This is the proof-only projection of
+`normalSlotWitness_of_toProfile_normalOut_eq_some`.
+-/
+theorem normalSlot_of_toProfile_normalOut_eq_some
+    {Γ : TypeEnv} {st : CppStmt}
+    (S : IteBranchProfileSlotPayloadCI Γ st)
+    {out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ st Δ}}
+    (h : S.toProfile.summary.normalOut = some out) :
+    ∃ n : IteBranchNormalSlotCI Γ st,
+      S.normalSlot = some n ∧ IteBranchNormalSlotCI.out n = out := by
+  let w := S.normalSlotWitness_of_toProfile_normalOut_eq_some h
+  exact ⟨w.val, w.property⟩
+
+/--
+Type-level inversion of a return summary equality for a slot-generated branch
+profile.
+-/
+def returnSlotWitness_of_toProfile_returnOut_eq_some
+    {Γ : TypeEnv} {st : CppStmt}
+    (S : IteBranchProfileSlotPayloadCI Γ st)
+    {out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ st Δ}}
+    (h : S.toProfile.summary.returnOut = some out) :
+    { r : IteBranchReturnSlotCI Γ st //
+      S.returnSlot = some r ∧ IteBranchReturnSlotCI.out r = out } := by
+  cases hslot : S.returnSlot with
+  | none =>
+      simp [IteBranchProfileSlotPayloadCI.toProfile, hslot] at h
+  | some r =>
+      refine ⟨r, ?_⟩
+      constructor
+      · rfl
+      · simpa [IteBranchProfileSlotPayloadCI.toProfile, hslot] using h
+
+/--
+Invert a return summary equality for a slot-generated branch profile.
+
+This is the proof-only projection of
+`returnSlotWitness_of_toProfile_returnOut_eq_some`.
+-/
+theorem returnSlot_of_toProfile_returnOut_eq_some
+    {Γ : TypeEnv} {st : CppStmt}
+    (S : IteBranchProfileSlotPayloadCI Γ st)
+    {out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ st Δ}}
+    (h : S.toProfile.summary.returnOut = some out) :
+    ∃ r : IteBranchReturnSlotCI Γ st,
+      S.returnSlot = some r ∧ IteBranchReturnSlotCI.out r = out := by
+  let w := S.returnSlotWitness_of_toProfile_returnOut_eq_some h
+  exact ⟨w.val, w.property⟩
+
+end IteBranchProfileSlotPayloadCI
+
+namespace IteBranchSlotAdequacySupportCI
+
+/--
+Convert branch-local `BodyAdequacyCI` for `S.toProfile` into slot-aware
+adequacy support for `S`.
+
+The adequacy provider supplies the normal/return profile witness directly, and
+the slot payload inverts it into the corresponding selected slot.
+-/
+def ofBodyAdequacy
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (S : IteBranchProfileSlotPayloadCI Γ st)
+    (A : BodyAdequacyCI Γ σ st S.toProfile) :
+    IteBranchSlotAdequacySupportCI Γ σ st S :=
+  { normalDecision := by
+      intro σ' hstep
+      let hout := A.normalWitness hstep
+      let w := S.normalSlotWitness_of_toProfile_normalOut_eq_some hout.property
+      exact
+        { Delta := w.val.Δ
+          hty := w.val.hty
+          hslot := w.property.1 }
+    returnDecision := by
+      intro rv σ' hstep
+      let hout := A.returnWitness hstep
+      let w := S.returnSlotWitness_of_toProfile_returnOut_eq_some hout.property
+      exact
+        { Delta := w.val.Δ
+          hty := w.val.hty
+          hslot := w.property.1 } }
+
+/--
+Convert witness-producing branch-local adequacy for `S.toProfile` into
+slot-aware adequacy support for `S`.
+
+Unlike `ofBodyAdequacy`, this route does not need to choose the profile output
+from a `Prop`-level existential; the profile witness is supplied directly by the
+witness-producing adequacy layer.
+-/
+def ofBodyAdequacyWitness
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (S : IteBranchProfileSlotPayloadCI Γ st)
+    (A : BodyAdequacyCI Γ σ st S.toProfile) :
+    IteBranchSlotAdequacySupportCI Γ σ st S :=
+  { normalDecision := by
+      intro σ' hstep
+      let hout := A.normalWitness hstep
+      let w := S.normalSlotWitness_of_toProfile_normalOut_eq_some hout.property
+      exact
+        { Delta := w.val.Δ
+          hty := w.val.hty
+          hslot := w.property.1 }
+    returnDecision := by
+      intro rv σ' hstep
+      let hout := A.returnWitness hstep
+      let w := S.returnSlotWitness_of_toProfile_returnOut_eq_some hout.property
+      exact
+        { Delta := w.val.Δ
+          hty := w.val.hty
+          hslot := w.property.1 } }
+
+end IteBranchSlotAdequacySupportCI
+
+/--
+Remaining then-branch witness-producing adequacy obligation.
+
+This replaces the two channel-specific then-branch runtime-decision axioms.
+The branch-local adequacy provider is indexed by the selected then-branch slot
+payload profile, so the normal/return channel decisions are derived uniformly
+from one branch adequacy package.
+-/
+axiom ite_then_body_adequacy_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    ∀ {rv : Option Value} {σ' : State}
-      (hstep : BigStepStmt σ s (.returnResult rv) σ'),
-      IteBranchReturnSlotRuntimeDecisionCI Γ σ s
-        (ite_then_profile_slot_payload_ci_of_entry hentry)
-        hstep
+    BodyAdequacyCI Γ σ s
+      (ite_then_profile_slot_payload_ci_of_entry hentry).toProfile
+
+/--
+Remaining else-branch witness-producing adequacy obligation.
+
+This replaces the two channel-specific else-branch runtime-decision axioms.
+-/
+axiom ite_else_body_adequacy_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    BodyAdequacyCI Γ σ t
+      (ite_else_profile_slot_payload_ci_of_entry hentry).toProfile
 
 /--
 Compatibility package for then-branch slot-aware adequacy support.
-
-The primitive obligations are now split by control channel.  This package exists
-only to preserve the existing downstream surface.
+The primitive obligation is now one witness-producing branch-local adequacy
+provider, not two separate runtime-decision axioms.
 -/
 noncomputable def ite_then_slot_adequacy_support_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
     IteBranchSlotAdequacySupportCI Γ σ s
       (ite_then_profile_slot_payload_ci_of_entry hentry) :=
-  { normalDecision := ite_then_normal_slot_runtime_decision_ci_of_entry hentry
-    returnDecision := ite_then_return_slot_runtime_decision_ci_of_entry hentry }
-
-/--
-Remaining else-branch normal runtime-decision obligation.
-
-An actual normal execution of the else branch must use the else-normal slot selected by the branch-local profile payload.
--/
-axiom ite_else_normal_slot_runtime_decision_ci_of_entry
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    ∀ {σ' : State}
-      (hstep : BigStepStmt σ t .normal σ'),
-      IteBranchNormalSlotRuntimeDecisionCI Γ σ t
-        (ite_else_profile_slot_payload_ci_of_entry hentry)
-        hstep
-
-/--
-Remaining else-branch return runtime-decision obligation.
-
-An actual return execution of the else branch must use the else-return slot selected by the branch-local profile payload.
--/
-axiom ite_else_return_slot_runtime_decision_ci_of_entry
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
-    ∀ {rv : Option Value} {σ' : State}
-      (hstep : BigStepStmt σ t (.returnResult rv) σ'),
-      IteBranchReturnSlotRuntimeDecisionCI Γ σ t
-        (ite_else_profile_slot_payload_ci_of_entry hentry)
-        hstep
+  IteBranchSlotAdequacySupportCI.ofBodyAdequacy
+    (ite_then_profile_slot_payload_ci_of_entry hentry)
+    (ite_then_body_adequacy_ci_of_entry hentry)
 
 /--
 Compatibility package for else-branch slot-aware adequacy support.
-
-The primitive obligations are now split by control channel.  This package exists
-only to preserve the existing downstream surface.
 -/
 noncomputable def ite_else_slot_adequacy_support_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
     IteBranchSlotAdequacySupportCI Γ σ t
       (ite_else_profile_slot_payload_ci_of_entry hentry) :=
-  { normalDecision := ite_else_normal_slot_runtime_decision_ci_of_entry hentry
-    returnDecision := ite_else_return_slot_runtime_decision_ci_of_entry hentry }
+  IteBranchSlotAdequacySupportCI.ofBodyAdequacy
+    (ite_else_profile_slot_payload_ci_of_entry hentry)
+    (ite_else_body_adequacy_ci_of_entry hentry)
+
+/--
+Compatibility name for the old then normal runtime-decision surface.
+This is now a definition derived from the then witness-producing adequacy
+provider, not a primitive axiom.
+-/
+noncomputable def ite_then_normal_slot_runtime_decision_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    ∀ {σ' : State} (hstep : BigStepStmt σ s .normal σ'),
+      IteBranchNormalSlotRuntimeDecisionCI Γ σ s
+        (ite_then_profile_slot_payload_ci_of_entry hentry) hstep :=
+  (ite_then_slot_adequacy_support_ci_of_entry hentry).normalDecision
+
+/--
+Compatibility name for the old then return runtime-decision surface.
+This is now derived from the then witness-producing adequacy provider.
+-/
+noncomputable def ite_then_return_slot_runtime_decision_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    ∀ {rv : Option Value} {σ' : State}
+      (hstep : BigStepStmt σ s (.returnResult rv) σ'),
+      IteBranchReturnSlotRuntimeDecisionCI Γ σ s
+        (ite_then_profile_slot_payload_ci_of_entry hentry) hstep :=
+  (ite_then_slot_adequacy_support_ci_of_entry hentry).returnDecision
+
+/--
+Compatibility name for the old else normal runtime-decision surface.
+This is now derived from the else witness-producing adequacy provider.
+-/
+noncomputable def ite_else_normal_slot_runtime_decision_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    ∀ {σ' : State} (hstep : BigStepStmt σ t .normal σ'),
+      IteBranchNormalSlotRuntimeDecisionCI Γ σ t
+        (ite_else_profile_slot_payload_ci_of_entry hentry) hstep :=
+  (ite_else_slot_adequacy_support_ci_of_entry hentry).normalDecision
+
+/--
+Compatibility name for the old else return runtime-decision surface.
+This is now derived from the else witness-producing adequacy provider.
+-/
+noncomputable def ite_else_return_slot_runtime_decision_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    ∀ {rv : Option Value} {σ' : State}
+      (hstep : BigStepStmt σ t (.returnResult rv) σ'),
+      IteBranchReturnSlotRuntimeDecisionCI Γ σ t
+        (ite_else_profile_slot_payload_ci_of_entry hentry) hstep :=
+  (ite_else_slot_adequacy_support_ci_of_entry hentry).returnDecision
+
 /-- Compatibility profile-level adequacy support for the then branch. -/
 noncomputable def ite_then_adequacy_support_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
@@ -2340,21 +2513,83 @@ structure IteBranchStaticAdequacyCI
   static : BodyStaticBoundaryCI Γ st
   adequacy : BodyAdequacyCI Γ σ st static.profile
 
+/--
+Witness-producing static+adequacy package for one branch of an `ite`.
+
+This is the provider-facing analogue of `IteBranchStaticAdequacyCI`.  The
+ordinary proof-only package remains available by forgetting the witness
+provider.
+-/
+structure IteBranchStaticAdequacyProviderCI
+    (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
+  static : BodyStaticBoundaryCI Γ st
+  adequacyWitness : BodyAdequacyCI Γ σ st static.profile
+
+namespace IteBranchStaticAdequacyProviderCI
+
+/-- Forget the witness-producing branch package to the older proof-only API. -/
+def toStaticAdequacyCI
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (B : IteBranchStaticAdequacyProviderCI Γ σ st) :
+    IteBranchStaticAdequacyCI Γ σ st :=
+  { static := B.static
+    adequacy := B.adequacyWitness }
+
+end IteBranchStaticAdequacyProviderCI
+
+/--
+Then-branch witness adequacy transported to the actual static boundary profile.
+-/
+noncomputable def ite_then_body_adequacy_ci_of_static_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    BodyAdequacyCI Γ σ s (ite_then_static_ci_of_entry hentry).profile := by
+  simpa [ite_then_static_ci_of_entry, IteBranchStaticScaffoldCI.toBodyStaticBoundaryCI,
+    IteBranchStaticScaffoldCI.profile, ite_then_static_scaffold_ci_of_entry,
+    ite_then_profile_payload_ci_of_entry, IteBranchProfilePayloadCI.ofSlotPayload]
+    using (ite_then_body_adequacy_ci_of_entry hentry)
+
+/--
+Else-branch witness adequacy transported to the actual static boundary profile.
+-/
+noncomputable def ite_else_body_adequacy_ci_of_static_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    BodyAdequacyCI Γ σ t (ite_else_static_ci_of_entry hentry).profile := by
+  simpa [ite_else_static_ci_of_entry, IteBranchStaticScaffoldCI.toBodyStaticBoundaryCI,
+    IteBranchStaticScaffoldCI.profile, ite_else_static_scaffold_ci_of_entry,
+    ite_else_profile_payload_ci_of_entry, IteBranchProfilePayloadCI.ofSlotPayload]
+    using (ite_else_body_adequacy_ci_of_entry hentry)
+
+/-- Witness-producing compatibility package for the then branch. -/
+noncomputable def ite_then_static_adequacy_provider_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    IteBranchStaticAdequacyProviderCI Γ σ s :=
+  { static := ite_then_static_ci_of_entry hentry
+    adequacyWitness := ite_then_body_adequacy_ci_of_static_entry hentry }
+
+/-- Witness-producing compatibility package for the else branch. -/
+noncomputable def ite_else_static_adequacy_provider_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
+    IteBranchStaticAdequacyProviderCI Γ σ t :=
+  { static := ite_else_static_ci_of_entry hentry
+    adequacyWitness := ite_else_body_adequacy_ci_of_static_entry hentry }
+
 /-- Compatibility package for the then branch. -/
 noncomputable def ite_then_static_adequacy_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
     IteBranchStaticAdequacyCI Γ σ s :=
-  { static := ite_then_static_ci_of_entry hentry
-    adequacy := ite_then_adequacy_ci_of_entry hentry }
+  (ite_then_static_adequacy_provider_ci_of_entry hentry).toStaticAdequacyCI
 
 /-- Compatibility package for the else branch. -/
 noncomputable def ite_else_static_adequacy_ci_of_entry
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.ite c s t)) :
     IteBranchStaticAdequacyCI Γ σ t :=
-  { static := ite_else_static_ci_of_entry hentry
-    adequacy := ite_else_adequacy_ci_of_entry hentry }
+  (ite_else_static_adequacy_provider_ci_of_entry hentry).toStaticAdequacyCI
 
 /--
 Branch closure boundaries for an `ite`.

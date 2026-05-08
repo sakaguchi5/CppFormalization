@@ -44,40 +44,198 @@ theorem old_assign_to_normalCI
   cases hty with
   | assign hp hv => exact ⟨rfl, _, hp, hv, HasTypeStmtCI.assign hp hv⟩
 
+/-! ### declaration normal payloads -/
+
+/-- Prop-level normal CI payload for object declaration without initializer. -/
+structure DeclareObjNoneNormalCIPropPayload
+    (Γ : TypeEnv) (τ : CppType) (x : Ident) : Prop where
+  fresh : currentTypeScopeFresh Γ x
+  objectType : ObjectType τ
+  normalCI :
+    HasTypeStmtCI .normalK Γ
+      (.declareObj τ x none)
+      (declareTypeObject Γ x τ)
+
+/-- Prop-level normal CI payload for object declaration with initializer. -/
+structure DeclareObjSomeNormalCIPropPayload
+    (Γ : TypeEnv) (τ : CppType) (x : Ident) (e : ValExpr) : Prop where
+  fresh : currentTypeScopeFresh Γ x
+  objectType : ObjectType τ
+  valueType : HasValueType Γ e τ
+  normalCI :
+    HasTypeStmtCI .normalK Γ
+      (.declareObj τ x (some e))
+      (declareTypeObject Γ x τ)
+
+/-- Prop-level normal CI payload for reference declaration. -/
+structure DeclareRefNormalCIPropPayload
+    (Γ : TypeEnv) (τ : CppType) (x : Ident) (p : PlaceExpr) : Prop where
+  fresh : currentTypeScopeFresh Γ x
+  placeType : HasPlaceType Γ p τ
+  normalCI :
+    HasTypeStmtCI .normalK Γ
+      (.declareRef τ x p)
+      (declareTypeRef Γ x τ)
+
+/-- Type-level normal CI payload for object declaration without initializer. -/
+structure DeclareObjNoneNormalCITypePayload
+    (Γ : TypeEnv) (τ : CppType) (x : Ident) : Type where
+  fresh : currentTypeScopeFresh Γ x
+  objectType : ObjectType τ
+  normalCI :
+    HasTypeStmtCI .normalK Γ
+      (.declareObj τ x none)
+      (declareTypeObject Γ x τ)
+
+/-- Type-level normal CI payload for object declaration with initializer. -/
+structure DeclareObjSomeNormalCITypePayload
+    (Γ : TypeEnv) (τ : CppType) (x : Ident) (e : ValExpr) : Type where
+  fresh : currentTypeScopeFresh Γ x
+  objectType : ObjectType τ
+  valueType : HasValueType Γ e τ
+  normalCI :
+    HasTypeStmtCI .normalK Γ
+      (.declareObj τ x (some e))
+      (declareTypeObject Γ x τ)
+
+/-- Type-level normal CI payload for reference declaration. -/
+structure DeclareRefNormalCITypePayload
+    (Γ : TypeEnv) (τ : CppType) (x : Ident) (p : PlaceExpr) : Type where
+  fresh : currentTypeScopeFresh Γ x
+  placeType : HasPlaceType Γ p τ
+  normalCI :
+    HasTypeStmtCI .normalK Γ
+      (.declareRef τ x p)
+      (declareTypeRef Γ x τ)
+
+namespace DeclareObjNoneNormalCITypePayload
+
+/-- Forget a Type-level object-declaration payload to its Prop-level view. -/
+def toProp
+    {Γ : TypeEnv} {τ : CppType} {x : Ident}
+    (P : DeclareObjNoneNormalCITypePayload Γ τ x) :
+    DeclareObjNoneNormalCIPropPayload Γ τ x :=
+  { fresh := P.fresh
+    objectType := P.objectType
+    normalCI := P.normalCI }
+
+end DeclareObjNoneNormalCITypePayload
+
+namespace DeclareObjSomeNormalCITypePayload
+
+/-- Forget a Type-level initialized object-declaration payload to its Prop-level view. -/
+def toProp
+    {Γ : TypeEnv} {τ : CppType} {x : Ident} {e : ValExpr}
+    (P : DeclareObjSomeNormalCITypePayload Γ τ x e) :
+    DeclareObjSomeNormalCIPropPayload Γ τ x e :=
+  { fresh := P.fresh
+    objectType := P.objectType
+    valueType := P.valueType
+    normalCI := P.normalCI }
+
+end DeclareObjSomeNormalCITypePayload
+
+namespace DeclareRefNormalCITypePayload
+
+/-- Forget a Type-level reference-declaration payload to its Prop-level view. -/
+def toProp
+    {Γ : TypeEnv} {τ : CppType} {x : Ident} {p : PlaceExpr}
+    (P : DeclareRefNormalCITypePayload Γ τ x p) :
+    DeclareRefNormalCIPropPayload Γ τ x p :=
+  { fresh := P.fresh
+    placeType := P.placeType
+    normalCI := P.normalCI }
+
+end DeclareRefNormalCITypePayload
+
+/--
+Declaration-normal payload extracted from old typing for object declaration
+without initializer.
+-/
+theorem old_declareObjNone_to_normalCI_payload
+    {Γ Δ : TypeEnv} {τ : CppType} {x : Ident}
+    (hty : HasTypeStmt Γ (.declareObj τ x none) Δ) :
+    Δ = declareTypeObject Γ x τ ∧
+      DeclareObjNoneNormalCIPropPayload Γ τ x := by
+  cases hty with
+  | declareObjNone hfresh hobj =>
+      exact
+        ⟨rfl,
+          { fresh := hfresh
+            objectType := hobj
+            normalCI := HasTypeStmtCI.declareObjNone hfresh hobj }⟩
+
+/--
+Compatibility surface: old declaration-normal bridge with an existential
+conclusion.  Prefer `old_declareObjNone_to_normalCI_payload` in new code.
+-/
 theorem old_declareObjNone_to_normalCI
     {Γ Δ : TypeEnv} {τ : CppType} {x : Ident}
     (hty : HasTypeStmt Γ (.declareObj τ x none) Δ) :
     Δ = declareTypeObject Γ x τ ∧
-    -- ここで型を明示します
-    ∃ (_hfresh : currentTypeScopeFresh Γ x) (_hobj : ObjectType τ),
+    ∃ (_ : currentTypeScopeFresh Γ x) (_ : ObjectType τ),
       HasTypeStmtCI .normalK Γ (.declareObj τ x none) (declareTypeObject Γ x τ) := by
-  cases hty with
-  | declareObjNone hfresh hobj =>
-      -- rfl で Δ = declareTypeObject ... を解き、
-      -- ⟨hfresh, hobj, ...⟩ で存在記号の中身を埋めます
-      exact ⟨rfl, hfresh, hobj, HasTypeStmtCI.declareObjNone hfresh hobj⟩
+  rcases old_declareObjNone_to_normalCI_payload hty with ⟨hΔ, P⟩
+  exact ⟨hΔ, P.fresh, P.objectType, P.normalCI⟩
 
+/--
+Declaration-normal payload extracted from old typing for object declaration with
+initializer.
+-/
+theorem old_declareObjSome_to_normalCI_payload
+    {Γ Δ : TypeEnv} {τ : CppType} {x : Ident} {e : ValExpr}
+    (hty : HasTypeStmt Γ (.declareObj τ x (some e)) Δ) :
+    Δ = declareTypeObject Γ x τ ∧
+      DeclareObjSomeNormalCIPropPayload Γ τ x e := by
+  cases hty with
+  | declareObjSome hfresh hobj hv =>
+      exact
+        ⟨rfl,
+          { fresh := hfresh
+            objectType := hobj
+            valueType := hv
+            normalCI := HasTypeStmtCI.declareObjSome hfresh hobj hv }⟩
+
+/--
+Compatibility surface: old initialized declaration-normal bridge with an
+existential conclusion.  Prefer `old_declareObjSome_to_normalCI_payload` in new
+code.
+-/
 theorem old_declareObjSome_to_normalCI
     {Γ Δ : TypeEnv} {τ : CppType} {x : Ident} {e : ValExpr}
     (hty : HasTypeStmt Γ (.declareObj τ x (some e)) Δ) :
     Δ = declareTypeObject Γ x τ ∧
-    -- 型を明示することで、Leanが迷わなくなります
-    ∃ (_hfresh : currentTypeScopeFresh Γ x) (_hobj : ObjectType τ) (_hv : HasValueType Γ e τ),
+    ∃ (_ : currentTypeScopeFresh Γ x) (_ : ObjectType τ) (_ : HasValueType Γ e τ),
       HasTypeStmtCI .normalK Γ (.declareObj τ x (some e)) (declareTypeObject Γ x τ) := by
-  cases hty with
-  | declareObjSome hfresh hobj hv =>
-      -- 構造解法（⟨ ⟩）で順番に値を埋めていきます
-      exact ⟨rfl, hfresh, hobj, hv, HasTypeStmtCI.declareObjSome hfresh hobj hv⟩
+  rcases old_declareObjSome_to_normalCI_payload hty with ⟨hΔ, P⟩
+  exact ⟨hΔ, P.fresh, P.objectType, P.valueType, P.normalCI⟩
 
+/-- Declaration-normal payload extracted from old typing for reference declaration. -/
+theorem old_declareRef_to_normalCI_payload
+    {Γ Δ : TypeEnv} {τ : CppType} {x : Ident} {p : PlaceExpr}
+    (hty : HasTypeStmt Γ (.declareRef τ x p) Δ) :
+    Δ = declareTypeRef Γ x τ ∧
+      DeclareRefNormalCIPropPayload Γ τ x p := by
+  cases hty with
+  | declareRef hfresh hp =>
+      exact
+        ⟨rfl,
+          { fresh := hfresh
+            placeType := hp
+            normalCI := HasTypeStmtCI.declareRef hfresh hp }⟩
+
+/--
+Compatibility surface: old reference declaration-normal bridge with an
+existential conclusion.  Prefer `old_declareRef_to_normalCI_payload` in new code.
+-/
 theorem old_declareRef_to_normalCI
     {Γ Δ : TypeEnv} {τ : CppType} {x : Ident} {p : PlaceExpr}
     (hty : HasTypeStmt Γ (.declareRef τ x p) Δ) :
     Δ = declareTypeRef Γ x τ ∧
-    ∃ (_hfresh : currentTypeScopeFresh Γ x) (_hp : HasPlaceType Γ p τ),
+    ∃ (_ : currentTypeScopeFresh Γ x) (_ : HasPlaceType Γ p τ),
       HasTypeStmtCI .normalK Γ (.declareRef τ x p) (declareTypeRef Γ x τ) := by
-  cases hty with
-  | declareRef hfresh hp =>
-      exact ⟨rfl, hfresh, hp, HasTypeStmtCI.declareRef hfresh hp⟩
+  rcases old_declareRef_to_normalCI_payload hty with ⟨hΔ, P⟩
+  exact ⟨hΔ, P.fresh, P.placeType, P.normalCI⟩
 
 /-! ## seq / ite / block / while: normal path data -/
 

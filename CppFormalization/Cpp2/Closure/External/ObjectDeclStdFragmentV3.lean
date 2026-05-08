@@ -330,7 +330,7 @@ def toRuntime (c : ObjectDeclRuntimeCert) : RuntimePiecesV3 c.Γ c.σ c.targetSt
     (c : ObjectDeclRuntimeCert) (h : c.initExpr = none) :
     (h ▸ c.toRuntime : RuntimePiecesV3 c.Γ c.σ (CppStmt.declareObj c.τ c.x none))
     = mkRuntime_none h := by
-  rcases c with ⟨Γ, σ, x, τ, ov, (_ | e), init, ready, objTy⟩
+  rcases c with ⟨Γ, σ, x, τ, ov, (_ | e), _, _, _⟩
   · rfl
   · nomatch h
 
@@ -338,7 +338,7 @@ def toRuntime (c : ObjectDeclRuntimeCert) : RuntimePiecesV3 c.Γ c.σ c.targetSt
     (c : ObjectDeclRuntimeCert) {e : ValExpr} (h : c.initExpr = some e) :
     (h ▸ c.toRuntime : RuntimePiecesV3 c.Γ c.σ (CppStmt.declareObj c.τ c.x (some e)))
     = mkRuntime_some h := by
-  rcases c with ⟨Γ, σ, x, τ, ov, (_ | e'), init, ready, objTy⟩
+  rcases c with ⟨Γ, σ, x, τ, ov, (_ | e'), _, _, _⟩
   · nomatch h
   · injection h with h_eq
     subst h_eq
@@ -596,16 +596,14 @@ theorem noReturnBigStep
 /-- Adequacy of the cert-induced control profile. -/
 def bodyAdequacyCI
     (c : ObjectDeclRuntimeCert) :
-    BodyAdequacyCI c.Γ c.σ c.targetStmt c.bodyControlProfile := by
-  refine
-    { normalSound := ?_
-      returnSound := ?_ }
-  ·
-    intro σ' hstep
-    exact ⟨c.normalOut, rfl⟩
-  ·
-    intro rv σ' hstep
-    exact False.elim (c.noReturnBigStep hstep)
+    BodyAdequacyCI c.Γ c.σ c.targetStmt c.bodyControlProfile :=
+  BodyAdequacyCI.ofWitness
+    (normalWitness := by
+      intro σ' hstep
+      exact ⟨c.normalOut, rfl⟩)
+    (returnWitness := by
+      intro rv σ' hstep
+      exact False.elim (c.noReturnBigStep hstep))
 
 /-- Fully assembled CI closure boundary extracted from the cert. -/
 def bodyClosureBoundaryCI

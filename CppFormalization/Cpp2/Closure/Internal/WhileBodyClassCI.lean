@@ -13,8 +13,21 @@ Redesign:
   1. current-entry facts, theorem-backed by `WhileEntryBoundaryCI`;
   2. loop-body local boundary, still a real local-body obligation;
   3. tail-boundary reconstruction, still a real delimiter/reentry obligation.
-- additionally expose a reentry-based route where tail-boundary reconstruction
-  is assembled from `LoopReentryKernelCI` plus a post-state adequacy provider.
+- expose a reentry-provider route where the mainline closure theorem follows the
+  C++ condition-first execution order and avoids the older compatibility kits.
+
+2026-05 patch note:
+- The old direct extraction wrappers
+  `whileBodyClassComponentsCI_of_bodyClosureBoundaryCI` and
+  `whileBodyClassCI_of_bodyClosureBoundaryCI` are now kept only as a commented
+  legacy block below.  They route through the unconditional current-boundary
+  loop-body extraction, which is too strong as a canonical C++ story: a body
+  return can be exposed through the whole `while` only after the condition has
+  actually evaluated to `true`.
+- The preferred public route is now the reentry-provider route:
+  `whileBodyReentrySupportCI_of_bodyClosureBoundaryCI` plus
+  `while_function_body_closure_boundary_ci_of_reentrySupport`, or directly
+  `while_function_body_closure_boundary_ci_of_currentBoundary_reentryProvider`.
 -/
 
 /--
@@ -41,8 +54,8 @@ It replaces an opaque tail-boundary kit by:
 - delimiter reentry kernel,
 - the remaining post-state top-level while adequacy provider.
 
-This is the surface that should replace direct uses of
-`whileTailBoundaryKitCI_of_bodyClosureBoundaryCI` when proving concrete classes.
+The clean closure wrapper below converts this object to a
+`WhileTailBoundaryReentryProviderCI` and calls the condition-first while theorem.
 -/
 structure WhileBodyReentrySupportCI
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
@@ -57,7 +70,7 @@ structure WhileBodyReentrySupportCI
     WhileTailAdequacyProviderCI Γ σ c body hentry.static
 
 /--
-The class object consumed by the while case kernel.
+The class object consumed by the older kit-based wrapper.
 
 It intentionally contains only the two operational supports needed by the
 honest while theorem.  The current-entry data is kept in
@@ -85,7 +98,7 @@ end WhileBodyClassCI
 
 namespace WhileBodyClassComponentsCI
 
-/-- Forget the entry component and keep exactly the class payload consumed by the kernel. -/
+/-- Forget the entry component and keep exactly the class payload consumed by the kit-based wrapper. -/
 def toClass
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (K : WhileBodyClassComponentsCI Γ σ c body) :
@@ -114,8 +127,9 @@ namespace WhileBodyReentrySupportCI
 /--
 Assemble the ordinary component package from reentry support.
 
-This is the key connection from `LoopReentryKernelCI` to the tail-boundary kit.
-It does not hide the remaining adequacy obligation.
+This compatibility projection is still useful for callers that explicitly want a
+`WhileBodyClassComponentsCI`, but the preferred closure theorem below does not
+need to build a tail-boundary kit eagerly.
 -/
 def toComponents
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
@@ -140,13 +154,28 @@ def toClass
     WhileBodyClassCI Γ σ c body :=
   S.toComponents.toClass
 
+/--
+Forget only to the smaller tail-boundary reentry provider.
+
+This is the preferred forgetful map for the condition-first route: it preserves
+exactly the two genuine tail obligations and avoids constructing a
+`WhileTailBoundaryKitCI` before the condition is evaluated.
+-/
+def toTailBoundaryReentryProvider
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    {hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)}
+    (S : WhileBodyReentrySupportCI hentry) :
+    WhileTailBoundaryReentryProviderCI hentry :=
+  { reentry := S.reentry
+    tailAdequacy := S.tailAdequacy }
+
 /-- The theorem-backed while typing exposed by the current-entry component. -/
 theorem whileTyping
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     {hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)}
     (S : WhileBodyReentrySupportCI hentry) :
     HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ :=
-  S.toComponents.whileTyping
+  whileTypingCI_of_whileEntryBoundaryCI S.currentEntry
 
 /-- Local body progress/divergence through the loop-boundary component. -/
 theorem bodyProgressOrDiverges
@@ -157,22 +186,6 @@ theorem bodyProgressOrDiverges
   S.toClass.bodyProgressOrDiverges
 
 end WhileBodyReentrySupportCI
-
-/--
-Build the decomposed while-local components from a top-level while boundary.
-
-This is no longer a single opaque class axiom:
-- `entry` is theorem-backed;
-- `loopBoundary` is provided by the remaining loop-body obligation;
-- `tailBoundary` is provided by the remaining delimiter/reentry obligation.
--/
-noncomputable def whileBodyClassComponentsCI_of_bodyClosureBoundaryCI
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) :
-    WhileBodyClassComponentsCI Γ σ c body :=
-  { entry := whileEntryBoundaryCI_of_bodyClosureBoundaryCI hentry
-    loopBoundary := whileLoopBoundaryCI_of_bodyClosureBoundaryCI hentry
-    tailBoundary := whileTailBoundaryKitCI_of_bodyClosureBoundaryCI hentry }
 
 /--
 Build the reentry-based while-local support from explicit obligations.
@@ -191,11 +204,43 @@ def whileBodyReentrySupportCI_of_bodyClosureBoundaryCI
     reentry := hreentry
     tailAdequacy := hadequacy }
 
+/-
+LEGACY COMPATIBILITY WRAPPERS COMMENTED OUT
+
+理由:
+- These wrappers rebuild a complete kit/class directly from the current
+  top-level while boundary.
+- Internally that direct route goes through the unconditional current-body
+  boundary/exposure path.  That path is no longer the canonical C++ reading,
+  because a body return is exposed through the whole `while` only after the
+  condition has evaluated to `true`.
+- The current mainline should instead use either
+  `whileBodyReentrySupportCI_of_bodyClosureBoundaryCI` with explicit
+  `LoopBodyBoundaryCI` / `LoopReentryKernelCI` / `WhileTailAdequacyProviderCI`,
+  or the lower-level
+  `while_function_body_closure_boundary_ci_of_currentBoundary_reentryProvider`.
+
+Retired declarations:
+
+/--
+Build the decomposed while-local components from a top-level while boundary.
+
+This compatibility route is retained for older callers.  New mainline code
+should prefer the condition-first reentry-provider wrapper below.
+-/
+noncomputable def whileBodyClassComponentsCI_of_bodyClosureBoundaryCI
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) :
+    WhileBodyClassComponentsCI Γ σ c body :=
+  { entry := whileEntryBoundaryCI_of_bodyClosureBoundaryCI hentry
+    loopBoundary := whileLoopBoundaryCI_of_bodyClosureBoundaryCI hentry
+    tailBoundary := whileTailBoundaryKitCI_of_bodyClosureBoundaryCI hentry }
+
 /--
 Class extracted from a top-level `while` closure boundary.
 
 This is retained for callers, but it is now just a projection from the
-decomposed components above, not an independent axiom.
+compatibility components above, not an independent axiom.
 -/
 noncomputable def whileBodyClassCI_of_bodyClosureBoundaryCI
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
@@ -203,13 +248,13 @@ noncomputable def whileBodyClassCI_of_bodyClosureBoundaryCI
     WhileBodyClassCI Γ σ c body := by
   intro hentry
   exact (whileBodyClassComponentsCI_of_bodyClosureBoundaryCI hentry).toClass
+-/
 
 /--
 Class-based wrapper around the honest while kernel.
 
-The typing premise can now be supplied by
-`whileTypingCI_of_bodyClosureBoundaryCI`, and the class itself is only the
-pair of remaining local-body / tail-reentry supports.
+This compatibility wrapper consumes a prebuilt tail-boundary kit.
+The newer reentry-provider wrapper below is the preferred mainline route.
 -/
 theorem while_function_body_closure_boundary_ci_of_class
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
@@ -235,8 +280,7 @@ theorem while_function_body_closure_boundary_ci_of_class
 /--
 Component-based wrapper.
 
-This is the preferred route for new code because it keeps the theorem-backed
-current-entry facts visible and separates the two remaining obligations.
+This is retained for compatibility with the older components surface.
 -/
 theorem while_function_body_closure_boundary_ci_of_components
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
@@ -257,10 +301,74 @@ theorem while_function_body_closure_boundary_ci_of_components
       htailClosure
 
 /--
+Condition-first wrapper from a current boundary and a reentry provider.
+
+This is the clean mainline route: it avoids the old unconditional loop-body
+return-exposure compatibility shell and avoids extracting a direct
+`WhileTailBoundaryKitCI` from the current boundary.
+-/
+theorem while_function_body_closure_boundary_ci_of_currentBoundary_reentryProvider
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
+    (P : WhileTailBoundaryReentryProviderCI hentry)
+    (htailClosure :
+      ∀ {σ1 : State},
+        BodyClosureBoundaryCI Γ σ1 (.whileStmt c body) →
+        (∃ ex σ2, BigStepFunctionBody σ1 (.whileStmt c body) ex σ2) ∨
+          BigStepStmtDiv σ1 (.whileStmt c body)) :
+    (∃ ex σ', BigStepFunctionBody σ (.whileStmt c body) ex σ') ∨
+      BigStepStmtDiv σ (.whileStmt c body) := by
+  exact
+    while_function_body_closure_boundary_ci_of_reentryProvider_condition_first
+      (whileTypingCI_of_bodyClosureBoundaryCI hentry)
+      hentry
+      P
+      htailClosure
+
+/-
+LEGACY CURRENT-BOUNDARY WRAPPER COMMENTED OUT
+
+理由:
+- This wrapper hides the remaining tail obligations by immediately calling
+  `whileTailBoundaryReentryProviderCI_of_bodyClosureBoundaryCI`.
+- The case-driver now calls
+  `while_function_body_closure_boundary_ci_of_currentBoundary_reentryProvider`
+  directly and passes that provider explicitly, so this wrapper is no longer
+  needed on the canonical path.
+- Keeping the provider visible is important for the next step: splitting its
+  contents into delimiter reentry and post-state tail adequacy transport.
+
+Retired declaration:
+
+/--
+Canonical current-boundary wrapper assembled from the smaller residual provider.
+
+The remaining assumptions are now exactly those hidden in
+`whileTailBoundaryReentryProviderCI_of_bodyClosureBoundaryCI`, namely delimiter
+reentry and post-state tail adequacy.
+-/
+theorem while_function_body_closure_boundary_ci_of_currentBoundary
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
+    (htailClosure :
+      ∀ {σ1 : State},
+        BodyClosureBoundaryCI Γ σ1 (.whileStmt c body) →
+        (∃ ex σ2, BigStepFunctionBody σ1 (.whileStmt c body) ex σ2) ∨
+          BigStepStmtDiv σ1 (.whileStmt c body)) :
+    (∃ ex σ', BigStepFunctionBody σ (.whileStmt c body) ex σ') ∨
+      BigStepStmtDiv σ (.whileStmt c body) := by
+  exact
+    while_function_body_closure_boundary_ci_of_currentBoundary_reentryProvider
+      hentry
+      (whileTailBoundaryReentryProviderCI_of_bodyClosureBoundaryCI hentry)
+      htailClosure
+-/
+
+/--
 Reentry-support wrapper.
 
-This is the preferred route once a concrete proof supplies a
-`LoopReentryKernelCI` and the remaining post-state adequacy provider.
+This now uses the condition-first reentry-provider route directly, instead of
+first constructing `WhileBodyClassComponentsCI` and a tail-boundary kit.
 -/
 theorem while_function_body_closure_boundary_ci_of_reentrySupport
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
@@ -274,9 +382,10 @@ theorem while_function_body_closure_boundary_ci_of_reentrySupport
     (∃ ex σ', BigStepFunctionBody σ (.whileStmt c body) ex σ') ∨
       BigStepStmtDiv σ (.whileStmt c body) := by
   exact
-    while_function_body_closure_boundary_ci_of_components
+    while_function_body_closure_boundary_ci_of_reentryProvider_condition_first
+      (WhileBodyReentrySupportCI.whileTyping S)
       hentry
-      S.toComponents
+      (WhileBodyReentrySupportCI.toTailBoundaryReentryProvider S)
       htailClosure
 
 end Cpp

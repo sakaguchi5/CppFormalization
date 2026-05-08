@@ -1,3 +1,4 @@
+import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseSplitCI
 
 namespace Cpp
@@ -11,6 +12,13 @@ This file does not remove existing axioms directly.  It adds coherent
 intermediate packages that make the later axiom replacement targets honest:
 normal-slot selection and return-slot selection must be chosen together,
 because tail-return provenance depends on the selected left-normal slot.
+
+The provider-facing sequence assets add adapters for the already route-aware
+sequence adequacy packages.
+route-aware sequence adequacy packages.  These adapters make the future
+`BodyAdequacyCI` provider replacement non-disruptive: the sequence case can
+already produce `BodyAdequacyCI` where downstream Type-level data is
+needed.
 -/
 
 /--
@@ -176,5 +184,56 @@ def toNormalPayload
         R.selected, SeqLeftNormalSlotCI.out] }
 
 end SeqHeadNormalSelectedRouteCI
+
+/--
+Witness-producing tail static+adequacy payload.
+
+The existing `SeqTailStaticAdequacyPayloadCI` remains proof-only through
+`SeqTailAdequacySupportCI`.  This payload exposes the same tail boundary as a
+`BodyAdequacyCI`, which is the shape needed by the provider migration.
+-/
+structure SeqTailStaticAdequacyProviderPayloadCI
+    (Θ : TypeEnv) (σ1 : State) (t : CppStmt) : Type where
+  static : BodyStaticBoundaryCI Θ t
+  adequacy : BodyAdequacyCI Θ σ1 t static.profile
+
+namespace SeqTailStaticAdequacyProviderPayloadCI
+
+/-- Forget the witness-producing tail payload to the existing proof-only payload. -/
+def toStaticAdequacyPayloadCI
+    {Θ : TypeEnv} {σ1 : State} {t : CppStmt}
+    (p : SeqTailStaticAdequacyProviderPayloadCI Θ σ1 t) :
+    SeqTailStaticAdequacyPayloadCI Θ σ1 t :=
+  { static := p.static
+    support :=
+      { normal :=
+          { normalSound := by
+              intro σ2 hstep
+              let w := p.adequacy.normalWitness hstep
+              exact ⟨w.val, w.property⟩ }
+        returned :=
+          { returnSound := by
+              intro rv σ2 hstep
+              let w := p.adequacy.returnWitness hstep
+              exact ⟨w.val, w.property⟩ } } }
+
+/-- Forget the witness-producing tail payload to the older static+adequacy API. -/
+noncomputable def toStaticAdequacyCI
+    {Θ : TypeEnv} {σ1 : State} {t : CppStmt}
+    (p : SeqTailStaticAdequacyProviderPayloadCI Θ σ1 t) :
+    SeqTailStaticAdequacyCI Θ σ1 t :=
+  (p.toStaticAdequacyPayloadCI).toStaticAdequacyCI
+
+end SeqTailStaticAdequacyProviderPayloadCI
+
+/--
+Witness-producing compatibility name for the extracted left sequence boundary.
+-/
+noncomputable def seq_left_body_adequacy_ci_of_entry
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (hstatic : BodyStaticBoundaryCI Γ s) :
+    BodyAdequacyCI Γ σ s hstatic.profile :=
+  (seq_left_adequacy_support_ci_of_entry hentry hstatic).toBodyAdequacyCI
 
 end Cpp

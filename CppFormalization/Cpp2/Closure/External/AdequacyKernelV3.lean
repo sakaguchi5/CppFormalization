@@ -154,14 +154,16 @@ noncomputable def canonicalAdequacyOfSoundnessV3
         ∃ out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ st Δ},
           (canonicalProfileV3 (R := R) (m := m) (Γ := Γ) (st := st) hgen hrefl).summary.returnOut = some out) :
     BodyAdequacyCI Γ σ st
-      (canonicalProfileV3 (R := R) (m := m) (Γ := Γ) (st := st) hgen hrefl) := by
-  refine
-    { normalSound := ?_
-      returnSound := ?_ }
-  · intro σ' hstep
-    exact hNormal hstep
-  · intro rv σ' hstep
-    exact hReturn hstep
+      (canonicalProfileV3 (R := R) (m := m) (Γ := Γ) (st := st) hgen hrefl) :=
+  BodyAdequacyCI.ofWitness
+    (normalWitness := by
+      intro σ' hstep
+      let h := hNormal hstep
+      exact ⟨Classical.choose h, Classical.choose_spec h⟩)
+    (returnWitness := by
+      intro rv σ' hstep
+      let h := hReturn hstep
+      exact ⟨Classical.choose h, Classical.choose_spec h⟩)
 
 /--
 Canonical adequacy witness obtained by applying the two kernel axioms to the

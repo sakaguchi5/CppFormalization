@@ -36,14 +36,16 @@ structure BlockBodyAdequacyAtCI
     (Γ : TypeEnv) (σ : State) (ss : StmtBlock)
     (P : BlockBodyControlProfileAt Γ ss) : Type where
   normalSound :
-    ∀ {σ' : State} (_hstep : BigStepBlock σ ss .normal σ'),
-      ∃ out : {Δ : TypeEnv // HasTypeBlockCI .normalK Γ ss Δ},
-        P.summary.normalOut = some out
+    ∀ {σ' : State},
+      BigStepBlock σ ss .normal σ' →
+        ∃ out : {Δ : TypeEnv // HasTypeBlockCI .normalK Γ ss Δ},
+          P.summary.normalOut = some out
+
   returnSound :
-    ∀ {rv : Option Value} {σ' : State}
-      (_hstep : BigStepBlock σ ss (.returnResult rv) σ'),
-      ∃ out : {Δ : TypeEnv // HasTypeBlockCI .returnK Γ ss Δ},
-        P.summary.returnOut = some out
+    ∀ {rv : Option Value} {σ' : State},
+      BigStepBlock σ ss (.returnResult rv) σ' →
+        ∃ out : {Δ : TypeEnv // HasTypeBlockCI .returnK Γ ss Δ},
+          P.summary.returnOut = some out
 
 /-- Current-environment block-body static boundary. -/
 structure BlockBodyStaticBoundaryAtCI
@@ -106,8 +108,7 @@ For a normal typing of `.cons s ss`, the head statement necessarily has a normal
 CI typing, and normal CI typing forgets to ordinary old typing.
 -/
 theorem blockCons_head_typed0_at_ci_of_normalOut
-    {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
-    (_hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss))
+    {Γ : TypeEnv} {s : CppStmt} {ss : StmtBlock}
     (out : {Δ : TypeEnv // HasTypeBlockCI .normalK Γ (.cons s ss) Δ}) :
     WellTypedFrom Γ s := by
   rcases out with ⟨Δ, htyBlock⟩
@@ -131,12 +132,11 @@ axiom blockCons_head_static_scaffold_at_ci_of_boundary
 
 /-- Assemble a `BodyStaticBoundaryCI` from theorem-backed `typed0` plus scaffold. -/
 def BlockConsHeadStaticScaffoldAtCI.toBodyStaticBoundaryCI
-    {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
-    (hentry : BlockBodyClosureBoundaryAtCI Γ σ (.cons s ss))
+    {Γ : TypeEnv} {s : CppStmt} {ss : StmtBlock}
     (out : {Δ : TypeEnv // HasTypeBlockCI .normalK Γ (.cons s ss) Δ})
     (h : BlockConsHeadStaticScaffoldAtCI Γ s) :
     BodyStaticBoundaryCI Γ s :=
-  { typed0 := blockCons_head_typed0_at_ci_of_normalOut hentry out
+  { typed0 := blockCons_head_typed0_at_ci_of_normalOut out
     profile := h.profile
     root := h.root
     rootCoherent := h.rootCoherent }
@@ -149,7 +149,7 @@ noncomputable def blockCons_head_static_boundary_at_ci_of_boundary
     (hout : hentry.static.profile.summary.normalOut = some out) :
     BodyStaticBoundaryCI Γ s :=
   let hsc := blockCons_head_static_scaffold_at_ci_of_boundary hentry out hout
-  hsc.toBodyStaticBoundaryCI hentry out
+  hsc.toBodyStaticBoundaryCI out
 
 /--
 Head adequacy extraction for a given extracted head static boundary.
