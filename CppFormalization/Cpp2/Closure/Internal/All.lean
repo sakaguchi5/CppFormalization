@@ -108,6 +108,9 @@ import CppFormalization.Cpp2.Closure.Internal.SeqTailReturnTyped0SupportCI
 import CppFormalization.Cpp2.Closure.Internal.SeqTailCoarseTypingAtSelectedNormalCI
 import CppFormalization.Cpp2.Closure.Internal.SeqResidualAdequacyRouteRefinementCI
 import CppFormalization.Cpp2.Closure.Internal.SeqCanonicalTailEntryDesignCI
+import CppFormalization.Cpp2.Closure.Internal.SeqCanonicalTailEntryCompatibilityCI
+import CppFormalization.Cpp2.Closure.Internal.SeqCanonicalTailEntryMainlineSupportCI
+
 --
 /-!
 # Closure.Internal.All
