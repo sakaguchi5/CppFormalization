@@ -110,6 +110,9 @@ import CppFormalization.Cpp2.Closure.Internal.SeqResidualAdequacyRouteRefinement
 import CppFormalization.Cpp2.Closure.Internal.SeqCanonicalTailEntryDesignCI
 import CppFormalization.Cpp2.Closure.Internal.SeqCanonicalTailEntryCompatibilityCI
 import CppFormalization.Cpp2.Closure.Internal.SeqCanonicalTailEntryMainlineSupportCI
+import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverCanonicalSeqSupportCI
+import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverCanonicalSeqWhileReentryCI
+import CppFormalization.Cpp2.Closure.Internal.SeqCanonicalTailEntryDecisionSourceBridgesCI
 
 --
 /-!
