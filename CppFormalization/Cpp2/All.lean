@@ -1,13 +1,20 @@
+import CppFormalization.Cpp2.Boundary.All
+import CppFormalization.Cpp2.Core.All
+import CppFormalization.Cpp2.Static.All
+import CppFormalization.Cpp2.Typing.All
+import CppFormalization.Cpp2.Semantics.All
+import CppFormalization.Cpp2.Lemmas.All
 import CppFormalization.Cpp2.Closure.All
 import CppFormalization.Cpp2.Proof.All
+import CppFormalization.Cpp2.Frontier.All
 
 /-!
 # Cpp2.All
 
-Canonical aggregate for the current Cpp2 surface.
+Single Cpp2-wide build-coverage aggregate.
 
-方針:
-- `Closure.All` を通して closure mainline と internal transport aggregate を拾う。
-- `Proof.All` を通して control / preservation / determinism aggregate を拾う。
-- Frontier は canonical aggregate には含めない。
+Policy:
+- every Cpp2 directory with an `All.lean` aggregate is imported here;
+- `BuildAll.lean` should import this file only;
+- Frontier is included for coverage, not as the canonical proof surface.
 -/
