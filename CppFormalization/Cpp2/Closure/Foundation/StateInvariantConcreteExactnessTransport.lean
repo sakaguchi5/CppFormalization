@@ -2,10 +2,8 @@ import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteStrengthen
 import CppFormalization.Cpp2.Lemmas.RuntimeState
 import CppFormalization.Cpp2.Lemmas.TypeEnv
 import CppFormalization.Cpp2.Lemmas.RuntimeObjectCore
-import CppFormalization.Cpp2.Lemmas.RuntimeObjectCoreWithNext
 
 namespace Cpp
-open RuntimeObjectCoreWithNext
 
 private theorem topFrameBindingFresh_of_currentScopeFresh
     {σ : State} {x : Ident} :

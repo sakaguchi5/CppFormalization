@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
-import CppFormalization.Cpp2.Lemmas.RuntimeObjectCoreWithNext
+import CppFormalization.Cpp2.Lemmas.RuntimeObjectCore
 
 namespace Cpp
 namespace DeclareObjectTransport
@@ -74,7 +74,7 @@ theorem heapLiveTypedAt_preserved_of_ne_declareObjectStateWithNext
   rcases hlive with ⟨c, hheap, hty, halive⟩
   refine ⟨c, ?_, hty, halive⟩
   simpa using
-    (RuntimeObjectCoreWithNext.heap_declareObjectStateWithNext_other
+    (heap_declareObjectStateWithNext_other
       (σ := σ) (τ := τ) (x := x) (ov := ov) (aNext := aNext) (a := a) ha).trans hheap
 
 theorem runtimeFrameOwnsAddress_zero_declareObjectStateWithNext_cases

@@ -2,7 +2,6 @@ import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.Realizers
 import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.Ownership
 import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.RuntimeTransport
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteStrengthening
-import CppFormalization.Cpp2.Lemmas.RuntimeObjectCoreWithNext
 import CppFormalization.Cpp2.Lemmas.RuntimeObjectCore
 
 namespace Cpp

@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Lemmas.RuntimeObjectCoreWithNext
+import CppFormalization.Cpp2.Lemmas.RuntimeObjectCore
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteRecomputedCursor
 
 namespace Cpp
