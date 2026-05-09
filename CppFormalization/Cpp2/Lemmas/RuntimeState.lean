@@ -39,12 +39,12 @@ namespace Cpp
     (writeHeap σ a c).scopes = σ.scopes := by
   rfl
 
-/-
+/-- Heap writes do not change the runtime cursor. -/
 @[simp] theorem next_writeHeap
     (σ : State) (a : Nat) (c : Cell) :
     (writeHeap σ a c).next = σ.next := by
   rfl
--/
+
 @[simp] theorem lookupBinding_writeHeap
     (σ : State) (a : Nat) (c : Cell) (x : Ident) :
     lookupBinding (writeHeap σ a c) x = lookupBinding σ x := by
@@ -81,13 +81,14 @@ namespace Cpp
           { fr with binds := fun y => if y = x then some b else fr.binds y } :: frs := by
   unfold bindTopBinding
   cases σ.scopes <;> rfl
-/-
+
+/-- Binding in the top frame does not change the runtime cursor. -/
 @[simp] theorem next_bindTopBinding
     (σ : State) (x : Ident) (b : Binding) :
     (bindTopBinding σ x b).next = σ.next := by
   unfold bindTopBinding
   split <;> rfl
--/
+
 @[simp] theorem heap_bindTopBinding
     (σ : State) (x : Ident) (bnd : Binding) :
     (bindTopBinding σ x bnd).heap = σ.heap := by
@@ -108,13 +109,14 @@ namespace Cpp
     (recordLocal σ a).heap = σ.heap := by
   unfold recordLocal
   split <;> rfl
-/-
+
+/-- Recording a local address does not change the runtime cursor. -/
 @[simp] theorem next_recordLocal
     (σ : State) (a : Nat) :
     (recordLocal σ a).next = σ.next := by
   unfold recordLocal
   split <;> rfl
--/
+
 @[simp] theorem lookupBinding_recordLocal
     (σ : State) (a : Nat) (x : Ident) :
     lookupBinding (recordLocal σ a) x = lookupBinding σ x := by
@@ -184,8 +186,8 @@ namespace Cpp
 @[simp] theorem next_declareObjectState
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
     (declareObjectState σ τ x ov).next = σ.next + 1 := by
-  unfold declareObjectState recordLocal bindTopBinding writeHeap
-  split <;> simp
+  unfold declareObjectState
+  simp
 
 @[simp] theorem declareObjectState_next
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
@@ -195,8 +197,8 @@ namespace Cpp
 @[simp] theorem next_declareRefState
     (σ : State) (τ : CppType) (x : Ident) (a : Nat) :
     (declareRefState σ τ x a).next = σ.next := by
-  unfold declareRefState bindTopBinding
-  split <;> simp
+  unfold declareRefState
+  simp
 
 @[simp] theorem declareRefState_next
     (σ : State) (τ : CppType) (x : Ident) (a : Nat) :
@@ -234,9 +236,8 @@ namespace Cpp
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
     (declareObjectState σ τ x ov).heap σ.next =
       some { ty := τ, value := ov, alive := true } := by
-  unfold declareObjectState recordLocal bindTopBinding writeHeap
-  simp only
-  split <;> simp
+  unfold declareObjectState
+  simp
 
 @[simp] theorem declareObjectState_heap_self
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
@@ -248,9 +249,8 @@ namespace Cpp
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value)
     (b : Nat) (hb : b ≠ σ.next) :
     (declareObjectState σ τ x ov).heap b = σ.heap b := by
-  unfold declareObjectState recordLocal
-  simp
-  split <;> simp [heap_writeHeap_other _ _ _ _ hb]
+  unfold declareObjectState
+  simp [hb]
 
 @[simp] theorem declareObjectState_heap_other
     (σ : State) {a : Nat} (τ : CppType) (x : Ident) (ov : Option Value)
@@ -269,12 +269,8 @@ namespace Cpp
     match (declareObjectState σ τ x ov).scopes with
     | [] => False
     | fr :: _ => σ.next ∈ fr.locals := by
-  -- 1. 本体の定義だけを開く
   unfold declareObjectState
-  -- 2. recordLocal や writeHeap の定義を直接開かず、
-  --    既に証明した「性質（定理）」を simp に与えて簡約させる
   simp [scopes_recordLocal, scopes_writeHeap, scopes_bindTopBinding]
-  -- 3. この時点で match σ.scopes with ... が外側に来るので、cases で分解する
   cases h : σ.scopes <;> simp
 
 @[simp] theorem lookupBinding_eq_of_scopes_eq

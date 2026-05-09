@@ -1,84 +1,73 @@
-import CppFormalization.Cpp2.Core.RuntimeObjectCore
-import CppFormalization.Cpp2.Core.RuntimeState
-import CppFormalization.Cpp2.Lemmas.RuntimeState
+import CppFormalization.Cpp2.Lemmas.RuntimeObjectCore
 
 namespace Cpp
 namespace RuntimeObjectCoreWithNext
+
 /-!
-Low-level extensional facts for the recomputed-cursor object update.
-These are intentionally kept below Closure/Foundation so that decomposition
-and transport arguments can use them without pulling in high-level invariants.
+Compatibility surface for the old `RuntimeObjectCoreWithNext` namespace.
+
+The actual object-core/update lemmas now live in `Lemmas.RuntimeObjectCore`.
+This file keeps the old names available without duplicating proof content.
 -/
 
 @[simp] theorem lookupBinding_setNext (σ : State) (a : Nat) (x : Ident) :
     lookupBinding (setNext σ a) x = lookupBinding σ x := by
-  unfold setNext
-  rfl
+  exact Cpp.lookupBinding_setNext_of_setNext σ a x
 
 @[simp] theorem next_declareObjectStateWithNext
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (aNext : Nat) :
     (declareObjectStateWithNext σ τ x ov aNext).next = aNext := by
-  unfold declareObjectStateWithNext
-  simp
+  exact Cpp.next_declareObjectStateWithNext σ τ x ov aNext
 
 @[simp] theorem lookupBinding_declareObjectStateCore_self
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
     lookupBinding (declareObjectStateCore σ τ x ov) x = some (.object τ σ.next) := by
-  unfold declareObjectStateCore
-  simp
+  exact Cpp.lookupBinding_declareObjectStateCore_self σ τ x ov
 
 @[simp] theorem lookupBinding_declareObjectStateWithNext_self
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (aNext : Nat) :
     lookupBinding (declareObjectStateWithNext σ τ x ov aNext) x = some (.object τ σ.next) := by
-  unfold declareObjectStateWithNext
-  simp
+  exact Cpp.lookupBinding_declareObjectStateWithNext_self σ τ x ov aNext
 
 @[simp] theorem lookupBinding_declareObjectStateWithNext_other
     (σ : State) (τ : CppType) (x y : Ident) (ov : Option Value) (aNext : Nat)
     (hxy : y ≠ x) :
     lookupBinding (declareObjectStateWithNext σ τ x ov aNext) y = lookupBinding σ y := by
-  unfold declareObjectStateWithNext declareObjectStateCore
-  simp [ hxy, lookupBinding_setNext]
+  exact Cpp.lookupBinding_declareObjectStateWithNext_other σ τ x y ov aNext hxy
 
 @[simp] theorem heap_declareObjectStateCore_self
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
     (declareObjectStateCore σ τ x ov).heap σ.next =
       some { ty := τ, value := ov, alive := true } := by
-  unfold declareObjectStateCore
-  simp
+  exact Cpp.heap_declareObjectStateCore_self σ τ x ov
 
 @[simp] theorem heap_declareObjectStateWithNext_self
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (aNext : Nat) :
     (declareObjectStateWithNext σ τ x ov aNext).heap σ.next =
       some { ty := τ, value := ov, alive := true } := by
-  unfold declareObjectStateWithNext
-  simp [heap_declareObjectStateCore_self]
+  exact Cpp.heap_declareObjectStateWithNext_self σ τ x ov aNext
 
 @[simp] theorem heap_declareObjectStateWithNext_other
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value)
     (aNext a : Nat) (ha : a ≠ σ.next) :
     (declareObjectStateWithNext σ τ x ov aNext).heap a = σ.heap a := by
-  unfold declareObjectStateWithNext declareObjectStateCore
-  simp [ ha]
+  exact Cpp.heap_declareObjectStateWithNext_other σ τ x ov aNext a ha
 
 @[simp] theorem scopes_declareObjectStateCore_eq_old
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
     (declareObjectStateCore σ τ x ov).scopes = (declareObjectState σ τ x ov).scopes := by
-  unfold declareObjectStateCore declareObjectState
-  simp
+  exact Cpp.scopes_declareObjectStateCore σ τ x ov
 
 @[simp] theorem heap_declareObjectStateCore_eq_old
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
     (declareObjectStateCore σ τ x ov).heap = (declareObjectState σ τ x ov).heap := by
-  unfold declareObjectStateCore declareObjectState recordLocal bindTopBinding writeHeap
-  split <;> simp
+  exact Cpp.heap_declareObjectStateCore σ τ x ov
 
 @[simp] theorem lookupBinding_declareObjectStateCore_eq_old
     (σ : State) (τ : CppType) (x y : Ident) (ov : Option Value) :
     lookupBinding (declareObjectStateCore σ τ x ov) y =
       lookupBinding (declareObjectState σ τ x ov) y := by
-  unfold lookupBinding
-  simp [scopes_declareObjectStateCore_eq_old]
+  exact lookupBinding_eq_of_scopes_eq (Cpp.scopes_declareObjectStateCore σ τ x ov) y
 
 end RuntimeObjectCoreWithNext
 end Cpp

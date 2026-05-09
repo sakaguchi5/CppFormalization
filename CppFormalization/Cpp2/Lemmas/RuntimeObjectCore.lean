@@ -6,9 +6,39 @@ namespace Cpp
 /-!
 Runtime lemmas for the object-core update and externally supplied cursor.
 
-These belong in `Lemmas`, not in `Closure/Foundation`, because they are
-plain state-update algebra and do not depend on closure-specific invariants.
+Primitive state-operation algebra belongs in `Lemmas.RuntimeState`.
+This file contains only facts specific to `setNext`, `declareObjectStateCore`,
+and `declareObjectStateWithNext`.
+
+The comparison lemmas against the old `declareObjectState` façade are kept here
+temporarily so that downstream proofs can migrate before the façade definition is
+changed to the split standard form.
 -/
+
+/-! ## Cursor replacement -/
+
+@[simp] theorem next_setNext (σ : State) (a : Nat) :
+    (setNext σ a).next = a := by
+  rfl
+
+@[simp] theorem scopes_setNext (σ : State) (a : Nat) :
+    (setNext σ a).scopes = σ.scopes := by
+  rfl
+
+@[simp] theorem heap_setNext (σ : State) (a : Nat) :
+    (setNext σ a).heap = σ.heap := by
+  rfl
+
+@[simp] theorem lookupBinding_setNext_of_setNext (σ : State) (a : Nat) (x : Ident) :
+    lookupBinding (setNext σ a) x = lookupBinding σ x := by
+  rfl
+
+/-! ## Object payload update -/
+
+@[simp] theorem next_declareObjectStateCore
+    (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
+    (declareObjectStateCore σ τ x ov).next = σ.next := by
+  simp [declareObjectStateCore]
 
 @[simp] theorem scopes_declareObjectStateCore
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
@@ -78,17 +108,36 @@ plain state-update algebra and do not depend on closure-specific invariants.
     _ = lookupBinding σ y := by
           simpa using lookupBinding_declareObjectState_other σ τ x y ov hxy
 
+/-! ## Object payload update with supplied post-state cursor -/
+
+@[simp] theorem next_declareObjectStateWithNext
+    (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (aNext : Nat) :
+    (declareObjectStateWithNext σ τ x ov aNext).next = aNext := by
+  simp [declareObjectStateWithNext, setNext]
+
+@[simp] theorem scopes_declareObjectStateWithNext
+    (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (aNext : Nat) :
+    (declareObjectStateWithNext σ τ x ov aNext).scopes =
+      (declareObjectStateCore σ τ x ov).scopes := by
+  simp [declareObjectStateWithNext, setNext]
+
+@[simp] theorem heap_declareObjectStateWithNext
+    (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (aNext : Nat) :
+    (declareObjectStateWithNext σ τ x ov aNext).heap =
+      (declareObjectStateCore σ τ x ov).heap := by
+  simp [declareObjectStateWithNext, setNext]
+
 @[simp] theorem scopes_declareObjectStateWithNext_eq_core
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (aNext : Nat) :
     (declareObjectStateWithNext σ τ x ov aNext).scopes =
       (declareObjectStateCore σ τ x ov).scopes := by
-  rfl
+  exact scopes_declareObjectStateWithNext σ τ x ov aNext
 
 @[simp] theorem heap_declareObjectStateWithNext_eq_core
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (aNext : Nat) :
     (declareObjectStateWithNext σ τ x ov aNext).heap =
       (declareObjectStateCore σ τ x ov).heap := by
-  rfl
+  exact heap_declareObjectStateWithNext σ τ x ov aNext
 
 @[simp] theorem scopes_declareObjectStateWithNext_eq_old
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (aNext : Nat) :
@@ -103,6 +152,20 @@ plain state-update algebra and do not depend on closure-specific invariants.
       (declareObjectState σ τ x ov).heap := by
   rw [heap_declareObjectStateWithNext_eq_core]
   exact heap_declareObjectStateCore σ τ x ov
+
+@[simp] theorem heap_declareObjectStateWithNext_self
+    (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (aNext : Nat) :
+    (declareObjectStateWithNext σ τ x ov aNext).heap σ.next =
+      some { ty := τ, value := ov, alive := true } := by
+  rw [heap_declareObjectStateWithNext_eq_core]
+  exact heap_declareObjectStateCore_self σ τ x ov
+
+@[simp] theorem heap_declareObjectStateWithNext_other
+    (σ : State) (τ : CppType) (x : Ident) (ov : Option Value)
+    (aNext a : Nat) (ha : a ≠ σ.next) :
+    (declareObjectStateWithNext σ τ x ov aNext).heap a = σ.heap a := by
+  rw [heap_declareObjectStateWithNext_eq_core]
+  exact heap_declareObjectStateCore_other σ τ x ov ha
 
 @[simp] theorem lookupBinding_declareObjectStateWithNext_self
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (aNext : Nat) :
@@ -130,6 +193,8 @@ plain state-update algebra and do not depend on closure-specific invariants.
     lookupBinding (declareObjectStateWithNext σ τ x ov aNext) y
         = lookupBinding (declareObjectState σ τ x ov) y := hEq
     _ = lookupBinding σ y := by
-      simpa using lookupBinding_declareObjectState_other σ τ x y ov hxy
+      simpa using
+        lookupBinding_declareObjectState_other
+          (σ := σ) (τ := τ) (x := x) (y := y) (ov := ov) hxy
 
 end Cpp

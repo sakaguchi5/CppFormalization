@@ -391,72 +391,6 @@ theorem whileBodyProgressOrDiverges_of_bodyClosureBoundaryCI_of_condTrue
     loop_body_function_progress_or_diverges_ci
       (whileLoopBoundaryCI_of_bodyClosureBoundaryCI_of_condTrue hentry hcondTrue)
 
-/-
-LEGACY UNCONDITIONAL LOOP-BODY RETURN EXPOSURE RETIRED
-
-The declarations below used to provide a current-boundary route from
-`BodyClosureBoundaryCI Γ σ (.whileStmt c body)` directly to a
-`LoopBodyBoundaryCI Γ σ body`.  That route hides an unconditional body-return
-exposure shell.  It is no longer the canonical C++ reading, because a body
-return is exposed through the whole `while` only after the condition has
-actually evaluated to `true`.
-
-Use instead:
-- `whileLoopBodyReturnExposureCI_of_bodyClosureBoundaryCI_of_condTrue`,
-- `loopBodyReturnAdequacyProviderCI_of_condTrue`, and
-- `whileLoopBoundaryCI_of_bodyClosureBoundaryCI_of_condTrue`.
-
-Retired declarations:
-
-/--
-Dynamic residual shell for the canonical boundary route after the static split.
-
-Compared with the former return-adequacy provider, this no longer needs to know
-how to convert a whole-`while` return typing payload into a body return typing
-payload. It only exposes that the static profile contains a return channel
-when the body can actually return.
--/
-axiom whileLoopBodyReturnExposureCI_of_bodyClosureBoundaryCI
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) :
-    WhileLoopBodyReturnExposureCI hentry
-
-/--
-Compatibility wrapper for existing callers.
-
-The old residual provider is now a `def`, assembled from the static return
-projection plus the smaller dynamic exposure obligation.
--/
-noncomputable def loopBodyReturnAdequacyProviderCI_of_bodyClosureBoundaryCI
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) :
-    LoopBodyReturnAdequacyProviderCI Γ σ body
-      (whileEntryBoundaryCI_of_bodyClosureBoundaryCI hentry).toLoopBodyProfile :=
-  loopBodyReturnAdequacyProviderCI_of_staticProjection
-    hentry
-    (whileLoopBodyReturnProfileProjectionCI_of_bodyClosureBoundaryCI hentry)
-    (whileLoopBodyReturnExposureCI_of_bodyClosureBoundaryCI hentry)
-
-/--
-Current iteration の loop-body local boundary extracted from a top-level `while`
-closure boundary.
-
-This is no longer an opaque boundary axiom.  It is assembled from:
-- structural projection from the top-level while boundary;
-- current-entry projection via `whileEntryBoundaryCI_of_bodyClosureBoundaryCI`;
-- the smaller residual return-adequacy provider above.
--/
-noncomputable def whileLoopBoundaryCI_of_bodyClosureBoundaryCI
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) :
-    LoopBodyBoundaryCI Γ σ body :=
-  whileLoopBoundaryCI_of_entry_and_returnProvider
-    hentry
-    (whileEntryBoundaryCI_of_bodyClosureBoundaryCI hentry)
-    (loopBodyReturnAdequacyProviderCI_of_bodyClosureBoundaryCI hentry)
-
--/
-
 /--
 Build a full tail-boundary kit from:
 - the current top-level while boundary, which supplies structural/static data;
@@ -748,37 +682,6 @@ structure WhileTailBoundaryReentryProviderCI
   tailAdequacy :
     WhileTailAdequacyProviderCI Γ σ c body hentry.static
 
-/-
-LEGACY KIT WRAPPER RETIRED
-
-This compatibility bridge also depended on the retired unconditional
-current-loop-body boundary.  The mainline condition-first theorem builds the
-kit only after condition evaluation, using `whileTailBoundaryKitCI_of_loopReentry`
-with an explicit loop-body boundary.
-
-Retired declaration:
-
-/--
-Assemble the old tail-boundary kit from the smaller reentry provider.
-
-This is the compatibility bridge from the current boundary route to the
-honest route:
-`current entry + current loop body + reentry + post-state adequacy`.
--/
-def whileTailBoundaryKitCI_of_reentryProvider
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
-    (P : WhileTailBoundaryReentryProviderCI hentry) :
-    WhileTailBoundaryKitCI Γ σ c body :=
-  whileTailBoundaryKitCI_of_loopReentry
-    hentry
-    (whileEntryBoundaryCI_of_bodyClosureBoundaryCI hentry)
-    (whileLoopBoundaryCI_of_bodyClosureBoundaryCI hentry)
-    P.reentry
-    P.tailAdequacy
-
--/
-
 /--
 Residual delimiter-reentry shell for the canonical boundary route.
 
@@ -817,35 +720,6 @@ noncomputable def whileTailBoundaryReentryProviderCI_of_bodyClosureBoundaryCI
       loopReentryKernelCI_of_bodyClosureBoundaryCI hentry
     tailAdequacy :=
       whileTailAdequacyProviderCI_of_bodyClosureBoundaryCI hentry }
-
-/-
-LEGACY CURRENT-BOUNDARY TAIL KIT WRAPPER RETIRED
-
-This wrapper eagerly rebuilt a full `WhileTailBoundaryKitCI` from the current
-boundary and therefore depended on the retired unconditional loop-body boundary.
-The preferred route passes `WhileTailBoundaryReentryProviderCI` explicitly and
-constructs the kit inside the condition-true branch.
-
-Retired declaration:
-
-/--
-Compatibility wrapper for existing callers.
-
-This keeps the old name, but it is no longer a primitive shell.
-It is assembled from `whileTailBoundaryKitCI_of_loopReentry` and the smaller
-reentry-provider shell above.
--/
-noncomputable def whileTailBoundaryKitCI_of_bodyClosureBoundaryCI
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
-    BodyClosureBoundaryCI Γ σ (.whileStmt c body) →
-    WhileTailBoundaryKitCI Γ σ c body := by
-  intro hentry
-  exact
-    whileTailBoundaryKitCI_of_reentryProvider
-      hentry
-      (whileTailBoundaryReentryProviderCI_of_bodyClosureBoundaryCI hentry)
-
--/
 
 /--
 Condition-first while closure using the reentry-provider route.
