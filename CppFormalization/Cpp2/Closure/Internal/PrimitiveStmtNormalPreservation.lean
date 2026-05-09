@@ -4,7 +4,7 @@ import CppFormalization.Cpp2.Closure.Foundation.TypingCI
 import CppFormalization.Cpp2.Closure.Transitions.Assign.Preservation
 import CppFormalization.Cpp2.Closure.Transitions.DeclareRef.Preservation
 import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.Preservation
-import CppFormalization.Cpp2.Closure.Internal.AssignTransportKernel
+import CppFormalization.Cpp2.Lemmas.AssignWriteEffect
 import CppFormalization.Cpp2.Lemmas.ExprTypeUniqueness
 
 namespace Cpp

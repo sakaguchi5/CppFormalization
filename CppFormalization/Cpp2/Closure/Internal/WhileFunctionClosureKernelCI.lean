@@ -391,6 +391,23 @@ theorem whileBodyProgressOrDiverges_of_bodyClosureBoundaryCI_of_condTrue
     loop_body_function_progress_or_diverges_ci
       (whileLoopBoundaryCI_of_bodyClosureBoundaryCI_of_condTrue hentry hcondTrue)
 
+/-
+LEGACY UNCONDITIONAL LOOP-BODY RETURN EXPOSURE RETIRED
+
+The declarations below used to provide a current-boundary route from
+`BodyClosureBoundaryCI Γ σ (.whileStmt c body)` directly to a
+`LoopBodyBoundaryCI Γ σ body`.  That route hides an unconditional body-return
+exposure shell.  It is no longer the canonical C++ reading, because a body
+return is exposed through the whole `while` only after the condition has
+actually evaluated to `true`.
+
+Use instead:
+- `whileLoopBodyReturnExposureCI_of_bodyClosureBoundaryCI_of_condTrue`,
+- `loopBodyReturnAdequacyProviderCI_of_condTrue`, and
+- `whileLoopBoundaryCI_of_bodyClosureBoundaryCI_of_condTrue`.
+
+Retired declarations:
+
 /--
 Dynamic residual shell for the canonical boundary route after the static split.
 
@@ -437,6 +454,8 @@ noncomputable def whileLoopBoundaryCI_of_bodyClosureBoundaryCI
     hentry
     (whileEntryBoundaryCI_of_bodyClosureBoundaryCI hentry)
     (loopBodyReturnAdequacyProviderCI_of_bodyClosureBoundaryCI hentry)
+
+-/
 
 /--
 Build a full tail-boundary kit from:
@@ -508,6 +527,15 @@ theorem whileTypingCI_of_bodyClosureBoundaryCI
   exact whileTypingCI_of_whileEntryBoundaryCI
     (whileEntryBoundaryCI_of_bodyClosureBoundaryCI h)
 
+/-
+LEGACY CURRENT-BOUNDARY BODY PROGRESS WRAPPER RETIRED
+
+This wrapper went through the unconditional current-boundary loop-body route
+retired above.  The condition-first replacement is
+`whileBodyProgressOrDiverges_of_bodyClosureBoundaryCI_of_condTrue`.
+
+Retired declaration:
+
 /--
 Local body progress/divergence extracted from a top-level `while` closure boundary.
 
@@ -521,6 +549,8 @@ theorem whileBodyProgressOrDiverges_of_bodyClosureBoundaryCI
   exact
     loop_body_function_progress_or_diverges_ci
       (whileLoopBoundaryCI_of_bodyClosureBoundaryCI hentry)
+
+-/
 
 /--
 A ready boolean while condition can evaluate to either `false` or `true`.
@@ -718,6 +748,16 @@ structure WhileTailBoundaryReentryProviderCI
   tailAdequacy :
     WhileTailAdequacyProviderCI Γ σ c body hentry.static
 
+/-
+LEGACY KIT WRAPPER RETIRED
+
+This compatibility bridge also depended on the retired unconditional
+current-loop-body boundary.  The mainline condition-first theorem builds the
+kit only after condition evaluation, using `whileTailBoundaryKitCI_of_loopReentry`
+with an explicit loop-body boundary.
+
+Retired declaration:
+
 /--
 Assemble the old tail-boundary kit from the smaller reentry provider.
 
@@ -736,6 +776,8 @@ def whileTailBoundaryKitCI_of_reentryProvider
     (whileLoopBoundaryCI_of_bodyClosureBoundaryCI hentry)
     P.reentry
     P.tailAdequacy
+
+-/
 
 /--
 Residual delimiter-reentry shell for the canonical boundary route.
@@ -776,6 +818,16 @@ noncomputable def whileTailBoundaryReentryProviderCI_of_bodyClosureBoundaryCI
     tailAdequacy :=
       whileTailAdequacyProviderCI_of_bodyClosureBoundaryCI hentry }
 
+/-
+LEGACY CURRENT-BOUNDARY TAIL KIT WRAPPER RETIRED
+
+This wrapper eagerly rebuilt a full `WhileTailBoundaryKitCI` from the current
+boundary and therefore depended on the retired unconditional loop-body boundary.
+The preferred route passes `WhileTailBoundaryReentryProviderCI` explicitly and
+constructs the kit inside the condition-true branch.
+
+Retired declaration:
+
 /--
 Compatibility wrapper for existing callers.
 
@@ -792,6 +844,8 @@ noncomputable def whileTailBoundaryKitCI_of_bodyClosureBoundaryCI
     whileTailBoundaryKitCI_of_reentryProvider
       hentry
       (whileTailBoundaryReentryProviderCI_of_bodyClosureBoundaryCI hentry)
+
+-/
 
 /--
 Condition-first while closure using the reentry-provider route.

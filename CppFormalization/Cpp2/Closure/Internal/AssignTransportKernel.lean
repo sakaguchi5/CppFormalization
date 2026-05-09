@@ -1,5 +1,7 @@
 import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
+import CppFormalization.Cpp2.Lemmas.AssignWriteEffect
+import CppFormalization.Cpp2.Lemmas.ReplayStableReadPlace
 
 namespace Cpp
 
@@ -18,34 +20,16 @@ namespace Cpp
 -/
 
 
-/-- Logical write-effect boundary exposed by an assignment step. -/
-def AssignWriteEffect
-    (σ σ' : State) (p : PlaceExpr) (v : Value) : Prop :=
-  ∃ a c,
-    BigStepPlace σ p a ∧
-    σ.heap a = some c ∧
-    c.alive = true ∧
-    σ' = writeHeap σ a { c with value := some v }
+/-
+Lower-layer split:
+- `AssignWriteEffect` and `assignWriteEffect_of_Assigns` now live in
+  `Cpp2.Lemmas.AssignWriteEffect`.
+- `ReplayStableReadPlace` now lives in
+  `Cpp2.Lemmas.ReplayStableReadPlace`.
 
-/-- `Assigns` already packages exactly the data needed for the logical write effect. -/
-theorem assignWriteEffect_of_Assigns
-    {σ σ' : State} {p : PlaceExpr} {v : Value} :
-    Assigns σ p v σ' →
-    AssignWriteEffect σ σ' p v := by
-  intro hassign
-  rcases hassign with ⟨a, c, hplace, hheap, halive, _hcompat, rfl⟩
-  exact ⟨a, c, hplace, hheap, halive, rfl⟩
-
-
-/--
-Read-places whose readiness is intended to be transportable across an
-assignment step without committing to arbitrary alias-sensitive replay.
-Current honest base keeps only variable places.
+This file remains the Closure/Internal owner of the current readiness and
+expression replay transport kernel.
 -/
-inductive ReplayStableReadPlace : PlaceExpr → Prop where
-  | var {x : Ident} :
-      ReplayStableReadPlace (.var x)
-
 
 /-- Read-side transport facts used by the current mainline. -/
 structure AssignReadTransportKernel : Type where

@@ -204,52 +204,6 @@ def whileBodyReentrySupportCI_of_bodyClosureBoundaryCI
     reentry := hreentry
     tailAdequacy := hadequacy }
 
-/-
-LEGACY COMPATIBILITY WRAPPERS COMMENTED OUT
-
-理由:
-- These wrappers rebuild a complete kit/class directly from the current
-  top-level while boundary.
-- Internally that direct route goes through the unconditional current-body
-  boundary/exposure path.  That path is no longer the canonical C++ reading,
-  because a body return is exposed through the whole `while` only after the
-  condition has evaluated to `true`.
-- The current mainline should instead use either
-  `whileBodyReentrySupportCI_of_bodyClosureBoundaryCI` with explicit
-  `LoopBodyBoundaryCI` / `LoopReentryKernelCI` / `WhileTailAdequacyProviderCI`,
-  or the lower-level
-  `while_function_body_closure_boundary_ci_of_currentBoundary_reentryProvider`.
-
-Retired declarations:
-
-/--
-Build the decomposed while-local components from a top-level while boundary.
-
-This compatibility route is retained for older callers.  New mainline code
-should prefer the condition-first reentry-provider wrapper below.
--/
-noncomputable def whileBodyClassComponentsCI_of_bodyClosureBoundaryCI
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) :
-    WhileBodyClassComponentsCI Γ σ c body :=
-  { entry := whileEntryBoundaryCI_of_bodyClosureBoundaryCI hentry
-    loopBoundary := whileLoopBoundaryCI_of_bodyClosureBoundaryCI hentry
-    tailBoundary := whileTailBoundaryKitCI_of_bodyClosureBoundaryCI hentry }
-
-/--
-Class extracted from a top-level `while` closure boundary.
-
-This is retained for callers, but it is now just a projection from the
-compatibility components above, not an independent axiom.
--/
-noncomputable def whileBodyClassCI_of_bodyClosureBoundaryCI
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
-    BodyClosureBoundaryCI Γ σ (.whileStmt c body) →
-    WhileBodyClassCI Γ σ c body := by
-  intro hentry
-  exact (whileBodyClassComponentsCI_of_bodyClosureBoundaryCI hentry).toClass
--/
-
 /--
 Class-based wrapper around the honest while kernel.
 
@@ -324,45 +278,6 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_reentryProvid
       hentry
       P
       htailClosure
-
-/-
-LEGACY CURRENT-BOUNDARY WRAPPER COMMENTED OUT
-
-理由:
-- This wrapper hides the remaining tail obligations by immediately calling
-  `whileTailBoundaryReentryProviderCI_of_bodyClosureBoundaryCI`.
-- The case-driver now calls
-  `while_function_body_closure_boundary_ci_of_currentBoundary_reentryProvider`
-  directly and passes that provider explicitly, so this wrapper is no longer
-  needed on the canonical path.
-- Keeping the provider visible is important for the next step: splitting its
-  contents into delimiter reentry and post-state tail adequacy transport.
-
-Retired declaration:
-
-/--
-Canonical current-boundary wrapper assembled from the smaller residual provider.
-
-The remaining assumptions are now exactly those hidden in
-`whileTailBoundaryReentryProviderCI_of_bodyClosureBoundaryCI`, namely delimiter
-reentry and post-state tail adequacy.
--/
-theorem while_function_body_closure_boundary_ci_of_currentBoundary
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
-    (htailClosure :
-      ∀ {σ1 : State},
-        BodyClosureBoundaryCI Γ σ1 (.whileStmt c body) →
-        (∃ ex σ2, BigStepFunctionBody σ1 (.whileStmt c body) ex σ2) ∨
-          BigStepStmtDiv σ1 (.whileStmt c body)) :
-    (∃ ex σ', BigStepFunctionBody σ (.whileStmt c body) ex σ') ∨
-      BigStepStmtDiv σ (.whileStmt c body) := by
-  exact
-    while_function_body_closure_boundary_ci_of_currentBoundary_reentryProvider
-      hentry
-      (whileTailBoundaryReentryProviderCI_of_bodyClosureBoundaryCI hentry)
-      htailClosure
--/
 
 /--
 Reentry-support wrapper.

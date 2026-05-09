@@ -1,8 +1,10 @@
+import CppFormalization.Cpp2.Lemmas.AssignWriteEffect
 import CppFormalization.Cpp2.Lemmas.AssignWriteFootprint
 import CppFormalization.Cpp2.Lemmas.BigStepScopeDepth
 import CppFormalization.Cpp2.Lemmas.ControlExclusion
 import CppFormalization.Cpp2.Lemmas.ExprDeterminism
 import CppFormalization.Cpp2.Lemmas.ExprTypeUniqueness
+import CppFormalization.Cpp2.Lemmas.ReplayStableReadPlace
 import CppFormalization.Cpp2.Lemmas.RuntimeObjectCore
 import CppFormalization.Cpp2.Lemmas.RuntimeObjectCoreWithNext
 import CppFormalization.Cpp2.Lemmas.RuntimeState

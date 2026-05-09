@@ -1,6 +1,6 @@
 import CppFormalization.Cpp2.Core.RuntimeState
 import CppFormalization.Cpp2.Semantics.Stmt
-import CppFormalization.Cpp2.Closure.Internal.AssignTransportKernel
+import CppFormalization.Cpp2.Lemmas.ReplayStableReadPlace
 import CppFormalization.Cpp2.Lemmas.ExprDeterminism
 
 namespace Cpp
