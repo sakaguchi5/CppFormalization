@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Closure.External.ReadyAssemblyV3
-import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCoherenceV2
+import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCoherence
 
 namespace Cpp
 

@@ -15,7 +15,7 @@ namespace Cpp
 /-!
 # Proof.Preservation.StmtControlKernelSupport
 
-`StmtControlKernel` / `StmtControlPreservationV2` で使う while / assign /
+`StmtControlKernel` / `StmtControlKernel route` で使う while / assign /
 block-open-scope の補助層。
 main recursor から support obligations を分離して、
 compatibility recursion 本体を読みやすく保つ。

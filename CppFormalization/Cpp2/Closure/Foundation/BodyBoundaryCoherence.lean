@@ -3,7 +3,7 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 namespace Cpp
 
 /-!
-# Closure.Foundation.BodyBoundaryCoherenceV2
+# Closure.Foundation.BodyBoundaryCoherence
 
 Coherence facts showing that the integrated witness `BodyReadyCI` and the
 assembled boundary object `BodyClosureBoundaryCI` are two presentations of the

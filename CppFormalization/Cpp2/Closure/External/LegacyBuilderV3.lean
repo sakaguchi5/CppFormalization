@@ -1,6 +1,6 @@
 import CppFormalization.Cpp2.Closure.External.BuilderV3
 import CppFormalization.Cpp2.Closure.External.LegacyBridgeV3
-import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCoherenceV2
+import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCoherence
 
 namespace Cpp
 
