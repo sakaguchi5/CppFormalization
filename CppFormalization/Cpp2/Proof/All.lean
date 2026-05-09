@@ -1,13 +1,12 @@
 import CppFormalization.Cpp2.Proof.Control.All
-import CppFormalization.Cpp2.Proof.Preservation.All
 import CppFormalization.Cpp2.Proof.Determinism.All
+import CppFormalization.Cpp2.Proof.Preservation.All
 
 /-!
-# Cpp2.Proof.All
+# CppFormalization.Cpp2.Proof.All
 
-Canonical aggregate for proof-facing results.
+Exhaustive aggregate for this directory.
 
-方針:
-- control / preservation / determinism の aggregate をここで集約する。
-
+This file imports every Lean file directly under this directory, except itself,
+and every immediate child directory through that child directory's `All.lean`.
 -/

@@ -35,7 +35,10 @@ import CppFormalization.Cpp2.Closure.External.TransportPropsV3
 import CppFormalization.Cpp2.Closure.External.TransportV3
 
 /-!
-# Closure.External.All
+# CppFormalization.Cpp2.Closure.External.All
 
-Build-coverage aggregate for `Closure.External`.
+Exhaustive aggregate for this directory.
+
+This file imports every Lean file directly under this directory, except itself,
+and every immediate child directory through that child directory's `All.lean`.
 -/

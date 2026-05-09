@@ -1,11 +1,11 @@
 import CppFormalization.Cpp2.Closure.Internal.Transport.BlockBodyBoundaryTransportLite
+import CppFormalization.Cpp2.Closure.Internal.Transport.SeqBoundaryTransportLite
 
 /-!
-# Cpp2.Closure.Internal.Transport.All
+# CppFormalization.Cpp2.Closure.Internal.Transport.All
 
-Canonical aggregate for internal transport lemmas.
+Exhaustive aggregate for this directory.
 
-方針:
-- current transport surface は `BlockBodyBoundaryTransportLite` を canonical aggregate に含める。
-
+This file imports every Lean file directly under this directory, except itself,
+and every immediate child directory through that child directory's `All.lean`.
 -/

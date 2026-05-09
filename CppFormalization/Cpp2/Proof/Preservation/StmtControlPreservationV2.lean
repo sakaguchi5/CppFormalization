@@ -12,7 +12,7 @@ We keep this file only as a compatibility surface for the old V2 name.
 abbrev whileCompatHandlers_v2 := whileCompatHandlers_kernel
 
 theorem stmt_control_preserves_scoped_typed_state_of_compatible_core
-    (mkWhileCtx : WhileCtxProvider)
+    (mkWhileReentry : WhileReentryReadyProvider)
     {k : ControlKind} {Γ Δ : TypeEnv} {s : CppStmt}
     {σ : State} {ctrl : CtrlResult} {σ' : State}
     {hty : HasTypeStmtCI k Γ s Δ}
@@ -22,6 +22,6 @@ theorem stmt_control_preserves_scoped_typed_state_of_compatible_core
     StmtReadyConcrete Γ σ s →
     ScopedTypedStateConcrete Δ σ' :=
   stmt_control_preserves_scoped_typed_state_of_compatible
-    mkWhileCtx hcomp
+    mkWhileReentry hcomp
 
 end Cpp

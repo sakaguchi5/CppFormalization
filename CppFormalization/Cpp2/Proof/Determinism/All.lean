@@ -1,12 +1,11 @@
-import CppFormalization.Cpp2.Proof.Determinism.StmtBlockNoDeclareObjDeterminismCore
 import CppFormalization.Cpp2.Proof.Determinism.StmtBlockNoDeclareObjDeterminismAPI
+import CppFormalization.Cpp2.Proof.Determinism.StmtBlockNoDeclareObjDeterminismCore
 
 /-!
-# Cpp2.Proof.Determinism.All
+# CppFormalization.Cpp2.Proof.Determinism.All
 
-Canonical aggregate for determinism lemmas.
+Exhaustive aggregate for this directory.
 
-方針:
-- current no-declare-object determinism core と API を canonical aggregate に含める。
-
+This file imports every Lean file directly under this directory, except itself,
+and every immediate child directory through that child directory's `All.lean`.
 -/

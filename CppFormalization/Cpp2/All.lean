@@ -1,13 +1,19 @@
+import CppFormalization.Cpp2.Boundary.All
 import CppFormalization.Cpp2.Closure.All
+import CppFormalization.Cpp2.Core.All
+import CppFormalization.Cpp2.Frontier.All
+import CppFormalization.Cpp2.Lemmas.All
 import CppFormalization.Cpp2.Proof.All
+import CppFormalization.Cpp2.Roadmap.All
+import CppFormalization.Cpp2.Semantics.All
+import CppFormalization.Cpp2.Static.All
+import CppFormalization.Cpp2.Typing.All
 
 /-!
-# Cpp2.All
+# CppFormalization.Cpp2.All
 
-Canonical aggregate for the current Cpp2 surface.
+Exhaustive aggregate for this directory.
 
-方針:
-- `Closure.All` を通して closure mainline と internal transport aggregate を拾う。
-- `Proof.All` を通して control / preservation / determinism aggregate を拾う。
-
+This file imports every Lean file directly under this directory, except itself,
+and every immediate child directory through that child directory's `All.lean`.
 -/

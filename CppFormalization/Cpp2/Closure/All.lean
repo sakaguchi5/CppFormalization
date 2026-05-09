@@ -1,17 +1,13 @@
-import CppFormalization.Cpp2.Closure.Foundation.TypingCI
-import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmap
-import CppFormalization.Cpp2.Closure.Internal.SecondaryAssetsAllCI
-import CppFormalization.Cpp2.Closure.Internal.Transport.All
-import CppFormalization.Cpp2.Closure.External.Interface
-import CppFormalization.Cpp2.Closure.External.ReflectiveStdClosure
+import CppFormalization.Cpp2.Closure.External.All
+import CppFormalization.Cpp2.Closure.Foundation.All
+import CppFormalization.Cpp2.Closure.Internal.All
+import CppFormalization.Cpp2.Closure.Transitions.All
 
 /-!
-# Cpp2.Closure.All
+# CppFormalization.Cpp2.Closure.All
 
-Canonical aggregate for the closure subsystem.
+Exhaustive aggregate for this directory.
 
-方針:
-- default aggregate は mainline wrapper に加えて current internal transport aggregate も集約する。
-- legacy surface は `CppFormalization.Cpp2.Closure.Legacy.All` から明示的に読む。
-
+This file imports every Lean file directly under this directory, except itself,
+and every immediate child directory through that child directory's `All.lean`.
 -/
