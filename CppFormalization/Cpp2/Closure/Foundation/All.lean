@@ -43,7 +43,4 @@ import CppFormalization.Cpp2.Closure.Foundation.WhileEntryBoundaryCI
 
 Build-coverage aggregate for `Closure.Foundation`.
 
-This file intentionally imports every non-Frontier Foundation module so that
-`Cpp2.BuildAll` checks the whole Foundation layer, not only the modules reached
-through the current mainline import graph.
 -/

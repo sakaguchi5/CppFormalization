@@ -1,4 +1,3 @@
--- import CppFormalization.Cpp2.Closure.Internal.ArchitectureRoadmap
 import CppFormalization.Cpp2.Closure.Internal.AssignHeadResidualTransportTheorems
 import CppFormalization.Cpp2.Closure.Internal.AssignHeadPushScopeBridges
 import CppFormalization.Cpp2.Closure.Internal.AssignHeadWhileTransportCompat
@@ -123,6 +122,5 @@ import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureCanonicalSeqGlo
 
 Build-coverage aggregate for `Closure.Internal`.
 
-`ArchitectureRoadmap` remains intentionally excluded as a roadmap/debt ledger.
 `Transport.All` is a nested aggregate at `Closure/Internal/Transport/All.lean`.
 -/

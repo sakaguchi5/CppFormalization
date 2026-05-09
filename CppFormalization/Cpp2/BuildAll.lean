@@ -22,5 +22,4 @@ import CppFormalization.Cpp2.Proof.All
 方針:
 - canonical surface (`All`, `AllV2`, `AllV3`) はそのまま残す。
 - build coverage のために、各 subdirectory の `All` をここからまとめて import する。
-- `Frontier` は意図的に除外する。
 -/

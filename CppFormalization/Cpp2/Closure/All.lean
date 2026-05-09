@@ -13,5 +13,5 @@ Canonical aggregate for the closure subsystem.
 方針:
 - default aggregate は mainline wrapper に加えて current internal transport aggregate も集約する。
 - legacy surface は `CppFormalization.Cpp2.Closure.Legacy.All` から明示的に読む。
-- Frontier は canonical aggregate には含めない。
+
 -/
