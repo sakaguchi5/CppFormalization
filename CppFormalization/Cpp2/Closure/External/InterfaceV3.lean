@@ -13,7 +13,6 @@ import CppFormalization.Cpp2.Closure.External.BuilderV3
 import CppFormalization.Cpp2.Closure.External.SplitBuilderV3
 import CppFormalization.Cpp2.Closure.External.ToyBuilderV3
 import CppFormalization.Cpp2.Closure.External.ToySplitBuilderV3
-import CppFormalization.Cpp2.Closure.External.LegacyBuilderV3
 import CppFormalization.Cpp2.Closure.External.AlignmentV3
 
 /-!
@@ -29,7 +28,6 @@ Provided routes:
 - split-artifact preparatory builder route via `SplitBuilderV3`,
 - first concrete builder consumer via `ToyBuilderV3`,
 - first concrete split-builder consumer via `ToySplitBuilderV3`,
-- legacy non-toy lift into the same V3 world via `LegacyBuilderV3`,
 - Stage 6 alignment lemmas showing that the builder-generated canonical routes
   land on the same official quotient as the earlier hand-written toy routes and
   the earlier direct legacy bridge.

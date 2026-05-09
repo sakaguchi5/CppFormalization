@@ -1,5 +1,4 @@
 import CppFormalization.Cpp2.Closure.External.ToyBuilderV3
-import CppFormalization.Cpp2.Closure.External.LegacyBuilderV3
 
 namespace Cpp
 
@@ -60,55 +59,5 @@ theorem toy_builder_glue_boundaryCoherent_handwritten
   exact toy_builder_glue_boundary_eq_handwritten c
 
 end ToyAlignment
-
-section LegacyAlignment
-
-theorem legacy_builder_ready_boundary_eq_bridge
-    {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}
-    (c : LegacyCertificateV3 F R) :
-    (legacyReadyExternalPiecesV3 c).toBodyBoundary =
-      (c.oldExternalPieces).toBodyBoundary := by
-  calc
-    (legacyReadyExternalPiecesV3 c).toBodyBoundary
-        = c.oldBoundary := by
-            exact legacyReadyExternalPiecesV3_boundary_eq_old c
-    _ = (c.oldExternalPieces).toBodyBoundary := by
-          symm
-          exact
-            externalPiecesV3_of_legacy_external_assumptions_boundary
-              c.G c.huse c.hdyn c.hgen c.hstruct c.hstatic c.hcompat
-
-theorem legacy_builder_ready_boundaryCoherent_bridge
-    {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}
-    (c : LegacyCertificateV3 F R) :
-    BoundaryCoherentV3
-      (legacyReadyExternalPiecesV3 c)
-      (c.oldExternalPieces) := by
-  exact legacy_builder_ready_boundary_eq_bridge c
-
-theorem legacy_builder_glue_boundary_eq_bridge
-    {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}
-    (c : LegacyCertificateV3 F R) :
-    (legacyGlueExternalPiecesV3 c).toBodyBoundary =
-      (c.oldExternalPieces).toBodyBoundary := by
-  calc
-    (legacyGlueExternalPiecesV3 c).toBodyBoundary
-        = c.oldBoundary := by
-            exact legacyGlueExternalPiecesV3_boundary_eq_old c
-    _ = (c.oldExternalPieces).toBodyBoundary := by
-          symm
-          exact
-            externalPiecesV3_of_legacy_external_assumptions_boundary
-              c.G c.huse c.hdyn c.hgen c.hstruct c.hstatic c.hcompat
-
-theorem legacy_builder_glue_boundaryCoherent_bridge
-    {F : VerifiedStdFragment} {R : VerifiedReflectionFragment}
-    (c : LegacyCertificateV3 F R) :
-    BoundaryCoherentV3
-      (legacyGlueExternalPiecesV3 c)
-      (c.oldExternalPieces) := by
-  exact legacy_builder_glue_boundary_eq_bridge c
-
-end LegacyAlignment
 
 end Cpp

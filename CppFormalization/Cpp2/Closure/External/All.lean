@@ -9,16 +9,12 @@ import CppFormalization.Cpp2.Closure.External.BuilderV3
 import CppFormalization.Cpp2.Closure.External.CanonicityV3
 import CppFormalization.Cpp2.Closure.External.CoherenceV3
 import CppFormalization.Cpp2.Closure.External.GlueV3
-import CppFormalization.Cpp2.Closure.External.Interface
 import CppFormalization.Cpp2.Closure.External.InterfaceV3
-import CppFormalization.Cpp2.Closure.External.LegacyBridgeV3
-import CppFormalization.Cpp2.Closure.External.LegacyBuilderV3
 import CppFormalization.Cpp2.Closure.External.ObjectDeclRuntimeBridgeV3
 import CppFormalization.Cpp2.Closure.External.ObjectDeclStdFragmentV3
 import CppFormalization.Cpp2.Closure.External.ReadyAssemblyV3
 import CppFormalization.Cpp2.Closure.External.ReadyFromGlueV3
 import CppFormalization.Cpp2.Closure.External.ReflectionFragmentV3
-import CppFormalization.Cpp2.Closure.External.ReflectiveStdClosure
 import CppFormalization.Cpp2.Closure.External.ReflectiveStdClosureV3
 import CppFormalization.Cpp2.Closure.External.SplitBuilderV3
 import CppFormalization.Cpp2.Closure.External.StdFragmentV3
