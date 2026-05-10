@@ -205,104 +205,6 @@ section DeclareRefStatePreservation
   unfold heapInitializedValuesTyped
   simp [declareRefState]
 
-/-- Top-frame binding update does not change `locals`. -/
-@[simp] theorem locals_bindTopBinding_top
-    {fr : ScopeFrame} {x : Ident} {b : Binding} :
-    ({ fr with binds := fun y => if y = x then some b else fr.binds y }).locals = fr.locals := by
-  rfl
-
-/-- `declareRefState` only changes the top frame; deeper scopes are untouched. -/
-@[simp] theorem declareRefState_scopes_succ
-    {σ : State} {τ : CppType} {x : Ident} {a : Nat} {k : Nat} :
-    (declareRefState σ τ x a).scopes[k.succ]? = σ.scopes[k.succ]? := by
-  cases hsc : σ.scopes <;> simp [declareRefState, scopes_bindTopBinding, hsc]
-
-@[simp] theorem declareRefState_lookup_succ_iff
-    {σ : State} {τ : CppType} {x : Ident} {a : Nat}
-    {k : Nat} {fr : ScopeFrame} :
-    (declareRefState σ τ x a).scopes[k.succ]? = some fr ↔
-      σ.scopes[k.succ]? = some fr := by
-  rw [declareRefState_scopes_succ]
-
-@[simp] theorem declareRefState_scopes_zero_of_cons
-    {σ : State} {τ : CppType} {x : Ident} {a : Nat}
-    {fr0 : ScopeFrame} {frs : List ScopeFrame}
-    (hsc : σ.scopes = fr0 :: frs) :
-    (declareRefState σ τ x a).scopes[0]? =
-      some
-        { fr0 with
-          binds := fun y => if y = x then some (.ref τ a) else fr0.binds y } := by
-  simp [declareRefState, scopes_bindTopBinding, hsc]
-
-theorem declareRefState_lookup_zero_frame_of_cons
-    {σ : State} {τ : CppType} {x : Ident} {a : Nat}
-    {fr0 : ScopeFrame} {frs : List ScopeFrame}
-    (hsc : σ.scopes = fr0 :: frs)
-    {fr : ScopeFrame}
-    (hk : (declareRefState σ τ x a).scopes[0]? = some fr) :
-    fr =
-      { fr0 with
-        binds := fun y => if y = x then some (.ref τ a) else fr0.binds y } := by
-  have htop := declareRefState_scopes_zero_of_cons
-    (σ := σ) (τ := τ) (x := x) (a := a) (fr0 := fr0) (frs := frs) hsc
-  exact Option.some.inj (hk.symm.trans htop)
-
-theorem declareRefState_lookup_zero_locals_of_cons
-    {σ : State} {τ : CppType} {x : Ident} {a : Nat}
-    {fr0 : ScopeFrame} {frs : List ScopeFrame}
-    (hsc : σ.scopes = fr0 :: frs)
-    {fr : ScopeFrame}
-    (hk : (declareRefState σ τ x a).scopes[0]? = some fr) :
-    fr.locals = fr0.locals := by
-  rcases declareRefState_lookup_zero_frame_of_cons
-      (σ := σ) (τ := τ) (x := x) (a := a) (fr0 := fr0) (frs := frs) hsc hk with rfl
-  simp
-
-theorem declareRefState_lookup_preserves_locals_forward
-    {σ : State} {τ : CppType} {x : Ident} {a : Nat}
-    {k : Nat} {fr : ScopeFrame}
-    (hk : σ.scopes[k]? = some fr) :
-    ∃ fr',
-      (declareRefState σ τ x a).scopes[k]? = some fr' ∧
-      fr'.locals = fr.locals := by
-  cases hsc : σ.scopes with
-  | nil =>
-      cases k <;> simp [hsc] at hk
-  | cons fr0 frs =>
-      cases k with
-      | zero =>
-          simp [hsc] at hk
-          subst fr
-          refine ⟨
-            { fr0 with binds := fun y => if y = x then some (.ref τ a) else fr0.binds y },
-            ?_,
-            ?_⟩
-          · simp [declareRefState, scopes_bindTopBinding, hsc]
-          · simp
-      | succ k =>
-          refine ⟨fr, ?_, rfl⟩
-          exact (declareRefState_lookup_succ_iff
-            (σ := σ) (τ := τ) (x := x) (a := a) (k := k) (fr := fr)).2 hk
-
-theorem declareRefState_lookup_preserves_locals_backward_of_cons
-    {σ : State} {τ : CppType} {x : Ident} {a : Nat}
-    {fr0 : ScopeFrame} {frs : List ScopeFrame}
-    (hsc : σ.scopes = fr0 :: frs)
-    {k : Nat} {fr : ScopeFrame}
-    (hk : (declareRefState σ τ x a).scopes[k]? = some fr) :
-    ∃ fr',
-      σ.scopes[k]? = some fr' ∧
-      fr.locals = fr'.locals := by
-  cases k with
-  | zero =>
-      refine ⟨fr0, by simp [hsc], ?_⟩
-      exact declareRefState_lookup_zero_locals_of_cons
-        (σ := σ) (τ := τ) (x := x) (a := a) (fr0 := fr0) (frs := frs) hsc hk
-  | succ k =>
-      refine ⟨fr, ?_, rfl⟩
-      exact (declareRefState_lookup_succ_iff
-        (σ := σ) (τ := τ) (x := x) (a := a) (k := k) (fr := fr)).1 hk
-
 theorem runtimeFrameOwnsAddress_declareRefState_forward
     {σ : State} {τ : CppType} {x : Ident} {a addr : Nat} {k : Nat} :
     runtimeFrameOwnsAddress σ k addr →
@@ -321,21 +223,26 @@ theorem runtimeFrameOwnsAddress_declareRefState_backward
     runtimeFrameOwnsAddress σ k addr := by
   intro hown
   rcases hown with ⟨fr, hk, ha⟩
-  cases hsc : σ.scopes with
-  | nil =>
-      cases k with
-      | zero =>
+  cases k with
+  | zero =>
+      cases hsc : σ.scopes with
+      | nil =>
           simp [declareRefState, scopes_bindTopBinding, hsc] at hk
           subst fr
           simp at ha
-      | succ k =>
-          simp [declareRefState, scopes_bindTopBinding, hsc] at hk
-  | cons fr0 frs =>
-      rcases declareRefState_lookup_preserves_locals_backward_of_cons
-          (σ := σ) (τ := τ) (x := x) (a := a) hsc hk with
-        ⟨fr', hk', hlocals⟩
-      refine ⟨fr', hk', ?_⟩
-      simpa [hlocals] using ha
+      | cons fr0 frs =>
+          have hlocals : fr.locals = fr0.locals :=
+            declareRefState_lookup_zero_locals_of_cons
+              (σ := σ) (τ := τ) (x := x) (a := a)
+              (fr0 := fr0) (frs := frs) hsc hk
+          refine ⟨fr0, by simp [hsc], ?_⟩
+          simpa [hlocals] using ha
+  | succ k =>
+      have hk_old : σ.scopes[k.succ]? = some fr :=
+        (declareRefState_lookup_succ_iff
+          (σ := σ) (τ := τ) (x := x) (a := a)
+          (k := k) (fr := fr)).1 hk
+      exact ⟨fr, hk_old, ha⟩
 
 @[simp] theorem runtimeFrameOwnsAddress_declareRefState_iff
     {σ : State} {τ : CppType} {x : Ident} {a addr : Nat} {k : Nat} :
@@ -385,28 +292,27 @@ theorem declareRefState_frameLocalsNodup_backward
     {k : Nat} {fr : ScopeFrame}
     (hk : (declareRefState σ τ x a).scopes[k]? = some fr) :
     fr.locals.Nodup := by
-  cases hsc : σ.scopes with
-  | nil =>
-      cases k with
-      | zero =>
+  cases k with
+  | zero =>
+      cases hsc : σ.scopes with
+      | nil =>
           simp [declareRefState, scopes_bindTopBinding, hsc] at hk
           subst fr
           simp
-      | succ k =>
-          simp [declareRefState, scopes_bindTopBinding, hsc] at hk
-  | cons fr0 frs =>
-      cases k with
-      | zero =>
+      | cons fr0 frs =>
           have hlocals : fr.locals = fr0.locals :=
             declareRefState_lookup_zero_locals_of_cons
-              (σ := σ) (τ := τ) (x := x) (a := a) (fr0 := fr0) (frs := frs) hsc hk
-          have hnodup0 : fr0.locals.Nodup := h 0 fr0 (by simp [hsc])
+              (σ := σ) (τ := τ) (x := x) (a := a)
+              (fr0 := fr0) (frs := frs) hsc hk
+          have hnodup0 : fr0.locals.Nodup :=
+            h 0 fr0 (by simp [hsc])
           simpa [hlocals] using hnodup0
-      | succ k =>
-          have hk_old : σ.scopes[k.succ]? = some fr :=
-            (declareRefState_lookup_succ_iff
-              (σ := σ) (τ := τ) (x := x) (a := a) (k := k) (fr := fr)).1 hk
-          exact h k.succ fr hk_old
+  | succ k =>
+      have hk_old : σ.scopes[k.succ]? = some fr :=
+        (declareRefState_lookup_succ_iff
+          (σ := σ) (τ := τ) (x := x) (a := a)
+          (k := k) (fr := fr)).1 hk
+      exact h k.succ fr hk_old
 
 @[simp] theorem ownedAddressesNoDupPerFrame_declareRefState
     {σ : State} {τ : CppType} {x : Ident} {a : Nat} :
@@ -467,74 +373,6 @@ end DeclareRefStatePreservation
 
 section DeclareObjectStatePreservation
 
-@[simp] theorem declareObjectState_scopes_succ
-    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {k : Nat} :
-    (declareObjectState σ τ x ov).scopes[k.succ]? = σ.scopes[k.succ]? := by
-  cases hsc : σ.scopes with
-  | nil =>
-      simp [declareObjectState, recordLocal, bindTopBinding, writeHeap, hsc]
-  | cons fr0 frs =>
-      simp [declareObjectState, recordLocal, bindTopBinding, writeHeap, hsc]
-
-@[simp] theorem declareObjectState_scopes_zero_of_cons
-    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
-    {fr0 : ScopeFrame} {frs : List ScopeFrame}
-    (hsc : σ.scopes = fr0 :: frs) :
-    (declareObjectState σ τ x ov).scopes[0]? =
-      some
-        { fr0 with
-          binds := fun y => if y = x then some (.object τ σ.next) else fr0.binds y
-          locals := σ.next :: fr0.locals } := by
-  simp [declareObjectState, recordLocal, bindTopBinding, writeHeap, hsc]
-
-@[simp] theorem declareObjectState_lookup_succ_iff
-    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
-    {k : Nat} {fr : ScopeFrame} :
-    (declareObjectState σ τ x ov).scopes[k.succ]? = some fr ↔
-      σ.scopes[k.succ]? = some fr := by
-  constructor <;> intro hk <;> simpa using hk
-
-theorem declareObjectState_lookup_zero_frame_of_cons
-    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
-    {fr0 : ScopeFrame} {frs : List ScopeFrame}
-    (hsc : σ.scopes = fr0 :: frs)
-    {fr : ScopeFrame}
-    (hk : (declareObjectState σ τ x ov).scopes[0]? = some fr) :
-    fr =
-      { fr0 with
-        binds := fun y => if y = x then some (.object τ σ.next) else fr0.binds y
-        locals := σ.next :: fr0.locals } := by
-  have htop := declareObjectState_scopes_zero_of_cons
-    (σ := σ) (τ := τ) (x := x) (ov := ov) (fr0 := fr0) (frs := frs) hsc
-  exact Option.some.inj (hk.symm.trans htop)
-
-theorem declareObjectState_lookup_zero_locals_of_cons
-    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
-    {fr0 : ScopeFrame} {frs : List ScopeFrame}
-    (hsc : σ.scopes = fr0 :: frs)
-    {fr : ScopeFrame}
-    (hk : (declareObjectState σ τ x ov).scopes[0]? = some fr) :
-    fr.locals = σ.next :: fr0.locals := by
-  rcases declareObjectState_lookup_zero_frame_of_cons
-      (σ := σ) (τ := τ) (x := x) (ov := ov) (fr0 := fr0) (frs := frs) hsc hk with rfl
-  simp
-
-@[simp] theorem locals_recordLocal_top
-    {fr : ScopeFrame} {x : Ident} {b : Binding} {a : Nat} :
-    ({ fr with
-        binds := fun y => if y = x then some b else fr.binds y
-        locals := a :: fr.locals }).locals
-      = a :: fr.locals := by
-  rfl
-
-theorem mem_declareObjectState_top_locals_iff
-    {fr : ScopeFrame} {a b : Nat} {x : Ident} {τ : CppType} :
-    a ∈ ({ fr with
-      binds := fun y => if y = x then some (.object τ b) else fr.binds y,
-      locals := b :: fr.locals }).locals
-    ↔ a = b ∨ a ∈ fr.locals := by
-  simp
-
 theorem heapInitializedValuesTyped_declareObjectState_of_optionCompat
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} :
     heapInitializedValuesTyped σ →
@@ -574,81 +412,309 @@ theorem nextFreshAgainstOwned_declareObjectState_of_freshSucc
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} :
     freshAddrAgainstOwned σ (σ.next + 1) →
     nextFreshAgainstOwned (declareObjectState σ τ x ov) := by
-  intro hsucc
-  rcases hsucc with ⟨hheapSucc, hlocalsSucc⟩
-  refine ⟨?_, ?_⟩
-  · have hheap_keep :
-        (declareObjectState σ τ x ov).heap (σ.next + 1) = σ.heap (σ.next + 1) := by
-      simp
-    calc
-      (declareObjectState σ τ x ov).heap (declareObjectState σ τ x ov).next
-          = (declareObjectState σ τ x ov).heap (σ.next + 1) := by simp [next_declareObjectState]
-      _ = σ.heap (σ.next + 1) := hheap_keep
-      _ = none := hheapSucc
-  · intro k fr hk
-    cases hsc : σ.scopes with
-    | nil =>
-        cases k with
-        | zero =>
-            simp [declareObjectState, recordLocal, bindTopBinding, writeHeap, hsc] at hk
-            subst fr
-            simp
-        | succ k =>
-            have hk_old : σ.scopes[k.succ]? = some fr :=
-              (declareObjectState_lookup_succ_iff
-                (σ := σ) (τ := τ) (x := x) (ov := ov) (k := k) (fr := fr)).1 hk
-            simp [hsc] at hk_old
-    | cons fr0 frs =>
-        cases k with
-        | zero =>
-            rcases declareObjectState_lookup_zero_frame_of_cons
-                (σ := σ) (τ := τ) (x := x) (ov := ov)
-                (fr0 := fr0) (frs := frs) hsc hk with rfl
-            have hnot_old : σ.next + 1 ∉ fr0.locals := by
-              exact hlocalsSucc 0 fr0 (by simp [hsc])
-            simp [next_declareObjectState, hnot_old]
-        | succ k =>
-            have hk_old : σ.scopes[k.succ]? = some fr :=
-              (declareObjectState_lookup_succ_iff
-                (σ := σ) (τ := τ) (x := x) (ov := ov) (k := k) (fr := fr)).1 hk
-            simpa [next_declareObjectState] using hlocalsSucc k.succ fr hk_old
+  intro hfresh
+  unfold freshAddrAgainstOwned nextFreshAgainstOwned at *
+  constructor
+  · rw [next_declareObjectState]
+    rw [declareObjectState_heap_other]
+    · exact hfresh.1
+    · exact Nat.succ_ne_self σ.next
+  · intro k fr hfr
+    rw [next_declareObjectState]
+    cases k with
+    | zero =>
+        cases hsc : σ.scopes with
+        | nil =>
+            have hlocals := declareObjectState_lookup_zero_locals_of_nil
+              (σ := σ) (τ := τ) (x := x) (ov := ov) hsc hfr
+            simp [hlocals, Nat.succ_ne_self]
+        | cons fr0 frs =>
+            have hlocals := declareObjectState_lookup_zero_locals_of_cons
+              (σ := σ) (τ := τ) (x := x) (ov := ov)
+              (fr0 := fr0) (frs := frs) hsc hfr
+            have hnotOld : σ.next + 1 ∉ fr0.locals :=
+              hfresh.2 0 fr0 (by simp [hsc])
+            simp [hlocals, Nat.succ_ne_self, hnotOld]
+    | succ k =>
+        exact hfresh.2 (Nat.succ k) fr (by
+          exact (declareObjectState_lookup_succ_iff
+            (σ := σ) (τ := τ) (x := x) (ov := ov)
+            (k := k) (fr := fr)).1 hfr)
 
 theorem ownedAddressesNoDupPerFrame_declareObjectState_of_nextFresh
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} :
     ownedAddressesNoDupPerFrame σ →
     nextFreshAgainstOwned σ →
     ownedAddressesNoDupPerFrame (declareObjectState σ τ x ov) := by
-  intro hnodup hfresh
-  rcases hfresh with ⟨_, hfreshLocals⟩
-  intro k fr hk
-  cases hsc : σ.scopes with
-  | nil =>
-      cases k with
-      | zero =>
-          simp [declareObjectState, recordLocal, bindTopBinding, hsc] at hk
-          subst fr
-          simp
-      | succ k =>
-          have hk_old : σ.scopes[k.succ]? = some fr :=
-            (declareObjectState_lookup_succ_iff
-              (σ := σ) (τ := τ) (x := x) (ov := ov) (k := k) (fr := fr)).1 hk
-          simpa [hsc] using hnodup k.succ fr hk_old
-  | cons fr0 frs =>
-      cases k with
-      | zero =>
-          have hlocals : fr.locals = σ.next :: fr0.locals :=
-            declareObjectState_lookup_zero_locals_of_cons
-              (σ := σ) (τ := τ) (x := x) (ov := ov) (fr0 := fr0) (frs := frs) hsc hk
-          have h0 : fr0.locals.Nodup := hnodup 0 fr0 (by simp [hsc])
-          have hnot : σ.next ∉ fr0.locals := by
-            exact hfreshLocals 0 fr0 (by simp [hsc])
-          simpa [hlocals] using List.nodup_cons.2 ⟨hnot, h0⟩
-      | succ k =>
-          have hk_old : σ.scopes[k.succ]? = some fr :=
-            (declareObjectState_lookup_succ_iff
-              (σ := σ) (τ := τ) (x := x) (ov := ov) (k := k) (fr := fr)).1 hk
-          exact hnodup k.succ fr hk_old
+  intro hNoDup hfresh
+  unfold ownedAddressesNoDupPerFrame at hNoDup ⊢
+  intro k fr hfr
+  cases k with
+  | zero =>
+      cases hsc : σ.scopes with
+      | nil =>
+          have hlocals := declareObjectState_lookup_zero_locals_of_nil
+            (σ := σ) (τ := τ) (x := x) (ov := ov) hsc hfr
+          simp [hlocals]
+      | cons fr0 frs =>
+          have hlocals := declareObjectState_lookup_zero_locals_of_cons
+            (σ := σ) (τ := τ) (x := x) (ov := ov)
+            (fr0 := fr0) (frs := frs) hsc hfr
+          have hnotMem : σ.next ∉ fr0.locals :=
+            hfresh.2 0 fr0 (by simp [hsc])
+          have hNoDupTop : fr0.locals.Nodup :=
+            hNoDup 0 fr0 (by simp [hsc])
+          have hNew : (σ.next :: fr0.locals).Nodup := by
+            constructor
+            · intro a' ha hEq
+              apply hnotMem
+              simpa [hEq] using ha
+            · exact hNoDupTop
+          simpa [hlocals] using hNew
+  | succ k =>
+      exact hNoDup (Nat.succ k) fr (by
+        simpa using hfr)
 
 end DeclareObjectStatePreservation
+
+
+/-! =========================================================
+    Temporary lower API for downstream declare-object repair
+    ========================================================= -/
+
+section DeclareObjectStateLowerAPI
+
+/-- Canonical API: the new object cell is stored at the pre-state cursor. -/
+theorem declareObjectState_api_heap_new_cell
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} :
+    (declareObjectState σ τ x ov).heap σ.next =
+      some { ty := τ, value := ov, alive := true } := by
+  simp
+
+/-- Canonical API: object declaration preserves every heap cell off the new address. -/
+theorem declareObjectState_api_heap_off_new_cell
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
+    {a : Nat} (ha : a ≠ σ.next) :
+    (declareObjectState σ τ x ov).heap a = σ.heap a := by
+  simpa using declareObjectState_heap_other σ τ x ov ha
+
+/-- Case split for heap lookups after object declaration. -/
+theorem declareObjectState_api_heap_cases
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
+    {a : Nat} {c : Cell}
+    (hheap : (declareObjectState σ τ x ov).heap a = some c) :
+    (a = σ.next ∧ c = { ty := τ, value := ov, alive := true }) ∨
+      (a ≠ σ.next ∧ σ.heap a = some c) := by
+  by_cases ha : a = σ.next
+  · subst a
+    have hnew : some { ty := τ, value := ov, alive := true } = some c := by
+      simpa [declareObjectState_api_heap_new_cell] using hheap
+    left
+    exact ⟨rfl, (Option.some.inj hnew).symm⟩
+  · right
+    exact ⟨ha, by
+      simpa [declareObjectState_api_heap_off_new_cell (σ := σ) (τ := τ)
+        (x := x) (ov := ov) ha] using hheap⟩
+
+/-- Canonical API: the object-declaration façade advances the cursor by successor. -/
+theorem declareObjectState_api_next
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} :
+    (declareObjectState σ τ x ov).next = σ.next + 1 := by
+  simp
+
+/-- Canonical API: deeper frames are unchanged by object declaration. -/
+theorem declareObjectState_api_succ_scope_iff
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
+    {k : Nat} {fr : ScopeFrame} :
+    (declareObjectState σ τ x ov).scopes[k.succ]? = some fr ↔
+      σ.scopes[k.succ]? = some fr := by
+  exact declareObjectState_lookup_succ_iff
+    (σ := σ) (τ := τ) (x := x) (ov := ov) (k := k) (fr := fr)
+
+/-- Canonical API: top-frame locals after object declaration, split on old stack shape. -/
+theorem declareObjectState_api_zero_locals_cases
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
+    {fr : ScopeFrame}
+    (hfr : (declareObjectState σ τ x ov).scopes[0]? = some fr) :
+    (σ.scopes = [] ∧ fr.locals = [σ.next]) ∨
+      ∃ fr0 frs,
+        σ.scopes = fr0 :: frs ∧ fr.locals = σ.next :: fr0.locals := by
+  cases hsc : σ.scopes with
+  | nil =>
+      left
+      exact ⟨rfl, declareObjectState_lookup_zero_locals_of_nil
+        (σ := σ) (τ := τ) (x := x) (ov := ov) hsc hfr⟩
+  | cons fr0 frs =>
+      right
+      exact ⟨fr0, frs, rfl, declareObjectState_lookup_zero_locals_of_cons
+        (σ := σ) (τ := τ) (x := x) (ov := ov)
+        (fr0 := fr0) (frs := frs) hsc hfr⟩
+
+/-- Canonical API: object declaration always owns the freshly allocated address in frame 0. -/
+theorem declareObjectState_api_runtimeFrameOwnsAddress_zero_new
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} :
+    runtimeFrameOwnsAddress (declareObjectState σ τ x ov) 0 σ.next := by
+  cases hsc : σ.scopes with
+  | nil =>
+      have hfr := declareObjectState_scopes_zero_of_nil
+        (σ := σ) (τ := τ) (x := x) (ov := ov) hsc
+      refine ⟨_, hfr, ?_⟩
+      simp
+  | cons fr0 frs =>
+      have hfr := declareObjectState_scopes_zero_of_cons
+        (σ := σ) (τ := τ) (x := x) (ov := ov)
+        (fr0 := fr0) (frs := frs) hsc
+      refine ⟨_, hfr, ?_⟩
+      simp
+
+/-- Canonical API: ownership in deeper frames is exactly preserved. -/
+theorem declareObjectState_api_runtimeFrameOwnsAddress_succ_iff
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
+    {k a : Nat} :
+    runtimeFrameOwnsAddress (declareObjectState σ τ x ov) k.succ a ↔
+      runtimeFrameOwnsAddress σ k.succ a := by
+  constructor
+  · intro hown
+    rcases hown with ⟨fr, hfr, hmem⟩
+    exact ⟨fr,
+      (declareObjectState_api_succ_scope_iff
+        (σ := σ) (τ := τ) (x := x) (ov := ov)
+        (k := k) (fr := fr)).1 hfr,
+      hmem⟩
+  · intro hown
+    rcases hown with ⟨fr, hfr, hmem⟩
+    exact ⟨fr,
+      (declareObjectState_api_succ_scope_iff
+        (σ := σ) (τ := τ) (x := x) (ov := ov)
+        (k := k) (fr := fr)).2 hfr,
+      hmem⟩
+
+/-- Canonical API: top-frame ownership after declaration is either the new address
+or old top-frame ownership. -/
+theorem declareObjectState_api_runtimeFrameOwnsAddress_zero_cases
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
+    {a : Nat}
+    (hown : runtimeFrameOwnsAddress (declareObjectState σ τ x ov) 0 a) :
+    a = σ.next ∨ runtimeFrameOwnsAddress σ 0 a := by
+  rcases hown with ⟨fr, hfr, hmem⟩
+  cases hsc : σ.scopes with
+  | nil =>
+      have hl := declareObjectState_lookup_zero_locals_of_nil hsc hfr
+      simp [hl] at hmem
+      exact Or.inl hmem
+  | cons fr0 frs =>
+      have hl := declareObjectState_lookup_zero_locals_of_cons hsc hfr
+      simp [hl] at hmem
+      rcases hmem with (rfl | hold)
+      · exact Or.inl rfl
+      · exact Or.inr ⟨fr0, by simp [hsc], hold⟩
+
+/-- Canonical API: old top-frame ownership is preserved by object declaration. -/
+theorem declareObjectState_api_runtimeFrameOwnsAddress_zero_preserved
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
+    {a : Nat}
+    (hown : runtimeFrameOwnsAddress σ 0 a) :
+    runtimeFrameOwnsAddress (declareObjectState σ τ x ov) 0 a := by
+  rcases hown with ⟨fr, hfr, hmem⟩
+  cases hsc : σ.scopes with
+  | nil =>
+      simp [hsc] at hfr
+  | cons fr0 frs =>
+      have hfr_eq : fr0 = fr := by
+        simpa [hsc] using hfr
+      subst fr
+      have hfr_new := declareObjectState_scopes_zero_of_cons
+        (σ := σ) (τ := τ) (x := x) (ov := ov)
+        (fr0 := fr0) (frs := frs) hsc
+      refine ⟨_, hfr_new, ?_⟩
+      simp [hmem]
+
+/-- Canonical API: initialized-value preservation for object declaration. -/
+theorem declareObjectState_api_heapInitializedValuesTyped
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} :
+    heapInitializedValuesTyped σ →
+    OptionValueCompat ov τ →
+    heapInitializedValuesTyped (declareObjectState σ τ x ov) := by
+  intro htyped hov
+  intro a c v hheap hv
+  rcases declareObjectState_api_heap_cases hheap with hnew | hold
+  · rcases hnew with ⟨ha, hc⟩
+    subst a
+    subst c
+    cases hov_case : ov with
+    | none =>
+        simp [hov_case] at hv
+    | some w =>
+        have hwv : w = v := by
+          simpa [hov_case] using hv
+        subst v
+        simpa [OptionValueCompat, hov_case] using hov
+  · rcases hold with ⟨_ha, hheap_old⟩
+    exact htyped a c v hheap_old hv
+
+/-- Canonical API: successor-cursor freshness is the exact side condition needed
+for preserving `nextFreshAgainstOwned`. -/
+theorem declareObjectState_api_nextFreshAgainstOwned
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} :
+    freshAddrAgainstOwned σ (σ.next + 1) →
+    nextFreshAgainstOwned (declareObjectState σ τ x ov) := by
+  intro hfresh
+  unfold nextFreshAgainstOwned
+  constructor
+  · rw [declareObjectState_api_next]
+    rw [declareObjectState_api_heap_off_new_cell]
+    · exact hfresh.1
+    · exact Nat.succ_ne_self σ.next
+  · intro k fr hfr
+    rw [declareObjectState_api_next]
+    cases k with
+    | zero =>
+        rcases declareObjectState_api_zero_locals_cases hfr with hnil | hcons
+        · rcases hnil with ⟨_hsc, hlocals⟩
+          simp [hlocals, Nat.succ_ne_self]
+        · rcases hcons with ⟨fr0, _frs, hsc, hlocals⟩
+          have hnotOld : σ.next + 1 ∉ fr0.locals :=
+            hfresh.2 0 fr0 (by simp [hsc])
+          simp [hlocals, Nat.succ_ne_self, hnotOld]
+    | succ k =>
+        exact hfresh.2 (Nat.succ k) fr
+          ((declareObjectState_api_succ_scope_iff
+            (σ := σ) (τ := τ) (x := x) (ov := ov)
+            (k := k) (fr := fr)).1 hfr)
+
+/-- Canonical API: object declaration preserves per-frame ownership nodup under
+freshness of the newly allocated address. -/
+theorem declareObjectState_api_ownedAddressesNoDupPerFrame
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} :
+    ownedAddressesNoDupPerFrame σ →
+    nextFreshAgainstOwned σ →
+    ownedAddressesNoDupPerFrame (declareObjectState σ τ x ov) := by
+  intro hNoDup hfresh
+  unfold ownedAddressesNoDupPerFrame at hNoDup ⊢
+  intro k fr hfr
+  cases k with
+  | zero =>
+      rcases declareObjectState_api_zero_locals_cases hfr with hnil | hcons
+      · rcases hnil with ⟨_hsc, hlocals⟩
+        simp [hlocals]
+      · rcases hcons with ⟨fr0, _frs, hsc, hlocals⟩
+        have hnotMem : σ.next ∉ fr0.locals :=
+          hfresh.2 0 fr0 (by simp [hsc])
+        have hNoDupTop : fr0.locals.Nodup :=
+          hNoDup 0 fr0 (by simp [hsc])
+        have hNew : (σ.next :: fr0.locals).Nodup := by
+          constructor
+          · intro a' ha hEq
+            apply hnotMem
+            simpa [hEq] using ha
+          · exact hNoDupTop
+        simpa [hlocals] using hNew
+  | succ k =>
+      exact hNoDup (Nat.succ k) fr
+        ((declareObjectState_api_succ_scope_iff
+          (σ := σ) (τ := τ) (x := x) (ov := ov)
+          (k := k) (fr := fr)).1 hfr)
+
+end DeclareObjectStateLowerAPI
 
 end Cpp

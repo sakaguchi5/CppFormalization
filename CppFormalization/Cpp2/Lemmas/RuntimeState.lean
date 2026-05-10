@@ -28,7 +28,24 @@ namespace Cpp
     (pushScope σ).next = σ.next := by
   rfl
 
+@[simp] theorem next_setNext (σ : State) (a : Nat) :
+    (setNext σ a).next = a := by
+  rfl
+
+@[simp] theorem scopes_setNext (σ : State) (a : Nat) :
+    (setNext σ a).scopes = σ.scopes := by
+  rfl
+
+@[simp] theorem heap_setNext (σ : State) (a : Nat) :
+    (setNext σ a).heap = σ.heap := by
+  rfl
+
 @[simp] theorem lookupBinding_setNext
+    (σ : State) (n : Nat) (x : Ident) :
+    lookupBinding (setNext σ n) x = lookupBinding σ x := by
+  rfl
+
+@[simp] theorem lookupBinding_record_next
     (σ : State) (n : Nat) (x : Ident) :
     lookupBinding ({ σ with next := n }) x = lookupBinding σ x := by
   rfl
@@ -53,24 +70,16 @@ namespace Cpp
 @[simp] theorem lookupBinding_bindTopBinding_self
     (σ : State) (x : Ident) (b : Binding) :
     lookupBinding (bindTopBinding σ x b) x = some b := by
-  unfold lookupBinding bindTopBinding lookupBindingFrames
-  cases hsc : σ.scopes with
-  | nil =>
-      simp
-  | cons fr frs =>
-      simp
+  unfold lookupBinding bindTopBinding
+  cases σ.scopes <;>
+    simp [lookupBindingFrames]
 
 @[simp] theorem lookupBinding_bindTopBinding_other
     (σ : State) {x y : Ident} (b : Binding) (hxy : y ≠ x) :
     lookupBinding (bindTopBinding σ x b) y = lookupBinding σ y := by
-  unfold lookupBinding bindTopBinding lookupBindingFrames
-  cases hsc : σ.scopes with
-  | nil =>
-      simp only
-      unfold lookupBindingFrames
-      simp [hxy]
-  | cons fr frs =>
-      simp [hxy]
+  unfold lookupBinding bindTopBinding
+  cases σ.scopes <;>
+    simp [lookupBindingFrames, hxy]
 
 @[simp] theorem scopes_bindTopBinding
     (σ : State) (x : Ident) (b : Binding) :
@@ -186,8 +195,7 @@ namespace Cpp
 @[simp] theorem next_declareObjectState
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
     (declareObjectState σ τ x ov).next = σ.next + 1 := by
-  unfold declareObjectState
-  simp
+  simp [declareObjectState, declareObjectStateWithNext, setNext]
 
 @[simp] theorem declareObjectState_next
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
@@ -236,8 +244,7 @@ namespace Cpp
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
     (declareObjectState σ τ x ov).heap σ.next =
       some { ty := τ, value := ov, alive := true } := by
-  unfold declareObjectState
-  simp
+  simp [declareObjectState, declareObjectStateWithNext, setNext, declareObjectStateCore]
 
 @[simp] theorem declareObjectState_heap_self
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
@@ -249,8 +256,8 @@ namespace Cpp
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value)
     (b : Nat) (hb : b ≠ σ.next) :
     (declareObjectState σ τ x ov).heap b = σ.heap b := by
-  unfold declareObjectState
-  simp [hb]
+  simp [declareObjectState, declareObjectStateWithNext, setNext,
+    declareObjectStateCore, hb]
 
 @[simp] theorem declareObjectState_heap_other
     (σ : State) {a : Nat} (τ : CppType) (x : Ident) (ov : Option Value)
@@ -261,17 +268,20 @@ namespace Cpp
 @[simp] theorem declareObjectState_scopes_ne_nil
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
     (declareObjectState σ τ x ov).scopes ≠ [] := by
-  unfold declareObjectState recordLocal bindTopBinding
-  split <;> simp
+  unfold declareObjectState declareObjectStateWithNext setNext declareObjectStateCore
+  simp [scopes_recordLocal, scopes_writeHeap, scopes_bindTopBinding]
+  --cases h : σ.scopes <;> simp [h]
+  cases σ.scopes <;> simp
 
 @[simp] theorem declareObjectState_top_local_mem
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
     match (declareObjectState σ τ x ov).scopes with
     | [] => False
     | fr :: _ => σ.next ∈ fr.locals := by
-  unfold declareObjectState
+  unfold declareObjectState declareObjectStateWithNext setNext declareObjectStateCore
   simp [scopes_recordLocal, scopes_writeHeap, scopes_bindTopBinding]
-  cases h : σ.scopes <;> simp
+  --cases h : σ.scopes <;> simp [h]
+  cases σ.scopes <;> simp
 
 @[simp] theorem lookupBinding_eq_of_scopes_eq
     {σ₁ σ₂ : State} (h : σ₁.scopes = σ₂.scopes) (x : Ident) :
@@ -291,29 +301,11 @@ namespace Cpp
     lookupBinding (killLocals σ ls) x = lookupBinding σ x := by
   exact lookupBinding_eq_of_scopes_eq (scopes_killLocals σ ls) x
 
+
 @[simp] theorem lookupBinding_declareObjectState_self
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
     lookupBinding (declareObjectState σ τ x ov) x = some (.object τ σ.next) := by
-  unfold declareObjectState
-  rw [lookupBinding_recordLocal]
-  rw [lookupBinding_writeHeap]
-  let σ' : State :=
-    { scopes := (bindTopBinding σ x (.object τ σ.next)).scopes
-    , heap   := (bindTopBinding σ x (.object τ σ.next)).heap
-    , next   := σ.next + 1
-    }
-  change lookupBinding σ' x = some (.object τ σ.next)
-  calc
-    lookupBinding σ' x
-        = lookupBinding (bindTopBinding σ x (.object τ σ.next)) x := by
-            exact lookupBinding_eq_of_scopes_eq
-              (σ₁ := σ')
-              (σ₂ := bindTopBinding σ x (.object τ σ.next))
-              (h := rfl)
-              (x := x)
-    _ = some (.object τ σ.next) := by
-          simp [(lookupBinding_bindTopBinding_self
-              (σ := σ) (x := x) (b := .object τ σ.next))]
+  simp [declareObjectState, declareObjectStateWithNext, declareObjectStateCore]
 
 @[simp] theorem lookupBinding_declareRefState_self
     (σ : State) (τ : CppType) (x : Ident) (a : Nat) :
@@ -322,29 +314,11 @@ namespace Cpp
   simp
 
 @[simp] theorem lookupBinding_declareObjectState_other
-    (σ : State) (τ : CppType) (x y : Ident) (ov : Option Value) (hxy : y ≠ x) :
+    (σ : State) (τ : CppType) (x y : Ident) (ov : Option Value)
+    (hxy : y ≠ x) :
     lookupBinding (declareObjectState σ τ x ov) y = lookupBinding σ y := by
-  unfold declareObjectState
-  rw [lookupBinding_recordLocal]
-  rw [lookupBinding_writeHeap]
-  let σ' : State :=
-    { scopes := (bindTopBinding σ x (.object τ σ.next)).scopes
-    , heap   := (bindTopBinding σ x (.object τ σ.next)).heap
-    , next   := σ.next + 1
-    }
-  change lookupBinding σ' y = lookupBinding σ y
-  calc
-    lookupBinding σ' y
-        = lookupBinding (bindTopBinding σ x (.object τ σ.next)) y := by
-            exact lookupBinding_eq_of_scopes_eq
-              (σ₁ := σ')
-              (σ₂ := bindTopBinding σ x (.object τ σ.next))
-              (h := rfl)
-              (x := y)
-    _ = lookupBinding σ y := by
-          simpa using
-            (lookupBinding_bindTopBinding_other
-              (σ := σ) (x := x) (y := y) (b := .object τ σ.next) hxy)
+  unfold declareObjectState declareObjectStateWithNext declareObjectStateCore
+  simp [hxy]
 
 @[simp] theorem lookupBinding_declareRefState_other
     (σ : State) (τ : CppType) (x y : Ident) (a : Nat) (hxy : y ≠ x) :
@@ -428,5 +402,209 @@ theorem popScope?_some_scopes
     {σ σ' : State} :
     CloseScope σ σ' ↔ popScope? σ = some σ' := by
   simp
+
+@[simp] theorem declareObjectState_scopes_succ
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {k : Nat} :
+    (declareObjectState σ τ x ov).scopes[k.succ]? = σ.scopes[k.succ]? := by
+  unfold declareObjectState declareObjectStateWithNext setNext declareObjectStateCore
+  cases hsc : σ.scopes with
+  | nil =>
+      simp [ recordLocal, bindTopBinding, writeHeap, hsc]
+  | cons fr0 frs =>
+      simp [ recordLocal, bindTopBinding, writeHeap, hsc]
+
+@[simp] theorem declareObjectState_scopes_zero_of_cons
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
+    {fr0 : ScopeFrame} {frs : List ScopeFrame}
+    (hsc : σ.scopes = fr0 :: frs) :
+    (declareObjectState σ τ x ov).scopes[0]? =
+      some
+        { fr0 with
+          binds := fun y => if y = x then some (.object τ σ.next) else fr0.binds y
+          locals := σ.next :: fr0.locals } := by
+  unfold declareObjectState declareObjectStateWithNext setNext declareObjectStateCore
+  simp [recordLocal, bindTopBinding, writeHeap, hsc]
+
+@[simp] theorem declareObjectState_scopes_zero_of_nil
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
+    (hsc : σ.scopes = []) :
+    (declareObjectState σ τ x ov).scopes[0]? =
+      some
+        { binds := fun y => if y = x then some (.object τ σ.next) else none
+          locals := [σ.next] } := by
+  unfold declareObjectState declareObjectStateWithNext setNext declareObjectStateCore
+  simp [recordLocal, bindTopBinding, writeHeap, hsc]
+
+@[simp] theorem declareObjectState_lookup_succ_iff
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
+    {k : Nat} {fr : ScopeFrame} :
+    (declareObjectState σ τ x ov).scopes[k.succ]? = some fr ↔
+      σ.scopes[k.succ]? = some fr := by
+  constructor <;> intro hk <;> simpa using hk
+
+theorem declareObjectState_lookup_zero_frame_of_nil
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
+    (hsc : σ.scopes = [])
+    {fr : ScopeFrame}
+    (hk : (declareObjectState σ τ x ov).scopes[0]? = some fr) :
+    fr =
+      { binds := fun y => if y = x then some (.object τ σ.next) else none
+        locals := [σ.next] } := by
+  have htop := declareObjectState_scopes_zero_of_nil
+    (σ := σ) (τ := τ) (x := x) (ov := ov) hsc
+  exact Option.some.inj (hk.symm.trans htop)
+
+theorem declareObjectState_lookup_zero_frame_of_cons
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
+    {fr0 : ScopeFrame} {frs : List ScopeFrame}
+    (hsc : σ.scopes = fr0 :: frs)
+    {fr : ScopeFrame}
+    (hk : (declareObjectState σ τ x ov).scopes[0]? = some fr) :
+    fr =
+      { fr0 with
+        binds := fun y => if y = x then some (.object τ σ.next) else fr0.binds y
+        locals := σ.next :: fr0.locals } := by
+  have htop := declareObjectState_scopes_zero_of_cons
+    (σ := σ) (τ := τ) (x := x) (ov := ov) (fr0 := fr0) (frs := frs) hsc
+  exact Option.some.inj (hk.symm.trans htop)
+
+theorem declareObjectState_lookup_zero_locals_of_nil
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
+    (hsc : σ.scopes = [])
+    {fr : ScopeFrame}
+    (hk : (declareObjectState σ τ x ov).scopes[0]? = some fr) :
+    fr.locals = [σ.next] := by
+  rcases declareObjectState_lookup_zero_frame_of_nil
+      (σ := σ) (τ := τ) (x := x) (ov := ov) hsc hk with rfl
+  simp
+
+theorem declareObjectState_lookup_zero_locals_of_cons
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
+    {fr0 : ScopeFrame} {frs : List ScopeFrame}
+    (hsc : σ.scopes = fr0 :: frs)
+    {fr : ScopeFrame}
+    (hk : (declareObjectState σ τ x ov).scopes[0]? = some fr) :
+    fr.locals = σ.next :: fr0.locals := by
+  rcases declareObjectState_lookup_zero_frame_of_cons
+      (σ := σ) (τ := τ) (x := x) (ov := ov) (fr0 := fr0) (frs := frs) hsc hk with rfl
+  simp
+
+@[simp] theorem locals_recordLocal_top
+    {fr : ScopeFrame} {x : Ident} {b : Binding} {a : Nat} :
+    ({ fr with
+        binds := fun y => if y = x then some b else fr.binds y
+        locals := a :: fr.locals }).locals
+      = a :: fr.locals := by
+  rfl
+
+theorem mem_declareObjectState_top_locals_iff
+    {fr : ScopeFrame} {a b : Nat} {x : Ident} {τ : CppType} :
+    a ∈ ({ fr with
+      binds := fun y => if y = x then some (.object τ b) else fr.binds y,
+      locals := b :: fr.locals }).locals
+    ↔ a = b ∨ a ∈ fr.locals := by
+  simp
+
+/-- Top-frame binding update does not change `locals`. -/
+@[simp] theorem locals_bindTopBinding_top
+    {fr : ScopeFrame} {x : Ident} {b : Binding} :
+    ({ fr with binds := fun y => if y = x then some b else fr.binds y }).locals = fr.locals := by
+  rfl
+
+/-- `declareRefState` only changes the top frame; deeper scopes are untouched. -/
+@[simp] theorem declareRefState_scopes_succ
+    {σ : State} {τ : CppType} {x : Ident} {a : Nat} {k : Nat} :
+    (declareRefState σ τ x a).scopes[k.succ]? = σ.scopes[k.succ]? := by
+  cases hsc : σ.scopes <;> simp [declareRefState, scopes_bindTopBinding, hsc]
+
+@[simp] theorem declareRefState_lookup_succ_iff
+    {σ : State} {τ : CppType} {x : Ident} {a : Nat}
+    {k : Nat} {fr : ScopeFrame} :
+    (declareRefState σ τ x a).scopes[k.succ]? = some fr ↔
+      σ.scopes[k.succ]? = some fr := by
+  rw [declareRefState_scopes_succ]
+
+@[simp] theorem declareRefState_scopes_zero_of_cons
+    {σ : State} {τ : CppType} {x : Ident} {a : Nat}
+    {fr0 : ScopeFrame} {frs : List ScopeFrame}
+    (hsc : σ.scopes = fr0 :: frs) :
+    (declareRefState σ τ x a).scopes[0]? =
+      some
+        { fr0 with
+          binds := fun y => if y = x then some (.ref τ a) else fr0.binds y } := by
+  simp [declareRefState, scopes_bindTopBinding, hsc]
+
+theorem declareRefState_lookup_zero_frame_of_cons
+    {σ : State} {τ : CppType} {x : Ident} {a : Nat}
+    {fr0 : ScopeFrame} {frs : List ScopeFrame}
+    (hsc : σ.scopes = fr0 :: frs)
+    {fr : ScopeFrame}
+    (hk : (declareRefState σ τ x a).scopes[0]? = some fr) :
+    fr =
+      { fr0 with
+        binds := fun y => if y = x then some (.ref τ a) else fr0.binds y } := by
+  have htop := declareRefState_scopes_zero_of_cons
+    (σ := σ) (τ := τ) (x := x) (a := a) (fr0 := fr0) (frs := frs) hsc
+  exact Option.some.inj (hk.symm.trans htop)
+
+theorem declareRefState_lookup_zero_locals_of_cons
+    {σ : State} {τ : CppType} {x : Ident} {a : Nat}
+    {fr0 : ScopeFrame} {frs : List ScopeFrame}
+    (hsc : σ.scopes = fr0 :: frs)
+    {fr : ScopeFrame}
+    (hk : (declareRefState σ τ x a).scopes[0]? = some fr) :
+    fr.locals = fr0.locals := by
+  rcases declareRefState_lookup_zero_frame_of_cons
+      (σ := σ) (τ := τ) (x := x) (a := a) (fr0 := fr0) (frs := frs) hsc hk with rfl
+  simp
+
+theorem declareRefState_lookup_preserves_locals_forward
+    {σ : State} {τ : CppType} {x : Ident} {a : Nat}
+    {k : Nat} {fr : ScopeFrame}
+    (hk : σ.scopes[k]? = some fr) :
+    ∃ fr',
+      (declareRefState σ τ x a).scopes[k]? = some fr' ∧
+      fr'.locals = fr.locals := by
+  cases k with
+  | zero =>
+      cases hsc : σ.scopes with
+      | nil =>
+          simp [hsc] at hk
+      | cons fr0 frs =>
+          simp [hsc] at hk
+          subst fr
+          refine ⟨
+            { fr0 with
+              binds := fun y => if y = x then some (.ref τ a) else fr0.binds y },
+            ?_,
+            rfl⟩
+          exact declareRefState_scopes_zero_of_cons
+            (σ := σ) (τ := τ) (x := x) (a := a)
+            (fr0 := fr0) (frs := frs) hsc
+  | succ k =>
+      refine ⟨fr, ?_, rfl⟩
+      exact (declareRefState_lookup_succ_iff
+        (σ := σ) (τ := τ) (x := x) (a := a)
+        (k := k) (fr := fr)).2 hk
+
+theorem declareRefState_lookup_preserves_locals_backward_of_cons
+    {σ : State} {τ : CppType} {x : Ident} {a : Nat}
+    {fr0 : ScopeFrame} {frs : List ScopeFrame}
+    (hsc : σ.scopes = fr0 :: frs)
+    {k : Nat} {fr : ScopeFrame}
+    (hk : (declareRefState σ τ x a).scopes[k]? = some fr) :
+    ∃ fr',
+      σ.scopes[k]? = some fr' ∧
+      fr.locals = fr'.locals := by
+  cases k with
+  | zero =>
+      refine ⟨fr0, by simp [hsc], ?_⟩
+      exact declareRefState_lookup_zero_locals_of_cons
+        (σ := σ) (τ := τ) (x := x) (a := a) (fr0 := fr0) (frs := frs) hsc hk
+  | succ k =>
+      refine ⟨fr, ?_, rfl⟩
+      exact (declareRefState_lookup_succ_iff
+        (σ := σ) (τ := τ) (x := x) (a := a) (k := k) (fr := fr)).1 hk
+
 
 end Cpp
