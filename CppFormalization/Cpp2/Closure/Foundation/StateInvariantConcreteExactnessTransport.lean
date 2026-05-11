@@ -132,15 +132,21 @@ theorem framewiseDeclBindingExact_declareTypeObject_declareObjectState_of_topFre
           cases k with
           | zero =>
               simp [declareTypeObject, insertTopDecl, hG] at hkΓ
-              simp [declareObjectState, recordLocal, bindTopBinding, hS] at hkσ
+              rcases declareObjectState_lookup_zero_frame_of_cons
+                (σ := σ) (τ := τ) (x := x) (ov := ov)
+                (fr0 := σtop) (frs := σrest) hS hkσ with rfl
+
               subst Γfr
-              subst σfr
+
               have hExact0 : frameDeclBindingExactAt Γtop σtop :=
                 hexact 0 Γtop σtop (by simp [hG]) (by simp [hS])
+
               have hΓ0fresh : Γtop.decls x = none := by
                 simpa [currentTypeScopeFresh, hG] using hΓfresh
+
               have hσ0fresh : σtop.binds x = none :=
                 hσfresh σtop (by simp [hS])
+
               simpa using
                 (frameDeclBindingExactAt_insertTopDecl_bindTopBinding
                   (hexact := hExact0)
@@ -148,11 +154,16 @@ theorem framewiseDeclBindingExact_declareTypeObject_declareObjectState_of_topFre
                   (hσfresh := hσ0fresh)
                   (hmatchxb := by simp [DeclMatchesBinding])
                   (ls := σ.next :: σtop.locals))
+
           | succ j =>
               have hkΓOld : Γ.scopes[j.succ]? = some Γfr := by
                 simpa [declareTypeObject, insertTopDecl, hG] using hkΓ
-              have hkσOld : σ.scopes[j.succ]? = some σfr := by
-                simpa [declareObjectState, recordLocal, bindTopBinding, hS] using hkσ
+
+              have hkσOld : σ.scopes[j.succ]? = some σfr :=
+                (declareObjectState_lookup_succ_iff
+                  (σ := σ) (τ := τ) (x := x) (ov := ov)
+                  (k := j) (fr := σfr)).1 hkσ
+
               exact hexact j.succ Γfr σfr hkΓOld hkσOld
 
 theorem framewiseDeclBindingExact_declareTypeObject_declareObjectState

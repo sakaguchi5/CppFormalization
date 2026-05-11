@@ -74,8 +74,10 @@ section TypeEnvLocalLemmas
   intro hdepth
   unfold frameDepthAgreement at *
   cases hG : Γ.scopes <;> cases hS : σ.scopes <;>
-    simp [declareTypeObject, insertTopDecl, declareObjectState, recordLocal, bindTopBinding,
-      writeHeap, hG, hS] at *
+    simp [declareTypeObject, insertTopDecl,
+      declareObjectState, declareObjectStateWithNext, setNext,
+      declareObjectStateCore, recordLocal, bindTopBinding, writeHeap,
+      hG, hS] at *
   exact hdepth
 
 @[simp] theorem frameDepthAgreement_declareTypeRef_declareRefState
@@ -179,11 +181,13 @@ theorem framewiseDeclBindingExact_declareTypeObject_declareObjectState_from_topF
   cases hG : Γ.scopes with
   | nil =>
       simp [hG] at hΓ0
+
   | cons Γtop0 Γrest =>
       cases hS : σ.scopes with
       | nil =>
           unfold frameDepthAgreement at hdepth
           simp [hG, hS] at hdepth
+
       | cons σtop σrest =>
           cases k with
           | zero =>
@@ -194,36 +198,51 @@ theorem framewiseDeclBindingExact_declareTypeObject_declareObjectState_from_topF
                 simpa [hG] using hΓ0
               rw [hΓtopEq] at hExact0
 
-              have hTypeFresh0 : Γtop.decls x = none := hfreshType
-              have hRunFresh0 : σtop.binds x = none := hfreshRuntime σtop (by simp [hS])
+              have hTypeFresh0 : Γtop.decls x = none :=
+                hfreshType
+
+              have hRunFresh0 : σtop.binds x = none :=
+                hfreshRuntime σtop (by simp [hS])
 
               have hTop :
                   frameDeclBindingExactAt
-                    { Γtop with decls := fun y => if y = x then some (.object τ) else Γtop.decls y }
+                    { Γtop with
+                      decls := fun y =>
+                        if y = x then some (.object τ) else Γtop.decls y }
                     { σtop with
-                      binds := fun y => if y = x then some (.object τ σ.next) else σtop.binds y,
+                      binds := fun y =>
+                        if y = x then some (.object τ σ.next) else σtop.binds y,
                       locals := σ.next :: σtop.locals } :=
                 frameDeclBindingExactAt_insertTop
-                  hExact0 hTypeFresh0 hRunFresh0 (by simp [DeclMatchesBinding])
+                  hExact0 hTypeFresh0 hRunFresh0
+                  (by simp [DeclMatchesBinding])
 
-              have hΓfr : Γfr = { Γtop with decls := fun y => if y = x then some (.object τ) else Γtop.decls y } := by
+              have hΓfr :
+                  Γfr =
+                    { Γtop with
+                      decls := fun y =>
+                        if y = x then some (.object τ) else Γtop.decls y } := by
                 simp [declareTypeObject, insertTopDecl, hG] at hkΓ
                 rw [hΓtopEq] at hkΓ
                 exact hkΓ.symm
 
-              have hσfr : σfr = { σtop with
-                  binds := fun y => if y = x then some (.object τ σ.next) else σtop.binds y,
-                  locals := σ.next :: σtop.locals } := by
-                simp [declareObjectState, recordLocal, bindTopBinding, writeHeap, hS] at hkσ
-                exact hkσ.symm
-              rw [hΓfr, hσfr]
+              rcases declareObjectState_lookup_zero_frame_of_cons
+                (σ := σ) (τ := τ) (x := x) (ov := ov)
+                (fr0 := σtop) (frs := σrest) hS hkσ with rfl
+
+              rw [hΓfr]
               exact hTop
+
           | succ j =>
-              have hkΓOld : Γ.scopes[(j + 1)]? = some Γfr := by
+              have hkΓOld : Γ.scopes[j.succ]? = some Γfr := by
                 simpa [declareTypeObject, insertTopDecl, hG] using hkΓ
-              have hkσOld : σ.scopes[(j + 1)]? = some σfr := by
-                simpa [declareObjectState, recordLocal, bindTopBinding, writeHeap, hS] using hkσ
-              exact hexact (j + 1) Γfr σfr hkΓOld hkσOld
+
+              have hkσOld : σ.scopes[j.succ]? = some σfr :=
+                (declareObjectState_lookup_succ_iff
+                  (σ := σ) (τ := τ) (x := x) (ov := ov)
+                  (k := j) (fr := σfr)).1 hkσ
+
+              exact hexact j.succ Γfr σfr hkΓOld hkσOld
 
 theorem framewiseDeclBindingExact_declareTypeRef_declareRefState_from_topFrameFresh
     {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {a : Nat}

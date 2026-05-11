@@ -279,6 +279,53 @@ end DeclareRefStateOwnershipTransport
 
 section DeclareObjectStateOwnershipTransport
 
+/-- Canonical API: deeper object bindings are exactly preserved. -/
+theorem declareObjectState_api_runtimeFrameBindsObject_succ_iff
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
+    {k : Nat} {y : Ident} {υ : CppType} {addr : Nat} :
+    runtimeFrameBindsObject (declareObjectState σ τ x ov) k.succ y υ addr ↔
+      runtimeFrameBindsObject σ k.succ y υ addr := by
+  constructor
+  · intro hobj
+    rcases hobj with ⟨fr, hfr, hb⟩
+    exact ⟨fr,
+      (declareObjectState_api_succ_scope_iff
+        (σ := σ) (τ := τ) (x := x) (ov := ov)
+        (k := k) (fr := fr)).1 hfr,
+      hb⟩
+  · intro hobj
+    rcases hobj with ⟨fr, hfr, hb⟩
+    exact ⟨fr,
+      (declareObjectState_api_succ_scope_iff
+        (σ := σ) (τ := τ) (x := x) (ov := ov)
+        (k := k) (fr := fr)).2 hfr,
+      hb⟩
+
+/-- Canonical API: old top object bindings whose name is not `x` are preserved. -/
+theorem declareObjectState_api_runtimeFrameBindsObject_zero_preserved_of_ne
+    {σ : State} {τ : CppType} {x y : Ident} {ov : Option Value}
+    {υ : CppType} {addr : Nat}
+    (hy : y ≠ x)
+    (hobj : runtimeFrameBindsObject σ 0 y υ addr) :
+    runtimeFrameBindsObject (declareObjectState σ τ x ov) 0 y υ addr := by
+  rcases hobj with ⟨fr, hfr, hb⟩
+  cases hsc : σ.scopes with
+  | nil =>
+      simp [hsc] at hfr
+  | cons fr0 frs =>
+      simp [hsc] at hfr
+      subst fr
+      refine ⟨
+        { fr0 with
+          binds := fun z => if z = x then some (.object τ σ.next) else fr0.binds z,
+          locals := σ.next :: fr0.locals },
+        ?_, ?_⟩
+      ·
+        exact declareObjectState_scopes_zero_of_cons
+          (σ := σ) (τ := τ) (x := x) (ov := ov)
+          (fr0 := fr0) (frs := frs) hsc
+      · simpa [hy] using hb
+
  theorem runtimeFrameBindsObject_declareObjectState_forward_of_topFresh
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
     (hfresh : topFrameBindingFresh σ x)
@@ -286,32 +333,31 @@ section DeclareObjectStateOwnershipTransport
     runtimeFrameBindsObject σ k y υ addr →
     runtimeFrameBindsObject (declareObjectState σ τ x ov) k y υ addr := by
   intro hobj
-  rcases hobj with ⟨fr, hk, hb⟩
-  cases hsc : σ.scopes with
-  | nil =>
-      cases k with
-      | zero => simp [hsc] at hk
-      | succ k => simp [hsc] at hk
-  | cons fr0 frs =>
-      cases k with
-      | zero =>
-          simp [hsc] at hk
+  cases k with
+  | zero =>
+      rcases hobj with ⟨fr, hfr, hb⟩
+      cases hsc : σ.scopes with
+      | nil =>
+          simp [hsc] at hfr
+      | cons fr0 frs =>
+          simp [hsc] at hfr
           subst fr
-          have hyx : y ≠ x :=
+          have hy : y ≠ x :=
             runtimeFrameBindsObject_top_name_ne_declared_of_topFresh
-              (σ := σ) (x := x) (y := y) (fr0 := fr0) (frs := frs)
-              (υ := υ) (addr := addr) hfresh hsc hb
-          refine ⟨
-            { fr0 with
-              binds := fun z => if z = x then some (.object τ σ.next) else fr0.binds z,
-              locals := σ.next :: fr0.locals },
-            ?_, ?_⟩
-          · simp [declareObjectState, recordLocal, bindTopBinding, writeHeap, hsc]
-          · simpa [hyx] using hb
-      | succ k =>
-          refine ⟨fr, ?_, hb⟩
-          exact (declareObjectState_lookup_succ_iff
-            (σ := σ) (τ := τ) (x := x) (ov := ov) (k := k) (fr := fr)).2 hk
+              (σ := σ) (x := x) (y := y)
+              (fr0 := fr0) (frs := frs)
+              (υ := υ) (addr := addr)
+              hfresh hsc hb
+          exact
+            declareObjectState_api_runtimeFrameBindsObject_zero_preserved_of_ne
+              (σ := σ) (τ := τ) (x := x) (y := y)
+              (ov := ov) (υ := υ) (addr := addr)
+              hy ⟨fr0, by simp [hsc], hb⟩
+  | succ k =>
+      exact
+        (declareObjectState_api_runtimeFrameBindsObject_succ_iff
+          (σ := σ) (τ := τ) (x := x) (ov := ov)
+          (k := k) (y := y) (υ := υ) (addr := addr)).2 hobj
 
  theorem runtimeFrameBindsObject_declareObjectState_cases
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
@@ -321,34 +367,46 @@ section DeclareObjectStateOwnershipTransport
       runtimeFrameBindsObject σ k y υ addr := by
   intro hobj
   rcases hobj with ⟨fr, hk, hb⟩
-  cases hsc : σ.scopes with
-  | nil =>
-      cases k with
-      | zero =>
-          simp [declareObjectState, recordLocal, bindTopBinding, writeHeap, hsc] at hk
+  cases k with
+  | zero =>
+      cases hsc : σ.scopes with
+      | nil =>
+          have hfr :
+              fr =
+                { binds := fun z =>
+                    if z = x then some (.object τ σ.next) else emptyScopeFrame.binds z
+                  locals := [σ.next] } := by
+            simpa [declareObjectState_scopes_zero_of_nil
+              (σ := σ) (τ := τ) (x := x) (ov := ov) hsc] using hk.symm
           subst fr
-          simp at hb
-          -- hb は (if y = x then some (.object τ σ.next) else none) = some (.object υ addr)
-          left -- ゴールの左側 (k = 0 ∧ y = x ∧ ...) を選択
-          simp [hb]
-      | succ k => simp [declareObjectState, recordLocal, bindTopBinding, writeHeap, hsc] at hk
-  | cons fr0 frs =>
-      cases k with
-      | zero =>
+          by_cases hy : y = x
+          · subst y
+            have hb' : some (Binding.object τ σ.next) = some (.object υ addr) := by
+              simpa using hb
+            have hEq : (Binding.object τ σ.next) = (.object υ addr) :=
+              Option.some.inj hb'
+            cases hEq
+            exact Or.inl ⟨rfl, rfl, rfl, rfl⟩
+          · simp [hy, emptyScopeFrame] at hb
+      | cons fr0 frs =>
           rcases declareObjectState_lookup_zero_frame_of_cons
             (σ := σ) (τ := τ) (x := x) (ov := ov)
             (fr0 := fr0) (frs := frs) hsc hk with rfl
           by_cases hy : y = x
-          · subst hy
+          · subst y
             have hb' : some (Binding.object τ σ.next) = some (.object υ addr) := by
               simpa using hb
-            have hEq : (Binding.object τ σ.next) = (.object υ addr) := Option.some.inj hb'
+            have hEq : (Binding.object τ σ.next) = (.object υ addr) :=
+              Option.some.inj hb'
             cases hEq
             exact Or.inl ⟨rfl, rfl, rfl, rfl⟩
           · exact Or.inr ⟨fr0, by simp [hsc], by simpa [hy] using hb⟩
-      | succ k =>
-          exact Or.inr ⟨fr, (declareObjectState_lookup_succ_iff
-            (σ := σ) (τ := τ) (x := x) (ov := ov) (k := k) (fr := fr)).1 hk, hb⟩
+  | succ k =>
+      exact Or.inr ⟨fr,
+        (declareObjectState_lookup_succ_iff
+          (σ := σ) (τ := τ) (x := x) (ov := ov)
+          (k := k) (fr := fr)).1 hk,
+        hb⟩
 
  theorem runtimeFrameBindsRef_declareObjectState_backward
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
@@ -357,27 +415,33 @@ section DeclareObjectStateOwnershipTransport
     runtimeFrameBindsRef σ k y υ addr := by
   intro href
   rcases href with ⟨fr, hk, hb⟩
-  cases hsc : σ.scopes with
-  | nil =>
-      cases k with
-      | zero =>
-          simp [declareObjectState, recordLocal, bindTopBinding, writeHeap, hsc] at hk
+  cases k with
+  | zero =>
+      cases hsc : σ.scopes with
+      | nil =>
+          have hzero := declareObjectState_scopes_zero_of_nil
+            (σ := σ) (τ := τ) (x := x) (ov := ov) hsc
+          rw [hk] at hzero
+          injection hzero with hfr
           subst fr
-          simp at hb
-      | succ k => simp [declareObjectState, recordLocal, bindTopBinding, writeHeap, hsc] at hk
-  | cons fr0 frs =>
-      cases k with
-      | zero =>
+          by_cases hy : y = x
+          · subst y
+            simp at hb
+          · simp [hy] at hb
+      | cons fr0 frs =>
           rcases declareObjectState_lookup_zero_frame_of_cons
             (σ := σ) (τ := τ) (x := x) (ov := ov)
             (fr0 := fr0) (frs := frs) hsc hk with rfl
           by_cases hy : y = x
-          · subst hy
+          · subst y
             simp at hb
           · exact ⟨fr0, by simp [hsc], by simpa [hy] using hb⟩
-      | succ k =>
-          exact ⟨fr, (declareObjectState_lookup_succ_iff
-            (σ := σ) (τ := τ) (x := x) (ov := ov) (k := k) (fr := fr)).1 hk, hb⟩
+  | succ k =>
+      exact ⟨fr,
+        (declareObjectState_api_succ_scope_iff
+          (σ := σ) (τ := τ) (x := x) (ov := ov)
+          (k := k) (fr := fr)).1 hk,
+        hb⟩
 
  theorem runtimeFrameOwnsAddress_declareObjectState_forward
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
@@ -385,28 +449,15 @@ section DeclareObjectStateOwnershipTransport
     runtimeFrameOwnsAddress σ k addr →
     runtimeFrameOwnsAddress (declareObjectState σ τ x ov) k addr := by
   intro hown
-  rcases hown with ⟨fr, hk, hmem⟩
-  cases hsc : σ.scopes with
-  | nil =>
-      cases k with
-      | zero => simp [hsc] at hk
-      | succ k => simp [hsc] at hk
-  | cons fr0 frs =>
-      cases k with
-      | zero =>
-          simp [hsc] at hk
-          subst fr
-          refine ⟨
-            { fr0 with
-              binds := fun z => if z = x then some (.object τ σ.next) else fr0.binds z,
-              locals := σ.next :: fr0.locals },
-            ?_, ?_⟩
-          · simp [declareObjectState, recordLocal, bindTopBinding, writeHeap, hsc]
-          · simp [hmem]
-      | succ k =>
-          refine ⟨fr, ?_, hmem⟩
-          exact (declareObjectState_lookup_succ_iff
-            (σ := σ) (τ := τ) (x := x) (ov := ov) (k := k) (fr := fr)).2 hk
+  cases k with
+  | zero =>
+      exact declareObjectState_api_runtimeFrameOwnsAddress_zero_preserved
+        (σ := σ) (τ := τ) (x := x) (ov := ov) hown
+  | succ k =>
+      exact
+        (declareObjectState_api_runtimeFrameOwnsAddress_succ_iff
+          (σ := σ) (τ := τ) (x := x) (ov := ov)
+          (k := k) (a := addr)).2 hown
 
  theorem runtimeFrameOwnsAddress_declareObjectState_cases
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
@@ -414,32 +465,18 @@ section DeclareObjectStateOwnershipTransport
     runtimeFrameOwnsAddress (declareObjectState σ τ x ov) k addr →
       (k = 0 ∧ addr = σ.next) ∨ runtimeFrameOwnsAddress σ k addr := by
   intro hown
-  rcases hown with ⟨fr, hk, hmem⟩
-  cases hsc : σ.scopes with
-  | nil =>
-      cases k with
-      | zero =>
-          simp [declareObjectState, recordLocal, bindTopBinding, writeHeap, hsc] at hk
-          subst fr
-          simp at hmem
-          left
-          simp [hmem]
-      | succ k => simp [declareObjectState, recordLocal, bindTopBinding, writeHeap, hsc] at hk
-  | cons fr0 frs =>
-      cases k with
-      | zero =>
-          have hlocals : fr.locals = σ.next :: fr0.locals :=
-            declareObjectState_lookup_zero_locals_of_cons
-              (σ := σ) (τ := τ) (x := x) (ov := ov)
-              (fr0 := fr0) (frs := frs) hsc hk
-          have hmem' : addr = σ.next ∨ addr ∈ fr0.locals := by
-            simpa [hlocals] using hmem
-          cases hmem' with
-          | inl hEq => exact Or.inl ⟨rfl, hEq⟩
-          | inr hOld => exact Or.inr ⟨fr0, by simp [hsc], hOld⟩
-      | succ k =>
-          exact Or.inr ⟨fr, (declareObjectState_lookup_succ_iff
-            (σ := σ) (τ := τ) (x := x) (ov := ov) (k := k) (fr := fr)).1 hk, hmem⟩
+  cases k with
+  | zero =>
+      rcases declareObjectState_api_runtimeFrameOwnsAddress_zero_cases
+          (σ := σ) (τ := τ) (x := x) (ov := ov)
+          (a := addr) hown with hnew | hold
+      · exact Or.inl ⟨rfl, hnew⟩
+      · exact Or.inr hold
+  | succ k =>
+      exact Or.inr
+        ((declareObjectState_api_runtimeFrameOwnsAddress_succ_iff
+          (σ := σ) (τ := τ) (x := x) (ov := ov)
+          (k := k) (a := addr)).1 hown)
 
  theorem runtimeFrameBindsObject_declareObjectState_zero_new
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
@@ -449,7 +486,10 @@ section DeclareObjectStateOwnershipTransport
   refine ⟨fr, hk, ?_⟩
   cases hsc : σ.scopes with
   | nil =>
-      simp [declareObjectState, recordLocal, bindTopBinding, writeHeap, hsc] at hk
+      have hzero := declareObjectState_scopes_zero_of_nil
+        (σ := σ) (τ := τ) (x := x) (ov := ov) hsc
+      rw [hk] at hzero
+      injection hzero with hfr
       subst fr
       simp
   | cons fr0 frs =>
@@ -457,7 +497,6 @@ section DeclareObjectStateOwnershipTransport
         (σ := σ) (τ := τ) (x := x) (ov := ov)
         (fr0 := fr0) (frs := frs) hsc hk with rfl
       simp
-
 
 /-- Backward-compatible name. -/
  theorem runtimeFrameBindsObject_declareObjectState_new
@@ -474,28 +513,11 @@ section DeclareObjectStateOwnershipTransport
     allObjectBindingsOwned (declareObjectState σ τ x ov) := by
   intro k y υ addr hobj_new
   rcases runtimeFrameBindsObject_declareObjectState_cases
-    (σ := σ) (τ := τ) (x := x) (ov := ov) hobj_new with hnew | hold
-  · -- ケース 1: 新しく追加されたオブジェクトの場合 (hnew)
-    -- hnew : k = 0 ∧ y = x ∧ υ = τ ∧ addr = σ.next
-    rcases hnew with ⟨rfl, rfl, rfl, rfl⟩ -- k, y, υ, addr をすべて具体化
-    -- ゴール: runtimeFrameOwnsAddress (declareObjectState σ τ x ov) 0 σ.next
-    -- つまり、∃ fr, scopes[0]? = some fr ∧ σ.next ∈ fr.locals
-    -- hobj_new から 0 番目のフレーム fr を取り出す
-    rcases hobj_new with ⟨fr, hk, hb⟩
-    refine ⟨fr, hk, ?_⟩
-
-    -- あとは addr (σ.next) が fr.locals にあることを言うだけ
-    cases hsc : σ.scopes with
-    | nil =>
-        -- スタックが空のとき
-        simp [declareObjectState, recordLocal, bindTopBinding, writeHeap, hsc] at hk
-        subst fr
-        simp -- addr = σ.next なので [σ.next] に含まれる
-    | cons fr0 frs =>
-        -- スタックがあるとき
-        have hlocals := declareObjectState_lookup_zero_locals_of_cons hsc hk
-        simp [hlocals]
-  · have hown_old : runtimeFrameOwnsAddress σ k addr := howned k y υ addr hold
+      (σ := σ) (τ := τ) (x := x) (ov := ov) hobj_new with hnew | hold
+  · rcases hnew with ⟨rfl, rfl, rfl, rfl⟩
+    exact declareObjectState_api_runtimeFrameOwnsAddress_zero_new
+  · have hown_old : runtimeFrameOwnsAddress σ k addr :=
+      howned k y υ addr hold
     exact runtimeFrameOwnsAddress_declareObjectState_forward
       (σ := σ) (τ := τ) (x := x) (ov := ov) hown_old
 
@@ -506,11 +528,9 @@ section DeclareObjectStateOwnershipTransport
     allOwnedAddressesNamed (declareObjectState σ τ x ov) := by
   intro k addr hown_new
   rcases runtimeFrameOwnsAddress_declareObjectState_cases
-    (σ := σ) (τ := τ) (x := x) (ov := ov) hown_new with hnew | hold
-  · rcases hnew with ⟨hk0, hEq⟩
-    subst k
-    subst addr
-    rcases hown_new with ⟨fr, hk, hmem⟩
+      (σ := σ) (τ := τ) (x := x) (ov := ov) hown_new with hnew | hold
+  · rcases hnew with ⟨rfl, rfl⟩
+    rcases hown_new with ⟨fr, hk, _hmem⟩
     exact ⟨x, τ,
       runtimeFrameBindsObject_declareObjectState_zero_new
         (σ := σ) (τ := τ) (x := x) (ov := ov) hk⟩
@@ -528,35 +548,23 @@ section DeclareObjectStateOwnershipTransport
   have hown_new : runtimeFrameOwnsAddress (declareObjectState σ τ x ov) k addr :=
     ⟨fr, hk, hmem⟩
   rcases runtimeFrameOwnsAddress_declareObjectState_cases
-    (σ := σ) (τ := τ) (x := x) (ov := ov) hown_new with hnew | hold
-  · rcases hnew with ⟨hk0, hEq⟩
-    subst k
-    subst addr
-    -- 1. 定理から Exists を分解して fr' を取り出す
-    let ⟨fr', hk', hb'⟩ := runtimeFrameBindsObject_declareObjectState_zero_new hk
-
-    -- 2. hk と hk' はどちらも同じ (declareObjectState ...).scopes[0]? なので一致する
-    have : fr = fr' :=
-      lookup_some_frame_eq (σ := declareObjectState σ τ x ov) (k := 0) hk hk'
-    -- 3. 一致したフレームにおけるバインディングの情報を使う
-    subst this
-    exact ⟨x, τ, hb'⟩
-  · -- ケース 2: 既存のオブジェクトの場合 (hold)
-    rcases hnamed k addr hold with ⟨z, β, hobj_old⟩
-
-    -- 1. 定理を呼び出して、新しい状態での Exists を得る
-    have hobj_new_exists :=
-      runtimeFrameBindsObject_declareObjectState_forward_of_topFresh
-        (σ := σ) (τ := τ) (x := x) (ov := ov) hfresh hobj_old
-
-    -- 2. Exists を分解して、具体的なフレーム fr' を取り出す
-    rcases hobj_new_exists with ⟨fr', hk', hb'⟩
-
-    -- 3. 手元の hk と、定理が持ってきた hk' は同じインデックス k なのでフレームも同じ
+      (σ := σ) (τ := τ) (x := x) (ov := ov) hown_new with hnew | hold
+  · rcases hnew with ⟨rfl, rfl⟩
+    rcases runtimeFrameBindsObject_declareObjectState_zero_new
+        (σ := σ) (τ := τ) (x := x) (ov := ov) hk with
+      ⟨fr', hk', hb'⟩
     have heq : fr = fr' :=
-      lookup_some_frame_eq (σ := declareObjectState σ τ x ov) (k := k) hk hk'
-
-    -- 4. フレームを一致させてゴールを埋める
+      lookup_some_frame_eq
+        (σ := declareObjectState σ τ x ov) (k := 0) hk hk'
+    subst fr'
+    exact ⟨x, τ, hb'⟩
+  · rcases hnamed k addr hold with ⟨z, β, hobj_old⟩
+    rcases runtimeFrameBindsObject_declareObjectState_forward_of_topFresh
+        (σ := σ) (τ := τ) (x := x) (ov := ov) hfresh hobj_old with
+      ⟨fr', hk', hb'⟩
+    have heq : fr = fr' :=
+      lookup_some_frame_eq
+        (σ := declareObjectState σ τ x ov) (k := k) hk hk'
     subst fr'
     exact ⟨z, β, hb'⟩
 

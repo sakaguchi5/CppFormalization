@@ -32,6 +32,7 @@ theorem ownedDisjoint_after_declareObjectState
     {τ : CppType} {ov : Option Value} :
     ownedAddressesDisjointAcrossFrames (declareObjectState σ τ x ov) := by
   rcases h.concrete.nextFresh with ⟨_, hfreshLocals⟩
+  rcases h.concrete.nextFresh with ⟨_, hfreshLocals⟩
   intro i j fi fj addr hij hi hj hai
   intro haj
   cases hsc : σ.scopes with
@@ -39,11 +40,20 @@ theorem ownedDisjoint_after_declareObjectState
       cases i with
       | zero =>
           cases j with
-          | zero => exact (hij rfl).elim
+          | zero =>
+              exact (hij rfl).elim
           | succ j =>
-              simp [declareObjectState, recordLocal, bindTopBinding, writeHeap, hsc] at hj
+              have hjOld : σ.scopes[j.succ]? = some fj :=
+                (declareObjectState_lookup_succ_iff
+                  (σ := σ) (τ := τ) (x := x) (ov := ov)
+                  (k := j) (fr := fj)).1 hj
+              simp [hsc] at hjOld
       | succ i =>
-          simp [declareObjectState, recordLocal, bindTopBinding, writeHeap, hsc] at hi
+          have hiOld : σ.scopes[i.succ]? = some fi :=
+            (declareObjectState_lookup_succ_iff
+              (σ := σ) (τ := τ) (x := x) (ov := ov)
+              (k := i) (fr := fi)).1 hi
+          simp [hsc] at hiOld
   | cons fr0 frs =>
       cases i with
       | zero =>

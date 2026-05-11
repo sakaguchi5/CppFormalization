@@ -204,9 +204,22 @@ theorem declareObject_preserves_framewiseDeclBindingExact
           | succ j =>
               have hkΓOld : Γ.scopes[(j + 1)]? = some Γfr := by
                 simpa [declareTypeObject, insertTopDecl, hΓ] using hkΓ
-              have hkσOld : σ.scopes[(j + 1)]? = some σfr := by
-                simpa [scopes_declareObjectStateWithNext_eq_old, declareObjectState,
-                  recordLocal, bindTopBinding, writeHeap, hS] using hkσ
+
+              have hkσCore :
+                  (declareObjectStateCore σ τ x ov).scopes[(j + 1)]? = some σfr := by
+                simpa [declareObjectStateWithNext, setNext] using hkσ
+
+              have hkσFacade :
+                  (declareObjectState σ τ x ov).scopes[(j + 1)]? = some σfr := by
+                rw [← scopes_declareObjectStateCore_eq_declareObjectState
+                  (σ := σ) (τ := τ) (x := x) (ov := ov)]
+                exact hkσCore
+
+              have hkσOld : σ.scopes[(j + 1)]? = some σfr :=
+                (declareObjectState_lookup_succ_iff
+                  (σ := σ) (τ := τ) (x := x) (ov := ov)
+                  (k := j) (fr := σfr)).1 hkσFacade
+
               exact hσ.namesExact (j + 1) Γfr σfr hkΓOld hkσOld
 
 /-! =========================================================
