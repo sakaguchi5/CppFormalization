@@ -48,13 +48,9 @@ theorem declareRef_objectDeclRealized_of_decomposition
     typeFrameDeclObject_declareTypeRef_keep hty
   refine ⟨b, ?_, ?_, ?_⟩
   · exact runtimeFrameBindsObject_declareRefState_forward_of_keep
-      (σ := σ) (τ := τ) (x := x) (a := a)
-      (k := k) (y := y) (υ := υ) (b := b)
       hbindOld hkeep
-  · exact runtimeFrameOwnsAddress_declareRefState_forward
-      (σ := σ) (τ := τ) (x := x) (a := a) (addr := b) (k := k) hownOld
-  · exact heapLiveTypedAt_declareRefState_forward
-      (σ := σ) (τ := τ) (x := x) (a0 := a) (b := b) (υ := υ) hliveOld
+  · exact runtimeFrameOwnsAddress_declareRefState_forward hownOld
+  · exact heapLiveTypedAt_declareRefState_forward hliveOld
 
 theorem declareRef_refDeclRealized_of_decomposition
     {Γ : TypeEnv} {σ σ' : State}
@@ -80,11 +76,7 @@ theorem declareRef_refDeclRealized_of_decomposition
     have hkeep : k ≠ 0 ∨ y ≠ x :=
       typeFrameDeclRef_keep_of_fresh hfresh hold
     refine ⟨b, ?_, ?_⟩
-    · exact runtimeFrameBindsRef_declareRefState_forward_of_keep
-        (σ := σ) (τ := τ) (x := x) (a := a)
-        (k := k) (y := y) (υ := υ) (b := b)
-        hbindOld hkeep
-    · exact heapLiveTypedAt_declareRefState_forward
-        (σ := σ) (τ := τ) (x := x) (a0 := a) (b := b) (υ := υ) hliveOld
+    · exact runtimeFrameBindsRef_declareRefState_forward_of_keep hbindOld hkeep
+    · exact heapLiveTypedAt_declareRefState_forward hliveOld
 
 end Cpp

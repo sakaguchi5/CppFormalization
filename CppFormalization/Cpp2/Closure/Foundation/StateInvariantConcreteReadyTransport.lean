@@ -186,16 +186,14 @@ theorem nextFresh_after_declareRefState
     | cons fr0 frs =>
         cases k with
         | zero =>
-            rcases declareRefState_lookup_zero_frame_of_cons
-              (σ := σ) (τ := τ) (x := x) (a := a)
-              (fr0 := fr0) (frs := frs) hsc hk with rfl
+            rcases declareRefState_lookup_zero_frame_of_cons hsc hk with rfl
             simp [declareRefState]
             exact hlocals 0 fr0 (by simp [hsc])
         | succ k =>
             -- 定義を展開して (declareRefState σ ...).next を σ.next に書き換える
             simp [declareRefState]
             -- これでゴールが ¬σ.next ∈ fr.locals になるので、hlocals が使えます
-            exact hlocals (k + 1) fr ((declareRefState_lookup_succ_iff (σ := σ) (τ := τ) (x := x) (a := a) (k := k) (fr := fr)).1 hk)
+            exact hlocals (k + 1) fr ((declareRefState_lookup_succ_iff).1 hk)
 
 /-- ref 宣言後も per-frame no-dup は保存される。 -/
 theorem ownedNoDup_after_declareRefState

@@ -132,9 +132,7 @@ theorem framewiseDeclBindingExact_declareTypeObject_declareObjectState_of_topFre
           cases k with
           | zero =>
               simp [declareTypeObject, insertTopDecl, hG] at hkΓ
-              rcases declareObjectState_lookup_zero_frame_of_cons
-                (σ := σ) (τ := τ) (x := x) (ov := ov)
-                (fr0 := σtop) (frs := σrest) hS hkσ with rfl
+              rcases declareObjectState_lookup_zero_frame_of_cons hS hkσ with rfl
 
               subst Γfr
 
@@ -160,9 +158,7 @@ theorem framewiseDeclBindingExact_declareTypeObject_declareObjectState_of_topFre
                 simpa [declareTypeObject, insertTopDecl, hG] using hkΓ
 
               have hkσOld : σ.scopes[j.succ]? = some σfr :=
-                (declareObjectState_lookup_succ_iff
-                  (σ := σ) (τ := τ) (x := x) (ov := ov)
-                  (k := j) (fr := σfr)).1 hkσ
+                (declareObjectState_lookup_succ_iff).1 hkσ
 
               exact hexact j.succ Γfr σfr hkΓOld hkσOld
 

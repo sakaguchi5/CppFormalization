@@ -216,10 +216,7 @@ theorem declareObject_preserves_framewiseDeclBindingExact
                 exact hkσCore
 
               have hkσOld : σ.scopes[(j + 1)]? = some σfr :=
-                (declareObjectState_lookup_succ_iff
-                  (σ := σ) (τ := τ) (x := x) (ov := ov)
-                  (k := j) (fr := σfr)).1 hkσFacade
-
+                (declareObjectState_lookup_succ_iff).1 hkσFacade
               exact hσ.namesExact (j + 1) Γfr σfr hkΓOld hkσOld
 
 /-! =========================================================

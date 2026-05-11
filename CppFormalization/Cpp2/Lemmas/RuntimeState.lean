@@ -188,7 +188,7 @@ namespace Cpp
 @[simp] theorem writeHeap_ne
     (σ : State) {a b : Nat} (c : Cell) (h : b ≠ a) :
     (writeHeap σ a c).heap b = σ.heap b := by
-  simpa using heap_writeHeap_other σ a b c h
+  exact heap_writeHeap_other σ a b c h
 
 /-!  Declaration/update operations. -/
 
@@ -263,7 +263,7 @@ namespace Cpp
     (σ : State) {a : Nat} (τ : CppType) (x : Ident) (ov : Option Value)
     (ha : a ≠ σ.next) :
     (declareObjectState σ τ x ov).heap a = σ.heap a := by
-  simpa using heap_declareObjectState_other σ τ x ov a ha
+  exact heap_declareObjectState_other σ τ x ov a ha
 
 @[simp] theorem declareObjectState_scopes_ne_nil
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) :
@@ -343,18 +343,18 @@ namespace Cpp
   induction ls generalizing σ with
   | nil =>
       unfold killLocals
-      simp
+      rfl
   | cons l ls ih =>
       unfold killLocals
-      have ha_ls : a ∉ ls := by
-        simp at ha
-        exact ha.right
+      -- ha : a ∉ l :: ls を分解してそれぞれの事実を取り出す
+      simp at ha
+      have hal : a ≠ l := ha.left
+      have ha_ls : a ∉ ls := ha.right
+
+      -- 1. 再帰呼び出しの部分を書き換え
       rw [ih (σ := killAddr σ l) ha_ls]
-      have hal : a ≠ l := by
-        intro h
-        subst h
-        simp at ha
-      simpa [Ne.symm hal] using heap_killAddr_other σ l a hal
+      -- 2. killAddr に関する補題を適用
+      exact heap_killAddr_other σ l a hal
 
 theorem popScope?_some_scopes
     (σ σ' : State) :
@@ -379,9 +379,7 @@ theorem popScope?_some_scopes
 @[simp] theorem popScope?_some_iff
     (σ : State) :
     (∃ σ', popScope? σ = some σ') ↔ σ.scopes ≠ [] := by
-  rw [← Option.isSome_iff_exists]
-  rw [Option.isSome_iff_ne_none]
-  simp [popScope?_none_iff]
+  cases h : σ.scopes <;> simp [popScope?, h]
 
 @[simp] theorem openScope_eq
     {σ σ' : State} :
@@ -440,7 +438,16 @@ theorem popScope?_some_scopes
     {k : Nat} {fr : ScopeFrame} :
     (declareObjectState σ τ x ov).scopes[k.succ]? = some fr ↔
       σ.scopes[k.succ]? = some fr := by
-  constructor <;> intro hk <;> simpa using hk
+  unfold declareObjectState declareObjectStateWithNext setNext declareObjectStateCore
+  simp [recordLocal, bindTopBinding, writeHeap]
+  -- あとは、(x :: xs)[k.succ]? = xs[k]? という List の基本性質に帰着
+  cases hsc : σ.scopes with
+  | nil =>
+    -- σ.scopes = [] の場合、左辺も右辺も none になり、some fr とは一致しないので矛盾で終わる
+    simp
+  | cons fr0 frs =>
+    -- σ.scopes = fr0 :: frs の場合、両辺とも frs[k]? = some fr になる
+    simp
 
 theorem declareObjectState_lookup_zero_frame_of_nil
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
@@ -450,9 +457,8 @@ theorem declareObjectState_lookup_zero_frame_of_nil
     fr =
       { binds := fun y => if y = x then some (.object τ σ.next) else none
         locals := [σ.next] } := by
-  have htop := declareObjectState_scopes_zero_of_nil
-    (σ := σ) (τ := τ) (x := x) (ov := ov) hsc
-  exact Option.some.inj (hk.symm.trans htop)
+  simp [declareObjectState_scopes_zero_of_nil hsc] at hk
+  exact hk.symm
 
 theorem declareObjectState_lookup_zero_frame_of_cons
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
@@ -464,9 +470,8 @@ theorem declareObjectState_lookup_zero_frame_of_cons
       { fr0 with
         binds := fun y => if y = x then some (.object τ σ.next) else fr0.binds y
         locals := σ.next :: fr0.locals } := by
-  have htop := declareObjectState_scopes_zero_of_cons
-    (σ := σ) (τ := τ) (x := x) (ov := ov) (fr0 := fr0) (frs := frs) hsc
-  exact Option.some.inj (hk.symm.trans htop)
+  simp [declareObjectState_scopes_zero_of_cons hsc] at hk
+  exact hk.symm
 
 theorem declareObjectState_lookup_zero_locals_of_nil
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
@@ -485,8 +490,7 @@ theorem declareObjectState_lookup_zero_locals_of_cons
     {fr : ScopeFrame}
     (hk : (declareObjectState σ τ x ov).scopes[0]? = some fr) :
     fr.locals = σ.next :: fr0.locals := by
-  rcases declareObjectState_lookup_zero_frame_of_cons
-      (σ := σ) (τ := τ) (x := x) (ov := ov) (fr0 := fr0) (frs := frs) hsc hk with rfl
+  rcases declareObjectState_lookup_zero_frame_of_cons hsc hk with rfl
   simp
 
 @[simp] theorem locals_recordLocal_top
@@ -543,9 +547,9 @@ theorem declareRefState_lookup_zero_frame_of_cons
     fr =
       { fr0 with
         binds := fun y => if y = x then some (.ref τ a) else fr0.binds y } := by
-  have htop := declareRefState_scopes_zero_of_cons
-    (σ := σ) (τ := τ) (x := x) (a := a) (fr0 := fr0) (frs := frs) hsc
-  exact Option.some.inj (hk.symm.trans htop)
+  rw [declareRefState_scopes_zero_of_cons hsc] at hk
+  injection hk with h_eq
+  exact h_eq.symm
 
 theorem declareRefState_lookup_zero_locals_of_cons
     {σ : State} {τ : CppType} {x : Ident} {a : Nat}
@@ -554,8 +558,7 @@ theorem declareRefState_lookup_zero_locals_of_cons
     {fr : ScopeFrame}
     (hk : (declareRefState σ τ x a).scopes[0]? = some fr) :
     fr.locals = fr0.locals := by
-  rcases declareRefState_lookup_zero_frame_of_cons
-      (σ := σ) (τ := τ) (x := x) (a := a) (fr0 := fr0) (frs := frs) hsc hk with rfl
+  rcases declareRefState_lookup_zero_frame_of_cons hsc hk with rfl
   simp
 
 theorem declareRefState_lookup_preserves_locals_forward
@@ -578,14 +581,10 @@ theorem declareRefState_lookup_preserves_locals_forward
               binds := fun y => if y = x then some (.ref τ a) else fr0.binds y },
             ?_,
             rfl⟩
-          exact declareRefState_scopes_zero_of_cons
-            (σ := σ) (τ := τ) (x := x) (a := a)
-            (fr0 := fr0) (frs := frs) hsc
+          exact declareRefState_scopes_zero_of_cons hsc
   | succ k =>
       refine ⟨fr, ?_, rfl⟩
-      exact (declareRefState_lookup_succ_iff
-        (σ := σ) (τ := τ) (x := x) (a := a)
-        (k := k) (fr := fr)).2 hk
+      exact (declareRefState_lookup_succ_iff).2 hk
 
 theorem declareRefState_lookup_preserves_locals_backward_of_cons
     {σ : State} {τ : CppType} {x : Ident} {a : Nat}
@@ -599,12 +598,10 @@ theorem declareRefState_lookup_preserves_locals_backward_of_cons
   cases k with
   | zero =>
       refine ⟨fr0, by simp [hsc], ?_⟩
-      exact declareRefState_lookup_zero_locals_of_cons
-        (σ := σ) (τ := τ) (x := x) (a := a) (fr0 := fr0) (frs := frs) hsc hk
+      exact declareRefState_lookup_zero_locals_of_cons hsc hk
   | succ k =>
       refine ⟨fr, ?_, rfl⟩
-      exact (declareRefState_lookup_succ_iff
-        (σ := σ) (τ := τ) (x := x) (a := a) (k := k) (fr := fr)).1 hk
+      exact (declareRefState_lookup_succ_iff).1 hk
 
 
 end Cpp

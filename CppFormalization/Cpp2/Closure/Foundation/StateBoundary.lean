@@ -46,14 +46,26 @@ def ownedAddressesDisjoint (σ : State) : Prop :=
     ownedAddressesDisjoint σ →
     ownedAddressesDisjoint (writeHeap σ a c) := by
   intro hdisj
-  simpa [ownedAddressesDisjoint, writeHeap] using hdisj
+  -- 1. 定義を展開
+  unfold ownedAddressesDisjoint
+  -- 2. writeHeap σ a c の scopes が σ.scopes と等しいことを利用する
+  -- (writeHeap の定義が { σ with heap := ... } であれば、scopes は共通です)
+  have h_scopes : (writeHeap σ a c).scopes = σ.scopes := rfl
+  -- 3. ゴールの中の scopes を元の σ.scopes に書き換える
+  rw [h_scopes]
+  -- 4. これで型が一致するので exact で渡す
+  exact hdisj
 
 @[simp] theorem ownedAddressesDisjoint_setNext
     {σ : State} {n : Nat} :
     ownedAddressesDisjoint σ →
     ownedAddressesDisjoint ({ σ with next := n }) := by
   intro hdisj
-  simpa [ownedAddressesDisjoint] using hdisj
+  unfold ownedAddressesDisjoint
+  -- 構造体更新 { σ with next := n } において scopes は不変であることを明示
+  have h_scopes : ({ σ with next := n } : State).scopes = σ.scopes := rfl
+  rw [h_scopes]
+  exact hdisj
 
 theorem ownedAddressesDisjoint_pushScope
     {σ : State} :
@@ -62,15 +74,17 @@ theorem ownedAddressesDisjoint_pushScope
   intro hdisj
   unfold ownedAddressesDisjoint at *
   intro i j fi fj a hij hi hj hai
+  -- i, j のインデックスで場合分け
   cases i with
   | zero =>
+      -- i = 0 の場合、fi は空のスコープなのでアドレス a を持てず矛盾
       cases j with
-      | zero =>
-          exact (hij rfl).elim
+      | zero => exact (hij rfl).elim
       | succ j =>
-          simp [pushScope, emptyScopeFrame] at hi
+          unfold pushScope at hi
+          simp [emptyScopeFrame] at hi
           subst fi
-          simp at hai
+          simp at hai -- emptyScopeFrame のアドレス集合は空なので矛盾
   | succ i =>
       cases j with
       | zero =>
@@ -78,16 +92,20 @@ theorem ownedAddressesDisjoint_pushScope
           subst fj
           simp
       | succ j =>
+          -- 両方 succ の場合は、1つ前のインデックスでの hdisj に帰着
           have hi_old : σ.scopes[i]? = some fi := by
-            simpa [pushScope] using hi
+            unfold pushScope at hi
+            exact hi
           have hj_old : σ.scopes[j]? = some fj := by
-            simpa [pushScope] using hj
-          exact hdisj i j fi fj a
-            (by
-              intro hij'
-              apply hij
-              simp [hij'])
-            hi_old hj_old hai
+            unfold pushScope at hj
+            exact hj
+          -- インデックスが異なることの証明を簡潔に
+          have hij_old : i ≠ j := by
+            intro h_eq
+            subst h_eq
+            exact hij rfl
+          -- 既存の hdisj を適用
+          exact hdisj i j fi fj a hij_old hi_old hj_old hai
 
 theorem ownedAddressesDisjoint_bindTopBinding
     {σ : State} {x : Ident} {b : Binding} :
@@ -150,9 +168,8 @@ theorem ownedAddressesDisjoint_bindTopBinding
     ownedAddressesDisjoint σ →
     ownedAddressesDisjoint (declareRefState σ τ x a) := by
   intro hdisj
-  simpa [declareRefState] using
-    (ownedAddressesDisjoint_bindTopBinding
-      (σ := σ) (x := x) (b := .ref τ a) hdisj)
+  unfold declareRefState
+  exact ownedAddressesDisjoint_bindTopBinding (σ := σ) (x := x) (b := .ref τ a) hdisj
 
 /-- heap に入っている initialized value は cell の型に整合する。 -/
 def heapInitializedValuesTyped (σ : State) : Prop :=
@@ -209,8 +226,8 @@ theorem nextIsFreshForOwnedHeap_bindTopBinding
     nextIsFreshForOwnedHeap σ →
     nextIsFreshForOwnedHeap (declareRefState σ τ x a) := by
   intro h
-  simpa [declareRefState] using
-    (nextIsFreshForOwnedHeap_bindTopBinding (x := x) (b := .ref τ a) h)
+  unfold declareRefState
+  exact nextIsFreshForOwnedHeap_bindTopBinding (x := x) (b := .ref τ a) h
 
 @[simp] theorem nextIsFreshForOwnedHeap_pushScope
     {σ : State} :
@@ -219,16 +236,25 @@ theorem nextIsFreshForOwnedHeap_bindTopBinding
   intro h
   rcases h with ⟨hheap, hfresh⟩
   refine ⟨?_, ?_⟩
-  · simpa [pushScope] using hheap
+  · -- pushScope は heap を変更しないことを示す
+    have h_heap : (pushScope σ).heap = σ.heap := rfl
+    rw [h_heap]
+    exact hheap
   · intro k fr hk
     cases k with
     | zero =>
-        simp [pushScope, emptyScopeFrame] at hk
+        -- 新しく積まれた空のスコープ (index 0) はアドレスを持たない
+        unfold pushScope at hk
+        simp [emptyScopeFrame] at hk
         subst fr
+        -- emptyScopeFrame のドメインが空であることを利用
         simp
     | succ k =>
+        -- 1番目以降のスコープは、元の σ.scopes[k] と同じ
         have hk_old : σ.scopes[k]? = some fr := by
-          simpa [pushScope] using hk
+          unfold pushScope at hk
+          -- (emptyScopeFrame :: σ.scopes)[k.succ]? = σ.scopes[k]?
+          exact hk
         exact hfresh k fr hk_old
 
 

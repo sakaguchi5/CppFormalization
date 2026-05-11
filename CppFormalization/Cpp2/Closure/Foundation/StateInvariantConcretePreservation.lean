@@ -79,10 +79,13 @@ section PushScopePreservation
   constructor
   · intro h
     rcases h with ⟨fr, hk, ha⟩
-    exact ⟨fr, by simpa [pushScope] using hk, ha⟩
+    -- pushScope の定義を展開して、(x :: xs)[k.succ]? = xs[k]? を利用
+    unfold pushScope at hk
+    exact ⟨fr, hk, ha⟩
   · intro h
     rcases h with ⟨fr, hk, ha⟩
-    exact ⟨fr, by simpa [pushScope] using hk, ha⟩
+    unfold pushScope
+    exact ⟨fr, hk, ha⟩
 
 @[simp] theorem freshAddrAgainstOwned_pushScope_iff
     {σ : State} {a : Nat} :
@@ -93,40 +96,54 @@ section PushScopePreservation
   · intro h
     rcases h with ⟨hheap, hlocals⟩
     refine ⟨?_, ?_⟩
-    · simpa [pushScope] using hheap
+    · -- pushScope は heap を変更しない (rfl で解決)
+      have : (pushScope σ).heap = σ.heap := rfl
+      rw [this] at hheap
+      exact hheap
     · intro k fr hk
-      exact hlocals k.succ fr (by simpa [pushScope] using hk)
+      -- k 番目のスコープについて、(pushScope σ) の k.succ 番目として hlocals を適用
+      unfold pushScope at hlocals
+      exact hlocals k.succ fr hk
   · intro h
     rcases h with ⟨hheap, hlocals⟩
     refine ⟨?_, ?_⟩
-    · simpa [pushScope] using hheap
+    · have : (pushScope σ).heap = σ.heap := rfl
+      rw [this]
+      exact hheap
     · intro k fr hk
       cases k with
       | zero =>
-          simp [pushScope, emptyScopeFrame] at hk
+          -- 新規スコープは空なのでアドレス a は含まれない
+          unfold pushScope at hk
+          simp [emptyScopeFrame] at hk
           subst fr
-          simp
+          simp -- frameOwnsAddress emptyScopeFrame a は矛盾
       | succ k =>
-          exact hlocals k fr (by simpa [pushScope] using hk)
+          -- 1番目以降のスコープは元の σ の k 番目
+          unfold pushScope at hk
+          exact hlocals k fr hk
 
 @[simp] theorem ownedAddressesNoDupPerFrame_pushScope
     {σ : State} :
     ownedAddressesNoDupPerFrame (pushScope σ) ↔ ownedAddressesNoDupPerFrame σ := by
   constructor
   · intro h k fr hk
-    have hk' : (pushScope σ).scopes[k.succ]? = some fr := by
-      simpa [pushScope] using hk
-    exact h k.succ fr hk'
+    -- (pushScope σ) の k.succ 番目が fr であることを利用
+    -- unfold pushScope により (emptyScopeFrame :: σ.scopes)[k.succ]? = σ.scopes[k]? となる
+    unfold pushScope at h
+    exact h k.succ fr hk
   · intro h k fr hk
     cases k with
     | zero =>
-        simp [pushScope, emptyScopeFrame] at hk
+        -- 新しく積まれた 0 番目のスコープは空なので NoDup は自明
+        unfold pushScope at hk
+        simp [emptyScopeFrame] at hk
         subst fr
         simp
     | succ k =>
-        have hk_old : σ.scopes[k]? = some fr := by
-          simpa [pushScope] using hk
-        exact h k fr hk_old
+        -- 1 番目以降のスコープは元の σ の k 番目のスコープと同じ
+        unfold pushScope at hk
+        exact h k fr hk
 
 @[simp] theorem ownedAddressesDisjointAcrossFrames_pushScope
     {σ : State} :
@@ -135,9 +152,9 @@ section PushScopePreservation
   · intro h i j fi fj a hij hi hj hai
     intro haj
     have hown_i_new : runtimeFrameOwnsAddress (pushScope σ) i.succ a :=
-      (runtimeFrameOwnsAddress_pushScope_succ_iff (σ := σ) (k := i) (a := a)).2 ⟨fi, hi, hai⟩
+      (runtimeFrameOwnsAddress_pushScope_succ_iff).2 ⟨fi, hi, hai⟩
     have hown_j_new : runtimeFrameOwnsAddress (pushScope σ) j.succ a :=
-      (runtimeFrameOwnsAddress_pushScope_succ_iff (σ := σ) (k := j) (a := a)).2 ⟨fj, hj, haj⟩
+      (runtimeFrameOwnsAddress_pushScope_succ_iff).2 ⟨fj, hj, haj⟩
     rcases hown_i_new with ⟨fi', hi', hai'⟩
     rcases hown_j_new with ⟨fj', hj', haj'⟩
     exact (h i.succ j.succ fi' fj' a
@@ -151,18 +168,16 @@ section PushScopePreservation
     cases i with
     | zero =>
         exfalso
-        exact runtimeFrameOwnsAddress_pushScope_zero_false
-          (σ := σ) (a := a) ⟨fi, hi, hai⟩
+        exact runtimeFrameOwnsAddress_pushScope_zero_false ⟨fi, hi, hai⟩
     | succ i =>
         cases j with
         | zero =>
-            exact runtimeFrameOwnsAddress_pushScope_zero_false
-              (σ := σ) (a := a) ⟨fj, hj, haj⟩
+            exact runtimeFrameOwnsAddress_pushScope_zero_false ⟨fj, hj, haj⟩
         | succ j =>
             have hown_i_old : runtimeFrameOwnsAddress σ i a :=
-              (runtimeFrameOwnsAddress_pushScope_succ_iff (σ := σ) (k := i) (a := a)).1 ⟨fi, hi, hai⟩
+              (runtimeFrameOwnsAddress_pushScope_succ_iff ).1 ⟨fi, hi, hai⟩
             have hown_j_old : runtimeFrameOwnsAddress σ j a :=
-              (runtimeFrameOwnsAddress_pushScope_succ_iff (σ := σ) (k := j) (a := a)).1 ⟨fj, hj, haj⟩
+              (runtimeFrameOwnsAddress_pushScope_succ_iff ).1 ⟨fj, hj, haj⟩
             rcases hown_i_old with ⟨fi', hi', hai'⟩
             rcases hown_j_old with ⟨fj', hj', haj'⟩
             exact (h i j fi' fj' a
@@ -178,7 +193,7 @@ section PushScopePreservation
   constructor
   · intro h k a hown
     have hown' : runtimeFrameOwnsAddress (pushScope σ) k.succ a :=
-      (runtimeFrameOwnsAddress_pushScope_succ_iff (σ := σ) (k := k) (a := a)).2 hown
+      (runtimeFrameOwnsAddress_pushScope_succ_iff).2 hown
     rcases h _ _ hown' with ⟨x, τ, hbind⟩
     rcases hbind with ⟨fr, hk, hb⟩
     exact ⟨x, τ, ⟨fr, by simpa [pushScope] using hk, hb⟩⟩
@@ -186,11 +201,10 @@ section PushScopePreservation
     cases k with
     | zero =>
         exfalso
-        exact runtimeFrameOwnsAddress_pushScope_zero_false
-          (σ := σ) (a := a) hown
+        exact runtimeFrameOwnsAddress_pushScope_zero_false hown
     | succ k =>
         have hown_old : runtimeFrameOwnsAddress σ k a :=
-          (runtimeFrameOwnsAddress_pushScope_succ_iff (σ := σ) (k := k) (a := a)).1 hown
+          (runtimeFrameOwnsAddress_pushScope_succ_iff).1 hown
         rcases h _ _ hown_old with ⟨x, τ, hbind_old⟩
         rcases hbind_old with ⟨fr', hk', hb'⟩
         exact ⟨x, τ, ⟨fr', by simpa [pushScope] using hk', hb'⟩⟩
@@ -211,9 +225,7 @@ theorem runtimeFrameOwnsAddress_declareRefState_forward
     runtimeFrameOwnsAddress (declareRefState σ τ x a) k addr := by
   intro hown
   rcases hown with ⟨fr, hk, ha⟩
-  rcases declareRefState_lookup_preserves_locals_forward
-      (σ := σ) (τ := τ) (x := x) (a := a) hk with
-    ⟨fr', hk', hlocals⟩
+  rcases declareRefState_lookup_preserves_locals_forward hk with ⟨fr', hk', hlocals⟩
   refine ⟨fr', hk', ?_⟩
   simpa [hlocals] using ha
 
@@ -232,16 +244,12 @@ theorem runtimeFrameOwnsAddress_declareRefState_backward
           simp at ha
       | cons fr0 frs =>
           have hlocals : fr.locals = fr0.locals :=
-            declareRefState_lookup_zero_locals_of_cons
-              (σ := σ) (τ := τ) (x := x) (a := a)
-              (fr0 := fr0) (frs := frs) hsc hk
+            declareRefState_lookup_zero_locals_of_cons hsc hk
           refine ⟨fr0, by simp [hsc], ?_⟩
           simpa [hlocals] using ha
   | succ k =>
       have hk_old : σ.scopes[k.succ]? = some fr :=
-        (declareRefState_lookup_succ_iff
-          (σ := σ) (τ := τ) (x := x) (a := a)
-          (k := k) (fr := fr)).1 hk
+        (declareRefState_lookup_succ_iff).1 hk
       exact ⟨fr, hk_old, ha⟩
 
 @[simp] theorem runtimeFrameOwnsAddress_declareRefState_iff
@@ -250,9 +258,7 @@ theorem runtimeFrameOwnsAddress_declareRefState_backward
       runtimeFrameOwnsAddress σ k addr := by
   constructor
   · exact runtimeFrameOwnsAddress_declareRefState_backward
-      (σ := σ) (τ := τ) (x := x) (a := a) (k := k) (addr := addr)
   · exact runtimeFrameOwnsAddress_declareRefState_forward
-      (σ := σ) (τ := τ) (x := x) (a := a) (k := k) (addr := addr)
 
 @[simp] theorem freshAddrAgainstOwned_declareRefState_iff
     {σ : State} {τ : CppType} {x : Ident} {r : Nat} {a : Nat} :
@@ -268,8 +274,7 @@ theorem runtimeFrameOwnsAddress_declareRefState_backward
       have hown_old : runtimeFrameOwnsAddress σ k a := ⟨fr, hk, hmem⟩
       have hown_new :
           runtimeFrameOwnsAddress (declareRefState σ τ x r) k a :=
-        (runtimeFrameOwnsAddress_declareRefState_iff
-          (σ := σ) (τ := τ) (x := x) (a := r) (k := k) (addr := a)).2 hown_old
+        (runtimeFrameOwnsAddress_declareRefState_iff).2 hown_old
       rcases hown_new with ⟨fr', hk', hm'⟩
       exact hlocals k fr' hk' hm'
   · intro h
@@ -281,8 +286,7 @@ theorem runtimeFrameOwnsAddress_declareRefState_backward
           runtimeFrameOwnsAddress (declareRefState σ τ x r) k a := ⟨fr, hk, hmem⟩
       have hown_old :
           runtimeFrameOwnsAddress σ k a :=
-        (runtimeFrameOwnsAddress_declareRefState_iff
-          (σ := σ) (τ := τ) (x := x) (a := r) (k := k) (addr := a)).1 hown_new
+        (runtimeFrameOwnsAddress_declareRefState_iff).1 hown_new
       rcases hown_old with ⟨fr', hk', hm'⟩
       exact hlocals k fr' hk' hm'
 
@@ -301,17 +305,13 @@ theorem declareRefState_frameLocalsNodup_backward
           simp
       | cons fr0 frs =>
           have hlocals : fr.locals = fr0.locals :=
-            declareRefState_lookup_zero_locals_of_cons
-              (σ := σ) (τ := τ) (x := x) (a := a)
-              (fr0 := fr0) (frs := frs) hsc hk
+            declareRefState_lookup_zero_locals_of_cons hsc hk
           have hnodup0 : fr0.locals.Nodup :=
             h 0 fr0 (by simp [hsc])
           simpa [hlocals] using hnodup0
   | succ k =>
       have hk_old : σ.scopes[k.succ]? = some fr :=
-        (declareRefState_lookup_succ_iff
-          (σ := σ) (τ := τ) (x := x) (a := a)
-          (k := k) (fr := fr)).1 hk
+        (declareRefState_lookup_succ_iff).1 hk
       exact h k.succ fr hk_old
 
 @[simp] theorem ownedAddressesNoDupPerFrame_declareRefState
@@ -319,17 +319,12 @@ theorem declareRefState_frameLocalsNodup_backward
     ownedAddressesNoDupPerFrame (declareRefState σ τ x a) ↔
       ownedAddressesNoDupPerFrame σ := by
   constructor
-  · intro h
-    intro k fr hk
-    rcases declareRefState_lookup_preserves_locals_forward
-        (σ := σ) (τ := τ) (x := x) (a := a) hk with
-      ⟨fr', hk', hlocals⟩
-    have hnodup : fr'.locals.Nodup := h k fr' hk'
-    simpa [hlocals] using hnodup
-  · intro h
-    intro k fr hk
-    exact declareRefState_frameLocalsNodup_backward
-      (σ := σ) (τ := τ) (x := x) (a := a) h hk
+  · intro h k fr hk
+    rcases declareRefState_lookup_preserves_locals_forward hk with ⟨fr', hk', hlocals⟩
+    exact hlocals ▸ (h k fr' hk')
+  · intro h k fr hk
+    -- 逆方向は既存の補題に丸ごと委ねる
+    exact declareRefState_frameLocalsNodup_backward h hk
 
 @[simp] theorem ownedAddressesDisjointAcrossFrames_declareRefState
     {σ : State} {τ : CppType} {x : Ident} {a : Nat} :
@@ -342,12 +337,10 @@ theorem declareRefState_frameLocalsNodup_backward
     have hown_j_old : runtimeFrameOwnsAddress σ j addr := ⟨fj, hj, haj⟩
     have hown_i_new :
         runtimeFrameOwnsAddress (declareRefState σ τ x a) i addr :=
-      (runtimeFrameOwnsAddress_declareRefState_iff
-        (σ := σ) (τ := τ) (x := x) (a := a) (k := i) (addr := addr)).2 hown_i_old
+      (runtimeFrameOwnsAddress_declareRefState_iff).2 hown_i_old
     have hown_j_new :
         runtimeFrameOwnsAddress (declareRefState σ τ x a) j addr :=
-      (runtimeFrameOwnsAddress_declareRefState_iff
-        (σ := σ) (τ := τ) (x := x) (a := a) (k := j) (addr := addr)).2 hown_j_old
+      (runtimeFrameOwnsAddress_declareRefState_iff).2 hown_j_old
     rcases hown_i_new with ⟨fi', hi', hai'⟩
     rcases hown_j_new with ⟨fj', hj', haj'⟩
     exact (h i j fi' fj' addr hij hi' hj' hai') haj'
@@ -359,12 +352,10 @@ theorem declareRefState_frameLocalsNodup_backward
         runtimeFrameOwnsAddress (declareRefState σ τ x a) j addr := ⟨fj, hj, haj⟩
     have hown_i_old :
         runtimeFrameOwnsAddress σ i addr :=
-      (runtimeFrameOwnsAddress_declareRefState_iff
-        (σ := σ) (τ := τ) (x := x) (a := a) (k := i) (addr := addr)).1 hown_i_new
+      (runtimeFrameOwnsAddress_declareRefState_iff).1 hown_i_new
     have hown_j_old :
         runtimeFrameOwnsAddress σ j addr :=
-      (runtimeFrameOwnsAddress_declareRefState_iff
-        (σ := σ) (τ := τ) (x := x) (a := a) (k := j) (addr := addr)).1 hown_j_new
+      (runtimeFrameOwnsAddress_declareRefState_iff).1 hown_j_new
     rcases hown_i_old with ⟨fi', hi', hai'⟩
     rcases hown_j_old with ⟨fj', hj', haj'⟩
     exact (h i j fi' fj' addr hij hi' hj' hai') haj'
@@ -425,21 +416,16 @@ theorem nextFreshAgainstOwned_declareObjectState_of_freshSucc
     | zero =>
         cases hsc : σ.scopes with
         | nil =>
-            have hlocals := declareObjectState_lookup_zero_locals_of_nil
-              (σ := σ) (τ := τ) (x := x) (ov := ov) hsc hfr
+            have hlocals := declareObjectState_lookup_zero_locals_of_nil hsc hfr
             simp [hlocals, Nat.succ_ne_self]
         | cons fr0 frs =>
-            have hlocals := declareObjectState_lookup_zero_locals_of_cons
-              (σ := σ) (τ := τ) (x := x) (ov := ov)
-              (fr0 := fr0) (frs := frs) hsc hfr
+            have hlocals := declareObjectState_lookup_zero_locals_of_cons hsc hfr
             have hnotOld : σ.next + 1 ∉ fr0.locals :=
               hfresh.2 0 fr0 (by simp [hsc])
             simp [hlocals, Nat.succ_ne_self, hnotOld]
     | succ k =>
         exact hfresh.2 (Nat.succ k) fr (by
-          exact (declareObjectState_lookup_succ_iff
-            (σ := σ) (τ := τ) (x := x) (ov := ov)
-            (k := k) (fr := fr)).1 hfr)
+          exact (declareObjectState_lookup_succ_iff).1 hfr)
 
 theorem ownedAddressesNoDupPerFrame_declareObjectState_of_nextFresh
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} :
@@ -453,13 +439,10 @@ theorem ownedAddressesNoDupPerFrame_declareObjectState_of_nextFresh
   | zero =>
       cases hsc : σ.scopes with
       | nil =>
-          have hlocals := declareObjectState_lookup_zero_locals_of_nil
-            (σ := σ) (τ := τ) (x := x) (ov := ov) hsc hfr
+          have hlocals := declareObjectState_lookup_zero_locals_of_nil hsc hfr
           simp [hlocals]
       | cons fr0 frs =>
-          have hlocals := declareObjectState_lookup_zero_locals_of_cons
-            (σ := σ) (τ := τ) (x := x) (ov := ov)
-            (fr0 := fr0) (frs := frs) hsc hfr
+          have hlocals := declareObjectState_lookup_zero_locals_of_cons hsc hfr
           have hnotMem : σ.next ∉ fr0.locals :=
             hfresh.2 0 fr0 (by simp [hsc])
           have hNoDupTop : fr0.locals.Nodup :=
@@ -529,7 +512,6 @@ theorem declareObjectState_api_succ_scope_iff
     (declareObjectState σ τ x ov).scopes[k.succ]? = some fr ↔
       σ.scopes[k.succ]? = some fr := by
   exact declareObjectState_lookup_succ_iff
-    (σ := σ) (τ := τ) (x := x) (ov := ov) (k := k) (fr := fr)
 
 /-- Canonical API: top-frame locals after object declaration, split on old stack shape. -/
 theorem declareObjectState_api_zero_locals_cases
@@ -542,13 +524,10 @@ theorem declareObjectState_api_zero_locals_cases
   cases hsc : σ.scopes with
   | nil =>
       left
-      exact ⟨rfl, declareObjectState_lookup_zero_locals_of_nil
-        (σ := σ) (τ := τ) (x := x) (ov := ov) hsc hfr⟩
+      exact ⟨rfl, declareObjectState_lookup_zero_locals_of_nil hsc hfr⟩
   | cons fr0 frs =>
       right
-      exact ⟨fr0, frs, rfl, declareObjectState_lookup_zero_locals_of_cons
-        (σ := σ) (τ := τ) (x := x) (ov := ov)
-        (fr0 := fr0) (frs := frs) hsc hfr⟩
+      exact ⟨fr0, frs, rfl, declareObjectState_lookup_zero_locals_of_cons hsc hfr⟩
 
 /-- Canonical API: object declaration always owns the freshly allocated address in frame 0. -/
 theorem declareObjectState_api_runtimeFrameOwnsAddress_zero_new
@@ -557,13 +536,13 @@ theorem declareObjectState_api_runtimeFrameOwnsAddress_zero_new
   cases hsc : σ.scopes with
   | nil =>
       have hfr := declareObjectState_scopes_zero_of_nil
-        (σ := σ) (τ := τ) (x := x) (ov := ov) hsc
+          (σ := σ) (τ := τ) (x := x) (ov := ov) hsc
       refine ⟨_, hfr, ?_⟩
       simp
   | cons fr0 frs =>
       have hfr := declareObjectState_scopes_zero_of_cons
-        (σ := σ) (τ := τ) (x := x) (ov := ov)
-        (fr0 := fr0) (frs := frs) hsc
+          (σ := σ) (τ := τ) (x := x) (ov := ov)
+          (fr0 := fr0) (frs := frs) hsc
       refine ⟨_, hfr, ?_⟩
       simp
 
@@ -577,16 +556,12 @@ theorem declareObjectState_api_runtimeFrameOwnsAddress_succ_iff
   · intro hown
     rcases hown with ⟨fr, hfr, hmem⟩
     exact ⟨fr,
-      (declareObjectState_api_succ_scope_iff
-        (σ := σ) (τ := τ) (x := x) (ov := ov)
-        (k := k) (fr := fr)).1 hfr,
+      (declareObjectState_api_succ_scope_iff).1 hfr,
       hmem⟩
   · intro hown
     rcases hown with ⟨fr, hfr, hmem⟩
     exact ⟨fr,
-      (declareObjectState_api_succ_scope_iff
-        (σ := σ) (τ := τ) (x := x) (ov := ov)
-        (k := k) (fr := fr)).2 hfr,
+      (declareObjectState_api_succ_scope_iff).2 hfr,
       hmem⟩
 
 /-- Canonical API: top-frame ownership after declaration is either the new address
@@ -624,8 +599,8 @@ theorem declareObjectState_api_runtimeFrameOwnsAddress_zero_preserved
         simpa [hsc] using hfr
       subst fr
       have hfr_new := declareObjectState_scopes_zero_of_cons
-        (σ := σ) (τ := τ) (x := x) (ov := ov)
-        (fr0 := fr0) (frs := frs) hsc
+          (σ := σ) (τ := τ) (x := x) (ov := ov)
+          (fr0 := fr0) (frs := frs) hsc
       refine ⟨_, hfr_new, ?_⟩
       simp [hmem]
 
@@ -635,22 +610,7 @@ theorem declareObjectState_api_heapInitializedValuesTyped
     heapInitializedValuesTyped σ →
     OptionValueCompat ov τ →
     heapInitializedValuesTyped (declareObjectState σ τ x ov) := by
-  intro htyped hov
-  intro a c v hheap hv
-  rcases declareObjectState_api_heap_cases hheap with hnew | hold
-  · rcases hnew with ⟨ha, hc⟩
-    subst a
-    subst c
-    cases hov_case : ov with
-    | none =>
-        simp [hov_case] at hv
-    | some w =>
-        have hwv : w = v := by
-          simpa [hov_case] using hv
-        subst v
-        simpa [OptionValueCompat, hov_case] using hov
-  · rcases hold with ⟨_ha, hheap_old⟩
-    exact htyped a c v hheap_old hv
+  exact heapInitializedValuesTyped_declareObjectState_of_optionCompat
 
 /-- Canonical API: successor-cursor freshness is the exact side condition needed
 for preserving `nextFreshAgainstOwned`. -/
@@ -658,29 +618,7 @@ theorem declareObjectState_api_nextFreshAgainstOwned
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} :
     freshAddrAgainstOwned σ (σ.next + 1) →
     nextFreshAgainstOwned (declareObjectState σ τ x ov) := by
-  intro hfresh
-  unfold nextFreshAgainstOwned
-  constructor
-  · rw [declareObjectState_api_next]
-    rw [declareObjectState_api_heap_off_new_cell]
-    · exact hfresh.1
-    · exact Nat.succ_ne_self σ.next
-  · intro k fr hfr
-    rw [declareObjectState_api_next]
-    cases k with
-    | zero =>
-        rcases declareObjectState_api_zero_locals_cases hfr with hnil | hcons
-        · rcases hnil with ⟨_hsc, hlocals⟩
-          simp [hlocals, Nat.succ_ne_self]
-        · rcases hcons with ⟨fr0, _frs, hsc, hlocals⟩
-          have hnotOld : σ.next + 1 ∉ fr0.locals :=
-            hfresh.2 0 fr0 (by simp [hsc])
-          simp [hlocals, Nat.succ_ne_self, hnotOld]
-    | succ k =>
-        exact hfresh.2 (Nat.succ k) fr
-          ((declareObjectState_api_succ_scope_iff
-            (σ := σ) (τ := τ) (x := x) (ov := ov)
-            (k := k) (fr := fr)).1 hfr)
+  exact nextFreshAgainstOwned_declareObjectState_of_freshSucc
 
 /-- Canonical API: object declaration preserves per-frame ownership nodup under
 freshness of the newly allocated address. -/
@@ -689,31 +627,7 @@ theorem declareObjectState_api_ownedAddressesNoDupPerFrame
     ownedAddressesNoDupPerFrame σ →
     nextFreshAgainstOwned σ →
     ownedAddressesNoDupPerFrame (declareObjectState σ τ x ov) := by
-  intro hNoDup hfresh
-  unfold ownedAddressesNoDupPerFrame at hNoDup ⊢
-  intro k fr hfr
-  cases k with
-  | zero =>
-      rcases declareObjectState_api_zero_locals_cases hfr with hnil | hcons
-      · rcases hnil with ⟨_hsc, hlocals⟩
-        simp [hlocals]
-      · rcases hcons with ⟨fr0, _frs, hsc, hlocals⟩
-        have hnotMem : σ.next ∉ fr0.locals :=
-          hfresh.2 0 fr0 (by simp [hsc])
-        have hNoDupTop : fr0.locals.Nodup :=
-          hNoDup 0 fr0 (by simp [hsc])
-        have hNew : (σ.next :: fr0.locals).Nodup := by
-          constructor
-          · intro a' ha hEq
-            apply hnotMem
-            simpa [hEq] using ha
-          · exact hNoDupTop
-        simpa [hlocals] using hNew
-  | succ k =>
-      exact hNoDup (Nat.succ k) fr
-        ((declareObjectState_api_succ_scope_iff
-          (σ := σ) (τ := τ) (x := x) (ov := ov)
-          (k := k) (fr := fr)).1 hfr)
+  exact ownedAddressesNoDupPerFrame_declareObjectState_of_nextFresh
 
 end DeclareObjectStateLowerAPI
 

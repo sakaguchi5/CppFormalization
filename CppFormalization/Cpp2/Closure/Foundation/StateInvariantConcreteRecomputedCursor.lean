@@ -26,17 +26,34 @@ structure RecomputedNextWitness (σ : State) : Type where
 @[simp] theorem nextFreshAgainstOwned_after_setNext
     {σ : State} (w : RecomputedNextWitness σ) :
     nextFreshAgainstOwned (setNext σ w.addr) := by
+  -- freshAddrAgainstOwned の定義を展開
+  unfold nextFreshAgainstOwned
   refine ⟨?_, ?_⟩
-  · simpa [setNext] using w.freshOwned.1
+  · -- setNext は heap を変更しない
+    have h_heap : (setNext σ w.addr).heap = σ.heap := rfl
+    rw [h_heap]
+    exact w.freshOwned.1
   · intro k fr hk
-    simpa [setNext] using w.freshOwned.2 k fr hk
+    -- setNext は scopes を変更しない
+    have h_scopes : (setNext σ w.addr).scopes = σ.scopes := rfl
+    -- ゴール内の (setNext σ w.addr).scopes を書き換え
+    rw [h_scopes] at hk
+    -- a ∉ ownedAddresses fr を示す (w.freshOwned.2 k fr hk をそのまま利用)
+    exact w.freshOwned.2 k fr hk
 
 @[simp] theorem next_notRuntimeRefTarget_after_setNext
     {σ : State} (w : RecomputedNextWitness σ) :
     ∀ {k : Nat} {y : Ident} {υ : CppType},
       ¬ runtimeFrameBindsRef (setNext σ w.addr) k y υ (setNext σ w.addr).next := by
   intro k y υ
-  simpa [setNext] using (w.notRuntimeRefTarget (k := k) (y := y) (υ := υ))
+  -- setNext σ w.addr の next は w.addr そのもの
+  have h_next : (setNext σ w.addr).next = w.addr := rfl
+  -- scopes は不変
+  have h_scopes : (setNext σ w.addr).scopes = σ.scopes := rfl
+  unfold runtimeFrameBindsRef
+  -- ゴール内のフィールドを元の σ と w.addr に書き換えて、w の性質に帰着させる
+  rw [h_next, h_scopes]
+  exact w.notRuntimeRefTarget
 
 @[simp] theorem nextFreshAgainstOwned_declareObjectStateWithNext
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
@@ -51,16 +68,21 @@ structure RecomputedNextWitness (σ : State) : Type where
       ¬ runtimeFrameBindsRef (declareObjectStateWithNext σ τ x ov w.addr) k y υ
           (declareObjectStateWithNext σ τ x ov w.addr).next := by
   intro k y υ
-  -- w.フィールド名 ではなく 定理名 w で呼び出す
-  simpa [declareObjectStateWithNext] using
-    (next_notRuntimeRefTarget_after_setNext w)
+  -- 1. WithNext の定義を展開して setNext を露出させる
+  unfold declareObjectStateWithNext
+  -- 2. 直前に証明した setNext に関する定理を直接適用
+  exact next_notRuntimeRefTarget_after_setNext w
 
 @[simp] theorem monotone_next_declareObjectStateWithNext
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
     (w : RecomputedNextWitness (declareObjectStateCore σ τ x ov)) :
     (declareObjectStateCore σ τ x ov).next ≤
       (declareObjectStateWithNext σ τ x ov w.addr).next := by
-  simpa [declareObjectStateWithNext, setNext] using w.monotone
+  -- 1. 定義を展開
+  unfold declareObjectStateWithNext setNext
+  -- 2. w.monotone の型は (declareObjectStateCore ...).next ≤ w.addr
+  --    setNext した後の .next は w.addr そのものなので、そのまま exact できる
+  exact w.monotone
 
 end RecomputedObjectState
 

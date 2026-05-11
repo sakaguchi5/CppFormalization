@@ -44,15 +44,11 @@ theorem ownedDisjoint_after_declareObjectState
               exact (hij rfl).elim
           | succ j =>
               have hjOld : σ.scopes[j.succ]? = some fj :=
-                (declareObjectState_lookup_succ_iff
-                  (σ := σ) (τ := τ) (x := x) (ov := ov)
-                  (k := j) (fr := fj)).1 hj
+                (declareObjectState_lookup_succ_iff).1 hj
               simp [hsc] at hjOld
       | succ i =>
           have hiOld : σ.scopes[i.succ]? = some fi :=
-            (declareObjectState_lookup_succ_iff
-              (σ := σ) (τ := τ) (x := x) (ov := ov)
-              (k := i) (fr := fi)).1 hi
+            (declareObjectState_lookup_succ_iff).1 hi
           simp [hsc] at hiOld
   | cons fr0 frs =>
       cases i with
@@ -62,13 +58,9 @@ theorem ownedDisjoint_after_declareObjectState
               exact (hij rfl).elim
           | succ j =>
               have hfiLocals : fi.locals = σ.next :: fr0.locals := by
-                exact declareObjectState_lookup_zero_locals_of_cons
-                  (σ := σ) (τ := τ) (x := x) (ov := ov)
-                  (fr0 := fr0) (frs := frs) hsc hi
+                exact declareObjectState_lookup_zero_locals_of_cons hsc hi
               have hjOld : σ.scopes[j.succ]? = some fj := by
-                exact (declareObjectState_lookup_succ_iff
-                  (σ := σ) (τ := τ) (x := x) (ov := ov)
-                  (k := j) (fr := fj)).1 hj
+                exact (declareObjectState_lookup_succ_iff).1 hj
               by_cases hEq : addr = σ.next
               · subst addr
                 exact hfreshLocals j.succ fj hjOld haj
@@ -80,13 +72,9 @@ theorem ownedDisjoint_after_declareObjectState
           cases j with
           | zero =>
               have hiOld : σ.scopes[i.succ]? = some fi := by
-                exact (declareObjectState_lookup_succ_iff
-                  (σ := σ) (τ := τ) (x := x) (ov := ov)
-                  (k := i) (fr := fi)).1 hi
+                exact (declareObjectState_lookup_succ_iff).1 hi
               have hfjLocals : fj.locals = σ.next :: fr0.locals := by
-                exact declareObjectState_lookup_zero_locals_of_cons
-                  (σ := σ) (τ := τ) (x := x) (ov := ov)
-                  (fr0 := fr0) (frs := frs) hsc hj
+                exact declareObjectState_lookup_zero_locals_of_cons hsc hj
               by_cases hEq : addr = σ.next
               · subst addr
                 exact hfreshLocals i.succ fi hiOld hai
@@ -96,13 +84,9 @@ theorem ownedDisjoint_after_declareObjectState
                   (by simp) hiOld (by simp [hsc]) hai) hajOld
           | succ j =>
               have hiOld : σ.scopes[i.succ]? = some fi := by
-                exact (declareObjectState_lookup_succ_iff
-                  (σ := σ) (τ := τ) (x := x) (ov := ov)
-                  (k := i) (fr := fi)).1 hi
+                exact (declareObjectState_lookup_succ_iff).1 hi
               have hjOld : σ.scopes[j.succ]? = some fj := by
-                exact (declareObjectState_lookup_succ_iff
-                  (σ := σ) (τ := τ) (x := x) (ov := ov)
-                  (k := j) (fr := fj)).1 hj
+                exact (declareObjectState_lookup_succ_iff).1 hj
               exact (h.concrete.ownedDisjoint i.succ j.succ fi fj addr
                 (by simpa using hij) hiOld hjOld hai) haj
 

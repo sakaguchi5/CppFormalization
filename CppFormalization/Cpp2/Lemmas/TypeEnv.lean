@@ -47,13 +47,13 @@ namespace Cpp
 @[simp] theorem lookupDecl_declareTypeObject_other
     (Γ : TypeEnv) {x y : Ident} (τ : CppType) (hxy : y ≠ x) :
     lookupDecl (declareTypeObject Γ x τ) y = lookupDecl Γ y := by
-  simpa [declareTypeObject] using
-    lookupDecl_insertTopDecl_other Γ (.object τ) hxy
+  unfold declareTypeObject
+  exact lookupDecl_insertTopDecl_other Γ (.object τ) hxy
 
 @[simp] theorem lookupDecl_declareTypeRef_other
     (Γ : TypeEnv) {x y : Ident} (τ : CppType) (hxy : y ≠ x) :
     lookupDecl (declareTypeRef Γ x τ) y = lookupDecl Γ y := by
-  simpa [declareTypeRef] using
-    lookupDecl_insertTopDecl_other Γ (.ref τ) hxy
+  unfold declareTypeRef
+  exact lookupDecl_insertTopDecl_other Γ (.ref τ) hxy
 
 end Cpp

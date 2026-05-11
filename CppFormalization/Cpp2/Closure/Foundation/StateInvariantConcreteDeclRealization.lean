@@ -22,13 +22,15 @@ section DeclRealizationSupport
 @[simp] theorem heapLiveTypedAt_declareRefState_iff
     {σ : State} {τ : CppType} {x : Ident} {r : Nat} {a : Nat} {υ : CppType} :
     heapLiveTypedAt (declareRefState σ τ x r) a υ ↔ heapLiveTypedAt σ a υ := by
-  constructor <;> intro h
-  · rcases h with ⟨c, hc, hty, halive⟩
-    refine ⟨c, ?_, hty, halive⟩
-    simpa [declareRefState] using hc
-  · rcases h with ⟨c, hc, hty, halive⟩
-    refine ⟨c, ?_, hty, halive⟩
-    simpa [declareRefState] using hc
+  constructor <;> intro h <;> rcases h with ⟨c, hc, hty, halive⟩
+  · refine ⟨c, ?_, hty, halive⟩
+    -- 左辺の heap を右辺（σ.heap）に書き換える
+    rw [declareRefState_heap] at hc
+    exact hc
+  · refine ⟨c, ?_, hty, halive⟩
+    -- ゴールの heap を σ.heap に書き換える
+    rw [declareRefState_heap]
+    exact hc
 
  theorem heapLiveTypedAt_declareObjectState_of_ne
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
@@ -39,7 +41,8 @@ section DeclRealizationSupport
   intro hne hlive
   rcases hlive with ⟨c, hc, hty, halive⟩
   refine ⟨c, ?_, hty, halive⟩
-  simpa [declareObjectState_heap_other (σ := σ) (τ := τ) (x := x) (ov := ov) (a := a) hne] using hc
+  rw [declareObjectState_heap_other σ τ x ov hne]
+  exact hc
 
 @[simp] theorem heapLiveTypedAt_declareObjectState_self
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} :
@@ -81,7 +84,7 @@ section DeclRealizationSupport
     y ≠ x := by
   intro hEq
   subst y
-  rw [topFrameBindingFresh_zero_of_cons (σ := σ) (x := x) (fr0 := fr0) (frs := frs) hfresh hsc] at hb
+  rw [topFrameBindingFresh_zero_of_cons hfresh hsc] at hb
   simp at hb
 
  theorem runtimeFrameBindsRef_declareRefState_zero_new
@@ -96,9 +99,7 @@ section DeclRealizationSupport
       subst fr
       simp
   | cons fr0 frs =>
-      rcases declareRefState_lookup_zero_frame_of_cons
-        (σ := σ) (τ := τ) (x := x) (a := a)
-        (fr0 := fr0) (frs := frs) hsc hk with rfl
+      rcases declareRefState_lookup_zero_frame_of_cons hsc hk with rfl
       simp
 
  theorem runtimeFrameBindsRef_declareRefState_forward_of_topFresh
@@ -120,9 +121,7 @@ section DeclRealizationSupport
           simp [hsc] at hk
           subst fr
           have hyx : y ≠ x :=
-            runtimeFrameBindsRef_top_name_ne_declared_of_topFresh
-              (σ := σ) (x := x) (y := y) (fr0 := fr0) (frs := frs)
-              (υ := υ) (addr := addr) hfresh hsc hb
+            runtimeFrameBindsRef_top_name_ne_declared_of_topFresh hfresh hsc hb
           refine ⟨
             { fr0 with binds := fun z => if z = x then some (.ref τ a) else fr0.binds z },
             ?_, ?_⟩
@@ -130,8 +129,7 @@ section DeclRealizationSupport
           · simpa [hyx] using hb
       | succ k =>
           refine ⟨fr, ?_, hb⟩
-          exact (declareRefState_lookup_succ_iff
-            (σ := σ) (τ := τ) (x := x) (a := a) (k := k) (fr := fr)).2 hk
+          exact (declareRefState_lookup_succ_iff).2 hk
 
  theorem runtimeFrameBindsRef_declareObjectState_forward_of_topFresh
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
@@ -152,23 +150,18 @@ section DeclRealizationSupport
           simp [hsc] at hk
           subst fr
           have hyx : y ≠ x :=
-            runtimeFrameBindsRef_top_name_ne_declared_of_topFresh
-              (σ := σ) (x := x) (y := y) (fr0 := fr0) (frs := frs)
-              (υ := υ) (addr := addr) hfresh hsc hb
+            runtimeFrameBindsRef_top_name_ne_declared_of_topFresh hfresh hsc hb
           refine ⟨
             { fr0 with
               binds := fun z => if z = x then some (.object τ σ.next) else fr0.binds z,
               locals := σ.next :: fr0.locals },
             ?_, ?_⟩
           ·
-            exact declareObjectState_scopes_zero_of_cons
-             (σ := σ) (τ := τ) (x := x) (ov := ov)
-             (fr0 := fr0) (frs := frs) hsc
+            exact declareObjectState_scopes_zero_of_cons hsc
           · simpa [hyx] using hb
       | succ k =>
           refine ⟨fr, ?_, hb⟩
-          exact (declareObjectState_lookup_succ_iff
-            (σ := σ) (τ := τ) (x := x) (ov := ov) (k := k) (fr := fr)).2 hk
+          exact (declareObjectState_lookup_succ_iff).2 hk
 end DeclRealizationSupport
 
 namespace DeclareObjectReadyStrong
@@ -222,7 +215,6 @@ theorem runtimeFrameOwnsAddress_declareObjectState_zero_next
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} :
     runtimeFrameOwnsAddress (declareObjectState σ τ x ov) 0 σ.next := by
   exact declareObjectState_api_runtimeFrameOwnsAddress_zero_new
-    (σ := σ) (τ := τ) (x := x) (ov := ov)
 
 theorem declare_new_object_realization_after_declareObjectState
     {σ : State} {x : Ident}
@@ -286,7 +278,6 @@ theorem declare_new_object_realization_after_declareObjectState
             subst τ'
 
             exact declare_new_object_realization_after_declareObjectState
-              (σ := σ) (x := x) (τ := τ) (ov := ov)
 
           · have hbOld : fr0.decls x' = some (.object τ') := by
               simpa [hx'] using hb
@@ -306,8 +297,7 @@ theorem declare_new_object_realization_after_declareObjectState
             have hownNew :
                 runtimeFrameOwnsAddress
                   (declareObjectState σ τ x ov) 0 a :=
-              runtimeFrameOwnsAddress_declareObjectState_forward
-                (σ := σ) (τ := τ) (x := x) (ov := ov) hownOld
+              runtimeFrameOwnsAddress_declareObjectState_forward hownOld
 
             have hane : a ≠ σ.next :=
               runtimeFrameOwnsAddress_ne_next_of_nextFresh
@@ -343,8 +333,7 @@ theorem declare_new_object_realization_after_declareObjectState
       have hownNew :
           runtimeFrameOwnsAddress
             (declareObjectState σ τ x ov) k.succ a :=
-        runtimeFrameOwnsAddress_declareObjectState_forward
-          (σ := σ) (τ := τ) (x := x) (ov := ov) hownOld
+        runtimeFrameOwnsAddress_declareObjectState_forward hownOld
 
       have hane : a ≠ σ.next :=
         runtimeFrameOwnsAddress_ne_next_of_nextFresh
@@ -581,8 +570,7 @@ theorem declare_new_object_realization_after_declareObjectStateWithNext
       runtimeFrameOwnsAddress (declareObjectStateWithNext σ τ x ov aNext) 0 a ∧
       heapLiveTypedAt (declareObjectStateWithNext σ τ x ov aNext) a τ := by
   rcases
-    (DeclareObjectReadyStrong.declare_new_object_realization_after_declareObjectState
-      (σ := σ) (x := x) (τ := τ) (ov := ov))
+    (DeclareObjectReadyStrong.declare_new_object_realization_after_declareObjectState)
     with ⟨a, hobjOld, hownOld, hliveOld⟩
   refine ⟨a, ?_, ?_, ?_⟩
   · simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_old] using hobjOld

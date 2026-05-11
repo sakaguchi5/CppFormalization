@@ -226,9 +226,7 @@ theorem framewiseDeclBindingExact_declareTypeObject_declareObjectState_from_topF
                 rw [hΓtopEq] at hkΓ
                 exact hkΓ.symm
 
-              rcases declareObjectState_lookup_zero_frame_of_cons
-                (σ := σ) (τ := τ) (x := x) (ov := ov)
-                (fr0 := σtop) (frs := σrest) hS hkσ with rfl
+              rcases declareObjectState_lookup_zero_frame_of_cons hS hkσ with rfl
 
               rw [hΓfr]
               exact hTop
@@ -238,9 +236,7 @@ theorem framewiseDeclBindingExact_declareTypeObject_declareObjectState_from_topF
                 simpa [declareTypeObject, insertTopDecl, hG] using hkΓ
 
               have hkσOld : σ.scopes[j.succ]? = some σfr :=
-                (declareObjectState_lookup_succ_iff
-                  (σ := σ) (τ := τ) (x := x) (ov := ov)
-                  (k := j) (fr := σfr)).1 hkσ
+                (declareObjectState_lookup_succ_iff).1 hkσ
 
               exact hexact j.succ Γfr σfr hkΓOld hkσOld
 
@@ -351,10 +347,8 @@ theorem kernel_after_declareObjectState
     {τ : CppType} {ov : Option Value} :
     ScopedTypedStateConcreteKernel (declareTypeObject Γ x τ) (declareObjectState σ τ x ov) := by
   refine
-    { frameDepth := frameDepthAgreement_declareTypeObject_declareObjectState
-        (Γ := Γ) (σ := σ) (x := x) (τ := τ) (ov := ov) h.concrete.frameDepth
-      shadowing := shadowingCompatible_declareTypeObject_declareObjectState
-        (Γ := Γ) (σ := σ) (x := x) (τ := τ) (ov := ov) h.concrete.shadowing
+    { frameDepth := frameDepthAgreement_declareTypeObject_declareObjectState h.concrete.frameDepth
+      shadowing := shadowingCompatible_declareTypeObject_declareObjectState h.concrete.shadowing
       namesExact :=framewiseDeclBindingExact_declareTypeObject_declareObjectState_from_topFrameFresh
         h.concrete.frameDepth h.concrete.namesExact hΓ0 (h.typeFresh _ hΓ0) (h.topFrameFresh hΓ0)
       objectDeclRealized := objectDeclRealized_after_declareObjectState
@@ -363,34 +357,27 @@ theorem kernel_after_declareObjectState
         (h := h) (hΓ0 := hΓ0) (τ := τ) (ov := ov)
       objectBindingSound := by
         intro k y υ a hbind
-        rcases runtimeFrameBindsObject_declareObjectState_cases
-            (σ := σ) (τ := τ) (x := x) (ov := ov) hbind with
+        rcases runtimeFrameBindsObject_declareObjectState_cases hbind with
           hnew | hold
         ·
           exact objectBindingSound_declareObjectState_new  hnew
         · rcases h.concrete.objectBindingSound hold with ⟨hownOld, hliveOld⟩
           have hane : a ≠ σ.next :=
-            runtimeFrameOwnsAddress_ne_next_of_nextFresh
-              (σ := σ) (k := k) (a := a) h.concrete.nextFresh hownOld
+            runtimeFrameOwnsAddress_ne_next_of_nextFresh h.concrete.nextFresh hownOld
           exact ⟨
-            runtimeFrameOwnsAddress_declareObjectState_forward
-              (σ := σ) (τ := τ) (x := x) (ov := ov) hownOld,
-            heapLiveTypedAt_declareObjectState_of_ne
-              (σ := σ) (τ := τ) (x := x) (ov := ov) (a := a) (υ := υ) hane hliveOld⟩
+            runtimeFrameOwnsAddress_declareObjectState_forward hownOld,
+            heapLiveTypedAt_declareObjectState_of_ne hane hliveOld⟩
       refBindingSound := by
         intro k y υ a hbind
         have hbindOld :
             runtimeFrameBindsRef σ k y υ a :=
-          runtimeFrameBindsRef_declareObjectState_backward
-            (σ := σ) (τ := τ) (x := x) (ov := ov) hbind
+          runtimeFrameBindsRef_declareObjectState_backward hbind
         have hliveOld : heapLiveTypedAt σ a υ :=
           h.concrete.refBindingSound hbindOld
         have hane : a ≠ σ.next :=
-          heapLiveTypedAt_ne_next_of_nextFresh
-            (σ := σ) (a := a) (τ := υ) h.concrete.nextFresh hliveOld
+          heapLiveTypedAt_ne_next_of_nextFresh h.concrete.nextFresh hliveOld
         exact
-          heapLiveTypedAt_declareObjectState_of_ne
-            (σ := σ) (τ := τ) (x := x) (ov := ov) (a := a) (υ := υ) hane hliveOld }
+          heapLiveTypedAt_declareObjectState_of_ne hane hliveOld }
 
  theorem concrete_after_declareObjectState
     {Γ : TypeEnv} {σ : State} {x : Ident}
@@ -421,7 +408,6 @@ theorem kernel_after_declareObjectState
       refBindingSound := hker.refBindingSound
       heapStoredValuesTyped :=
         heapInitializedValuesTyped_declareObjectState_of_optionCompat
-          (σ := σ) (τ := τ) (x := x) (ov := ov)
           h.concrete.heapStoredValuesTyped hov
       nextFresh := hown.nextFresh
       refTargetsAvoidInnerOwned := hown.refTargetsAvoidInnerOwned }
@@ -440,9 +426,9 @@ theorem kernel_after_declareRefState
     ScopedTypedStateConcreteKernel (declareTypeRef Γ x τ) (declareRefState σ τ x a) := by
   refine
     { frameDepth := frameDepthAgreement_declareTypeRef_declareRefState
-        (Γ := Γ) (σ := σ) (x := x) (τ := τ) (a := a) h.concrete.frameDepth
+        (a := a) h.concrete.frameDepth
       shadowing := shadowingCompatible_declareTypeRef_declareRefState
-        (Γ := Γ) (σ := σ) (x := x) (τ := τ) (a := a) h.concrete.shadowing
+        (a := a) h.concrete.shadowing
       namesExact :=framewiseDeclBindingExact_declareTypeRef_declareRefState_from_topFrameFresh
         h.concrete.frameDepth h.concrete.namesExact hΓ0 (h.typeFresh _ hΓ0) (h.topFrameFresh hΓ0)
       objectDeclRealized := objectDeclRealized_after_declareRefState
@@ -453,26 +439,21 @@ theorem kernel_after_declareRefState
         intro k y υ addr hbind
         have hbindOld :
             runtimeFrameBindsObject σ k y υ addr :=
-          runtimeFrameBindsObject_declareRefState_backward
-            (σ := σ) (τ := τ) (x := x) (a := a) hbind
+          runtimeFrameBindsObject_declareRefState_backward hbind
         rcases h.concrete.objectBindingSound hbindOld with ⟨hownOld, hliveOld⟩
         exact ⟨
-          runtimeFrameOwnsAddress_declareRefState_forward
-            (σ := σ) (τ := τ) (x := x) (a := a) hownOld,
-          (heapLiveTypedAt_declareRefState_iff
-            (σ := σ) (τ := τ) (x := x) (r := a) (a := addr) (υ := υ)).2 hliveOld⟩
+          runtimeFrameOwnsAddress_declareRefState_forward hownOld,
+          (heapLiveTypedAt_declareRefState_iff).2 hliveOld⟩
       refBindingSound := by
         intro k y υ addr hbind
-        rcases runtimeFrameBindsRef_declareRefState_cases
-            (σ := σ) (τ := τ) (x := x) (a := a) hbind with
+        rcases runtimeFrameBindsRef_declareRefState_cases hbind with
           hnew | hold
         · rcases hnew with ⟨rfl, rfl, rfl, rfl⟩
           exact (heapLiveTypedAt_declareRefState_iff (σ := σ)).2 haLive
         · have hliveOld : heapLiveTypedAt σ addr υ :=
             h.concrete.refBindingSound hold
           exact
-            (heapLiveTypedAt_declareRefState_iff
-              (σ := σ) (τ := τ) (x := x) (r := a) (a := addr) (υ := υ)).2 hliveOld }
+            (heapLiveTypedAt_declareRefState_iff).2 hliveOld }
 
  theorem concrete_after_declareRefState
     {Γ : TypeEnv} {σ : State} {x : Ident}
@@ -501,8 +482,7 @@ theorem kernel_after_declareRefState
       objectBindingSound := hker.objectBindingSound
       refBindingSound := hker.refBindingSound
       heapStoredValuesTyped :=
-        (heapInitializedValuesTyped_declareRefState
-          (σ := σ) (τ := τ) (x := x) (a := a)).2 h.concrete.heapStoredValuesTyped
+        (heapInitializedValuesTyped_declareRefState).2 h.concrete.heapStoredValuesTyped
       nextFresh := hown.nextFresh
       refTargetsAvoidInnerOwned := hown.refTargetsAvoidInnerOwned }
 

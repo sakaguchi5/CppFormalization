@@ -108,15 +108,15 @@ namespace LoopBodyStructuralBoundary
     {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
     (h : LoopBodyStructuralBoundary Γ body) :
     BreakWellScoped (.whileStmt c body) := by
-  simpa [BreakWellScoped, BreakWellScopedInLoop]
-    using h.breakScoped
+  unfold BreakWellScoped
+  exact h.breakScoped
 
 @[simp] theorem toWhileContinueScoped
     {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
     (h : LoopBodyStructuralBoundary Γ body) :
     ContinueWellScoped (.whileStmt c body) := by
-  simpa [ContinueWellScoped, ContinueWellScopedInLoop]
-    using h.continueScoped
+  unfold ContinueWellScoped
+  exact h.continueScoped
 
 /-- loop-body structural boundary から enclosing `while` の structural layer を組む。 -/
 def toWhileStructural

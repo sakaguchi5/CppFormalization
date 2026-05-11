@@ -77,12 +77,10 @@ def toySplitMkReflection
     {Γ : TypeEnv} {st : CppStmt}
     (hsupp : Γ = m.Γ ∧ st = m.st) :
     HEq (toySplitMkReflection m hsupp).static.profile m.static.profile := by
-  cases m with
-  | mk mΓ mst mstruct mstatic mcore =>
-      rcases hsupp with ⟨hΓ, hst⟩
-      subst Γ
-      subst st
-      simp [toySplitMkReflection]
+  -- rcases の中で subst を直接実行
+  rcases hsupp with ⟨rfl, rfl⟩
+  cases m
+  simp [toySplitMkReflection]
 
 @[simp] theorem toySplitMkReflection_entry_heq
     (m : ToySplitReflectionArtifactV3)
