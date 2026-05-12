@@ -37,6 +37,19 @@ def nextNotTargetOfInnerRefs (σ : State) : Prop :=
     0 < k →
     ¬ runtimeFrameBindsRef σ k x τ σ.next
 
+--部分的な補題?抽象化などの再考察対象
+theorem declareRefState_lookup_zero {σ : State}  {τ : CppType} {x : Ident} {a : Nat}{fr0 : ScopeFrame} {frs : List ScopeFrame}
+    (hsc : σ.scopes = fr0 :: frs) :
+    (declareRefState σ τ x a).scopes[0]? = some { fr0 with binds := fun z => if z = x then some (.ref τ a) else fr0.binds z } := by
+  simp [declareRefState, bindTopBinding, hsc]
+--部分的な補題?抽象化などの再考察対象
+theorem declareObjectState_lookup_zero {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {fr0 : ScopeFrame} {frs : List ScopeFrame}
+    (hsc : σ.scopes = fr0 :: frs) :
+    (declareObjectState σ τ x ov).scopes[0]? = some
+      { fr0 with
+        binds := fun z => if z = x then some (.object τ σ.next) else fr0.binds z,
+        locals := σ.next :: fr0.locals } := by
+  simp [declareObjectState, declareObjectStateWithNext, declareObjectStateCore, bindTopBinding, hsc]
 
 section OwnershipTransportLocalAPI
 
@@ -99,102 +112,85 @@ end OwnershipTransportLocalAPI
 
 section DeclareRefStateOwnershipTransport
 
- theorem runtimeFrameBindsObject_declareRefState_backward
+theorem runtimeFrameBindsObject_declareRefState_backward
     {σ : State} {τ : CppType} {x : Ident} {a : Nat}
     {k : Nat} {y : Ident} {υ : CppType} {addr : Nat} :
     runtimeFrameBindsObject (declareRefState σ τ x a) k y υ addr →
     runtimeFrameBindsObject σ k y υ addr := by
-  intro hobj
-  rcases hobj with ⟨fr, hk, hb⟩
-  cases hsc : σ.scopes with
-  | nil =>
-      cases k with
-      | zero =>
-          simp [declareRefState, scopes_bindTopBinding, hsc] at hk
-          subst fr
+  intro ⟨fr, hk, hb⟩
+  cases k with
+  | zero =>
+      cases hsc : σ.scopes with
+      | nil =>
+          -- σ.scopes = [] の場合、declareRefState は空フレームを作るが
+          -- その中身は Ref のみなので、hb (Object) と矛盾する
+          simp [declareRefState, hsc] at hk; subst fr
           simp at hb
-      | succ k =>
-          simp [declareRefState, scopes_bindTopBinding, hsc] at hk
-  | cons fr0 frs =>
-      cases k with
-      | zero =>
-          rcases declareRefState_lookup_zero_frame_of_cons
-            (σ := σ) (τ := τ) (x := x) (a := a)
-            (fr0 := fr0) (frs := frs) hsc hk with rfl
-          by_cases hy : y = x
-          · subst hy
+      | cons fr0 frs =>
+          -- k=0 かつコンスケース：自作補題で fr の中身を特定
+          rcases declareRefState_lookup_zero_frame_of_cons hsc hk with rfl
+          -- y = x のときは Object ではなく Ref が入っているので矛盾
+          by_cases hyx : y = x
+          · subst hyx
             simp at hb
-          · refine ⟨fr0, by simp [hsc], ?_⟩
-            simpa [hy] using hb
-      | succ k =>
-          refine ⟨fr, ?_, hb⟩
-          exact (declareRefState_lookup_succ_iff).1 hk
+          · -- y ≠ x のときは、元のフレーム fr0 に Object があったはず
+            refine ⟨fr0, by simp [hsc], ?_⟩
+            simpa [hyx] using hb
+  | succ k =>
+      -- 深い階層は declareRefState_lookup_succ_iff の逆方向 (.1) で一発
+      exact ⟨fr, declareRefState_lookup_succ_iff.1 hk, hb⟩
 
- theorem runtimeFrameBindsObject_declareRefState_forward_of_topFresh
+theorem runtimeFrameBindsObject_declareRefState_forward_of_topFresh
     {σ : State} {τ : CppType} {x : Ident} {a : Nat}
     (hfresh : topFrameBindingFresh σ x)
     {k : Nat} {y : Ident} {υ : CppType} {addr : Nat} :
     runtimeFrameBindsObject σ k y υ addr →
     runtimeFrameBindsObject (declareRefState σ τ x a) k y υ addr := by
-  intro hobj
-  rcases hobj with ⟨fr, hk, hb⟩
-  cases hsc : σ.scopes with
-  | nil =>
-      cases k with
-      | zero => simp [hsc] at hk
-      | succ k => simp [hsc] at hk
-  | cons fr0 frs =>
-      cases k with
-      | zero =>
-          simp [hsc] at hk
-          subst fr
+  intro ⟨fr, hk, hb⟩
+  cases k with
+  | zero =>
+      cases hsc : σ.scopes with
+      | nil => simp [hsc] at hk
+      | cons fr0 frs =>
+          simp [hsc] at hk; subst fr
+          -- 名前が衝突しないことを確認
           have hyx : y ≠ x :=
             runtimeFrameBindsObject_top_name_ne_declared_of_topFresh hfresh hsc hb
-          refine ⟨
-            { fr0 with binds := fun z => if z = x then some (.ref τ a) else fr0.binds z },
-            ?_, ?_⟩
-          · simp [declareRefState, scopes_bindTopBinding, hsc]
-          · simpa [hyx] using hb
-      | succ k =>
-          refine ⟨fr, ?_, hb⟩
-          exact (declareRefState_lookup_succ_iff).2 hk
+          refine ⟨_, declareRefState_lookup_zero hsc, ?_⟩
+          simpa [hyx] using hb
+  | succ k =>
+      -- 深い階層は不変
+      exact ⟨fr, declareRefState_lookup_succ_iff.2 hk, hb⟩
 
- theorem runtimeFrameBindsRef_declareRefState_cases
+theorem runtimeFrameBindsRef_declareRefState_cases
     {σ : State} {τ : CppType} {x : Ident} {a : Nat}
     {k : Nat} {y : Ident} {υ : CppType} {addr : Nat} :
     runtimeFrameBindsRef (declareRefState σ τ x a) k y υ addr →
       (k = 0 ∧ y = x ∧ υ = τ ∧ addr = a) ∨
       runtimeFrameBindsRef σ k y υ addr := by
-  intro href
-  rcases href with ⟨fr, hk, hb⟩
-  cases hsc : σ.scopes with
-  | nil =>
-      cases k with
-      | zero =>
-          simp [declareRefState, scopes_bindTopBinding, hsc] at hk
-          subst fr
+  intro ⟨fr, hk, hb⟩
+  cases k with
+  | zero =>
+      cases hsc : σ.scopes with
+      | nil =>
+          -- σ.scopes = [] でも k=0 ならフレームが作られる
+          simp [declareRefState, hsc] at hk; subst fr
           simp at hb
-          -- hb は (if y = x then some (.ref τ a) else none) = some (.ref υ addr)
-          left       -- ゴールの「(k = 0 ∧ y = x ∧ υ = τ ∧ addr = a) ∨ ...」の左側を選択
-          -- あとは hb の中身と k=0 (zero のケースなので自明) を使って終了
-          simp [hb]
-      | succ k => simp [declareRefState, scopes_bindTopBinding, hsc] at hk
-  | cons fr0 frs =>
-      cases k with
-      | zero =>
-          rcases declareRefState_lookup_zero_frame_of_cons
-            (σ := σ) (τ := τ) (x := x) (a := a)
-            (fr0 := fr0) (frs := frs) hsc hk with rfl
-          by_cases hy : y = x
-          · subst hy
-            have hb' : some (Binding.ref τ a) = some (.ref υ addr) := by
-              simpa using hb
-            have hEq : (Binding.ref τ a) = (.ref υ addr) := Option.some.inj hb'
-            cases hEq
-            exact Or.inl ⟨rfl, rfl, rfl, rfl⟩
-          · exact Or.inr ⟨fr0, by simp [hsc], by simpa [hy] using hb⟩
-      | succ k =>
-          exact Or.inr ⟨fr, (declareRefState_lookup_succ_iff).1 hk, hb⟩
+          -- hb : (if y = x then some (.ref τ a) else none) = some (.ref υ addr)
+          -- これから y = x である必要があり、かつ中身が一致することを simp で解く
+          left
+          simp_all
+      | cons fr0 frs =>
+          rcases declareRefState_lookup_zero_frame_of_cons hsc hk with rfl
+          by_cases hyx : y = x
+          · left
+            simp_all -- k=0, y=x, 中身の一致を一気に解決
+          · right
+            exact ⟨fr0, by simp [hsc], by simpa [hyx] using hb⟩
+  | succ k =>
+      -- 深い階層は常に元の状態にある (Or.inr)
+      right
+      exact ⟨fr, declareRefState_lookup_succ_iff.1 hk, hb⟩
 
  theorem allObjectBindingsOwned_declareRefState
     {σ : State} {τ : CppType} {x : Ident} {a : Nat}
@@ -202,8 +198,7 @@ section DeclareRefStateOwnershipTransport
     allObjectBindingsOwned (declareRefState σ τ x a) := by
   intro k y υ addr hobj
   have hobj_old : runtimeFrameBindsObject σ k y υ addr :=
-    runtimeFrameBindsObject_declareRefState_backward
-      (σ := σ) (τ := τ) (x := x) (a := a) hobj
+    runtimeFrameBindsObject_declareRefState_backward hobj
   have hown_old : runtimeFrameOwnsAddress σ k addr :=
     howned k y υ addr hobj_old
   exact (runtimeFrameOwnsAddress_declareRefState_iff).2 hown_old
@@ -217,9 +212,7 @@ section DeclareRefStateOwnershipTransport
   have hown_old : runtimeFrameOwnsAddress σ k addr :=
     (runtimeFrameOwnsAddress_declareRefState_iff).1 hown_new
   rcases hnamed k addr hown_old with ⟨y, υ, hobj_old⟩
-  exact ⟨y, υ,
-    runtimeFrameBindsObject_declareRefState_forward_of_topFresh
-      (σ := σ) (τ := τ) (x := x) (a := a) hfresh hobj_old⟩
+  exact ⟨y, υ, runtimeFrameBindsObject_declareRefState_forward_of_topFresh hfresh hobj_old⟩
 
  theorem refBindingsNeverOwned_declareRefState_of_topFresh
     {σ : State} {τ : CppType} {x : Ident} {a : Nat}
@@ -232,15 +225,11 @@ section DeclareRefStateOwnershipTransport
   have hown_old : runtimeFrameOwnsAddress σ k addr :=
     (runtimeFrameOwnsAddress_declareRefState_iff).1 hown_new
   rcases hnamed k addr hown_old with ⟨z, β, hobj_old⟩
-  -- 定理を呼び出して、新しい状態での Exists を得る
-  have hobj_new := runtimeFrameBindsObject_declareRefState_forward_of_topFresh
-                     (σ := σ) (τ := τ) (x := x) (a := a) hfresh hobj_old
-  -- Exists を分解して、具体的なフレーム fr' を取り出す
+  let hobj_new := runtimeFrameBindsObject_declareRefState_forward_of_topFresh
+      (σ := σ) (τ := τ) (x := x) (a := a) hfresh hobj_old
   rcases hobj_new with ⟨fr', hk', hb'⟩
-  -- hk と hk' はどちらも (declareRefState ...).scopes[k]? なので、fr = fr' である
-  have heq : fr = fr' :=
-    lookup_some_frame_eq (σ := declareRefState σ τ x a) (k := k) hk hk'
-  subst fr' -- fr' を fr に置き換える
+  have heq : fr = fr' := lookup_some_frame_eq hk hk'
+  subst fr'
   exact ⟨z, β, hb'⟩
 
  theorem refTargetsAvoidInnerOwned_declareRefState
@@ -254,8 +243,7 @@ section DeclareRefStateOwnershipTransport
       j < k →
       ¬ runtimeFrameOwnsAddress (declareRefState σ τ x r) j a := by
   intro k y υ a j href hjk hown_new
-  rcases runtimeFrameBindsRef_declareRefState_cases
-    (σ := σ) (τ := τ) (x := x) (a := r) href with hself | hold
+  rcases runtimeFrameBindsRef_declareRefState_cases href with hself | hold
   · rcases hself with ⟨hk0, _, _, _⟩
     subst k
     exact Nat.not_lt_zero _ hjk
@@ -293,18 +281,11 @@ theorem declareObjectState_api_runtimeFrameBindsObject_zero_preserved_of_ne
   | nil =>
       simp [hsc] at hfr
   | cons fr0 frs =>
-      simp [hsc] at hfr
-      subst fr
-      refine ⟨
-        { fr0 with
-          binds := fun z => if z = x then some (.object τ σ.next) else fr0.binds z,
-          locals := σ.next :: fr0.locals },
-        ?_, ?_⟩
-      ·
-        exact declareObjectState_scopes_zero_of_cons
-          (σ := σ) (τ := τ) (x := x) (ov := ov)
-          (fr0 := fr0) (frs := frs) hsc
-      · simpa [hy] using hb
+      simp [hsc] at hfr; subst fr
+      -- 作成済みの lookup_zero 補題を使って、新しいフレームの存在を証明
+      refine ⟨_, declareObjectState_lookup_zero hsc, ?_⟩
+      -- 名前が違う(hy)ので、binds の中身が維持されていることを示す
+      simpa [hy] using hb
 
  theorem runtimeFrameBindsObject_declareObjectState_forward_of_topFresh
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
@@ -330,77 +311,75 @@ theorem declareObjectState_api_runtimeFrameBindsObject_zero_preserved_of_ne
       exact
         (declareObjectState_api_runtimeFrameBindsObject_succ_iff).2 hobj
 
- theorem runtimeFrameBindsObject_declareObjectState_cases
+--今は未使用だがリファクタリング対象、不要なら削除
+theorem declareObjectState_lookup_zero_of_nil {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
+    (hsc : σ.scopes = []) :
+    (declareObjectState σ τ x ov).scopes[0]? = some
+      { binds := fun z => if z = x then some (.object τ σ.next) else (emptyScopeFrame).binds z,
+        locals := [σ.next] } := by
+  simp [declareObjectState, declareObjectStateWithNext, declareObjectStateCore, bindTopBinding, hsc]
+  rfl
+
+theorem runtimeFrameBindsObject_declareObjectState_cases
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
     {k : Nat} {y : Ident} {υ : CppType} {addr : Nat} :
     runtimeFrameBindsObject (declareObjectState σ τ x ov) k y υ addr →
       (k = 0 ∧ y = x ∧ υ = τ ∧ addr = σ.next) ∨
       runtimeFrameBindsObject σ k y υ addr := by
-  intro hobj
-  rcases hobj with ⟨fr, hk, hb⟩
+  intro ⟨fr, hk, hb⟩
   cases k with
   | zero =>
       cases hsc : σ.scopes with
       | nil =>
-          have hfr :
-              fr =
-                { binds := fun z =>
-                    if z = x then some (.object τ σ.next) else emptyScopeFrame.binds z
-                  locals := [σ.next] } := by
-            simpa [declareObjectState_scopes_zero_of_nil hsc] using hk.symm
+          -- 中間関数をすべて指定して展開し、fr の中身を特定する
+          simp [declareObjectState, declareObjectStateWithNext, declareObjectStateCore, bindTopBinding, hsc] at hk
           subst fr
-          by_cases hy : y = x
-          · subst y
-            have hb' : some (Binding.object τ σ.next) = some (.object υ addr) := by
-              simpa using hb
-            have hEq : (Binding.object τ σ.next) = (.object υ addr) :=
-              Option.some.inj hb'
-            cases hEq
-            exact Or.inl ⟨rfl, rfl, rfl, rfl⟩
-          · simp [hy, emptyScopeFrame] at hb
+          -- この時点で hb : (if y = x then some (.object τ σ.next) else none) = some (.object υ addr)
+          simp at hb
+          left
+          -- k=0, y=x, υ=τ, addr=σ.next を hb から導出
+          simp_all
       | cons fr0 frs =>
+          -- 作成済みの補題で fr を特定
           rcases declareObjectState_lookup_zero_frame_of_cons hsc hk with rfl
-          by_cases hy : y = x
-          · subst y
-            have hb' : some (Binding.object τ σ.next) = some (.object υ addr) := by
-              simpa using hb
-            have hEq : (Binding.object τ σ.next) = (.object υ addr) :=
-              Option.some.inj hb'
-            cases hEq
-            exact Or.inl ⟨rfl, rfl, rfl, rfl⟩
-          · exact Or.inr ⟨fr0, by simp [hsc], by simpa [hy] using hb⟩
+          by_cases hyx : y = x
+          · left
+            simp_all -- k=0, y=x, 中身の一致を解決
+          · right
+            exact ⟨fr0, by simp [hsc], by simpa [hyx] using hb⟩
   | succ k =>
-      exact Or.inr ⟨fr,
-        (declareObjectState_lookup_succ_iff).1 hk,hb⟩
+      -- 深い階層は不変
+      right
+      exact ⟨fr, declareObjectState_lookup_succ_iff.1 hk, hb⟩
 
- theorem runtimeFrameBindsRef_declareObjectState_backward
+theorem runtimeFrameBindsRef_declareObjectState_backward
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
     {k : Nat} {y : Ident} {υ : CppType} {addr : Nat} :
     runtimeFrameBindsRef (declareObjectState σ τ x ov) k y υ addr →
     runtimeFrameBindsRef σ k y υ addr := by
-  intro href
-  rcases href with ⟨fr, hk, hb⟩
+  intro ⟨fr, hk, hb⟩
   cases k with
   | zero =>
       cases hsc : σ.scopes with
       | nil =>
-          have hzero := declareObjectState_scopes_zero_of_nil
-            (σ := σ) (τ := τ) (x := x) (ov := ov) hsc
-          rw [hk] at hzero
-          injection hzero with hfr
+          -- nilケースの展開
+          simp [declareObjectState, declareObjectStateWithNext, declareObjectStateCore, bindTopBinding, hsc] at hk
           subst fr
-          by_cases hy : y = x
-          · subst y
-            simp at hb
-          · simp [hy] at hb
+          -- hb は (if y = x then some (.object ...) else none) = some (.ref ...)
+          -- y=x でも y≠x でも矛盾することを simp が見抜く
+          simp at hb
       | cons fr0 frs =>
           rcases declareObjectState_lookup_zero_frame_of_cons hsc hk with rfl
-          by_cases hy : y = x
-          · subst y
+          by_cases hyx : y = x
+          · subst hyx
+            -- 今度は .object と .ref の型の不一致で矛盾
             simp at hb
-          · exact ⟨fr0, by simp [hsc], by simpa [hy] using hb⟩
+          · -- 名前が違えば元のフレームにあったはず
+            refine ⟨fr0, by simp [hsc], ?_⟩
+            simpa [hyx] using hb
   | succ k =>
-      exact ⟨fr,(declareObjectState_api_succ_scope_iff).1 hk,hb⟩
+      -- 深い階層は不変（既存の補題を使用）
+      exact ⟨fr, (declareObjectState_api_succ_scope_iff).1 hk, hb⟩
 
  theorem runtimeFrameOwnsAddress_declareObjectState_forward
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
@@ -414,7 +393,7 @@ theorem declareObjectState_api_runtimeFrameBindsObject_zero_preserved_of_ne
   | succ k =>
       exact (declareObjectState_api_runtimeFrameOwnsAddress_succ_iff).2 hown
 
- theorem runtimeFrameOwnsAddress_declareObjectState_cases
+theorem runtimeFrameOwnsAddress_declareObjectState_cases
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
     {k : Nat} {addr : Nat} :
     runtimeFrameOwnsAddress (declareObjectState σ τ x ov) k addr →
@@ -422,15 +401,17 @@ theorem declareObjectState_api_runtimeFrameBindsObject_zero_preserved_of_ne
   intro hown
   cases k with
   | zero =>
-      rcases declareObjectState_api_runtimeFrameOwnsAddress_zero_cases
-          (σ := σ) (τ := τ) (x := x) (ov := ov)
-          (a := addr) hown with hnew | hold
-      · exact Or.inl ⟨rfl, hnew⟩
-      · exact Or.inr hold
+      -- zero_cases の結果をそのままパターンマッチで分解
+      rcases declareObjectState_api_runtimeFrameOwnsAddress_zero_cases hown with hnew | hold
+      · left
+        exact ⟨rfl, hnew⟩
+      · right
+        exact hold
   | succ k =>
-      exact Or.inr ((declareObjectState_api_runtimeFrameOwnsAddress_succ_iff).1 hown)
+      right
+      exact (declareObjectState_api_runtimeFrameOwnsAddress_succ_iff).1 hown
 
- theorem runtimeFrameBindsObject_declareObjectState_zero_new
+theorem runtimeFrameBindsObject_declareObjectState_zero_new
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
     {fr : ScopeFrame}
     (hk : (declareObjectState σ τ x ov).scopes[0]? = some fr) :
@@ -438,13 +419,12 @@ theorem declareObjectState_api_runtimeFrameBindsObject_zero_preserved_of_ne
   refine ⟨fr, hk, ?_⟩
   cases hsc : σ.scopes with
   | nil =>
-      have hzero := declareObjectState_scopes_zero_of_nil
-        (σ := σ) (τ := τ) (x := x) (ov := ov) hsc
-      rw [hk] at hzero
-      injection hzero with hfr
+      -- 全展開して hk と矛盾させないように fr を特定する
+      simp [declareObjectState, declareObjectStateWithNext, declareObjectStateCore, bindTopBinding, hsc] at hk
       subst fr
       simp
   | cons fr0 frs =>
+      -- 既存の cons 用補題で fr を特定
       rcases declareObjectState_lookup_zero_frame_of_cons hsc hk with rfl
       simp
 
@@ -454,16 +434,14 @@ theorem declareObjectState_api_runtimeFrameBindsObject_zero_preserved_of_ne
     {fr : ScopeFrame}
     (hk : (declareObjectState σ τ x ov).scopes[0]? = some fr) :
     runtimeFrameBindsObject (declareObjectState σ τ x ov) 0 x τ σ.next := by
-  exact runtimeFrameBindsObject_declareObjectState_zero_new
-    (σ := σ) (τ := τ) (x := x) (ov := ov) hk
+  exact runtimeFrameBindsObject_declareObjectState_zero_new hk
 
  theorem allObjectBindingsOwned_declareObjectState
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
     (howned : allObjectBindingsOwned σ) :
     allObjectBindingsOwned (declareObjectState σ τ x ov) := by
   intro k y υ addr hobj_new
-  rcases runtimeFrameBindsObject_declareObjectState_cases
-      (σ := σ) (τ := τ) (x := x) (ov := ov) hobj_new with hnew | hold
+  rcases runtimeFrameBindsObject_declareObjectState_cases hobj_new with hnew | hold
   · rcases hnew with ⟨rfl, rfl, rfl, rfl⟩
     exact declareObjectState_api_runtimeFrameOwnsAddress_zero_new
   · have hown_old : runtimeFrameOwnsAddress σ k addr :=
@@ -476,69 +454,59 @@ theorem declareObjectState_api_runtimeFrameBindsObject_zero_preserved_of_ne
     (hfresh : topFrameBindingFresh σ x) :
     allOwnedAddressesNamed (declareObjectState σ τ x ov) := by
   intro k addr hown_new
-  rcases runtimeFrameOwnsAddress_declareObjectState_cases
-      (σ := σ) (τ := τ) (x := x) (ov := ov) hown_new with hnew | hold
+  rcases runtimeFrameOwnsAddress_declareObjectState_cases hown_new with hnew | hold
   · rcases hnew with ⟨rfl, rfl⟩
     rcases hown_new with ⟨fr, hk, _hmem⟩
-    exact ⟨x, τ,
-      runtimeFrameBindsObject_declareObjectState_zero_new
-        (σ := σ) (τ := τ) (x := x) (ov := ov) hk⟩
+    exact ⟨x, τ, runtimeFrameBindsObject_declareObjectState_zero_new hk⟩
   · rcases hnamed k addr hold with ⟨y, υ, hobj_old⟩
-    exact ⟨y, υ,
-      runtimeFrameBindsObject_declareObjectState_forward_of_topFresh
-        (σ := σ) (τ := τ) (x := x) (ov := ov) hfresh hobj_old⟩
+    exact ⟨y, υ, runtimeFrameBindsObject_declareObjectState_forward_of_topFresh hfresh hobj_old⟩
 
- theorem refBindingsNeverOwned_declareObjectState_of_topFresh
+theorem refBindingsNeverOwned_declareObjectState_of_topFresh
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
     (hnamed : allOwnedAddressesNamed σ)
     (hfresh : topFrameBindingFresh σ x) :
     refBindingsNeverOwned (declareObjectState σ τ x ov) := by
   intro k fr y υ addr hk href hmem
-  have hown_new : runtimeFrameOwnsAddress (declareObjectState σ τ x ov) k addr :=
-    ⟨fr, hk, hmem⟩
-  rcases runtimeFrameOwnsAddress_declareObjectState_cases
-      (σ := σ) (τ := τ) (x := x) (ov := ov) hown_new with hnew | hold
-  · rcases hnew with ⟨rfl, rfl⟩
-    rcases runtimeFrameBindsObject_declareObjectState_zero_new
-        (σ := σ) (τ := τ) (x := x) (ov := ov) hk with
-      ⟨fr', hk', hb'⟩
-    have heq : fr = fr' :=
-      lookup_some_frame_eq
-        (σ := declareObjectState σ τ x ov) (k := 0) hk hk'
+  -- 1. このアドレスが「新入り」か「古株」かを判定
+  have hown_new : runtimeFrameOwnsAddress (declareObjectState σ τ x ov) k addr := ⟨fr, hk, hmem⟩
+  rcases runtimeFrameOwnsAddress_declareObjectState_cases hown_new with ⟨rfl, rfl⟩ | hold
+  · -- ケース1: 今宣言されたオブジェクトのアドレス (σ.next) だった場合
+    -- zero_new 補題で、そのアドレスが x にバインドされていることを示す
+    rcases runtimeFrameBindsObject_declareObjectState_zero_new hk with ⟨fr', hk', hb'⟩
+    -- フレームの一致を確認して終了
+    have : fr = fr' := lookup_some_frame_eq hk hk'
     subst fr'
     exact ⟨x, τ, hb'⟩
-  · rcases hnamed k addr hold with ⟨z, β, hobj_old⟩
-    rcases runtimeFrameBindsObject_declareObjectState_forward_of_topFresh
-        (σ := σ) (τ := τ) (x := x) (ov := ov) hfresh hobj_old with
-      ⟨fr', hk', hb'⟩
-    have heq : fr = fr' :=
-      lookup_some_frame_eq
-        (σ := declareObjectState σ τ x ov) (k := k) hk hk'
+  · -- ケース2: 元から所有されていたアドレスだった場合
+    -- hnamed で元の状態での Object バインディングを取得
+    rcases hnamed k addr hold with ⟨z, β, hobj_old⟩
+    -- forward 補題で、新しい状態でもそのバインディングが維持されていることを示す
+    rcases runtimeFrameBindsObject_declareObjectState_forward_of_topFresh hfresh hobj_old with ⟨fr', hk', hb'⟩
+    -- フレームの一致を確認して終了
+    have : fr = fr' := lookup_some_frame_eq hk hk'
     subst fr'
     exact ⟨z, β, hb'⟩
 
- theorem refTargetsAvoidInnerOwned_declareObjectState_of_noInnerNextAlias
+theorem refTargetsAvoidInnerOwned_declareObjectState_of_noInnerNextAlias
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
-    (havoid : ∀ {k : Nat} {y : Ident} {υ : CppType} {a : Nat} {j : Nat},
-      runtimeFrameBindsRef σ k y υ a →
-      j < k →
-      ¬ runtimeFrameOwnsAddress σ j a)
+    (havoid : ∀ {k y υ a j}, runtimeFrameBindsRef σ k y υ a → j < k → ¬ runtimeFrameOwnsAddress σ j a)
     (hnoNext : nextNotTargetOfInnerRefs σ) :
-    ∀ {k : Nat} {y : Ident} {υ : CppType} {a : Nat} {j : Nat},
+    ∀ {k y υ a j},
       runtimeFrameBindsRef (declareObjectState σ τ x ov) k y υ a →
       j < k →
       ¬ runtimeFrameOwnsAddress (declareObjectState σ τ x ov) j a := by
   intro k y υ a j href_new hjk hown_new
-  have href_old : runtimeFrameBindsRef σ k y υ a :=
-    runtimeFrameBindsRef_declareObjectState_backward
-      (σ := σ) (τ := τ) (x := x) (ov := ov) href_new
-  rcases runtimeFrameOwnsAddress_declareObjectState_cases
-    (σ := σ) (τ := τ) (x := x) (ov := ov) hown_new with hnew | hold
-  · rcases hnew with ⟨hj0, hEq⟩
-    subst j
-    subst a
+  -- 1. 新しい状態での参照は、元からあった参照である (Object宣言はRefを増やさないため)
+  have href_old := runtimeFrameBindsRef_declareObjectState_backward href_new
+  -- 2. 新しい状態での所有アドレスが「新入り」か「古株」かで分ける
+  rcases runtimeFrameOwnsAddress_declareObjectState_cases hown_new with ⟨hj0, ha_next⟩ | hold
+  · -- ケース1: a = σ.next (新しく作られたオブジェクト) の場合
+    subst j a
+    -- 「σ.next はどの内側の参照からも指されていない」という仮定 (hnoNext) より矛盾
     exact hnoNext hjk href_old
-  · exact havoid href_old hjk hold
+  · -- ケース2: a が元から所有されていた場合
+    -- 「元の状態で内側を指していない」という仮定 (havoid) より矛盾
+    exact havoid href_old hjk hold
 
 end DeclareObjectStateOwnershipTransport
 
