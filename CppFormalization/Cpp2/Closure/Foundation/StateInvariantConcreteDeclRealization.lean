@@ -108,21 +108,23 @@ section DeclRealizationSupport
     {k : Nat} {y : Ident} {υ : CppType} {addr : Nat} :
     runtimeFrameBindsRef σ k y υ addr →
     runtimeFrameBindsRef (declareRefState σ τ x a) k y υ addr := by
-  intro ⟨fr, hk, hb⟩
+  intro href
   cases k with
   | zero =>
+      rcases href with ⟨fr, hfr, hb⟩
       cases hsc : σ.scopes with
-      | nil => simp [hsc] at hk
+      | nil =>
+          simp [hsc] at hfr
       | cons fr0 frs =>
-          simp [hsc] at hk; subst fr
-          have hyx : y ≠ x := runtimeFrameBindsRef_top_name_ne_declared_of_topFresh hfresh hsc hb
-          -- 補題を使って「存在」を証明
-          refine ⟨_, declareRefState_lookup_zero hsc, ?_⟩
-          -- 残るは binds の一致のみ
-          simpa [hyx] using hb
+          simp [hsc] at hfr
+          subst fr
+          have hy : y ≠ x :=
+            runtimeFrameBindsRef_top_name_ne_declared_of_topFresh hfresh hsc hb
+          exact
+            declareRefState_api_runtimeFrameBindsRef_zero_preserved_of_ne
+              hy ⟨fr0, by simp [hsc], hb⟩
   | succ k =>
-      -- succ のケースはこれだけで通ります
-      refine ⟨fr, (declareRefState_lookup_succ_iff).2 hk, hb⟩
+      exact (declareRefState_api_runtimeFrameBindsRef_succ_iff).2 href
 
  theorem runtimeFrameBindsRef_declareObjectState_forward_of_topFresh
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
@@ -138,7 +140,7 @@ section DeclRealizationSupport
       | cons fr0 frs =>
           simp [hsc] at hk; subst fr
           have hyx : y ≠ x := runtimeFrameBindsRef_top_name_ne_declared_of_topFresh hfresh hsc hb
-          refine ⟨_, declareObjectState_lookup_zero hsc, ?_⟩
+          refine ⟨_, declareObjectState_scopes_zero_of_cons hsc, ?_⟩
           simpa [hyx] using hb
   | succ k =>
       -- k > 0 のときは、深い階層なので影響を受けない
@@ -252,38 +254,26 @@ theorem declare_new_object_realization_after_declareObjectState
         runtimeFrameOwnsAddress (declareObjectState σ τ x ov) k a ∧
         heapLiveTypedAt (declareObjectState σ τ x ov) a τ' := by
   intro k x' τ' hdecl
-  rcases hdecl with ⟨Γfr', hk, hb⟩
   cases k with
   | zero =>
-      cases hsc : Γ.scopes with
-      | nil =>
-          simp [hsc] at hΓ0
-      | cons fr0 frs =>
-          simp [declareTypeObject, insertTopDecl, hsc] at hk
-          subst Γfr'
-          by_cases hx' : x' = x
-          · subst x'
-            have hτ' : τ' = τ := by
-              have : some (DeclInfo.object τ) = some (DeclInfo.object τ') := by
-                simpa using hb
-              injection this with h_decl_eq
-              injection h_decl_eq with h_type_eq
-              exact h_type_eq.symm
-            subst τ'
-            exact declare_new_object_realization_after_declareObjectState
-          · have hbOld : fr0.decls x' = some (.object τ') := by
-              simpa [hx'] using hb
-            have hdeclOld : typeFrameDeclObject Γ 0 x' τ' :=
-              ⟨fr0, by simp [hsc], hbOld⟩
-            exact transport_old_object_realization_after_declareObjectState
-              (h := h) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdeclOld
+      by_cases hx' : x' = x
+      · subst x'
+        have hτ' : τ' = τ :=
+          typeFrameDeclObject_declareTypeObject_zero_self_type hdecl
+        subst τ'
+        exact declare_new_object_realization_after_declareObjectState
+      · have hdeclOld : typeFrameDeclObject Γ 0 x' τ' :=
+          typeFrameDeclObject_declareTypeObject_zero_old_of_ne hx' hdecl
+        exact
+          transport_old_object_realization_after_declareObjectState
+            (h := h) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdeclOld
   | succ k =>
-      have hkOld : Γ.scopes[k.succ]? = some Γfr' := by
-        rwa [scopes_declareTypeObject_succ_iff] at hk
       have hdeclOld : typeFrameDeclObject Γ k.succ x' τ' :=
-        ⟨Γfr', hkOld, hb⟩
-      exact transport_old_object_realization_after_declareObjectState
-        (h := h) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdeclOld
+        (typeFrameDeclObject_declareTypeObject_succ_iff).1 hdecl
+      exact
+        transport_old_object_realization_after_declareObjectState
+          (h := h) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdeclOld
+
 
  theorem refDeclRealized_after_declareObjectState
     {Γ : TypeEnv} {σ : State} {x : Ident}
@@ -297,33 +287,20 @@ theorem declare_new_object_realization_after_declareObjectState
         runtimeFrameBindsRef (declareObjectState σ τ x ov) k x' τ' a ∧
         heapLiveTypedAt (declareObjectState σ τ x ov) a τ' := by
   intro k x' τ' hdecl
-  rcases hdecl with ⟨Γfr', hk, hb⟩
   cases k with
   | zero =>
-      cases hsc : Γ.scopes with
-      | nil =>
-          simp [hsc] at hΓ0
-      | cons fr0 frs =>
-          simp [declareTypeObject, insertTopDecl, hsc] at hk
-          subst Γfr'
-          have hx' : x' ≠ x := by
-            intro hEq
-            subst x'
-            have hnone : fr0.decls x = none := h.typeFresh fr0 (by simp [hsc])
-            simp at hb
-          have hbOld : fr0.decls x' = some (.ref τ') := by
-            simpa [hx'] using hb
-          have hdeclOld : typeFrameDeclRef Γ 0 x' τ' :=
-            ⟨fr0, by simp [hsc], hbOld⟩
-          exact transport_old_ref_realization_after_declareObjectState
-            (h := h) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdeclOld
+      have hdeclOld : typeFrameDeclRef Γ 0 x' τ' :=
+        typeFrameDeclRef_declareTypeObject_zero_old hdecl
+      exact
+        transport_old_ref_realization_after_declareObjectState
+          (h := h) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdeclOld
   | succ k =>
-      have hkOld : Γ.scopes[k.succ]? = some Γfr' := by
-        rwa [scopes_declareTypeObject_succ_iff] at hk
       have hdeclOld : typeFrameDeclRef Γ k.succ x' τ' :=
-        ⟨Γfr', hkOld, hb⟩
-      exact transport_old_ref_realization_after_declareObjectState
-        (h := h) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdeclOld
+        (typeFrameDeclRef_declareTypeObject_succ_iff).1 hdecl
+      exact
+        transport_old_ref_realization_after_declareObjectState
+          (h := h) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdeclOld
+
 
 end DeclareObjectReadyStrong
 
@@ -416,32 +393,16 @@ theorem objectDeclRealized_after_declareRefState
         runtimeFrameOwnsAddress (declareRefState σ τ x a) k addr ∧
         heapLiveTypedAt (declareRefState σ τ x a) addr τ' := by
   intro k x' τ' hdecl
-  rcases hdecl with ⟨Γfr', hk, hb⟩
   cases k with
   | zero =>
-      cases hsc : Γ.scopes with
-      | nil =>
-          simp [hsc] at hΓ0
-      | cons fr0 frs =>
-          simp [declareTypeRef, insertTopDecl, hsc] at hk
-          subst Γfr'
-          have hx' : x' ≠ x := by
-            intro hEq
-            subst x'
-            have hnone : fr0.decls x = none := h.typeFresh fr0 (by simp [hsc])
-            simp at hb
-          have hbOld : fr0.decls x' = some (.object τ') := by
-            simpa [hx'] using hb
-          have hdeclOld : typeFrameDeclObject Γ 0 x' τ' :=
-            ⟨fr0, by simp [hsc], hbOld⟩
-          exact
-            transport_old_object_realization_after_declareRefState
-              (h := h) (hΓ0 := hΓ0) (τ := τ) (a := a) hdeclOld
+      have hdeclOld : typeFrameDeclObject Γ 0 x' τ' :=
+        typeFrameDeclObject_declareTypeRef_zero_old hdecl
+      exact
+        transport_old_object_realization_after_declareRefState
+          (h := h) (hΓ0 := hΓ0) (τ := τ) (a := a) hdeclOld
   | succ k =>
-      have hkOld : Γ.scopes[k.succ]? = some Γfr' := by
-        rwa [scopes_declareTypeRef_succ_iff] at hk
       have hdeclOld : typeFrameDeclObject Γ k.succ x' τ' :=
-        ⟨Γfr', hkOld, hb⟩
+        (typeFrameDeclObject_declareTypeRef_succ_iff).1 hdecl
       exact
         transport_old_object_realization_after_declareRefState
           (h := h) (hΓ0 := hΓ0) (τ := τ) (a := a) hdeclOld
@@ -459,41 +420,27 @@ theorem refDeclRealized_after_declareRefState
         runtimeFrameBindsRef (declareRefState σ τ x a) k x' τ' addr ∧
         heapLiveTypedAt (declareRefState σ τ x a) addr τ' := by
   intro k x' τ' hdecl
-  rcases hdecl with ⟨Γfr', hk, hb⟩
   cases k with
   | zero =>
-      cases hsc : Γ.scopes with
-      | nil =>
-          simp [hsc] at hΓ0
-      | cons fr0 frs =>
-          simp [declareTypeRef, insertTopDecl, hsc] at hk
-          subst Γfr'
-          by_cases hx' : x' = x
-          · subst x'
-            have hτ' : τ' = τ := by
-              have : some (DeclInfo.ref τ) = some (DeclInfo.ref τ') := by
-                simpa using hb
-              injection this with h_decl_eq
-              injection h_decl_eq with h_type_eq
-              exact h_type_eq.symm
-            subst τ'
-            exact declare_new_ref_realization_after_declareRefState
-              (σ := σ) (x := x) (τ := τ) (a := a) haLive
-          · have hbOld : fr0.decls x' = some (.ref τ') := by
-              simpa [hx'] using hb
-            have hdeclOld : typeFrameDeclRef Γ 0 x' τ' :=
-              ⟨fr0, by simp [hsc], hbOld⟩
-            exact
-              transport_old_ref_realization_after_declareRefState
-                (h := h) (hΓ0 := hΓ0) (τ := τ) (a := a) hdeclOld
+      by_cases hx' : x' = x
+      · subst x'
+        have hτ' : τ' = τ :=
+          typeFrameDeclRef_declareTypeRef_zero_self_type hdecl
+        subst τ'
+        exact declare_new_ref_realization_after_declareRefState
+          (σ := σ) (x := x) (τ := τ) (a := a) haLive
+      · have hdeclOld : typeFrameDeclRef Γ 0 x' τ' :=
+          typeFrameDeclRef_declareTypeRef_zero_old_of_ne hx' hdecl
+        exact
+          transport_old_ref_realization_after_declareRefState
+            (h := h) (hΓ0 := hΓ0) (τ := τ) (a := a) hdeclOld
   | succ k =>
-      have hkOld : Γ.scopes[k.succ]? = some Γfr' := by
-        rwa [scopes_declareTypeRef_succ_iff] at hk
       have hdeclOld : typeFrameDeclRef Γ k.succ x' τ' :=
-        ⟨Γfr', hkOld, hb⟩
+        (typeFrameDeclRef_declareTypeRef_succ_iff).1 hdecl
       exact
         transport_old_ref_realization_after_declareRefState
           (h := h) (hΓ0 := hΓ0) (τ := τ) (a := a) hdeclOld
+
 
 
 end DeclareRefReadyStrong

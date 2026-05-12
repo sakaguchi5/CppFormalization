@@ -37,20 +37,6 @@ def nextNotTargetOfInnerRefs (σ : State) : Prop :=
     0 < k →
     ¬ runtimeFrameBindsRef σ k x τ σ.next
 
---部分的な補題?抽象化などの再考察対象
-theorem declareRefState_lookup_zero {σ : State}  {τ : CppType} {x : Ident} {a : Nat}{fr0 : ScopeFrame} {frs : List ScopeFrame}
-    (hsc : σ.scopes = fr0 :: frs) :
-    (declareRefState σ τ x a).scopes[0]? = some { fr0 with binds := fun z => if z = x then some (.ref τ a) else fr0.binds z } := by
-  simp [declareRefState, bindTopBinding, hsc]
---部分的な補題?抽象化などの再考察対象
-theorem declareObjectState_lookup_zero {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {fr0 : ScopeFrame} {frs : List ScopeFrame}
-    (hsc : σ.scopes = fr0 :: frs) :
-    (declareObjectState σ τ x ov).scopes[0]? = some
-      { fr0 with
-        binds := fun z => if z = x then some (.object τ σ.next) else fr0.binds z,
-        locals := σ.next :: fr0.locals } := by
-  simp [declareObjectState, declareObjectStateWithNext, declareObjectStateCore, bindTopBinding, hsc]
-
 section OwnershipTransportLocalAPI
 
 @[simp] theorem topFrameBindingFresh_zero_of_cons
@@ -112,6 +98,83 @@ end OwnershipTransportLocalAPI
 
 section DeclareRefStateOwnershipTransport
 
+/-- Canonical API: deeper object bindings are exactly preserved by ref declarations. -/
+theorem declareRefState_api_runtimeFrameBindsObject_succ_iff
+    {σ : State} {τ : CppType} {x : Ident} {a : Nat}
+    {k : Nat} {y : Ident} {υ : CppType} {addr : Nat} :
+    runtimeFrameBindsObject (declareRefState σ τ x a) k.succ y υ addr ↔
+      runtimeFrameBindsObject σ k.succ y υ addr := by
+  constructor
+  · intro hobj
+    rcases hobj with ⟨fr, hfr, hb⟩
+    exact ⟨fr, (declareRefState_lookup_succ_iff).1 hfr, hb⟩
+  · intro hobj
+    rcases hobj with ⟨fr, hfr, hb⟩
+    exact ⟨fr, (declareRefState_lookup_succ_iff).2 hfr, hb⟩
+
+/-- Canonical API: old top object bindings whose name is not `x` are preserved. -/
+theorem declareRefState_api_runtimeFrameBindsObject_zero_preserved_of_ne
+    {σ : State} {τ : CppType} {x y : Ident} {a : Nat}
+    {υ : CppType} {addr : Nat}
+    (hy : y ≠ x)
+    (hobj : runtimeFrameBindsObject σ 0 y υ addr) :
+    runtimeFrameBindsObject (declareRefState σ τ x a) 0 y υ addr := by
+  rcases hobj with ⟨fr, hfr, hb⟩
+  cases hsc : σ.scopes with
+  | nil =>
+      simp [hsc] at hfr
+  | cons fr0 frs =>
+      simp [hsc] at hfr
+      subst fr
+      exact ⟨_, declareRefState_scopes_zero_of_cons hsc, by simpa [hy] using hb⟩
+
+/-- Canonical API: deeper ref bindings are exactly preserved by ref declarations. -/
+theorem declareRefState_api_runtimeFrameBindsRef_succ_iff
+    {σ : State} {τ : CppType} {x : Ident} {a : Nat}
+    {k : Nat} {y : Ident} {υ : CppType} {addr : Nat} :
+    runtimeFrameBindsRef (declareRefState σ τ x a) k.succ y υ addr ↔
+      runtimeFrameBindsRef σ k.succ y υ addr := by
+  constructor
+  · intro href
+    rcases href with ⟨fr, hfr, hb⟩
+    exact ⟨fr, (declareRefState_lookup_succ_iff).1 hfr, hb⟩
+  · intro href
+    rcases href with ⟨fr, hfr, hb⟩
+    exact ⟨fr, (declareRefState_lookup_succ_iff).2 hfr, hb⟩
+
+/-- Canonical API: old top ref bindings whose name is not `x` are preserved. -/
+theorem declareRefState_api_runtimeFrameBindsRef_zero_preserved_of_ne
+    {σ : State} {τ : CppType} {x y : Ident} {a : Nat}
+    {υ : CppType} {addr : Nat}
+    (hy : y ≠ x)
+    (href : runtimeFrameBindsRef σ 0 y υ addr) :
+    runtimeFrameBindsRef (declareRefState σ τ x a) 0 y υ addr := by
+  rcases href with ⟨fr, hfr, hb⟩
+  cases hsc : σ.scopes with
+  | nil =>
+      simp [hsc] at hfr
+  | cons fr0 frs =>
+      simp [hsc] at hfr
+      subst fr
+      exact ⟨_, declareRefState_scopes_zero_of_cons hsc, by simpa [hy] using hb⟩
+
+/-- Canonical API: a ref declaration binds the declared name in the top frame. -/
+theorem declareRefState_api_runtimeFrameBindsRef_zero_new
+    {σ : State} {τ : CppType} {x : Ident} {a : Nat}
+    {fr : ScopeFrame}
+    (hk : (declareRefState σ τ x a).scopes[0]? = some fr) :
+    runtimeFrameBindsRef (declareRefState σ τ x a) 0 x τ a := by
+  refine ⟨fr, hk, ?_⟩
+  cases hsc : σ.scopes with
+  | nil =>
+      simp [declareRefState, scopes_bindTopBinding, hsc] at hk
+      subst fr
+      simp
+  | cons fr0 frs =>
+      rcases declareRefState_lookup_zero_frame_of_cons hsc hk with rfl
+      simp
+
+
 theorem runtimeFrameBindsObject_declareRefState_backward
     {σ : State} {τ : CppType} {x : Ident} {a : Nat}
     {k : Nat} {y : Ident} {υ : CppType} {addr : Nat} :
@@ -146,21 +209,23 @@ theorem runtimeFrameBindsObject_declareRefState_forward_of_topFresh
     {k : Nat} {y : Ident} {υ : CppType} {addr : Nat} :
     runtimeFrameBindsObject σ k y υ addr →
     runtimeFrameBindsObject (declareRefState σ τ x a) k y υ addr := by
-  intro ⟨fr, hk, hb⟩
+  intro hobj
   cases k with
   | zero =>
+      rcases hobj with ⟨fr, hfr, hb⟩
       cases hsc : σ.scopes with
-      | nil => simp [hsc] at hk
+      | nil =>
+          simp [hsc] at hfr
       | cons fr0 frs =>
-          simp [hsc] at hk; subst fr
-          -- 名前が衝突しないことを確認
-          have hyx : y ≠ x :=
+          simp [hsc] at hfr
+          subst fr
+          have hy : y ≠ x :=
             runtimeFrameBindsObject_top_name_ne_declared_of_topFresh hfresh hsc hb
-          refine ⟨_, declareRefState_lookup_zero hsc, ?_⟩
-          simpa [hyx] using hb
+          exact
+            declareRefState_api_runtimeFrameBindsObject_zero_preserved_of_ne
+              hy ⟨fr0, by simp [hsc], hb⟩
   | succ k =>
-      -- 深い階層は不変
-      exact ⟨fr, declareRefState_lookup_succ_iff.2 hk, hb⟩
+      exact (declareRefState_api_runtimeFrameBindsObject_succ_iff).2 hobj
 
 theorem runtimeFrameBindsRef_declareRefState_cases
     {σ : State} {τ : CppType} {x : Ident} {a : Nat}
@@ -283,7 +348,7 @@ theorem declareObjectState_api_runtimeFrameBindsObject_zero_preserved_of_ne
   | cons fr0 frs =>
       simp [hsc] at hfr; subst fr
       -- 作成済みの lookup_zero 補題を使って、新しいフレームの存在を証明
-      refine ⟨_, declareObjectState_lookup_zero hsc, ?_⟩
+      refine ⟨_, declareObjectState_scopes_zero_of_cons hsc, ?_⟩
       -- 名前が違う(hy)ので、binds の中身が維持されていることを示す
       simpa [hy] using hb
 
@@ -310,15 +375,6 @@ theorem declareObjectState_api_runtimeFrameBindsObject_zero_preserved_of_ne
   | succ k =>
       exact
         (declareObjectState_api_runtimeFrameBindsObject_succ_iff).2 hobj
-
---今は未使用だがリファクタリング対象、不要なら削除
-theorem declareObjectState_lookup_zero_of_nil {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
-    (hsc : σ.scopes = []) :
-    (declareObjectState σ τ x ov).scopes[0]? = some
-      { binds := fun z => if z = x then some (.object τ σ.next) else (emptyScopeFrame).binds z,
-        locals := [σ.next] } := by
-  simp [declareObjectState, declareObjectStateWithNext, declareObjectStateCore, bindTopBinding, hsc]
-  rfl
 
 theorem runtimeFrameBindsObject_declareObjectState_cases
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}

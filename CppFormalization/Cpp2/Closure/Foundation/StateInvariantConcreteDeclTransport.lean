@@ -167,4 +167,32 @@ theorem typeFrameDeclObject_declareTypeRef_zero_old
         simpa [hx'] using hb
       exact ⟨fr0, by simp [hsc], hbOld⟩
 
+/-- The newly inserted object declaration at frame 0 has exactly the inserted type. -/
+theorem typeFrameDeclObject_declareTypeObject_zero_self_type
+    {Γ : TypeEnv} {x : Ident} {τ τ' : CppType} :
+    typeFrameDeclObject (declareTypeObject Γ x τ) 0 x τ' →
+      τ' = τ := by
+  intro hdecl
+  rcases hdecl with ⟨Γfr, hk, hb⟩
+  cases hsc : Γ.scopes <;>
+  · simp [declareTypeObject, insertTopDecl, hsc] at hk
+    subst Γfr
+    simp at hb
+    cases hb
+    rfl
+
+/-- The newly inserted ref declaration at frame 0 has exactly the inserted type. -/
+theorem typeFrameDeclRef_declareTypeRef_zero_self_type
+    {Γ : TypeEnv} {x : Ident} {τ τ' : CppType} :
+    typeFrameDeclRef (declareTypeRef Γ x τ) 0 x τ' →
+      τ' = τ := by
+  intro hdecl
+  rcases hdecl with ⟨Γfr, hk, hb⟩
+  cases hsc : Γ.scopes <;>
+  · simp [declareTypeRef, insertTopDecl, hsc] at hk
+    subst Γfr
+    simp at hb
+    cases hb
+    rfl
+
 end Cpp
