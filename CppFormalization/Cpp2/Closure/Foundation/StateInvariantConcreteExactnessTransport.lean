@@ -297,6 +297,41 @@ theorem framewiseDeclBindingExact_declareTypeObject_declareObjectStateWithNext
     simpa [scopes_declareObjectStateWithNext_eq_declareObjectState] using hkσ
   exact hold k Γfr σfr hkΓ hkσOld
 
+
+theorem frameDepthAgreement_declareTypeObject_declareObjectStateWithNext
+    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {ov : Option Value} {aNext : Nat} :
+    frameDepthAgreement Γ σ →
+    frameDepthAgreement (declareTypeObject Γ x τ) (declareObjectStateWithNext σ τ x ov aNext) := by
+  intro hdepth
+  unfold frameDepthAgreement at *
+  cases hG : Γ.scopes <;> cases hS : σ.scopes <;>
+    simp [declareTypeObject, insertTopDecl,
+      declareObjectStateWithNext, setNext,
+      declareObjectStateCore, recordLocal, bindTopBinding, writeHeap,
+      hG, hS] at *
+  exact hdepth
+
+theorem shadowingCompatible_declareTypeObject_declareObjectStateWithNext
+    {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {ov : Option Value} {aNext : Nat} :
+    shadowingCompatible Γ σ →
+    shadowingCompatible (declareTypeObject Γ x τ) (declareObjectStateWithNext σ τ x ov aNext) := by
+  intro hshadow
+  intro y d hdecl
+  by_cases hy : y = x
+  · subst y
+    have hd : d = .object τ := by
+      rw [lookupDecl_declareTypeObject_self] at hdecl
+      exact Option.some.inj hdecl.symm
+    subst d
+    refine ⟨.object τ σ.next, ?_, ?_⟩
+    · simp [lookupBinding_declareObjectStateWithNext_self]
+    · simp [DeclMatchesBinding]
+  · have hdeclOld : lookupDecl Γ y = some d := by
+      simpa [lookupDecl_declareTypeObject_other (Γ := Γ) (τ := τ) hy] using hdecl
+    rcases hshadow y d hdeclOld with ⟨b, hb, hmatch⟩
+    refine ⟨b, ?_, hmatch⟩
+    simpa [lookupBinding_declareObjectStateWithNext_other (σ := σ) (τ := τ) (x := x) (y := y) (ov := ov) (aNext := aNext) hy] using hb
+
 theorem framewiseDeclBindingExact_declareTypeRef_declareRefState_of_topFresh
     {Γ : TypeEnv} {σ : State} {x : Ident} {τ : CppType} {a : Nat} :
     frameDepthAgreement Γ σ →

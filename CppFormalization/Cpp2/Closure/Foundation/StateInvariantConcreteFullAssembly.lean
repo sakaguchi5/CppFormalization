@@ -204,18 +204,15 @@ theorem kernel_after_declareObjectStateWithNext
     ScopedTypedStateConcreteKernel
       (declareTypeObject Γ x τ)
       (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
-  let hold :=
-    DeclareObjectReadyStrong.kernel_after_declareObjectState
-      (h := h.ready) (hΓ0 := hΓ0) (τ := τ) (ov := ov)
   refine
-    { frameDepth := by
-        unfold frameDepthAgreement at *
-        simpa [scopes_declareObjectStateWithNext_eq_declareObjectState] using hold.frameDepth
-      shadowing := by
-        intro y d hdecl
-        rcases hold.shadowing y d hdecl with ⟨b, hb, hmatch⟩
-        refine ⟨b, ?_, hmatch⟩
-        simpa [lookupBinding, scopes_declareObjectStateWithNext_eq_declareObjectState] using hb
+    { frameDepth :=
+        frameDepthAgreement_declareTypeObject_declareObjectStateWithNext
+          (Γ := Γ) (σ := σ) (x := x) (τ := τ) (ov := ov) (aNext := h.cursor.addr)
+          h.ready.concrete.frameDepth
+      shadowing :=
+        shadowingCompatible_declareTypeObject_declareObjectStateWithNext
+          (Γ := Γ) (σ := σ) (x := x) (τ := τ) (ov := ov) (aNext := h.cursor.addr)
+          h.ready.concrete.shadowing
       namesExact := framewiseDeclBindingExact_declareTypeObject_declareObjectStateWithNext
         h.ready.concrete.frameDepth h.ready.concrete.namesExact hΓ0 (h.ready.typeFresh _ hΓ0) (h.ready.topFrameFresh hΓ0)
       objectDeclRealized :=
@@ -226,20 +223,24 @@ theorem kernel_after_declareObjectStateWithNext
           (h := h) (hΓ0 := hΓ0)
       objectBindingSound := by
         intro k y υ a hbind
-        have hbindOld :
-            runtimeFrameBindsObject (declareObjectState σ τ x ov) k y υ a := by
-          simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_declareObjectState] using hbind
-        rcases hold.objectBindingSound hbindOld with ⟨hownOld, hliveOld⟩
-        refine ⟨?_, ?_⟩
-        · simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_declareObjectState] using hownOld
-        · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_declareObjectState] using hliveOld
+        rcases runtimeFrameBindsObject_declareObjectStateWithNext_cases hbind with hnew | hold
+        · rcases hnew with ⟨rfl, rfl, rfl, rfl⟩
+          exact ⟨
+            declareObjectStateWithNext_api_runtimeFrameOwnsAddress_zero_new,
+            heapLiveTypedAt_declareObjectStateWithNext_self⟩
+        · rcases h.ready.concrete.objectBindingSound hold with ⟨hownOld, hliveOld⟩
+          exact ownedAndLive_declareObjectStateWithNext_of_oldOwned
+            (σ := σ) (τ := τ) (x := x) (ov := ov) (aNext := h.cursor.addr)
+            h.ready.concrete.nextFresh hownOld hliveOld
       refBindingSound := by
         intro k y υ a hbind
-        have hbindOld :
-            runtimeFrameBindsRef (declareObjectState σ τ x ov) k y υ a := by
-          simpa [runtimeFrameBindsRef, scopes_declareObjectStateWithNext_eq_declareObjectState] using hbind
-        simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_declareObjectState] using
-          (hold.refBindingSound hbindOld) }
+        have hbindOld : runtimeFrameBindsRef σ k y υ a :=
+          runtimeFrameBindsRef_declareObjectStateWithNext_backward hbind
+        have hliveOld : heapLiveTypedAt σ a υ :=
+          h.ready.concrete.refBindingSound hbindOld
+        exact heapLiveTypedAt_declareObjectStateWithNext_of_oldLive
+          (σ := σ) (τ := τ) (x := x) (ov := ov) (aNext := h.cursor.addr)
+          h.ready.concrete.nextFresh hliveOld }
 
 theorem concrete_after_declareObjectStateWithNext
     {Γ : TypeEnv} {σ : State} {x : Ident}
@@ -257,15 +258,12 @@ theorem concrete_after_declareObjectStateWithNext
   let hown :=
     DeclareObjectReadyRecomputed.ownership_after_declareObjectStateWithNext
       (h := h) (hΓ0 := hΓ0)
-  have hheapOld :
-      heapInitializedValuesTyped (declareObjectState σ τ x ov) := by
-    exact heapInitializedValuesTyped_declareObjectState_of_optionCompat
-      (σ := σ) (τ := τ) (x := x) (ov := ov)
-      h.ready.concrete.heapStoredValuesTyped hov
   have hheapNew :
       heapInitializedValuesTyped
         (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
-    simpa [heapInitializedValuesTyped, heap_declareObjectStateWithNext_eq_declareObjectState] using hheapOld
+    exact heapInitializedValuesTyped_declareObjectStateWithNext_of_optionCompat
+      (σ := σ) (τ := τ) (x := x) (ov := ov) (aNext := h.cursor.addr)
+      h.ready.concrete.heapStoredValuesTyped hov
   refine
     { frameDepth := hker.frameDepth
       shadowing := hker.shadowing

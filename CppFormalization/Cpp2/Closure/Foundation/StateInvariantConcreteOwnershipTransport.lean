@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcretePreservation
-
+import CppFormalization.Cpp2.Lemmas.RuntimeObjectCore
 namespace Cpp
 
 /-!
@@ -596,6 +596,293 @@ theorem declareObjectState_api_runtimeFrameBindsObject_top_new
         (fr0 := fr0) (frs := frs) hsc
       exact runtimeFrameBindsObject_declareObjectState_zero_new
         (σ := σ) (τ := τ) (x := x) (ov := ov) hk
+
+
+/-- Canonical API: old top object bindings whose name is not `x` are preserved by
+`declareObjectStateWithNext`.  The allocated object address is still `σ.next`;
+`aNext` is only the post-state cursor. -/
+theorem declareObjectStateWithNext_api_runtimeFrameBindsObject_zero_preserved_of_ne
+    {σ : State} {τ : CppType} {x y : Ident} {ov : Option Value} {aNext : Nat}
+    {υ : CppType} {addr : Nat}
+    (hy : y ≠ x)
+    (hobj : runtimeFrameBindsObject σ 0 y υ addr) :
+    runtimeFrameBindsObject (declareObjectStateWithNext σ τ x ov aNext) 0 y υ addr := by
+  have hobjOld : runtimeFrameBindsObject (declareObjectState σ τ x ov) 0 y υ addr :=
+    declareObjectState_api_runtimeFrameBindsObject_zero_preserved_of_ne
+      (σ := σ) (τ := τ) (x := x) (ov := ov) hy hobj
+  simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_declareObjectState]
+    using hobjOld
+
+/-- Canonical API: deeper object bindings are exactly preserved by
+`declareObjectStateWithNext`. -/
+theorem declareObjectStateWithNext_api_runtimeFrameBindsObject_succ_iff
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat}
+    {k : Nat} {y : Ident} {υ : CppType} {addr : Nat} :
+    runtimeFrameBindsObject (declareObjectStateWithNext σ τ x ov aNext) k.succ y υ addr ↔
+      runtimeFrameBindsObject σ k.succ y υ addr := by
+  constructor
+  · intro hobj
+    have hobjOld :
+        runtimeFrameBindsObject (declareObjectState σ τ x ov) k.succ y υ addr := by
+      simpa only [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_declareObjectState]
+        using hobj
+    exact (declareObjectState_api_runtimeFrameBindsObject_succ_iff).1 hobjOld
+  · intro hobj
+    have hobjOld :
+        runtimeFrameBindsObject (declareObjectState σ τ x ov) k.succ y υ addr :=
+      (declareObjectState_api_runtimeFrameBindsObject_succ_iff).2 hobj
+    simpa only [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_declareObjectState]
+      using hobjOld
+
+/-- Canonical API: `declareObjectStateWithNext` binds the newly declared object
+in the top frame.  The object address is `σ.next`, not `aNext`. -/
+theorem declareObjectStateWithNext_api_runtimeFrameBindsObject_top_new
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat} :
+    runtimeFrameBindsObject (declareObjectStateWithNext σ τ x ov aNext) 0 x τ σ.next := by
+  have hobjOld : runtimeFrameBindsObject (declareObjectState σ τ x ov) 0 x τ σ.next :=
+    declareObjectState_api_runtimeFrameBindsObject_top_new
+      (σ := σ) (τ := τ) (x := x) (ov := ov)
+  simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_declareObjectState]
+    using hobjOld
+
+/-- Runtime object bindings after `declareObjectStateWithNext` are either the new
+payload binding or an old binding. -/
+theorem runtimeFrameBindsObject_declareObjectStateWithNext_cases
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat}
+    {k : Nat} {y : Ident} {υ : CppType} {addr : Nat} :
+    runtimeFrameBindsObject (declareObjectStateWithNext σ τ x ov aNext) k y υ addr →
+      (k = 0 ∧ y = x ∧ υ = τ ∧ addr = σ.next) ∨
+      runtimeFrameBindsObject σ k y υ addr := by
+  intro hobj
+  have hobjOld : runtimeFrameBindsObject (declareObjectState σ τ x ov) k y υ addr := by
+    simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_declareObjectState]
+      using hobj
+  exact runtimeFrameBindsObject_declareObjectState_cases hobjOld
+
+/-- Old object bindings are transported through `declareObjectStateWithNext` when
+there is no top-frame name collision. -/
+theorem runtimeFrameBindsObject_declareObjectStateWithNext_forward_of_topFresh
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat}
+    (hfresh : topFrameBindingFresh σ x)
+    {k : Nat} {y : Ident} {υ : CppType} {addr : Nat} :
+    runtimeFrameBindsObject σ k y υ addr →
+    runtimeFrameBindsObject (declareObjectStateWithNext σ τ x ov aNext) k y υ addr := by
+  intro hobj
+  cases k with
+  | zero =>
+      rcases hobj with ⟨fr, hfr, hb⟩
+      cases hsc : σ.scopes with
+      | nil =>
+          simp [hsc] at hfr
+      | cons fr0 frs =>
+          simp [hsc] at hfr
+          subst fr
+          have hy : y ≠ x :=
+            runtimeFrameBindsObject_top_name_ne_declared_of_topFresh hfresh hsc hb
+          exact
+            declareObjectStateWithNext_api_runtimeFrameBindsObject_zero_preserved_of_ne
+              (σ := σ) (τ := τ) (x := x) (ov := ov) (aNext := aNext)
+              hy ⟨fr0, by simp [hsc], hb⟩
+  | succ k =>
+      exact
+        (declareObjectStateWithNext_api_runtimeFrameBindsObject_succ_iff
+          (σ := σ) (τ := τ) (x := x) (ov := ov) (aNext := aNext)).2 hobj
+
+/-- Canonical API: old top ref bindings whose name is not `x` are preserved by
+`declareObjectStateWithNext`. -/
+theorem declareObjectStateWithNext_api_runtimeFrameBindsRef_zero_preserved_of_ne
+    {σ : State} {τ : CppType} {x y : Ident} {ov : Option Value} {aNext : Nat}
+    {υ : CppType} {addr : Nat}
+    (hy : y ≠ x)
+    (href : runtimeFrameBindsRef σ 0 y υ addr) :
+    runtimeFrameBindsRef (declareObjectStateWithNext σ τ x ov aNext) 0 y υ addr := by
+  have hrefOld : runtimeFrameBindsRef (declareObjectState σ τ x ov) 0 y υ addr :=
+    declareObjectState_api_runtimeFrameBindsRef_zero_preserved_of_ne
+      (σ := σ) (τ := τ) (x := x) (ov := ov) hy href
+  simpa [runtimeFrameBindsRef, scopes_declareObjectStateWithNext_eq_declareObjectState]
+    using hrefOld
+
+/-- Canonical API: deeper ref bindings are exactly preserved by
+`declareObjectStateWithNext`. -/
+theorem declareObjectStateWithNext_api_runtimeFrameBindsRef_succ_iff
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat}
+    {k : Nat} {y : Ident} {υ : CppType} {addr : Nat} :
+    runtimeFrameBindsRef (declareObjectStateWithNext σ τ x ov aNext) k.succ y υ addr ↔
+      runtimeFrameBindsRef σ k.succ y υ addr := by
+  constructor
+  · intro href
+    have hrefOld : runtimeFrameBindsRef (declareObjectState σ τ x ov) k.succ y υ addr := by
+      simpa only [runtimeFrameBindsRef, scopes_declareObjectStateWithNext_eq_declareObjectState]
+        using href
+    exact (declareObjectState_api_runtimeFrameBindsRef_succ_iff).1 hrefOld
+  · intro href
+    have hrefOld : runtimeFrameBindsRef (declareObjectState σ τ x ov) k.succ y υ addr :=
+      (declareObjectState_api_runtimeFrameBindsRef_succ_iff).2 href
+    simpa only [runtimeFrameBindsRef, scopes_declareObjectStateWithNext_eq_declareObjectState]
+      using hrefOld
+
+/-- Object declaration with a recomputed cursor does not create ref bindings. -/
+theorem runtimeFrameBindsRef_declareObjectStateWithNext_backward
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat}
+    {k : Nat} {y : Ident} {υ : CppType} {addr : Nat} :
+    runtimeFrameBindsRef (declareObjectStateWithNext σ τ x ov aNext) k y υ addr →
+    runtimeFrameBindsRef σ k y υ addr := by
+  intro href
+  have hrefOld : runtimeFrameBindsRef (declareObjectState σ τ x ov) k y υ addr := by
+    simpa [runtimeFrameBindsRef, scopes_declareObjectStateWithNext_eq_declareObjectState]
+      using href
+  exact runtimeFrameBindsRef_declareObjectState_backward hrefOld
+
+/-- Old ref bindings are transported through `declareObjectStateWithNext` when
+there is no top-frame name collision. -/
+theorem runtimeFrameBindsRef_declareObjectStateWithNext_forward_of_topFresh
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat}
+    (hfresh : topFrameBindingFresh σ x)
+    {k : Nat} {y : Ident} {υ : CppType} {addr : Nat} :
+    runtimeFrameBindsRef σ k y υ addr →
+    runtimeFrameBindsRef (declareObjectStateWithNext σ τ x ov aNext) k y υ addr := by
+  intro href
+  cases k with
+  | zero =>
+      rcases href with ⟨fr, hfr, hb⟩
+      cases hsc : σ.scopes with
+      | nil =>
+          simp [hsc] at hfr
+      | cons fr0 frs =>
+          simp [hsc] at hfr
+          subst fr
+          have hy : y ≠ x :=
+            runtimeFrameBindsRef_top_name_ne_declared_of_topFresh hfresh hsc hb
+          exact
+            declareObjectStateWithNext_api_runtimeFrameBindsRef_zero_preserved_of_ne
+              (σ := σ) (τ := τ) (x := x) (ov := ov) (aNext := aNext)
+              hy ⟨fr0, by simp [hsc], hb⟩
+  | succ k =>
+      exact
+        (declareObjectStateWithNext_api_runtimeFrameBindsRef_succ_iff
+          (σ := σ) (τ := τ) (x := x) (ov := ov) (aNext := aNext)).2 href
+
+/-- The newly declared object is owned by the top frame after
+`declareObjectStateWithNext`.  The owned address is `σ.next`, not `aNext`. -/
+theorem declareObjectStateWithNext_api_runtimeFrameOwnsAddress_zero_new
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat} :
+    runtimeFrameOwnsAddress (declareObjectStateWithNext σ τ x ov aNext) 0 σ.next := by
+  have hownOld : runtimeFrameOwnsAddress (declareObjectState σ τ x ov) 0 σ.next :=
+    declareObjectState_api_runtimeFrameOwnsAddress_zero_new
+      (σ := σ) (τ := τ) (x := x) (ov := ov)
+  simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_declareObjectState]
+    using hownOld
+
+/-- Old ownership is transported through `declareObjectStateWithNext`. -/
+theorem runtimeFrameOwnsAddress_declareObjectStateWithNext_forward
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat}
+    {k : Nat} {addr : Nat} :
+    runtimeFrameOwnsAddress σ k addr →
+    runtimeFrameOwnsAddress (declareObjectStateWithNext σ τ x ov aNext) k addr := by
+  intro hown
+  have hownOld : runtimeFrameOwnsAddress (declareObjectState σ τ x ov) k addr :=
+    runtimeFrameOwnsAddress_declareObjectState_forward
+      (σ := σ) (τ := τ) (x := x) (ov := ov) hown
+  simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_declareObjectState]
+    using hownOld
+
+/-- Ownership after `declareObjectStateWithNext` is either the new payload owner
+or old ownership. -/
+theorem runtimeFrameOwnsAddress_declareObjectStateWithNext_cases
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat}
+    {k : Nat} {addr : Nat} :
+    runtimeFrameOwnsAddress (declareObjectStateWithNext σ τ x ov aNext) k addr →
+      (k = 0 ∧ addr = σ.next) ∨ runtimeFrameOwnsAddress σ k addr := by
+  intro hown
+  have hownOld : runtimeFrameOwnsAddress (declareObjectState σ τ x ov) k addr := by
+    simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_declareObjectState]
+      using hown
+  exact runtimeFrameOwnsAddress_declareObjectState_cases hownOld
+
+/-- All object bindings remain owned after `declareObjectStateWithNext`. -/
+theorem allObjectBindingsOwned_declareObjectStateWithNext
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat}
+    (howned : allObjectBindingsOwned σ) :
+    allObjectBindingsOwned (declareObjectStateWithNext σ τ x ov aNext) := by
+  intro k y υ addr hobj_new
+  rcases runtimeFrameBindsObject_declareObjectStateWithNext_cases hobj_new with hnew | hold
+  · rcases hnew with ⟨rfl, rfl, rfl, rfl⟩
+    exact declareObjectStateWithNext_api_runtimeFrameOwnsAddress_zero_new
+  · exact runtimeFrameOwnsAddress_declareObjectStateWithNext_forward (howned k y υ addr hold)
+
+/-- Owned addresses remain named after `declareObjectStateWithNext`. -/
+theorem allOwnedAddressesNamed_declareObjectStateWithNext_of_topFresh
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat}
+    (hnamed : allOwnedAddressesNamed σ)
+    (hfresh : topFrameBindingFresh σ x) :
+    allOwnedAddressesNamed (declareObjectStateWithNext σ τ x ov aNext) := by
+  intro k addr hown_new
+  rcases runtimeFrameOwnsAddress_declareObjectStateWithNext_cases hown_new with hnew | hold
+  · rcases hnew with ⟨rfl, rfl⟩
+    exact ⟨x, τ, declareObjectStateWithNext_api_runtimeFrameBindsObject_top_new⟩
+  · rcases hnamed k addr hold with ⟨y, υ, hobj_old⟩
+    exact ⟨y, υ,
+      runtimeFrameBindsObject_declareObjectStateWithNext_forward_of_topFresh hfresh hobj_old⟩
+
+/-- Ref bindings are never owned after `declareObjectStateWithNext`, assuming the
+old naming invariant and top-frame freshness. -/
+theorem refBindingsNeverOwned_declareObjectStateWithNext_of_topFresh
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat}
+    (hnamed : allOwnedAddressesNamed σ)
+    (hfresh : topFrameBindingFresh σ x) :
+    refBindingsNeverOwned (declareObjectStateWithNext σ τ x ov aNext) := by
+  intro k fr y υ addr hk href hmem
+  have hown_new : runtimeFrameOwnsAddress (declareObjectStateWithNext σ τ x ov aNext) k addr :=
+    ⟨fr, hk, hmem⟩
+  rcases runtimeFrameOwnsAddress_declareObjectStateWithNext_cases hown_new with hnew | hold
+  · rcases hnew with ⟨rfl, rfl⟩
+    rcases declareObjectStateWithNext_api_runtimeFrameBindsObject_top_new
+      (σ := σ) (τ := τ) (x := x) (ov := ov) (aNext := aNext) with
+      ⟨fr', hk', hb'⟩
+    have heq : fr = fr' := lookup_some_frame_eq hk hk'
+    subst fr'
+    exact ⟨x, τ, hb'⟩
+  · rcases hnamed k addr hold with ⟨z, β, hobj_old⟩
+    rcases runtimeFrameBindsObject_declareObjectStateWithNext_forward_of_topFresh
+      (σ := σ) (τ := τ) (x := x) (ov := ov) (aNext := aNext)
+      hfresh hobj_old with ⟨fr', hk', hb'⟩
+    have heq : fr = fr' := lookup_some_frame_eq hk hk'
+    subst fr'
+    exact ⟨z, β, hb'⟩
+
+/-- Inner-owned avoidance is preserved by `declareObjectStateWithNext` when no
+inner ref targets the fresh payload address `σ.next`. -/
+theorem refTargetsAvoidInnerOwned_declareObjectStateWithNext_of_noInnerNextAlias
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat}
+    (havoid : ∀ {k y υ a j}, runtimeFrameBindsRef σ k y υ a → j < k → ¬ runtimeFrameOwnsAddress σ j a)
+    (hnoNext : nextNotTargetOfInnerRefs σ) :
+    ∀ {k y υ a j},
+      runtimeFrameBindsRef (declareObjectStateWithNext σ τ x ov aNext) k y υ a →
+      j < k →
+      ¬ runtimeFrameOwnsAddress (declareObjectStateWithNext σ τ x ov aNext) j a := by
+  intro k y υ a j href_new hjk hown_new
+  have href_old := runtimeFrameBindsRef_declareObjectStateWithNext_backward href_new
+  rcases runtimeFrameOwnsAddress_declareObjectStateWithNext_cases hown_new with hnew | hold
+  · rcases hnew with ⟨rfl, rfl⟩
+    cases k with
+    | zero => exact Nat.not_lt_zero _ hjk
+    | succ k =>
+        exact hnoNext (Nat.succ_pos k) href_old
+  · exact havoid href_old hjk hold
+
+/-- Per-frame ownership no-dup is preserved by `declareObjectStateWithNext`. -/
+theorem ownedAddressesNoDupPerFrame_declareObjectStateWithNext_of_nextFresh
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat} :
+    ownedAddressesNoDupPerFrame σ →
+    nextFreshAgainstOwned σ →
+    ownedAddressesNoDupPerFrame (declareObjectStateWithNext σ τ x ov aNext) := by
+  intro hnodup hfresh
+  have hold : ownedAddressesNoDupPerFrame (declareObjectState σ τ x ov) :=
+    ownedAddressesNoDupPerFrame_declareObjectState_of_nextFresh
+      (σ := σ) (τ := τ) (x := x) (ov := ov) hnodup hfresh
+  intro k fr hk
+  exact hold k fr (by
+    simpa [scopes_declareObjectStateWithNext_eq_declareObjectState] using hk)
 
 /-- Backward-compatible name. -/
  theorem runtimeFrameBindsObject_declareObjectState_new

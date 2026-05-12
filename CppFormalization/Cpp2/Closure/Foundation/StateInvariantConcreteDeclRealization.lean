@@ -101,6 +101,72 @@ theorem heapLiveTypedAt_declareObjectState_of_oldLive
     heapLiveTypedAt_ne_next_of_nextFresh hfresh hlive
   exact heapLiveTypedAt_declareObjectState_of_ne hane hlive
 
+
+@[simp] theorem heapLiveTypedAt_declareObjectStateWithNext_self
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat} :
+    heapLiveTypedAt (declareObjectStateWithNext σ τ x ov aNext) σ.next τ := by
+  refine ⟨{ ty := τ, value := ov, alive := true }, ?_, rfl, rfl⟩
+  exact heap_declareObjectStateWithNext_self σ τ x ov aNext
+
+theorem heapLiveTypedAt_declareObjectStateWithNext_of_ne
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat}
+    {a : Nat} {υ : CppType} :
+    a ≠ σ.next →
+    heapLiveTypedAt σ a υ →
+    heapLiveTypedAt (declareObjectStateWithNext σ τ x ov aNext) a υ := by
+  intro hne hlive
+  rcases hlive with ⟨c, hc, hty, halive⟩
+  refine ⟨c, ?_, hty, halive⟩
+  rw [heap_declareObjectStateWithNext_other σ τ x ov aNext a hne]
+  exact hc
+
+theorem ownedAndLive_declareObjectStateWithNext_of_oldOwned
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat}
+    {k a : Nat} {τ' : CppType} :
+    nextFreshAgainstOwned σ →
+    runtimeFrameOwnsAddress σ k a →
+    heapLiveTypedAt σ a τ' →
+    runtimeFrameOwnsAddress (declareObjectStateWithNext σ τ x ov aNext) k a ∧
+      heapLiveTypedAt (declareObjectStateWithNext σ τ x ov aNext) a τ' := by
+  intro hfresh hown hlive
+  have hane : a ≠ σ.next :=
+    runtimeFrameOwnsAddress_ne_next_of_nextFresh hfresh hown
+  exact ⟨
+    runtimeFrameOwnsAddress_declareObjectStateWithNext_forward hown,
+    heapLiveTypedAt_declareObjectStateWithNext_of_ne hane hlive⟩
+
+theorem heapLiveTypedAt_declareObjectStateWithNext_of_oldLive
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat}
+    {a : Nat} {τ' : CppType} :
+    nextFreshAgainstOwned σ →
+    heapLiveTypedAt σ a τ' →
+    heapLiveTypedAt (declareObjectStateWithNext σ τ x ov aNext) a τ' := by
+  intro hfresh hlive
+  have hane : a ≠ σ.next :=
+    heapLiveTypedAt_ne_next_of_nextFresh hfresh hlive
+  exact heapLiveTypedAt_declareObjectStateWithNext_of_ne hane hlive
+
+
+theorem heapInitializedValuesTyped_declareObjectStateWithNext_of_optionCompat
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat} :
+    heapInitializedValuesTyped σ →
+    OptionValueCompat ov τ →
+    heapInitializedValuesTyped (declareObjectStateWithNext σ τ x ov aNext) := by
+  intro hheapOld hov
+  intro a c v hheap hval
+  by_cases ha : a = σ.next
+  · subst a
+    rw [heap_declareObjectStateWithNext_self] at hheap
+    injection hheap with hc
+    subst c
+    simp at hval
+    rw [hval] at hov
+    simpa using hov
+  · have hlookup : (declareObjectStateWithNext σ τ x ov aNext).heap a = σ.heap a :=
+      heap_declareObjectStateWithNext_other σ τ x ov aNext a ha
+    rw [hlookup] at hheap
+    exact hheapOld a c v hheap hval
+
 end DeclRealizationSupport
 
 namespace DeclareObjectReadyStrong
@@ -379,14 +445,14 @@ theorem transport_old_object_realization_after_declareObjectStateWithNext
         (declareObjectStateWithNext σ τ x ov h.cursor.addr) k a ∧
       heapLiveTypedAt
         (declareObjectStateWithNext σ τ x ov h.cursor.addr) a τ' := by
-  rcases
-    (DeclareObjectReadyStrong.transport_old_object_realization_after_declareObjectState
-      (h := h.ready) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdeclOld)
-    with ⟨a, hobjOld, hownOld, hliveOld⟩
-  refine ⟨a, ?_, ?_, ?_⟩
-  · simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_declareObjectState] using hobjOld
-  · simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_declareObjectState] using hownOld
-  · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_declareObjectState] using hliveOld
+  rcases h.ready.concrete.objectDeclRealized hdeclOld with ⟨a, hobjOld, hownOld, hliveOld⟩
+  have hobjNew := runtimeFrameBindsObject_declareObjectStateWithNext_forward_of_topFresh
+    (σ := σ) (τ := τ) (x := x) (ov := ov) (aNext := h.cursor.addr)
+    (h.ready.topFrameFresh hΓ0) hobjOld
+  have hrealNew := ownedAndLive_declareObjectStateWithNext_of_oldOwned
+    (σ := σ) (τ := τ) (x := x) (ov := ov) (aNext := h.cursor.addr)
+    h.ready.concrete.nextFresh hownOld hliveOld
+  exact ⟨a, hobjNew, hrealNew.1, hrealNew.2⟩
 
 theorem transport_old_ref_realization_after_declareObjectStateWithNext
     {Γ : TypeEnv} {σ : State} {x : Ident}
@@ -401,13 +467,14 @@ theorem transport_old_ref_realization_after_declareObjectStateWithNext
         (declareObjectStateWithNext σ τ x ov h.cursor.addr) k x' τ' a ∧
       heapLiveTypedAt
         (declareObjectStateWithNext σ τ x ov h.cursor.addr) a τ' := by
-  rcases
-    (DeclareObjectReadyStrong.transport_old_ref_realization_after_declareObjectState
-      (h := h.ready) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdeclOld)
-    with ⟨a, hrefOld, hliveOld⟩
-  refine ⟨a, ?_, ?_⟩
-  · simpa [runtimeFrameBindsRef, scopes_declareObjectStateWithNext_eq_declareObjectState] using hrefOld
-  · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_declareObjectState] using hliveOld
+  rcases h.ready.concrete.refDeclRealized hdeclOld with ⟨a, hrefOld, hliveOld⟩
+  have hrefNew := runtimeFrameBindsRef_declareObjectStateWithNext_forward_of_topFresh
+    (σ := σ) (τ := τ) (x := x) (ov := ov) (aNext := h.cursor.addr)
+    (h.ready.topFrameFresh hΓ0) hrefOld
+  have hliveNew := heapLiveTypedAt_declareObjectStateWithNext_of_oldLive
+    (σ := σ) (τ := τ) (x := x) (ov := ov) (aNext := h.cursor.addr)
+    h.ready.concrete.nextFresh hliveOld
+  exact ⟨a, hrefNew, hliveNew⟩
 
 theorem declare_new_object_realization_after_declareObjectStateWithNext
     {σ : State} {x : Ident} {τ : CppType} {ov : Option Value}
@@ -416,13 +483,10 @@ theorem declare_new_object_realization_after_declareObjectStateWithNext
       runtimeFrameBindsObject (declareObjectStateWithNext σ τ x ov aNext) 0 x τ a ∧
       runtimeFrameOwnsAddress (declareObjectStateWithNext σ τ x ov aNext) 0 a ∧
       heapLiveTypedAt (declareObjectStateWithNext σ τ x ov aNext) a τ := by
-  rcases
-    (DeclareObjectReadyStrong.declare_new_object_realization_after_declareObjectState)
-    with ⟨a, hobjOld, hownOld, hliveOld⟩
-  refine ⟨a, ?_, ?_, ?_⟩
-  · simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_declareObjectState] using hobjOld
-  · simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_declareObjectState] using hownOld
-  · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_declareObjectState] using hliveOld
+  refine ⟨σ.next, ?_, ?_, ?_⟩
+  · exact declareObjectStateWithNext_api_runtimeFrameBindsObject_top_new
+  · exact declareObjectStateWithNext_api_runtimeFrameOwnsAddress_zero_new
+  · exact heapLiveTypedAt_declareObjectStateWithNext_self
 
 theorem objectDeclRealized_after_declareObjectStateWithNext
     {Γ : TypeEnv} {σ : State} {x : Ident}
@@ -440,14 +504,26 @@ theorem objectDeclRealized_after_declareObjectStateWithNext
         heapLiveTypedAt
           (declareObjectStateWithNext σ τ x ov h.cursor.addr) a τ' := by
   intro k x' τ' hdecl
-  rcases
-    (DeclareObjectReadyStrong.objectDeclRealized_after_declareObjectState
-      (h := h.ready) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdecl)
-    with ⟨a, hobjOld, hownOld, hliveOld⟩
-  refine ⟨a, ?_, ?_, ?_⟩
-  · simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_declareObjectState] using hobjOld
-  · simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_declareObjectState] using hownOld
-  · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_declareObjectState] using hliveOld
+  cases k with
+  | zero =>
+      by_cases hx' : x' = x
+      · subst x'
+        have hτ' : τ' = τ :=
+          typeFrameDeclObject_declareTypeObject_zero_self_type hdecl
+        subst τ'
+        exact declare_new_object_realization_after_declareObjectStateWithNext
+          (σ := σ) (x := x) (τ := τ) (ov := ov) h.cursor.addr
+      · have hdeclOld : typeFrameDeclObject Γ 0 x' τ' :=
+          typeFrameDeclObject_declareTypeObject_zero_old_of_ne hx' hdecl
+        exact
+          transport_old_object_realization_after_declareObjectStateWithNext
+            (h := h) (hΓ0 := hΓ0) hdeclOld
+  | succ k =>
+      have hdeclOld : typeFrameDeclObject Γ k.succ x' τ' :=
+        (typeFrameDeclObject_declareTypeObject_succ_iff).1 hdecl
+      exact
+        transport_old_object_realization_after_declareObjectStateWithNext
+          (h := h) (hΓ0 := hΓ0) hdeclOld
 
 theorem refDeclRealized_after_declareObjectStateWithNext
     {Γ : TypeEnv} {σ : State} {x : Ident}
@@ -463,14 +539,19 @@ theorem refDeclRealized_after_declareObjectStateWithNext
         heapLiveTypedAt
           (declareObjectStateWithNext σ τ x ov h.cursor.addr) a τ' := by
   intro k x' τ' hdecl
-  rcases
-    (DeclareObjectReadyStrong.refDeclRealized_after_declareObjectState
-      (h := h.ready) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdecl)
-    with ⟨a, hrefOld, hliveOld⟩
-  refine ⟨a, ?_, ?_⟩
-  · simpa [runtimeFrameBindsRef, scopes_declareObjectStateWithNext_eq_declareObjectState] using hrefOld
-  · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_declareObjectState] using hliveOld
+  cases k with
+  | zero =>
+      have hdeclOld : typeFrameDeclRef Γ 0 x' τ' :=
+        typeFrameDeclRef_declareTypeObject_zero_old hdecl
+      exact
+        transport_old_ref_realization_after_declareObjectStateWithNext
+          (h := h) (hΓ0 := hΓ0) hdeclOld
+  | succ k =>
+      have hdeclOld : typeFrameDeclRef Γ k.succ x' τ' :=
+        (typeFrameDeclRef_declareTypeObject_succ_iff).1 hdecl
+      exact
+        transport_old_ref_realization_after_declareObjectStateWithNext
+          (h := h) (hΓ0 := hΓ0) hdeclOld
 
 end DeclareObjectReadyRecomputed
 end Cpp
-
