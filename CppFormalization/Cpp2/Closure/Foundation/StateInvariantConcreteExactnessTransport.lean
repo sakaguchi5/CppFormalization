@@ -207,9 +207,7 @@ theorem framewiseDeclBindingExact_declareTypeObject_declareObjectState_from_topF
               have hkΓOld : Γ.scopes[j.succ]? = some Γfr := by
                 simpa [declareTypeObject, insertTopDecl, hG] using hkΓ
               have hkσOld : σ.scopes[j.succ]? = some σfr :=
-                (declareObjectState_lookup_succ_iff
-                  (σ := σ) (τ := τ) (x := x) (ov := ov)
-                  (k := j) (fr := σfr)).1 hkσ
+                (declareObjectState_lookup_succ_iff).1 hkσ
               exact hexact j.succ Γfr σfr hkΓOld hkσOld
 
 theorem framewiseDeclBindingExact_declareTypeRef_declareRefState_from_topFrameFresh

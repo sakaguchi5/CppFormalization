@@ -150,19 +150,6 @@ end DeclRealizationSupport
 
 namespace DeclareObjectReadyStrong
 
--- 新しく作る共通補題,不要なら削除
-theorem transport_heap_realization_after_declareObjectState_core
-    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
-    {a : Nat} {τ' : CppType} {k : Nat}
-    (hane : a ≠ σ.next)
-    (hown : runtimeFrameOwnsAddress σ k a)
-    (hlive : heapLiveTypedAt σ a τ') :
-    runtimeFrameOwnsAddress (declareObjectState σ τ x ov) k a ∧
-    heapLiveTypedAt (declareObjectState σ τ x ov) a τ' := by
-  constructor
-  · exact runtimeFrameOwnsAddress_declareObjectState_forward hown
-  · exact heapLiveTypedAt_declareObjectState_of_ne hane hlive
-
 theorem transport_old_object_realization_after_declareObjectState
     {Γ : TypeEnv} {σ : State} {x : Ident}
     (h : DeclareObjectReadyStrong Γ σ x)

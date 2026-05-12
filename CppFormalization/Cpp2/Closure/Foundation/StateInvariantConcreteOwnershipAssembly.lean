@@ -32,7 +32,6 @@ theorem ownedDisjoint_after_declareObjectState
     {τ : CppType} {ov : Option Value} :
     ownedAddressesDisjointAcrossFrames (declareObjectState σ τ x ov) := by
   rcases h.concrete.nextFresh with ⟨_, hfreshLocals⟩
-  rcases h.concrete.nextFresh with ⟨_, hfreshLocals⟩
   intro i j fi fj addr hij hi hj hai
   intro haj
   cases hsc : σ.scopes with
