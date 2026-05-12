@@ -122,6 +122,85 @@ theorem heap_declareObjectStateWithNext_eq_declareObjectState
   rw [heap_declareObjectStateWithNext_eq_declareObjectStateCore]
   exact heap_declareObjectStateCore_eq_declareObjectState σ τ x ov
 
+
+/-- Top-frame shape for `declareObjectStateWithNext` when the old scope stack is empty.
+The allocated object address is `σ.next`; `aNext` is only the post-state cursor. -/
+theorem declareObjectStateWithNext_scopes_zero_of_nil
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat}
+    (hsc : σ.scopes = []) :
+    (declareObjectStateWithNext σ τ x ov aNext).scopes[0]? = some
+      { binds := fun z => if z = x then some (.object τ σ.next) else emptyScopeFrame.binds z,
+        locals := [σ.next] } := by
+  simp [declareObjectStateWithNext, setNext, declareObjectStateCore,
+    recordLocal, writeHeap, bindTopBinding, hsc]
+  rfl
+
+/-- Top-frame shape for `declareObjectStateWithNext` when the old scope stack is nonempty.
+The allocated object address is `σ.next`; `aNext` is only the post-state cursor. -/
+theorem declareObjectStateWithNext_scopes_zero_of_cons
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat}
+    {fr0 : ScopeFrame} {frs : List ScopeFrame}
+    (hsc : σ.scopes = fr0 :: frs) :
+    (declareObjectStateWithNext σ τ x ov aNext).scopes[0]? = some
+      { fr0 with
+        binds := fun z => if z = x then some (.object τ σ.next) else fr0.binds z,
+        locals := σ.next :: fr0.locals } := by
+  simp [declareObjectStateWithNext, setNext, declareObjectStateCore,
+    recordLocal, writeHeap, bindTopBinding, hsc]
+
+/-- Deeper runtime scopes are unchanged by `declareObjectStateWithNext`. -/
+theorem declareObjectStateWithNext_lookup_succ_iff
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat}
+    {k : Nat} {fr : ScopeFrame} :
+    (declareObjectStateWithNext σ τ x ov aNext).scopes[k.succ]? = some fr ↔
+      σ.scopes[k.succ]? = some fr := by
+  constructor
+  · intro h
+    cases hsc : σ.scopes with
+    | nil =>
+        simp [declareObjectStateWithNext, setNext, declareObjectStateCore,
+          recordLocal, writeHeap, bindTopBinding, hsc] at h
+    | cons fr0 frs =>
+        simpa [declareObjectStateWithNext, setNext, declareObjectStateCore,
+          recordLocal, writeHeap, bindTopBinding, hsc] using h
+  · intro h
+    cases hsc : σ.scopes with
+    | nil =>
+        simp [hsc] at h
+    | cons fr0 frs =>
+        simpa [declareObjectStateWithNext, setNext, declareObjectStateCore,
+          recordLocal, writeHeap, bindTopBinding, hsc] using h
+
+/-- Recover the concrete top frame of `declareObjectStateWithNext` in the nil case. -/
+theorem declareObjectStateWithNext_lookup_zero_frame_of_nil
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat}
+    {fr : ScopeFrame}
+    (hsc : σ.scopes = [])
+    (hk : (declareObjectStateWithNext σ τ x ov aNext).scopes[0]? = some fr) :
+    fr = { binds := fun z => if z = x then some (.object τ σ.next) else emptyScopeFrame.binds z,
+           locals := [σ.next] } := by
+  have htop := declareObjectStateWithNext_scopes_zero_of_nil
+    (σ := σ) (τ := τ) (x := x) (ov := ov) (aNext := aNext) hsc
+  rw [htop] at hk
+  injection hk with hEq
+  exact hEq.symm
+
+/-- Recover the concrete top frame of `declareObjectStateWithNext` in the cons case. -/
+theorem declareObjectStateWithNext_lookup_zero_frame_of_cons
+    {σ : State} {τ : CppType} {x : Ident} {ov : Option Value} {aNext : Nat}
+    {fr fr0 : ScopeFrame} {frs : List ScopeFrame}
+    (hsc : σ.scopes = fr0 :: frs)
+    (hk : (declareObjectStateWithNext σ τ x ov aNext).scopes[0]? = some fr) :
+    fr = { fr0 with
+           binds := fun z => if z = x then some (.object τ σ.next) else fr0.binds z,
+           locals := σ.next :: fr0.locals } := by
+  have htop := declareObjectStateWithNext_scopes_zero_of_cons
+    (σ := σ) (τ := τ) (x := x) (ov := ov) (aNext := aNext)
+    (fr0 := fr0) (frs := frs) hsc
+  rw [htop] at hk
+  injection hk with hEq
+  exact hEq.symm
+
 @[simp] theorem heap_declareObjectStateWithNext_self
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (aNext : Nat) :
     (declareObjectStateWithNext σ τ x ov aNext).heap σ.next =
@@ -152,4 +231,3 @@ theorem heap_declareObjectStateWithNext_eq_declareObjectState
   exact lookupBinding_declareObjectStateCore_other σ τ x y ov hxy
 
 end Cpp
-
