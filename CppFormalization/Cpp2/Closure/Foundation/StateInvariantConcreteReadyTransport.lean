@@ -229,11 +229,11 @@ theorem objectsOwned_after_declareObjectStateWithNext
       (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
   intro k y υ a hbind
   have hbindOld : runtimeFrameBindsObject (declareObjectState σ τ x ov) k y υ a := by
-    simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_old] using hbind
+    simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_declareObjectState] using hbind
   have hownOld :=
     DeclareObjectReadyStrong.objectsOwned_after_declareObjectState
       h.ready k y υ a hbindOld
-  simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_old] using hownOld
+  simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_declareObjectState] using hownOld
 
 /-- recomputed-cursor policy 下の owned-address naming。 -/
 theorem ownedNamed_after_declareObjectStateWithNext
@@ -245,13 +245,13 @@ theorem ownedNamed_after_declareObjectStateWithNext
       (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
   intro k a hown
   have hownOld : runtimeFrameOwnsAddress (declareObjectState σ τ x ov) k a := by
-    simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_old] using hown
+    simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_declareObjectState] using hown
   rcases
     (DeclareObjectReadyStrong.ownedNamed_after_declareObjectState
       (h := h.ready) (hΓ0 := hΓ0) (τ := τ) (ov := ov)) k a hownOld
     with ⟨y, υ, hobjOld⟩
   exact ⟨y, υ, by
-    simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_old] using hobjOld⟩
+    simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_declareObjectState] using hobjOld⟩
 
 /-- recomputed-cursor policy 下でも ref-not-owned は保存される。 -/
 theorem refsNotOwned_after_declareObjectStateWithNext
@@ -263,7 +263,7 @@ theorem refsNotOwned_after_declareObjectStateWithNext
       (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
   intro k fr y υ a hk hbind hmem
   have hkOld : (declareObjectState σ τ x ov).scopes[k]? = some fr := by
-    simpa [scopes_declareObjectStateWithNext_eq_old] using hk
+    simpa [scopes_declareObjectStateWithNext_eq_declareObjectState] using hk
   have hbindOld : fr.binds y = some (.ref υ a) := by
     simpa using hbind
   have hmemOld : a ∈ fr.locals := by
@@ -288,13 +288,13 @@ theorem refTargetsAvoidInnerOwned_after_declareObjectStateWithNext
         (declareObjectStateWithNext σ τ x ov h.cursor.addr) j a := by
   intro k y υ a j href hj
   have hrefOld : runtimeFrameBindsRef (declareObjectState σ τ x ov) k y υ a := by
-    simpa [runtimeFrameBindsRef, scopes_declareObjectStateWithNext_eq_old] using href
+    simpa [runtimeFrameBindsRef, scopes_declareObjectStateWithNext_eq_declareObjectState] using href
   have hnotOld :=
     (DeclareObjectReadyStrong.refTargetsAvoidInnerOwned_after_declareObjectState
       (h := h.ready) (τ := τ) (ov := ov)) hrefOld hj
   intro hown
   have hownOld : runtimeFrameOwnsAddress (declareObjectState σ τ x ov) j a := by
-    simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_old] using hown
+    simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_declareObjectState] using hown
   exact hnotOld hownOld
 
 /-- recomputed witness から post-state next-freshness を供給する。 -/
@@ -315,10 +315,11 @@ theorem ownedNoDup_after_declareObjectStateWithNext
       (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
   intro k fr hk
   have hkOld : (declareObjectState σ τ x ov).scopes[k]? = some fr := by
-    simpa [scopes_declareObjectStateWithNext_eq_old] using hk
+    simpa [scopes_declareObjectStateWithNext_eq_declareObjectState] using hk
   exact
     (DeclareObjectReadyStrong.ownedNoDup_after_declareObjectState
       (h := h.ready) (τ := τ) (ov := ov)) k fr hkOld
 
 end DeclareObjectReadyRecomputed
 end Cpp
+

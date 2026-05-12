@@ -294,7 +294,7 @@ theorem framewiseDeclBindingExact_declareTypeObject_declareObjectStateWithNext
       hdepth hexact hΓ0 hfreshType hfreshRuntime
   intro k Γfr σfr hkΓ hkσ
   have hkσOld : (declareObjectState σ τ x ov).scopes[k]? = some σfr := by
-    simpa [scopes_declareObjectStateWithNext_eq_old] using hkσ
+    simpa [scopes_declareObjectStateWithNext_eq_declareObjectState] using hkσ
   exact hold k Γfr σfr hkΓ hkσOld
 
 theorem framewiseDeclBindingExact_declareTypeRef_declareRefState_of_topFresh
@@ -426,7 +426,8 @@ theorem framewiseDeclBindingExact_declareTypeObject_declareObjectStateWithNext_o
       (Γ := Γ) (σ := σ) (x := x) (τ := τ) (ov := ov)
       hdepth hexact hΓfresh hσfresh
   have hkσOld : (declareObjectState σ τ x ov).scopes[k]? = some σfr := by
-    simpa [scopes_declareObjectStateWithNext_eq_old] using hkσ
+    simpa [scopes_declareObjectStateWithNext_eq_declareObjectState] using hkσ
   exact hold k Γfr σfr hkΓ hkσOld
 
 end Cpp
+

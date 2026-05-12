@@ -384,9 +384,9 @@ theorem transport_old_object_realization_after_declareObjectStateWithNext
       (h := h.ready) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdeclOld)
     with ⟨a, hobjOld, hownOld, hliveOld⟩
   refine ⟨a, ?_, ?_, ?_⟩
-  · simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_old] using hobjOld
-  · simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_old] using hownOld
-  · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_old] using hliveOld
+  · simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_declareObjectState] using hobjOld
+  · simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_declareObjectState] using hownOld
+  · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_declareObjectState] using hliveOld
 
 theorem transport_old_ref_realization_after_declareObjectStateWithNext
     {Γ : TypeEnv} {σ : State} {x : Ident}
@@ -406,8 +406,8 @@ theorem transport_old_ref_realization_after_declareObjectStateWithNext
       (h := h.ready) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdeclOld)
     with ⟨a, hrefOld, hliveOld⟩
   refine ⟨a, ?_, ?_⟩
-  · simpa [runtimeFrameBindsRef, scopes_declareObjectStateWithNext_eq_old] using hrefOld
-  · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_old] using hliveOld
+  · simpa [runtimeFrameBindsRef, scopes_declareObjectStateWithNext_eq_declareObjectState] using hrefOld
+  · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_declareObjectState] using hliveOld
 
 theorem declare_new_object_realization_after_declareObjectStateWithNext
     {σ : State} {x : Ident} {τ : CppType} {ov : Option Value}
@@ -420,9 +420,9 @@ theorem declare_new_object_realization_after_declareObjectStateWithNext
     (DeclareObjectReadyStrong.declare_new_object_realization_after_declareObjectState)
     with ⟨a, hobjOld, hownOld, hliveOld⟩
   refine ⟨a, ?_, ?_, ?_⟩
-  · simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_old] using hobjOld
-  · simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_old] using hownOld
-  · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_old] using hliveOld
+  · simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_declareObjectState] using hobjOld
+  · simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_declareObjectState] using hownOld
+  · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_declareObjectState] using hliveOld
 
 theorem objectDeclRealized_after_declareObjectStateWithNext
     {Γ : TypeEnv} {σ : State} {x : Ident}
@@ -445,9 +445,9 @@ theorem objectDeclRealized_after_declareObjectStateWithNext
       (h := h.ready) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdecl)
     with ⟨a, hobjOld, hownOld, hliveOld⟩
   refine ⟨a, ?_, ?_, ?_⟩
-  · simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_old] using hobjOld
-  · simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_old] using hownOld
-  · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_old] using hliveOld
+  · simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_declareObjectState] using hobjOld
+  · simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_declareObjectState] using hownOld
+  · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_declareObjectState] using hliveOld
 
 theorem refDeclRealized_after_declareObjectStateWithNext
     {Γ : TypeEnv} {σ : State} {x : Ident}
@@ -468,8 +468,9 @@ theorem refDeclRealized_after_declareObjectStateWithNext
       (h := h.ready) (hΓ0 := hΓ0) (τ := τ) (ov := ov) hdecl)
     with ⟨a, hrefOld, hliveOld⟩
   refine ⟨a, ?_, ?_⟩
-  · simpa [runtimeFrameBindsRef, scopes_declareObjectStateWithNext_eq_old] using hrefOld
-  · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_old] using hliveOld
+  · simpa [runtimeFrameBindsRef, scopes_declareObjectStateWithNext_eq_declareObjectState] using hrefOld
+  · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_declareObjectState] using hliveOld
 
 end DeclareObjectReadyRecomputed
 end Cpp
+

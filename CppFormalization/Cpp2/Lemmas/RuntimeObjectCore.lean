@@ -95,54 +95,52 @@ theorem heap_declareObjectStateCore_eq_declareObjectState
       (declareObjectStateCore σ τ x ov).heap := by
   simp [declareObjectStateWithNext, setNext]
 -/
---後で名前を変える
-@[simp] theorem scopes_declareObjectStateWithNext_eq_core
+@[simp] theorem scopes_declareObjectStateWithNext_eq_declareObjectStateCore
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (aNext : Nat) :
     (declareObjectStateWithNext σ τ x ov aNext).scopes =
       (declareObjectStateCore σ τ x ov).scopes := by
   simp [declareObjectStateWithNext, setNext]
---後で名前を変える
-@[simp] theorem heap_declareObjectStateWithNext_eq_core
+@[simp] theorem heap_declareObjectStateWithNext_eq_declareObjectStateCore
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (aNext : Nat) :
     (declareObjectStateWithNext σ τ x ov aNext).heap =
       (declareObjectStateCore σ τ x ov).heap := by
   simp [declareObjectStateWithNext, setNext]
 
---eq_oldからは@[simp]を外す、後で名前を変える
-theorem scopes_declareObjectStateWithNext_eq_old
+-- declareObjectState façade との比較 bridge。@[simp] にはしない。
+theorem scopes_declareObjectStateWithNext_eq_declareObjectState
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (aNext : Nat) :
     (declareObjectStateWithNext σ τ x ov aNext).scopes =
       (declareObjectState σ τ x ov).scopes := by
-  rw [scopes_declareObjectStateWithNext_eq_core]
+  rw [scopes_declareObjectStateWithNext_eq_declareObjectStateCore]
   exact scopes_declareObjectStateCore_eq_declareObjectState σ τ x ov
 
---eq_oldからは@[simp]を外す、後で名前を変える
-theorem heap_declareObjectStateWithNext_eq_old
+-- declareObjectState façade との比較 bridge。@[simp] にはしない。
+theorem heap_declareObjectStateWithNext_eq_declareObjectState
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (aNext : Nat) :
     (declareObjectStateWithNext σ τ x ov aNext).heap =
       (declareObjectState σ τ x ov).heap := by
-  rw [heap_declareObjectStateWithNext_eq_core]
+  rw [heap_declareObjectStateWithNext_eq_declareObjectStateCore]
   exact heap_declareObjectStateCore_eq_declareObjectState σ τ x ov
 
 @[simp] theorem heap_declareObjectStateWithNext_self
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (aNext : Nat) :
     (declareObjectStateWithNext σ τ x ov aNext).heap σ.next =
       some { ty := τ, value := ov, alive := true } := by
-  rw [heap_declareObjectStateWithNext_eq_core]
+  rw [heap_declareObjectStateWithNext_eq_declareObjectStateCore]
   exact heap_declareObjectStateCore_self σ τ x ov
 
 @[simp] theorem heap_declareObjectStateWithNext_other
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value)
     (aNext a : Nat) (ha : a ≠ σ.next) :
     (declareObjectStateWithNext σ τ x ov aNext).heap a = σ.heap a := by
-  rw [heap_declareObjectStateWithNext_eq_core]
+  rw [heap_declareObjectStateWithNext_eq_declareObjectStateCore]
   exact heap_declareObjectStateCore_other σ τ x ov ha
 
 @[simp] theorem lookupBinding_declareObjectStateWithNext_self
     (σ : State) (τ : CppType) (x : Ident) (ov : Option Value) (aNext : Nat) :
     lookupBinding (declareObjectStateWithNext σ τ x ov aNext) x = some (.object τ σ.next) := by
   rw [lookupBinding_eq_of_scopes_eq
-    (scopes_declareObjectStateWithNext_eq_core σ τ x ov aNext) x]
+    (scopes_declareObjectStateWithNext_eq_declareObjectStateCore σ τ x ov aNext) x]
   exact lookupBinding_declareObjectStateCore_self σ τ x ov
 
 @[simp] theorem lookupBinding_declareObjectStateWithNext_other
@@ -150,7 +148,8 @@ theorem heap_declareObjectStateWithNext_eq_old
     (aNext : Nat) (hxy : y ≠ x) :
     lookupBinding (declareObjectStateWithNext σ τ x ov aNext) y = lookupBinding σ y := by
   rw [lookupBinding_eq_of_scopes_eq
-    (scopes_declareObjectStateWithNext_eq_core σ τ x ov aNext) y]
+    (scopes_declareObjectStateWithNext_eq_declareObjectStateCore σ τ x ov aNext) y]
   exact lookupBinding_declareObjectStateCore_other σ τ x y ov hxy
 
 end Cpp
+

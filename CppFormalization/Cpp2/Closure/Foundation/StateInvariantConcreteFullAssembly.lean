@@ -210,12 +210,12 @@ theorem kernel_after_declareObjectStateWithNext
   refine
     { frameDepth := by
         unfold frameDepthAgreement at *
-        simpa [scopes_declareObjectStateWithNext_eq_old] using hold.frameDepth
+        simpa [scopes_declareObjectStateWithNext_eq_declareObjectState] using hold.frameDepth
       shadowing := by
         intro y d hdecl
         rcases hold.shadowing y d hdecl with ⟨b, hb, hmatch⟩
         refine ⟨b, ?_, hmatch⟩
-        simpa [lookupBinding, scopes_declareObjectStateWithNext_eq_old] using hb
+        simpa [lookupBinding, scopes_declareObjectStateWithNext_eq_declareObjectState] using hb
       namesExact := framewiseDeclBindingExact_declareTypeObject_declareObjectStateWithNext
         h.ready.concrete.frameDepth h.ready.concrete.namesExact hΓ0 (h.ready.typeFresh _ hΓ0) (h.ready.topFrameFresh hΓ0)
       objectDeclRealized :=
@@ -228,17 +228,17 @@ theorem kernel_after_declareObjectStateWithNext
         intro k y υ a hbind
         have hbindOld :
             runtimeFrameBindsObject (declareObjectState σ τ x ov) k y υ a := by
-          simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_old] using hbind
+          simpa [runtimeFrameBindsObject, scopes_declareObjectStateWithNext_eq_declareObjectState] using hbind
         rcases hold.objectBindingSound hbindOld with ⟨hownOld, hliveOld⟩
         refine ⟨?_, ?_⟩
-        · simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_old] using hownOld
-        · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_old] using hliveOld
+        · simpa [runtimeFrameOwnsAddress, scopes_declareObjectStateWithNext_eq_declareObjectState] using hownOld
+        · simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_declareObjectState] using hliveOld
       refBindingSound := by
         intro k y υ a hbind
         have hbindOld :
             runtimeFrameBindsRef (declareObjectState σ τ x ov) k y υ a := by
-          simpa [runtimeFrameBindsRef, scopes_declareObjectStateWithNext_eq_old] using hbind
-        simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_old] using
+          simpa [runtimeFrameBindsRef, scopes_declareObjectStateWithNext_eq_declareObjectState] using hbind
+        simpa [heapLiveTypedAt, heap_declareObjectStateWithNext_eq_declareObjectState] using
           (hold.refBindingSound hbindOld) }
 
 theorem concrete_after_declareObjectStateWithNext
@@ -265,7 +265,7 @@ theorem concrete_after_declareObjectStateWithNext
   have hheapNew :
       heapInitializedValuesTyped
         (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
-    simpa [heapInitializedValuesTyped, heap_declareObjectStateWithNext_eq_old] using hheapOld
+    simpa [heapInitializedValuesTyped, heap_declareObjectStateWithNext_eq_declareObjectState] using hheapOld
   refine
     { frameDepth := hker.frameDepth
       shadowing := hker.shadowing
@@ -286,3 +286,4 @@ theorem concrete_after_declareObjectStateWithNext
 
 end DeclareObjectReadyRecomputed
 end Cpp
+

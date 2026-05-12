@@ -176,9 +176,9 @@ theorem ownedDisjoint_after_declareObjectStateWithNext
       (declareObjectStateWithNext σ τ x ov h.cursor.addr) := by
   intro i j fi fj a hij hi hj hai haj
   have hiOld : (declareObjectState σ τ x ov).scopes[i]? = some fi := by
-    simpa [scopes_declareObjectStateWithNext_eq_old] using hi
+    simpa [scopes_declareObjectStateWithNext_eq_declareObjectState] using hi
   have hjOld : (declareObjectState σ τ x ov).scopes[j]? = some fj := by
-    simpa [scopes_declareObjectStateWithNext_eq_old] using hj
+    simpa [scopes_declareObjectStateWithNext_eq_declareObjectState] using hj
   exact
     (DeclareObjectReadyStrong.ownedDisjoint_after_declareObjectState
       (h := h.ready) (τ := τ) (ov := ov))
@@ -221,3 +221,4 @@ theorem ownership_after_declareObjectStateWithNext
 
 end DeclareObjectReadyRecomputed
 end Cpp
+
