@@ -1,29 +1,12 @@
 import CppFormalization.Cpp2.Static.Assumptions
 import CppFormalization.Cpp2.Semantics.Stmt
+import CppFormalization.Cpp2.Core.TypeEnvQuery
+import CppFormalization.Cpp2.Core.RuntimeQuery
+import CppFormalization.Cpp2.Core.RuntimeCell
+import CppFormalization.Cpp2.Core.RuntimeFreshness
 import CppFormalization.Cpp2.Closure.Foundation.StateBoundary
 
 namespace Cpp
-
-def typeFrameDeclObject (Γ : TypeEnv) (k : Nat) (x : Ident) (τ : CppType) : Prop :=
-  ∃ fr, Γ.scopes[k]? = some fr ∧ fr.decls x = some (.object τ)
-
-def typeFrameDeclRef (Γ : TypeEnv) (k : Nat) (x : Ident) (τ : CppType) : Prop :=
-  ∃ fr, Γ.scopes[k]? = some fr ∧ fr.decls x = some (.ref τ)
-
-def runtimeFrameBindsObject (σ : State) (k : Nat) (x : Ident) (τ : CppType) (a : Nat) : Prop :=
-  ∃ fr, σ.scopes[k]? = some fr ∧ fr.binds x = some (.object τ a)
-
-def runtimeFrameBindsRef (σ : State) (k : Nat) (x : Ident) (τ : CppType) (a : Nat) : Prop :=
-  ∃ fr, σ.scopes[k]? = some fr ∧ fr.binds x = some (.ref τ a)
-
-def runtimeFrameOwnsAddress (σ : State) (k : Nat) (a : Nat) : Prop :=
-  ∃ fr, σ.scopes[k]? = some fr ∧ a ∈ fr.locals
-
-def heapLiveTypedAt (σ : State) (a : Nat) (τ : CppType) : Prop :=
-  ∃ c, σ.heap a = some c ∧ c.ty = τ ∧ c.alive = true
-
-def heapInitializedTypedAt (σ : State) (a : Nat) (τ : CppType) : Prop :=
-  ∃ c v, σ.heap a = some c ∧ c.ty = τ ∧ c.alive = true ∧ c.value = some v ∧ ValueCompat v τ
 
 def shadowingCompatible (Γ : TypeEnv) (σ : State) : Prop :=
   ∀ x d, lookupDecl Γ x = some d → ∃ b, lookupBinding σ x = some b ∧ DeclMatchesBinding d b
@@ -73,8 +56,6 @@ def objectBindingSound (σ : State) : Prop :=
 def refBindingSound (σ : State) : Prop :=
   ∀ {k x τ a}, runtimeFrameBindsRef σ k x τ a → heapLiveTypedAt σ a τ
 
-def nextFreshAgainstOwned (σ : State) : Prop :=
-  σ.heap σ.next = none ∧ ∀ (k : Nat) (fr : ScopeFrame), σ.scopes[k]? = some fr → σ.next ∉ fr.locals
 
 def refBindingsNeverOwned (σ : State) : Prop :=
   ∀ (k : Nat) (fr : ScopeFrame) (x : Ident) (τ : CppType) (a : Nat),

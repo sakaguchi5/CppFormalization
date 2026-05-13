@@ -1,5 +1,6 @@
 
 import CppFormalization.Cpp2.Typing.Stmt
+import CppFormalization.Cpp2.Core.Control
 --import CppFormalization.Cpp2.Core.RuntimeState
 
 --import CppFormalization.Cpp2.Core.RuntimeState
@@ -29,13 +30,6 @@ namespace Cpp
 while / block は old judgement より強い情報を要求するため、
 old から new への総橋渡しはここでは置かない。
 -/
-
-inductive ControlKind where
-  | normalK
-  | breakK
-  | continueK
-  | returnK
-  deriving DecidableEq, Repr
 
 /--
 `TopFrameExtensionOf Γ Θ` は、

@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
-
+import CppFormalization.Cpp2.Core.Fragment
 namespace Cpp
 
 /-!

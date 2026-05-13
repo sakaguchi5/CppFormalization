@@ -59,7 +59,9 @@ structure RecomputedNextWitness (σ : State) : Type where
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}
     (w : RecomputedNextWitness (declareObjectStateCore σ τ x ov)) :
     nextFreshAgainstOwned (declareObjectStateWithNext σ τ x ov w.addr) := by
-  simp [declareObjectStateWithNext,nextFreshAgainstOwned_after_setNext]
+  unfold declareObjectStateWithNext
+  exact nextFreshAgainstOwned_after_setNext w
+
 
 @[simp] theorem next_notRuntimeRefTarget_declareObjectStateWithNext
     {σ : State} {τ : CppType} {x : Ident} {ov : Option Value}

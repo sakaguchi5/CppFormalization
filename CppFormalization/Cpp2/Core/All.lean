@@ -1,15 +1,26 @@
-import CppFormalization.Cpp2.Core.Outcome
-import CppFormalization.Cpp2.Core.RuntimeObjectCore
-import CppFormalization.Cpp2.Core.RuntimeState
+import CppFormalization.Cpp2.Core.Types
+
+import CppFormalization.Cpp2.Core.Control
 import CppFormalization.Cpp2.Core.Syntax
 import CppFormalization.Cpp2.Core.TypeEnv
-import CppFormalization.Cpp2.Core.Types
+import CppFormalization.Cpp2.Core.RuntimeState
+
+import CppFormalization.Cpp2.Core.Fragment
+import CppFormalization.Cpp2.Core.TypeEnvQuery
+
+import CppFormalization.Cpp2.Core.RuntimeOps
+import CppFormalization.Cpp2.Core.RuntimeCell
+import CppFormalization.Cpp2.Core.RuntimeQuery
+import CppFormalization.Cpp2.Core.RuntimeFreshness
+import CppFormalization.Cpp2.Core.RuntimeDeclUpdate
+
+import CppFormalization.Cpp2.Core.DeclRuntimeMatch
+import CppFormalization.Cpp2.Core.Outcome
 
 /-!
 # CppFormalization.Cpp2.Core.All
 
-Exhaustive aggregate for this directory.
+Layered aggregate for the Core substrate.
 
-This file imports every Lean file directly under this directory, except itself,
-and every immediate child directory through that child directory's `All.lean`.
+This file is intentionally ordered by dependency, not alphabetically.
 -/

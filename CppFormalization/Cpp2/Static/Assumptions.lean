@@ -3,6 +3,7 @@ import CppFormalization.Cpp2.Typing.Stmt
 import CppFormalization.Cpp2.Static.WellFormed
 import CppFormalization.Cpp2.Static.ScopeDiscipline
 import CppFormalization.Cpp2.Core.RuntimeState
+import CppFormalization.Cpp2.Core.DeclRuntimeMatch
 
 /-!
 Safety predicates and ideal boundary assumptions.
@@ -93,12 +94,6 @@ def NoInvalidRefBlock (σ : State) : StmtBlock → Prop
   | .cons s ss => NoInvalidRefStmt σ s ∧ NoInvalidRefBlock σ ss
 
 end
-
-
-def DeclMatchesBinding : DeclInfo → Binding → Prop
-  | .object τ, .object τ' _ => τ = τ'
-  | .ref τ, .ref τ' _ => τ = τ'
-  | _, _ => False
 
 
 def TypedState (Γ : TypeEnv) (σ : State) : Prop :=

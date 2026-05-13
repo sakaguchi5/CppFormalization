@@ -1,5 +1,6 @@
 import CppFormalization.Cpp2.Closure.Foundation.StateBoundary
 import CppFormalization.Cpp2.Semantics.Stmt
+import CppFormalization.Cpp2.Core.RuntimeCell
 
 namespace Cpp
 
@@ -14,19 +15,6 @@ namespace Cpp
   そのための補助関係 `PtrValueReadyAt` を分離する。
 - statement / block readiness は構文に沿って帰納的に定義する。
 -/
-
-/-- address `a` に live な `τ`-cell がある。 -/
-def CellLiveTyped (σ : State) (a : Nat) (τ : CppType) : Prop :=
-  ∃ c, σ.heap a = some c ∧ c.ty = τ ∧ c.alive = true
-
-/-- address `a` に読み出し可能な `τ`-cell がある。 -/
-def CellReadableTyped (σ : State) (a : Nat) (τ : CppType) : Prop :=
-  ∃ c v,
-    σ.heap a = some c ∧
-    c.ty = τ ∧
-    c.alive = true ∧
-    c.value = some v ∧
-    ValueCompat v τ
 
 /--
 `e` は `τ` へのポインタとして型付いており、実際に address `a` へ評価される。

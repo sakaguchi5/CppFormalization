@@ -1,4 +1,5 @@
 import CppFormalization.Cpp2.Static.Assumptions
+import CppFormalization.Cpp2.Core.RuntimeQuery
 import CppFormalization.Cpp2.Lemmas.RuntimeState
 
 namespace Cpp
@@ -18,10 +19,6 @@ Compatibility substrate for coarse runtime-side boundary vocabulary.
 /-- 型環境と runtime state の frame 数が一致する。第一近似として長さ一致だけを採用する。 -/
 def scopesCompatible (Γ : TypeEnv) (σ : State) : Prop :=
   Γ.scopes.length = σ.scopes.length
-
-/-- runtime frame 内で object binding が使っている address。 -/
-def frameBindsObjectAddr (fr : ScopeFrame) (a : Nat) : Prop :=
-  ∃ x τ, fr.binds x = some (.object τ a)
 
 /--
 各 runtime frame の `locals` は、その frame 内の object binding address とちょうど一致する。

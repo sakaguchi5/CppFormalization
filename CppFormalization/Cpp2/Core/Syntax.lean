@@ -1,7 +1,7 @@
 import CppFormalization.Cpp2.Core.Types
 
 /-!
-Expression and statement syntax, plus the concrete big-step fragment marker.
+Expression and statement syntax.
 -/
 
 namespace Cpp
@@ -71,30 +71,5 @@ end StmtBlock
 
 def CppStmt.blockOfList (xs : List CppStmt) : CppStmt :=
   .block (StmtBlock.ofList xs)
-
-mutual
-
-def InBigStepFragment : CppStmt → Prop
-  | .skip => True
-  | .exprStmt _ => True
-  | .assign _ _ => True
-  | .declareObj _ _ _ => True
-  | .declareRef _ _ _ => True
-  | .seq s t => InBigStepFragment s ∧ InBigStepFragment t
-  | .ite _ s t => InBigStepFragment s ∧ InBigStepFragment t
-  | .whileStmt _ body => InBigStepFragment body
-  | .block ss => InBigStepBlockFragment ss
-  | .breakStmt => True
-  | .continueStmt => True
-  | .returnStmt _ => True
-
-def InBigStepBlockFragment : StmtBlock → Prop
-  | .nil => True
-  | .cons s ss => InBigStepFragment s ∧ InBigStepBlockFragment ss
-
-end
-
-def CoreBigStepFragment (st : CppStmt) : Prop :=
-  InBigStepFragment st
 
 end Cpp

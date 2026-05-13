@@ -1,8 +1,7 @@
 import CppFormalization.Cpp2.Semantics.Expr
-import CppFormalization.Cpp2.Core.RuntimeState
-import CppFormalization.Cpp2.Core.RuntimeObjectCore
-import CppFormalization.Cpp2.Core.Syntax
-import CppFormalization.Cpp2.Core.Types
+import CppFormalization.Cpp2.Core.RuntimeDeclUpdate
+import CppFormalization.Cpp2.Core.RuntimeFreshness
+import CppFormalization.Cpp2.Core.Control
 import CppFormalization.Cpp2.Core.Outcome
 
 /-!
@@ -18,19 +17,6 @@ def Assigns (σ : State) (p : PlaceExpr) (v : Value) (σ' : State) : Prop :=
     c.alive = true ∧
     ValueCompat v c.ty ∧
     σ' = writeHeap σ a { c with value := some v }
-
-/--
-Low-level post-state cursor safety, stated without importing Closure invariants.
-
-This is intentionally the same shape as `nextFreshAgainstOwned`, but kept here
-at the semantics layer so that object semantics can constrain allocator policy
-without depending on `Closure/Foundation`.
--/
-def FreshPostCursor (σ : State) (a : Nat) : Prop :=
-  σ.heap a = none ∧
-  ∀ (k : Nat) (fr : ScopeFrame),
-    σ.scopes[k]? = some fr →
-    a ∉ fr.locals
 
 /--
 Payload semantics of object declaration.
