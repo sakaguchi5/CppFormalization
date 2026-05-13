@@ -1,5 +1,4 @@
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteStrengthening
-import CppFormalization.Cpp2.Core.RuntimeObjectCore
 import CppFormalization.Cpp2.Lemmas.RuntimeObjectCore
 import CppFormalization.Cpp2.Semantics.Stmt
 

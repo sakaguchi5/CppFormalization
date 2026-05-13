@@ -1,5 +1,4 @@
 import CppFormalization.Cpp2.Lemmas.RuntimeState
-import CppFormalization.Cpp2.Core.RuntimeObjectCore
 
 namespace Cpp
 
