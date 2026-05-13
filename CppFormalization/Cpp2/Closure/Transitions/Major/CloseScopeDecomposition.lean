@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
-import CppFormalization.Cpp2.Closure.Transitions.OpenCloseLowLevelTheorems
+import CppFormalization.Cpp2.Closure.Transitions.Scope.CloseLowLevel
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteStrengthening
 
 namespace Cpp

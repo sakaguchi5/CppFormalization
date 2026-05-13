@@ -10,8 +10,7 @@ namespace Cpp
 
 Low-level reflection facts for `CloseScope`.
 
-These are compatibility-level helpers historically exposed from
-`Closure.Transitions.OpenCloseLowLevelTheorems`.  The final close-scope
+The final close-scope
 preservation assembly lives in `Scope.ClosePreservation`.
 -/
 
