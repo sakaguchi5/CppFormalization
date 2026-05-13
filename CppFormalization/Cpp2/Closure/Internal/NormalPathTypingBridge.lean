@@ -1,6 +1,6 @@
 import CppFormalization.Cpp2.Typing.Stmt
 import CppFormalization.Cpp2.Static.Inversions
-import CppFormalization.Cpp2.Closure.Foundation.TypingCI
+import CppFormalization.Cpp2.Typing.ControlIndexed
 import CppFormalization.Cpp2.Semantics.Stmt
 
 /-!

@@ -2,7 +2,6 @@ import CppFormalization.Cpp2.Semantics.Expr
 import CppFormalization.Cpp2.Core.RuntimeDeclUpdate
 import CppFormalization.Cpp2.Core.RuntimeFreshness
 import CppFormalization.Cpp2.Core.Control
-import CppFormalization.Cpp2.Core.Outcome
 
 /-!
 Concrete statement and block semantics.

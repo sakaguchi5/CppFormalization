@@ -1,43 +1,9 @@
 
 import CppFormalization.Cpp2.Typing.Stmt
 import CppFormalization.Cpp2.Core.Control
---import CppFormalization.Cpp2.Core.RuntimeState
-
---import CppFormalization.Cpp2.Core.RuntimeState
---import CppFormalization.Cpp2.Core.Syntax
---import CppFormalization.Cpp2.Core.Types
---import CppFormalization.Cpp2.Core.TypeEnv
-
-
---import CppFormalization.Cpp2.Core.Outcome
 
 namespace Cpp
 
-/-!
-# Closure.Foundation.TypingCI
-
-`HasTypeStmtCI` / `HasTypeBlockCI` を closure 主線の本体 judgment に昇格させる。
-
-今回の切り替えで重要なのは次の 3 点。
-
-1. typing は control-indexed である。
-2. statement は multi-exit relation であり、同じ statement に複数の control judgement が立ってよい。
-3. ただし post-environment は path-sensitive なので、abrupt control では同一 statement に
-   複数の異なる post-environment が立ちうる。したがって preservation 側では
-   「どの typing 導出が実行導出に対応しているか」を別に管理する必要がある。
-
-旧 `HasTypeStmt` / `HasTypeBlock` は normal-path の忘却像として残る。
-while / block は old judgement より強い情報を要求するため、
-old から new への総橋渡しはここでは置かない。
--/
-
-/--
-`TopFrameExtensionOf Γ Θ` は、
-block body を open scope の内側で実行したあとに得られる環境 `Θ` が、
-外側 `Γ` に対する top-frame extension であることを表す concrete 境界語彙。
-
-差分は top frame のみで、tail scopes は `Γ.scopes` と一致する。
--/
 def TopFrameExtensionOf (Γ Θ : TypeEnv) : Prop :=
   ∃ top : TypeFrame, Θ.scopes = top :: Γ.scopes
 

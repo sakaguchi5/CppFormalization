@@ -1,5 +1,6 @@
 import CppFormalization.Cpp2.Typing.Expr
 import CppFormalization.Cpp2.Typing.Stmt
+import CppFormalization.Cpp2.Typing.ControlIndexed
 
 /-!
 # CppFormalization.Cpp2.Typing.All

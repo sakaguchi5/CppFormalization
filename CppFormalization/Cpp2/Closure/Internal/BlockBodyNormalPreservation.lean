@@ -1,7 +1,7 @@
 
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 import CppFormalization.Cpp2.Closure.Foundation.Readiness
-import CppFormalization.Cpp2.Closure.Foundation.TypingCI
+import CppFormalization.Cpp2.Typing.ControlIndexed
 import CppFormalization.Cpp2.Closure.Internal.ReadinessResidualBoundary
 import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalCore
 

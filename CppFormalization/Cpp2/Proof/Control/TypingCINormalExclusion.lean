@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Foundation.TypingCI
+import CppFormalization.Cpp2.Typing.ControlIndexed
 import CppFormalization.Cpp2.Static.ScopeDiscipline
 import CppFormalization.Cpp2.Lemmas.ControlExclusion
 
