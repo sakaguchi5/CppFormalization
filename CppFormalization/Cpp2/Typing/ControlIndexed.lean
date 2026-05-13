@@ -2,6 +2,16 @@
 import CppFormalization.Cpp2.Typing.Stmt
 import CppFormalization.Cpp2.Core.Control
 
+/-!
+# CppFormalization.Cpp2.Typing.ControlIndexed
+
+Control-indexed statement and block typing.
+
+This file defines `HasTypeStmtCI` / `HasTypeBlockCI`, the control-sensitive
+typing judgments used by closure/profile/adequacy layers.  It sits directly
+above ordinary `Typing.Stmt` and does not depend on semantics or closure.
+-/
+
 namespace Cpp
 
 def TopFrameExtensionOf (Γ Θ : TypeEnv) : Prop :=
