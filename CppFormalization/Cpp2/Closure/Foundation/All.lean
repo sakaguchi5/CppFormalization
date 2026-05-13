@@ -6,10 +6,7 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCoherence
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryLite
-import CppFormalization.Cpp2.Closure.Foundation.BodyControlProfile
-import CppFormalization.Cpp2.Closure.Foundation.BodyControlProfileLite
 import CppFormalization.Cpp2.Closure.Foundation.BodyDynamicBoundary
-import CppFormalization.Cpp2.Closure.Foundation.BodyEntryWitnessCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyStaticBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyStructuralBoundary
 import CppFormalization.Cpp2.Closure.Foundation.BodyStructuralBoundaryLite
@@ -33,7 +30,6 @@ import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcretePreservati
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteReadyTransport
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteRecomputedCursor
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteStrengthening
-import CppFormalization.Cpp2.Closure.Foundation.TopFrameWitness
 import CppFormalization.Cpp2.Closure.Foundation.WellFormedFromTyping
 import CppFormalization.Cpp2.Closure.Foundation.WhileEntryBoundaryCI
 

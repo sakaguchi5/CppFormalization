@@ -3,7 +3,7 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyStructuralBoundary
-import CppFormalization.Cpp2.Closure.Foundation.BodyControlProfile
+import CppFormalization.Cpp2.Typing.ControlProfile
 import CppFormalization.Cpp2.Closure.Foundation.BodyDynamicBoundary
 import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureConcrete

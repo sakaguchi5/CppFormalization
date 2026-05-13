@@ -1,9 +1,9 @@
-import CppFormalization.Cpp2.Typing.ControlIndexed
+import CppFormalization.Cpp2.Core.TypeEnv
 
 namespace Cpp
 
 /-!
-# Closure.Foundation.TopFrameWitness
+# CppFormalization.Cpp2.Typing.TopFrameWitness
 
 Tiny bridge from top-scope freshness to an explicit top-frame witness.
 

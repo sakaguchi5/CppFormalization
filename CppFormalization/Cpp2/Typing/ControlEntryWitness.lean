@@ -3,7 +3,7 @@ import CppFormalization.Cpp2.Typing.ControlIndexed
 namespace Cpp
 
 /-!
-# Closure.Foundation.BodyEntryWitnessCI
+# CppFormalization.Cpp2.Typing.ControlEntryWitness
 
 Canonical static CI entry payloads that can be threaded through assembled
 boundaries without polluting the structural layer.

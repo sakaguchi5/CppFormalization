@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Foundation.BodyControlProfileLite
+import CppFormalization.Cpp2.Typing.ControlProfileLite
 import CppFormalization.Cpp2.Semantics.Stmt
 
 namespace Cpp

@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Foundation.BodyControlProfile
+import CppFormalization.Cpp2.Typing.ControlProfile
 import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Typing.ControlIndexed
 

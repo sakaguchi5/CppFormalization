@@ -1,5 +1,5 @@
-import CppFormalization.Cpp2.Closure.Foundation.BodyControlProfile
-import CppFormalization.Cpp2.Closure.Foundation.BodyEntryWitnessCI
+import CppFormalization.Cpp2.Typing.ControlProfile
+import CppFormalization.Cpp2.Typing.ControlEntryWitness
 import CppFormalization.Cpp2.Typing.Stmt
 
 namespace Cpp

@@ -1,10 +1,9 @@
 import CppFormalization.Cpp2.Typing.ControlIndexed
-import CppFormalization.Cpp2.Typing.Stmt
 
 namespace Cpp
 
 /-!
-# Closure.Foundation.BodyControlProfileLite
+# CppFormalization.Cpp2.Typing.ControlProfileLite
 
 E-lite 第一段階の control profile.
 
@@ -71,9 +70,6 @@ theorem wellTypedFrom_of_profileLite
   | leaf S =>
       exact S.typed0
   | seq hN _ P₂ =>
-      -- hN の型から Δ と s を取得。hN : HasTypeStmtCI ... Γ s Δ
-      -- ここで自動生成された s✝ や Δ✝ を使う代わりに、
-      -- 既存の定理から型推論に任せるのがスムーズです。
       have htS := normalCI_to_old_stmt hN
       rcases wellTypedFrom_of_profileLite P₂ with ⟨Θ, htT⟩
       exact ⟨Θ, HasTypeStmt.seq htS htT⟩

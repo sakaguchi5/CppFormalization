@@ -3,7 +3,7 @@ import CppFormalization.Cpp2.Typing.ControlIndexed
 namespace Cpp
 
 /-!
-# Closure.Foundation.BodyControlProfile
+# CppFormalization.Cpp2.Typing.ControlProfile
 
 四層分離の第2層。
 
