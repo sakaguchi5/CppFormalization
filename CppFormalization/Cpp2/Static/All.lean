@@ -1,9 +1,10 @@
-import CppFormalization.Cpp2.Static.Assumptions
+import CppFormalization.Cpp2.Static.Safety.Assumptions
 import CppFormalization.Cpp2.Static.Inversions
 import CppFormalization.Cpp2.Static.NoDeclareObj
 import CppFormalization.Cpp2.Static.ScopeDiscipline
 import CppFormalization.Cpp2.Static.WellFormed
 import CppFormalization.Cpp2.Static.Pure.All
+import CppFormalization.Cpp2.Static.Safety.All
 
 /-!
 # CppFormalization.Cpp2.Static.All

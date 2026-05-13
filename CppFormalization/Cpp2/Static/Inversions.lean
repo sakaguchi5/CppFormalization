@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Static.Assumptions
+import CppFormalization.Cpp2.Static.Safety.Assumptions
 
 /-!
 Structural inversion lemmas.

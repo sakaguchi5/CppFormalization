@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Static.Assumptions
+import CppFormalization.Cpp2.Static.Safety.Assumptions
 import CppFormalization.Cpp2.Core.RuntimeQuery
 import CppFormalization.Cpp2.Lemmas.RuntimeState
 
