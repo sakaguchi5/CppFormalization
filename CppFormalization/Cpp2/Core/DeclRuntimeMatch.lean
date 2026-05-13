@@ -1,4 +1,3 @@
-import CppFormalization.Cpp2.Core.TypeEnv
 import CppFormalization.Cpp2.Core.RuntimeState
 
 /-!

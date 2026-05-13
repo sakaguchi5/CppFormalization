@@ -1,4 +1,3 @@
-import CppFormalization.Cpp2.Core.Control
 import CppFormalization.Cpp2.Core.RuntimeState
 
 namespace Cpp
