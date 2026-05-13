@@ -3,6 +3,7 @@ import CppFormalization.Cpp2.Static.Inversions
 import CppFormalization.Cpp2.Static.NoDeclareObj
 import CppFormalization.Cpp2.Static.ScopeDiscipline
 import CppFormalization.Cpp2.Static.WellFormed
+import CppFormalization.Cpp2.Static.Pure.All
 
 /-!
 # CppFormalization.Cpp2.Static.All

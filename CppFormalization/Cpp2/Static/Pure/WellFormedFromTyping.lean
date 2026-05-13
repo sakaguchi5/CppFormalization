@@ -3,13 +3,13 @@ import CppFormalization.Cpp2.Static.WellFormed
 namespace Cpp
 
 /-!
-# Closure.Foundation.WellFormedFromTyping
+# CppFormalization.Cpp2.Static.Pure.WellFormedFromTyping
 
 Small structural facts saying that the ordinary expression/place typing
 judgments imply the corresponding well-formedness predicates.
 
-These facts are not specific to any external fragment.  They belong in the
-Foundation layer and can be reused by concrete fragment certificates.
+These facts are pure static facts: they do not depend on runtime state,
+big-step semantics, readiness, or closure boundaries.
 -/
 
 mutual

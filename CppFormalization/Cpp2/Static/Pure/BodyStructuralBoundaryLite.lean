@@ -4,9 +4,9 @@ import CppFormalization.Cpp2.Static.ScopeDiscipline
 namespace Cpp
 
 /-!
-# Closure.Foundation.BodyStructuralBoundaryLite
+# CppFormalization.Cpp2.Static.Pure.BodyStructuralBoundaryLite
 
-E-lite 補正段階の structural boundary.
+Pure structural boundary for the lite route.
 
 方針:
 - lite mainline では structural layer から old coarse typing を除去する。

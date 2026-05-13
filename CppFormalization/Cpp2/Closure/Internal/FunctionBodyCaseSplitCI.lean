@@ -1,7 +1,7 @@
 import CppFormalization.Cpp2.Boundary.FunctionBody
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
-import CppFormalization.Cpp2.Closure.Foundation.BodyStructuralBoundary
+import CppFormalization.Cpp2.Static.Pure.BodyStructuralBoundary
 import CppFormalization.Cpp2.Typing.ControlProfile
 import CppFormalization.Cpp2.Closure.Foundation.BodyDynamicBoundary
 import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI

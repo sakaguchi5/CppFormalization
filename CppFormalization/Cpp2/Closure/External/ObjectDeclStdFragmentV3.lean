@@ -2,7 +2,7 @@ import CppFormalization.Cpp2.Closure.External.StdFragmentV3
 import CppFormalization.Cpp2.Closure.External.ObjectDeclRuntimeBridgeV3
 import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.Preservation
 import CppFormalization.Cpp2.Closure.Foundation.CoreBigStepFragment
-import CppFormalization.Cpp2.Closure.Foundation.WellFormedFromTyping
+import CppFormalization.Cpp2.Static.Pure.WellFormedFromTyping
 import CppFormalization.Cpp2.Typing.TopFrameWitness
 
 namespace Cpp

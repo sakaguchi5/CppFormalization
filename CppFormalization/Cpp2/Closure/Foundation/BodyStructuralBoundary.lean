@@ -1,3 +1,4 @@
+import CppFormalization.Cpp2.Static.Pure.BodyStructuralBoundary
 import CppFormalization.Cpp2.Closure.Foundation.StateBoundary
 
 namespace Cpp
@@ -5,25 +6,14 @@ namespace Cpp
 /-!
 # Closure.Foundation.BodyStructuralBoundary
 
-Purely structural admission layer.
+Compatibility bridge for the old coarse `BodyReady` facade.
 
-Redesign:
-- `typed0` is removed from the structural layer.
-- structural data now means only:
-  * well-formedness,
-  * top-level scopedness discipline.
-- CI/static typing payloads move to `BodyStaticBoundaryCI`.
+The pure structural boundary records now live in
+`CppFormalization.Cpp2.Static.Pure.BodyStructuralBoundary`.
+
+Only the old `BodyReady.toStructural` bridge remains here because `BodyReady`
+belongs to `Closure.Foundation.StateBoundary`.
 -/
-
-structure BodyStructuralBoundary (Γ : TypeEnv) (st : CppStmt) : Prop where
-  wf : WellFormedStmt st
-  breakScoped : BreakWellScoped st
-  continueScoped : ContinueWellScoped st
-
-structure BlockBodyStructuralBoundary (Γ : TypeEnv) (ss : StmtBlock) : Prop where
-  wf : WellFormedBlock ss
-  breakScoped : BreakWellScopedBlockAt 0 ss
-  continueScoped : ContinueWellScopedBlockAt 0 ss
 
 def BodyReady.toStructural
     {Γ : TypeEnv} {σ : State} {st : CppStmt}

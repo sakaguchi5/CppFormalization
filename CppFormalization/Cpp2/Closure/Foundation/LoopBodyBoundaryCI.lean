@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Closure.Foundation.BodyDynamicBoundary
-import CppFormalization.Cpp2.Closure.Foundation.BodyStructuralBoundary
+import CppFormalization.Cpp2.Static.Pure.BodyStructuralBoundary
 import CppFormalization.Cpp2.Typing.ControlProfile
 
 namespace Cpp

@@ -8,8 +8,8 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryLite
 import CppFormalization.Cpp2.Closure.Foundation.BodyDynamicBoundary
 import CppFormalization.Cpp2.Closure.Foundation.BodyStaticBoundaryCI
-import CppFormalization.Cpp2.Closure.Foundation.BodyStructuralBoundary
-import CppFormalization.Cpp2.Closure.Foundation.BodyStructuralBoundaryLite
+import CppFormalization.Cpp2.Static.Pure.BodyStructuralBoundary
+import CppFormalization.Cpp2.Static.Pure.BodyStructuralBoundaryLite
 import CppFormalization.Cpp2.Closure.Foundation.CoreBigStepFragment
 import CppFormalization.Cpp2.Closure.Foundation.DeclareReadyStrongBridge
 import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCI
@@ -30,7 +30,7 @@ import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcretePreservati
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteReadyTransport
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteRecomputedCursor
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteStrengthening
-import CppFormalization.Cpp2.Closure.Foundation.WellFormedFromTyping
+import CppFormalization.Cpp2.Static.Pure.WellFormedFromTyping
 import CppFormalization.Cpp2.Closure.Foundation.WhileEntryBoundaryCI
 
 /-!
