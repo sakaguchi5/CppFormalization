@@ -25,7 +25,6 @@ import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverCoreSupportCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverProviderCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseSplitCI
-import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosure
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureCanonicalSeqGlobalShellCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureConcrete
@@ -97,14 +96,11 @@ import CppFormalization.Cpp2.Closure.Internal.SequentialStmtNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.SmallReusableWrappersCI
 import CppFormalization.Cpp2.Closure.Internal.StmtAbruptCompatibility
 import CppFormalization.Cpp2.Closure.Internal.StmtControlCompatibility
-import CppFormalization.Cpp2.Closure.Internal.StmtControlKernel
 import CppFormalization.Cpp2.Closure.Internal.StmtControlPreservation
 import CppFormalization.Cpp2.Closure.Internal.StmtNormalCompatCases
 import CppFormalization.Cpp2.Closure.Internal.StrongThinSeparatedCondReplay
 import CppFormalization.Cpp2.Closure.Internal.StrongThinSeparatedDerefTheorems
 import CppFormalization.Cpp2.Closure.Internal.ThinSeparatedDerefAssignKernel
-import CppFormalization.Cpp2.Closure.Internal.TypingCINormalExclusion
-import CppFormalization.Cpp2.Closure.Internal.TypingCISeparation
 import CppFormalization.Cpp2.Closure.Internal.WhileBodyClassCI
 import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryBackedgeInvariantCI
 import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryClosureCoreSupportCI
