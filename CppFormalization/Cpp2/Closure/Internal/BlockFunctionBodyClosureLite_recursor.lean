@@ -13,7 +13,7 @@ namespace BlockFunctionBodyClosureLite
 Statement-level block closure wrapper for the lite opened-block-body route.
 
 The general scope-depth / closeability recursor facts live in
-`Cpp2.Lemmas.BigStepScopeDepth`; this file only assembles the lite closure result.
+`Cpp2.Semantics.Facts.ScopeDepth`; this file only assembles the lite closure result.
 -/
 
 @[simp] theorem bigStepFunctionBlockBody_fellThrough_iff

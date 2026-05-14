@@ -13,7 +13,7 @@ namespace Cpp
 ここでは二段で整理する。
 
 1. normal typing から scope discipline (`BreakWellScoped` / `ContinueWellScoped`) を取り出す。
-2. `Lemmas.ControlExclusion` と組み合わせて、normal-typed 実行は
+2. `Static.Safety.Facts.ControlExclusion` と組み合わせて、normal-typed 実行は
    top-level `break` / `continue` になれないことを得る。
 
 この層は次の compatibility 再構成で、

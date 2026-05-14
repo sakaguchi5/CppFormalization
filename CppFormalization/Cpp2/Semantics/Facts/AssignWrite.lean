@@ -13,12 +13,13 @@ Assignment write-effect and write-footprint facts derived from Assigns/BigStepSt
 
 
 /-!
-# Lemmas.AssignWriteEffect
+## Assignment write-effect boundary
 
-The pure write-effect boundary exposed by an assignment step.
+This section exposes the logical write-effect carried by `Assigns`.
 
-This is kept below Closure/Internal because it is theorem-backed directly from
-`Assigns` and does not contain any readiness/replay transport axiom.
+It stays in `Semantics.Facts` because the facts are derived directly from
+`Assigns`, `BigStepStmt`, `BigStepPlace`, and heap update behavior.  It does
+not contain readiness transport or Closure-specific replay assumptions.
 -/
 
 /-- Logical write-effect boundary exposed by an assignment step. -/

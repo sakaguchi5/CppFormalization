@@ -28,7 +28,7 @@ namespace Cpp
   open/body/close assembly を theorem 化した。
 - high-level `block_function_body_closure_concrete_refined_honest` は、
   もはや axiom ではなく、opened body closure obligation からの assembly theorem である。
-- scope-depth / closeability facts are factored into `Lemmas.BigStepScopeDepth`.
+- scope-depth / closeability facts are factored into `Semantics.Facts.ScopeDepth`.
 - opened block-body closure itself is now split into a current-environment
   contract plus `nil` / `cons` head-tail assembly.
 - The remaining concrete debt is no longer the block-body case split.  It is the

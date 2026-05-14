@@ -13,7 +13,7 @@ Facts specific to declareObjectStateCore / declareObjectStateWithNext and the de
 Runtime lemmas for the object-core update and externally supplied cursor.
 
 Primitive state-operation algebra, including `setNext`, belongs in
-`Lemmas.RuntimeState`.  This file contains only facts specific to
+`Core.Facts.RuntimeState`.  This file contains only facts specific to
 `declareObjectStateCore` and `declareObjectStateWithNext`.
 
 The comparison lemmas against the old `declareObjectState` façade are kept here

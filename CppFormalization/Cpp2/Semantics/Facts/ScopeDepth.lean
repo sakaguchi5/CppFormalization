@@ -33,13 +33,14 @@ The semantic OpenScope/CloseScope simp bridge lives here, not in Core.Facts.Runt
   simp
 
 /-!
-# Cpp2.Lemmas.BigStepScopeDepth
+## Big-step scope-depth facts
 
-Scope-stack depth facts for the mutually inductive statement/block big-step semantics.
+Scope-stack depth facts for the mutually inductive statement/block big-step
+semantics.
 
-This file centralizes the explicit `BigStepStmt.rec` / `BigStepBlock.rec`
-pattern needed for mutually inductive operational derivations.  The closure
-layers should import these facts instead of duplicating local recursors.
+This section centralizes the explicit `BigStepStmt.rec` / `BigStepBlock.rec`
+pattern needed for mutually inductive operational derivations.  Closure layers
+should import `Semantics.Facts.ScopeDepth` instead of duplicating local recursors.
 -/
 
 
