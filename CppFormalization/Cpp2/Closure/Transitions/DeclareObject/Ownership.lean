@@ -1,3 +1,4 @@
+import CppFormalization.Cpp2.Semantics.Stmt
 import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.RuntimeTransport
 
 namespace Cpp
