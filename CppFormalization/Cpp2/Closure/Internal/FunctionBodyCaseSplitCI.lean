@@ -8,7 +8,7 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Internal.HeadTailReturnAwareRoutesCI
 import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.StmtControlPreservation
-import CppFormalization.Cpp2.Closure.Foundation.ReadinessSemanticsBridge
+import CppFormalization.Cpp2.Static.Safety.ReadinessSemanticsBridge
 import CppFormalization.Cpp2.Semantics.Divergence
 
 namespace Cpp

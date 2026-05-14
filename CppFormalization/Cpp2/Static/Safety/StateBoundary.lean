@@ -1,0 +1,361 @@
+import CppFormalization.Cpp2.Static.Safety.Assumptions
+import CppFormalization.Cpp2.Core.RuntimeQuery
+import CppFormalization.Cpp2.Lemmas.RuntimeState
+
+namespace Cpp
+
+/-!
+# CppFormalization.Cpp2.Static.Safety.StateBoundary
+
+Runtime-side safety boundary vocabulary.
+
+位置づけ:
+- `Static.Safety` は C++ execution が安全に始められるための runtime/state 側条件を置く。
+- ここには Closure boundary / adequacy / preservation assembly は置かない。
+- old Closure.Foundation path は compatibility wrapper として残す。
+-/
+
+
+/-- 型環境と runtime state の frame 数が一致する。第一近似として長さ一致だけを採用する。 -/
+def scopesCompatible (Γ : TypeEnv) (σ : State) : Prop :=
+  Γ.scopes.length = σ.scopes.length
+
+/--
+各 runtime frame の `locals` は、その frame 内の object binding address とちょうど一致する。
+ここでは type-env 側とは直接結び付けず、runtime frame 自体の整合条件として書く。
+-/
+def frameLocalsExact (_Γ : TypeEnv) (σ : State) : Prop :=
+  ∀ (k : Nat) fr,
+    σ.scopes[k]? = some fr →
+    ∀ a, a ∈ fr.locals ↔ frameBindsObjectAddr fr a
+
+/-- 異なる frame の `locals` は交わらない。 -/
+def ownedAddressesDisjoint (σ : State) : Prop :=
+  ∀ (i j : Nat) fi fj a,
+    i ≠ j →
+    σ.scopes[i]? = some fi →
+    σ.scopes[j]? = some fj →
+    a ∈ fi.locals →
+    a ∉ fj.locals
+
+@[simp] theorem ownedAddressesDisjoint_writeHeap
+    {σ : State} {a : Nat} {c : Cell} :
+    ownedAddressesDisjoint σ →
+    ownedAddressesDisjoint (writeHeap σ a c) := by
+  intro hdisj
+  -- 1. 定義を展開
+  unfold ownedAddressesDisjoint
+  -- 2. writeHeap σ a c の scopes が σ.scopes と等しいことを利用する
+  -- (writeHeap の定義が { σ with heap := ... } であれば、scopes は共通です)
+  have h_scopes : (writeHeap σ a c).scopes = σ.scopes := rfl
+  -- 3. ゴールの中の scopes を元の σ.scopes に書き換える
+  rw [h_scopes]
+  -- 4. これで型が一致するので exact で渡す
+  exact hdisj
+
+@[simp] theorem ownedAddressesDisjoint_setNext
+    {σ : State} {n : Nat} :
+    ownedAddressesDisjoint σ →
+    ownedAddressesDisjoint ({ σ with next := n }) := by
+  intro hdisj
+  unfold ownedAddressesDisjoint
+  -- 構造体更新 { σ with next := n } において scopes は不変であることを明示
+  have h_scopes : ({ σ with next := n } : State).scopes = σ.scopes := rfl
+  rw [h_scopes]
+  exact hdisj
+
+theorem ownedAddressesDisjoint_pushScope
+    {σ : State} :
+    ownedAddressesDisjoint σ →
+    ownedAddressesDisjoint (pushScope σ) := by
+  intro hdisj
+  unfold ownedAddressesDisjoint at *
+  intro i j fi fj a hij hi hj hai
+  -- i, j のインデックスで場合分け
+  cases i with
+  | zero =>
+      -- i = 0 の場合、fi は空のスコープなのでアドレス a を持てず矛盾
+      cases j with
+      | zero => exact (hij rfl).elim
+      | succ j =>
+          unfold pushScope at hi
+          simp [emptyScopeFrame] at hi
+          subst fi
+          simp at hai -- emptyScopeFrame のアドレス集合は空なので矛盾
+  | succ i =>
+      cases j with
+      | zero =>
+          simp [pushScope, emptyScopeFrame] at hj
+          subst fj
+          simp
+      | succ j =>
+          -- 両方 succ の場合は、1つ前のインデックスでの hdisj に帰着
+          have hi_old : σ.scopes[i]? = some fi := by
+            unfold pushScope at hi
+            exact hi
+          have hj_old : σ.scopes[j]? = some fj := by
+            unfold pushScope at hj
+            exact hj
+          -- インデックスが異なることの証明を簡潔に
+          have hij_old : i ≠ j := by
+            intro h_eq
+            subst h_eq
+            exact hij rfl
+          -- 既存の hdisj を適用
+          exact hdisj i j fi fj a hij_old hi_old hj_old hai
+
+theorem ownedAddressesDisjoint_bindTopBinding
+    {σ : State} {x : Ident} {b : Binding} :
+    ownedAddressesDisjoint σ →
+    ownedAddressesDisjoint (bindTopBinding σ x b) := by
+  intro hdisj
+  unfold ownedAddressesDisjoint at *
+  cases hsc : σ.scopes with
+  | nil =>
+      intro i j fi fj a hij hi hj hai
+      cases i <;> cases j <;>
+        simp [bindTopBinding, hsc] at hi hj hai
+      contradiction
+  | cons fr frs =>
+      intro i j fi fj a hij hi hj hai
+      cases i with
+      | zero =>
+          cases j with
+          | zero =>
+              exact (hij rfl).elim
+          | succ j =>
+              simp [bindTopBinding, hsc] at hi
+              subst fi
+              have hi_old : σ.scopes[0]? = some fr := by
+                simp [hsc]
+              have hj_old : σ.scopes[j.succ]? = some fj := by
+                simpa [bindTopBinding, hsc] using hj
+              have hai_old : a ∈ fr.locals := by
+                simpa using hai
+              exact hdisj 0 j.succ fr fj a
+                (by simp)
+                hi_old
+                hj_old
+                hai_old
+      | succ i =>
+          cases j with
+          | zero =>
+              simp [bindTopBinding, hsc] at hj
+              subst fj
+              have hi_old : σ.scopes[i.succ]? = some fi := by
+                simpa [bindTopBinding, hsc] using hi
+              have hj_old : σ.scopes[0]? = some fr := by
+                simp [hsc]
+              have hnot : a ∉ fr.locals :=
+                hdisj i.succ 0 fi fr a
+                  (Nat.succ_ne_zero _)
+                  hi_old
+                  hj_old
+                  hai
+              simpa using hnot
+          | succ j =>
+              have hi_old : σ.scopes[i.succ]? = some fi := by
+                simpa [bindTopBinding, hsc] using hi
+              have hj_old : σ.scopes[j.succ]? = some fj := by
+                simpa [bindTopBinding, hsc] using hj
+              exact hdisj i.succ j.succ fi fj a hij hi_old hj_old hai
+
+@[simp] theorem ownedAddressesDisjoint_declareRefState
+    {σ : State} {τ : CppType} {x : Ident} {a : Nat} :
+    ownedAddressesDisjoint σ →
+    ownedAddressesDisjoint (declareRefState σ τ x a) := by
+  intro hdisj
+  unfold declareRefState
+  exact ownedAddressesDisjoint_bindTopBinding (σ := σ) (x := x) (b := .ref τ a) hdisj
+
+/-- heap に入っている initialized value は cell の型に整合する。 -/
+def heapInitializedValuesTyped (σ : State) : Prop :=
+  ∀ a c v,
+    σ.heap a = some c →
+    c.value = some v →
+    ValueCompat v c.ty
+
+/-- `next` は未使用で、どの frame の `locals` にも現れない。 -/
+def nextIsFreshForOwnedHeap (σ : State) : Prop :=
+  σ.heap σ.next = none ∧
+  ∀ (k : Nat) fr,
+    σ.scopes[k]? = some fr →
+    σ.next ∉ fr.locals
+
+theorem nextIsFreshForOwnedHeap_bindTopBinding
+    {σ : State} {x : Ident} {b : Binding} :
+    nextIsFreshForOwnedHeap σ →
+    nextIsFreshForOwnedHeap (bindTopBinding σ x b) := by
+  intro h
+  rcases h with ⟨hheap, hfresh⟩
+  refine ⟨?_, ?_⟩
+  case refine_1 =>
+    rw [next_bindTopBinding, heap_bindTopBinding]
+    exact hheap
+  case refine_2 =>
+    intro k fr h_spec
+    rw [next_bindTopBinding]
+    rw [scopes_bindTopBinding] at h_spec
+    split at h_spec
+    case h_1 =>
+      cases k with
+      | zero =>
+        simp at h_spec
+        subst h_spec
+        simp
+      | succ k' =>
+        simp at h_spec
+    case h_2 =>
+      rename_i fr_top fr_rest h_scopes
+      cases k with
+      | zero =>
+        simp at h_spec
+        subst h_spec
+        apply hfresh 0 fr_top
+        simp [h_scopes]
+      | succ k' =>
+        simp at h_spec
+        apply hfresh (k' + 1) fr
+        simp [h_scopes, h_spec]
+
+@[simp] theorem nextIsFreshForOwnedHeap_declareRefState
+    {σ : State} {τ : CppType} {x : Ident} {a : Nat} :
+    nextIsFreshForOwnedHeap σ →
+    nextIsFreshForOwnedHeap (declareRefState σ τ x a) := by
+  intro h
+  unfold declareRefState
+  exact nextIsFreshForOwnedHeap_bindTopBinding (x := x) (b := .ref τ a) h
+
+@[simp] theorem nextIsFreshForOwnedHeap_pushScope
+    {σ : State} :
+    nextIsFreshForOwnedHeap σ →
+    nextIsFreshForOwnedHeap (pushScope σ) := by
+  intro h
+  rcases h with ⟨hheap, hfresh⟩
+  refine ⟨?_, ?_⟩
+  · -- pushScope は heap を変更しないことを示す
+    have h_heap : (pushScope σ).heap = σ.heap := rfl
+    rw [h_heap]
+    exact hheap
+  · intro k fr hk
+    cases k with
+    | zero =>
+        -- 新しく積まれた空のスコープ (index 0) はアドレスを持たない
+        unfold pushScope at hk
+        simp [emptyScopeFrame] at hk
+        subst fr
+        -- emptyScopeFrame のドメインが空であることを利用
+        simp
+    | succ k =>
+        -- 1番目以降のスコープは、元の σ.scopes[k] と同じ
+        have hk_old : σ.scopes[k]? = some fr := by
+          unfold pushScope at hk
+          -- (emptyScopeFrame :: σ.scopes)[k.succ]? = σ.scopes[k]?
+          exact hk
+        exact hfresh k fr hk_old
+
+
+/-- `PlaceReady Γ σ p τ` は、`p` が現在の状態で安全に使える `τ`-place であること。 -/
+def PlaceReady (Γ : TypeEnv) (σ : State) (p : PlaceExpr) (τ : CppType) : Prop :=
+  HasPlaceType Γ p τ ∧
+  NoInvalidRefPlace σ p
+
+/-- `ExprReady Γ σ e τ` は、`e` が現在の状態で安全に評価できる `τ`-expr であること。 -/
+def ExprReady (Γ : TypeEnv) (σ : State) (e : ValExpr) (τ : CppType) : Prop :=
+  HasValueType Γ e τ ∧
+  NoUninitValue σ e ∧
+  NoInvalidRefValue σ e
+
+/-- statement / block 開始時の安全準備条件。 -/
+def StmtReady (Γ : TypeEnv) (σ : State) (st : CppStmt) : Prop :=
+  WellTypedFrom Γ st ∧
+  NoUninitStmt σ st ∧
+  NoInvalidRefStmt σ st
+
+def BlockReady (Γ : TypeEnv) (σ : State) (ss : StmtBlock) : Prop :=
+  (∃ Δ, HasTypeBlock Γ ss Δ) ∧
+  NoUninitBlock σ ss ∧
+  NoInvalidRefBlock σ ss
+
+
+/-- 1 個の type frame と 1 個の runtime frame の対応。 -/
+def frameDeclBindingCompatibleAt (Γfr : TypeFrame) (σfr : ScopeFrame) : Prop :=
+  ∀ x d,
+    Γfr.decls x = some d →
+    ∃ b, σfr.binds x = some b ∧ DeclMatchesBinding d b
+
+/--
+各深さの type frame / runtime frame が局所的に整合している。
+ここでは shadowing 後の global lookup ではなく、frame ごとの対応を coarse に取る。
+-/
+def framewiseDeclBindingCompatible (Γ : TypeEnv) (σ : State) : Prop :=
+  ∀ (k : Nat) Γfr σfr,
+    Γ.scopes[k]? = some Γfr →
+    σ.scopes[k]? = some σfr →
+    frameDeclBindingCompatibleAt Γfr σfr
+
+/-- 1 個の object decl が、その frame の object binding / live cell / owned local に実現される。 -/
+def objectDeclBindingLiveTypedOwnedAt
+    (Γfr : TypeFrame) (σfr : ScopeFrame) (heap : Nat → Option Cell) : Prop :=
+  ∀ x τ,
+    Γfr.decls x = some (.object τ) →
+    ∃ a c,
+      σfr.binds x = some (.object τ a) ∧
+      heap a = some c ∧
+      c.ty = τ ∧
+      c.alive = true ∧
+      a ∈ σfr.locals
+
+/--
+各深さの object decl は、その frame 内の object binding と
+heap 上の live typed cell と local ownership に実現される。
+-/
+def objectBindingsLiveTypedOwned (Γ : TypeEnv) (σ : State) : Prop :=
+  ∀ (k : Nat) Γfr σfr,
+    Γ.scopes[k]? = some Γfr →
+    σ.scopes[k]? = some σfr →
+    objectDeclBindingLiveTypedOwnedAt Γfr σfr σ.heap
+
+/-- 1 個の ref decl が、その frame の ref binding と live typed target に実現される。 -/
+def refDeclBindingLiveTypedAt
+    (Γfr : TypeFrame) (σfr : ScopeFrame) (heap : Nat → Option Cell) : Prop :=
+  ∀ x τ,
+    Γfr.decls x = some (.ref τ) →
+    ∃ a c,
+      σfr.binds x = some (.ref τ a) ∧
+      heap a = some c ∧
+      c.ty = τ ∧
+      c.alive = true
+
+/--
+各深さの ref decl は、その frame 内の ref binding と
+heap 上の live typed target に実現される。
+object と違って ownership は要求しない。
+-/
+def refBindingsLiveTyped (Γ : TypeEnv) (σ : State) : Prop :=
+  ∀ (k : Nat) Γfr σfr,
+    Γ.scopes[k]? = some Γfr →
+    σ.scopes[k]? = some σfr →
+    refDeclBindingLiveTypedAt Γfr σfr σ.heap
+
+/-- `TypedState` より強い runtime invariant. -/
+structure ScopedTypedState (Γ : TypeEnv) (σ : State) : Prop where
+  stackAligned : scopesCompatible Γ σ
+  frameDeclBinding : framewiseDeclBindingCompatible Γ σ
+  objectBindingsSound : objectBindingsLiveTypedOwned Γ σ
+  refBindingsSound : refBindingsLiveTyped Γ σ
+  localsExact : frameLocalsExact Γ σ
+  ownedDisjoint : ownedAddressesDisjoint σ
+  initializedValuesTyped : heapInitializedValuesTyped σ
+  nextFresh : nextIsFreshForOwnedHeap σ
+
+/-- coarse compatibility façade retained for old-to-new bridges. -/
+structure BodyReady (Γ : TypeEnv) (σ : State) (st : CppStmt) : Prop where
+  wf : WellFormedStmt st
+  typed : WellTypedFrom Γ st
+  breakScoped : BreakWellScoped st
+  continueScoped : ContinueWellScoped st
+  state : ScopedTypedState Γ σ
+  safe : StmtReady Γ σ st
+
+end Cpp

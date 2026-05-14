@@ -1,11 +1,11 @@
-import CppFormalization.Cpp2.Closure.Foundation.Readiness
-import CppFormalization.Cpp2.Closure.Foundation.ReadinessInversions
+import CppFormalization.Cpp2.Static.Safety.Readiness
+import CppFormalization.Cpp2.Static.Safety.ReadinessInversions
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 import CppFormalization.Cpp2.Typing.ControlIndexed
 import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
 import CppFormalization.Cpp2.Closure.Internal.WhileReentryReadyKernelCI
 import CppFormalization.Cpp2.Closure.Internal.BlockNormalPreservation
-import CppFormalization.Cpp2.Closure.Foundation.ReadinessSemanticsBridge
+import CppFormalization.Cpp2.Static.Safety.ReadinessSemanticsBridge
 import CppFormalization.Cpp2.Lemmas.ExprTypeUniqueness
 import CppFormalization.Cpp2.Lemmas.TransitionDeterminism
 

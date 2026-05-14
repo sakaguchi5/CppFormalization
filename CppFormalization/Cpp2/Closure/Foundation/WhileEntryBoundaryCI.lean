@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
-import CppFormalization.Cpp2.Closure.Foundation.ReadinessInversions
+import CppFormalization.Cpp2.Static.Safety.ReadinessInversions
 import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCI
 
 namespace Cpp

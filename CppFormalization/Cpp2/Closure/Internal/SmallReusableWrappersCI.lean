@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Foundation.ReadinessSemanticsBridge
+import CppFormalization.Cpp2.Static.Safety.ReadinessSemanticsBridge
 import CppFormalization.Cpp2.Closure.Internal.WhileFunctionClosureKernelCI
 
 namespace Cpp

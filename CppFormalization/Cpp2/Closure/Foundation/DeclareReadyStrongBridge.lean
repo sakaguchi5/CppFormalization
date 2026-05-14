@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteReadyTransport
-import CppFormalization.Cpp2.Closure.Foundation.Readiness
+import CppFormalization.Cpp2.Static.Safety.Readiness
 
 namespace Cpp
 

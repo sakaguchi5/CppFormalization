@@ -1,4 +1,5 @@
 import CppFormalization.Cpp2.Closure.External.StdFragmentV3
+import CppFormalization.Cpp2.Static.Safety.ReadinessObjectDeclBridge
 import CppFormalization.Cpp2.Closure.Foundation.ReadinessObjectDeclBridge
 
 namespace Cpp

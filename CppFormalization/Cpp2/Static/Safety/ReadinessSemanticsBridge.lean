@@ -1,7 +1,17 @@
-import CppFormalization.Cpp2.Closure.Foundation.Readiness
+import CppFormalization.Cpp2.Static.Safety.Readiness
 import CppFormalization.Cpp2.Lemmas.ExprDeterminism
 
 namespace Cpp
+
+/-!
+# CppFormalization.Cpp2.Static.Safety.ReadinessSemanticsBridge
+
+Bridge lemmas from concrete readiness evidence to expression/place semantics.
+
+This file belongs to `Static.Safety` because it connects readiness predicates
+with pure expression/place evaluation facts.  It does not depend on Closure,
+adequacy, preservation, or boundary assembly.
+-/
 
 theorem expr_ready_eval_compat'
     {Γ : TypeEnv} {σ : State} {e : ValExpr} {τ : CppType} {v : Value}
@@ -56,40 +66,28 @@ theorem expr_ready_eval_compat
     ValueCompat v τ := by
   exact expr_ready_eval_compat' hre hstep
 
-
 /--
   状態が整合しており、場所 p が型 τ で Ready ならば、
-  そこから load した値 v は必ず型 τ と互換である
+  そこから load した値 v は必ず型 τ と互換である。
 -/
 theorem load_preserves_compat
     {Γ : TypeEnv} {σ : State} {p : PlaceExpr} {τ : CppType} {v : Value}
     (hre : ExprReadyConcrete Γ σ (ValExpr.load p) τ)
     (hstep : BigStepValue σ (ValExpr.load p) v) :
     ValueCompat v τ := by
-  -- 1. hready と hstep を分解する
   cases hre with
   | load hrp hread_info =>
-    rcases hread_info with ⟨a_ready, hplace_ready, hreadable⟩
-    cases hstep with
-    | load hplace hheap halive hval =>
-      -- 2. 決定性補題を使い、アドレスが同一であることを示す
-      -- (BigStepPlace σ p a_ready と BigStepPlace σ p a)
-      have heq_a : a_ready = _ := bigStepPlace_deterministic hplace_ready hplace
-      subst heq_a
-
-      -- 3. CellReadableTyped の定義を分解して ValueCompat を取り出す
-      rcases hreadable with ⟨c_ready, v_ready, hheap_ready, hty_ready, halive_ready, hval_ready, hcompat⟩
-
-      -- 4. 同じアドレス a の heap にある Cell は一意
-      rw [hheap_ready] at hheap
-      cases hheap -- c_ready = c
-
-      -- 5. 同じ Cell の中にある value も一意
-      rw [hval_ready] at hval
-      cases hval -- v_ready = v
-
-      -- 6. 結論
-      exact hcompat
+      rcases hread_info with ⟨a_ready, hplace_ready, hreadable⟩
+      cases hstep with
+      | load hplace hheap halive hval =>
+          have heq_a : a_ready = _ := bigStepPlace_deterministic hplace_ready hplace
+          subst heq_a
+          rcases hreadable with ⟨c_ready, v_ready, hheap_ready, hty_ready, halive_ready, hval_ready, hcompat⟩
+          rw [hheap_ready] at hheap
+          cases hheap
+          rw [hval_ready] at hval
+          cases hval
+          exact hcompat
 
 mutual
 
@@ -131,26 +129,23 @@ theorem expr_ready_to_bigstep
       cases expr_ready_eval_compat' h1 hv1
       cases expr_ready_eval_compat' h2 hv2
       refine ⟨_, BigStepValue.mul hv1 hv2⟩
-
   | .eq h1 h2 =>
       let ⟨v1, hv1⟩ := expr_ready_to_bigstep h1
       let ⟨v2, hv2⟩ := expr_ready_to_bigstep h2
       exists (Value.bool (decide (v1 = v2)))
       apply BigStepValue.eq hv1 hv2
-
   | .lt h1 h2 =>
-    let ⟨v1, hv1⟩ := expr_ready_to_bigstep h1
-    let ⟨v2, hv2⟩ := expr_ready_to_bigstep h2
-    cases expr_ready_eval_compat' h1 hv1
-    cases expr_ready_eval_compat' h2 hv2
-    refine ⟨_, BigStepValue.lt hv1 hv2⟩
-
+      let ⟨v1, hv1⟩ := expr_ready_to_bigstep h1
+      let ⟨v2, hv2⟩ := expr_ready_to_bigstep h2
+      cases expr_ready_eval_compat' h1 hv1
+      cases expr_ready_eval_compat' h2 hv2
+      refine ⟨_, BigStepValue.lt hv1 hv2⟩
   | .not h =>
-    let ⟨v, hv⟩ := expr_ready_to_bigstep h
-    cases expr_ready_eval_compat' h hv
-    refine ⟨_, BigStepValue.not hv⟩
+      let ⟨v, hv⟩ := expr_ready_to_bigstep h
+      cases expr_ready_eval_compat' h hv
+      refine ⟨_, BigStepValue.not hv⟩
 
-/-- Ready な場所式 (PlaceExpr) は必ず特定のアドレス a に評価される -/
+/-- Ready な場所式 (`PlaceExpr`) は必ず特定のアドレス `a` に評価される。 -/
 theorem place_ready_to_bigstep
     {Γ : TypeEnv} {σ : State} {p : PlaceExpr} {τ : CppType}
     (hrp : PlaceReadyConcrete Γ σ p τ) :
@@ -168,11 +163,9 @@ theorem place_ready_to_bigstep
       exists a
       apply BigStepPlace.deref hstep_e hlookup halive_proof
 
-
 end
 
-
---CellReadableTyped の分解アクセサ
+/-- `CellReadableTyped` の分解アクセサ。 -/
 theorem cell_readable_to_compat
     {σ a τ c v}
     (hread : CellReadableTyped σ a τ)
@@ -180,8 +173,10 @@ theorem cell_readable_to_compat
     (hval : c.value = some v) :
     ValueCompat v τ := by
   rcases hread with ⟨c', v', hheap', hty', halive', hval', hcompat⟩
-  rw [hheap'] at hheap; cases hheap
-  rw [hval'] at hval; cases hval
+  rw [hheap'] at hheap
+  cases hheap
+  rw [hval'] at hval
+  cases hval
   exact hcompat
 
 end Cpp

@@ -2,7 +2,7 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryLite
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
 import CppFormalization.Cpp2.Typing.ControlProfileLite
-import CppFormalization.Cpp2.Closure.Foundation.Readiness
+import CppFormalization.Cpp2.Static.Safety.Readiness
 import CppFormalization.Cpp2.Typing.ControlIndexed
 
 namespace Cpp

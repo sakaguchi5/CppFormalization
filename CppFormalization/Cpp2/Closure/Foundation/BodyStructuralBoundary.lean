@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Static.Pure.BodyStructuralBoundary
-import CppFormalization.Cpp2.Closure.Foundation.StateBoundary
+import CppFormalization.Cpp2.Static.Safety.StateBoundary
 
 namespace Cpp
 

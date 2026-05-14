@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Foundation.Readiness
+import CppFormalization.Cpp2.Static.Safety.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 
 namespace Cpp

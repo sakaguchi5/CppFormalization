@@ -17,7 +17,6 @@ import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Foundation.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.ReadinessInversions
 import CppFormalization.Cpp2.Closure.Foundation.ReadinessObjectDeclBridge
-import CppFormalization.Cpp2.Closure.Foundation.ReadinessSemanticsBridge
 import CppFormalization.Cpp2.Closure.Foundation.StateBoundary
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteDeclRealization

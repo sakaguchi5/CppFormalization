@@ -1,31 +1,20 @@
 import CppFormalization.Cpp2.Static.Safety.Assumptions
+import CppFormalization.Cpp2.Static.Safety.StateBoundary
+import CppFormalization.Cpp2.Static.Safety.Readiness
+import CppFormalization.Cpp2.Static.Safety.ReadinessInversions
 
 /-!
 # CppFormalization.Cpp2.Static.Safety.All
 
 Aggregate for static safety vocabulary.
 
-`Static.Safety` may depend on Core, Typing, Semantics, and `Static.Pure`.
+`Static.Safety` may depend on Core, Typing, Semantics, runtime-state lemmas,
+and `Static.Pure`-level facts.
 It must not depend on Closure, adequacy, preservation, or boundary assembly.
--/
---依存関係
-/-
-Core
-  ├─ Semantics.Expr(Core.RuntimeState
-  │                 Core.Syntax)
-  ├─ Typing.Expr(Core.TypeEnv
-  │              Core.Syntax)
-  │    └─ Typing.Stmt
-  ├─ Static.WellFormed(Core.Syntax)
-  ├─ Static.ScopeDiscipline(Core.Syntax)
-  ├─ Core.RuntimeState
-  └─ Core.DeclRuntimeMatch
 
-Static.Safety
-  └─ Assumptions(Semantics.Expr
-                 Typing.Stmt
-                 Static.WellFormed
-                 Static.ScopeDiscipline
-                 Core.RuntimeState
-                 Core.DeclRuntimeMatch)
+Current split:
+- `Assumptions`: coarse safety predicates and ideal boundary assumptions.
+- `StateBoundary`: runtime/state-side safety boundary vocabulary.
+- `Readiness`: concrete place/expression/statement readiness.
+- `ReadinessInversions`: pure inversion lemmas for concrete readiness.
 -/

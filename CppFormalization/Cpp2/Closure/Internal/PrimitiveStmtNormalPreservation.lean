@@ -1,5 +1,5 @@
-import CppFormalization.Cpp2.Closure.Foundation.Readiness
-import CppFormalization.Cpp2.Closure.Foundation.ReadinessSemanticsBridge
+import CppFormalization.Cpp2.Static.Safety.Readiness
+import CppFormalization.Cpp2.Static.Safety.ReadinessSemanticsBridge
 import CppFormalization.Cpp2.Typing.ControlIndexed
 import CppFormalization.Cpp2.Closure.Transitions.Assign.Preservation
 import CppFormalization.Cpp2.Closure.Transitions.DeclareRef.Preservation

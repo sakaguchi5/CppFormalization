@@ -4,7 +4,7 @@ import CppFormalization.Cpp2.Core.TypeEnvQuery
 import CppFormalization.Cpp2.Core.RuntimeQuery
 import CppFormalization.Cpp2.Core.RuntimeCell
 import CppFormalization.Cpp2.Core.RuntimeFreshness
-import CppFormalization.Cpp2.Closure.Foundation.StateBoundary
+import CppFormalization.Cpp2.Static.Safety.StateBoundary
 
 namespace Cpp
 
