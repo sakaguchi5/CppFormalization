@@ -71,38 +71,30 @@ theorem ownedAddressesDisjoint_pushScope
   intro hdisj
   unfold ownedAddressesDisjoint at *
   intro i j fi fj a hij hi hj hai
-  -- i, j のインデックスで場合分け
-  cases i with
-  | zero =>
-      -- i = 0 の場合、fi は空のスコープなのでアドレス a を持てず矛盾
-      cases j with
-      | zero => exact (hij rfl).elim
-      | succ j =>
-          unfold pushScope at hi
-          simp [emptyScopeFrame] at hi
-          subst fi
-          simp at hai -- emptyScopeFrame のアドレス集合は空なので矛盾
-  | succ i =>
-      cases j with
-      | zero =>
-          simp [pushScope, emptyScopeFrame] at hj
-          subst fj
-          simp
-      | succ j =>
-          -- 両方 succ の場合は、1つ前のインデックスでの hdisj に帰着
-          have hi_old : σ.scopes[i]? = some fi := by
-            unfold pushScope at hi
-            exact hi
-          have hj_old : σ.scopes[j]? = some fj := by
-            unfold pushScope at hj
-            exact hj
-          -- インデックスが異なることの証明を簡潔に
-          have hij_old : i ≠ j := by
-            intro h_eq
-            subst h_eq
-            exact hij rfl
-          -- 既存の hdisj を適用
-          exact hdisj i j fi fj a hij_old hi_old hj_old hai
+
+  rcases pushScope_scope_locals_empty_or_old hi with hfi_empty | ⟨i₀, fi₀, hi_eq, hi₀, hfi_locals⟩
+  · exact False.elim (by simp [hfi_empty] at hai)
+
+  rcases pushScope_scope_locals_empty_or_old hj with hfj_empty | ⟨j₀, fj₀, hj_eq, hj₀, hfj_locals⟩
+  · intro haj
+    exact (by simp [hfj_empty] at haj)
+
+  · have hij₀ : i₀ ≠ j₀ := by
+      intro hij₀
+      apply hij
+      calc
+        i = i₀.succ := hi_eq
+        _ = j₀.succ := by simp [hij₀]
+        _ = j := hj_eq.symm
+
+    have hai₀ : a ∈ fi₀.locals := by
+      simpa [hfi_locals] using hai
+
+    have hnot₀ : a ∉ fj₀.locals :=
+      hdisj i₀ j₀ fi₀ fj₀ a hij₀ hi₀ hj₀ hai₀
+
+    intro haj
+    exact hnot₀ (by simpa [hfj_locals] using haj)
 
 theorem ownedAddressesDisjoint_bindTopBinding
     {σ : State} {x : Ident} {b : Binding} :
@@ -110,55 +102,21 @@ theorem ownedAddressesDisjoint_bindTopBinding
     ownedAddressesDisjoint (bindTopBinding σ x b) := by
   intro hdisj
   unfold ownedAddressesDisjoint at *
-  cases hsc : σ.scopes with
-  | nil =>
-      intro i j fi fj a hij hi hj hai
-      cases i <;> cases j <;>
-        simp [bindTopBinding, hsc] at hi hj hai
-      contradiction
-  | cons fr frs =>
-      intro i j fi fj a hij hi hj hai
-      cases i with
-      | zero =>
-          cases j with
-          | zero =>
-              exact (hij rfl).elim
-          | succ j =>
-              simp [bindTopBinding, hsc] at hi
-              subst fi
-              have hi_old : σ.scopes[0]? = some fr := by
-                simp [hsc]
-              have hj_old : σ.scopes[j.succ]? = some fj := by
-                simpa [bindTopBinding, hsc] using hj
-              have hai_old : a ∈ fr.locals := by
-                simpa using hai
-              exact hdisj 0 j.succ fr fj a
-                (by simp)
-                hi_old
-                hj_old
-                hai_old
-      | succ i =>
-          cases j with
-          | zero =>
-              simp [bindTopBinding, hsc] at hj
-              subst fj
-              have hi_old : σ.scopes[i.succ]? = some fi := by
-                simpa [bindTopBinding, hsc] using hi
-              have hj_old : σ.scopes[0]? = some fr := by
-                simp [hsc]
-              have hnot : a ∉ fr.locals :=
-                hdisj i.succ 0 fi fr a
-                  (Nat.succ_ne_zero _)
-                  hi_old
-                  hj_old
-                  hai
-              simpa using hnot
-          | succ j =>
-              have hi_old : σ.scopes[i.succ]? = some fi := by
-                simpa [bindTopBinding, hsc] using hi
-              have hj_old : σ.scopes[j.succ]? = some fj := by
-                simpa [bindTopBinding, hsc] using hj
-              exact hdisj i.succ j.succ fi fj a hij hi_old hj_old hai
+  intro i j fi fj a hij hi hj hai
+
+  rcases bindTopBinding_scope_locals_empty_or_old hi with hfi_empty | ⟨fi₀, hi₀, hfi_locals⟩
+  · exact False.elim (by simp [hfi_empty] at hai)
+
+  rcases bindTopBinding_scope_locals_empty_or_old hj with hfj_empty | ⟨fj₀, hj₀, hfj_locals⟩
+  · intro haj
+    exact (by simp [hfj_empty] at haj)
+
+  · have hai₀ : a ∈ fi₀.locals := by
+      simpa [hfi_locals] using hai
+    have hnot₀ : a ∉ fj₀.locals :=
+      hdisj i j fi₀ fj₀ a hij hi₀ hj₀ hai₀
+    intro haj
+    exact hnot₀ (by simpa [hfj_locals] using haj)
 
 @[simp] theorem ownedAddressesDisjoint_declareRefState
     {σ : State} {τ : CppType} {x : Ident} {a : Nat} :
@@ -189,34 +147,12 @@ theorem nextIsFreshForOwnedHeap_bindTopBinding
   intro h
   rcases h with ⟨hheap, hfresh⟩
   refine ⟨?_, ?_⟩
-  case refine_1 =>
-    rw [next_bindTopBinding, heap_bindTopBinding]
-    exact hheap
-  case refine_2 =>
-    intro k fr h_spec
-    rw [next_bindTopBinding]
-    rw [scopes_bindTopBinding] at h_spec
-    split at h_spec
-    case h_1 =>
-      cases k with
-      | zero =>
-        simp at h_spec
-        subst h_spec
-        simp
-      | succ k' =>
-        simp at h_spec
-    case h_2 =>
-      rename_i fr_top fr_rest h_scopes
-      cases k with
-      | zero =>
-        simp at h_spec
-        subst h_spec
-        apply hfresh 0 fr_top
-        simp [h_scopes]
-      | succ k' =>
-        simp at h_spec
-        apply hfresh (k' + 1) fr
-        simp [h_scopes, h_spec]
+  · simpa using hheap
+  · intro k fr hk
+    rcases bindTopBinding_scope_locals_empty_or_old hk with hfr_empty | ⟨fr₀, hk₀, hfr_locals⟩
+    · intro hmem
+      exact (by simp [hfr_empty] at hmem)
+    · simpa [hfr_locals] using hfresh k fr₀ hk₀
 
 @[simp] theorem nextIsFreshForOwnedHeap_declareRefState
     {σ : State} {τ : CppType} {x : Ident} {a : Nat} :

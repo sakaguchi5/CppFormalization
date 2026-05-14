@@ -591,4 +591,57 @@ theorem declareRefState_lookup_preserves_locals_backward_of_cons
       refine ⟨fr, ?_, rfl⟩
       exact (declareRefState_lookup_succ_iff).1 hk
 
+/--
+`bindTopBinding` only changes the binding map of the top frame.
+It never creates owned locals.  If it creates a frame from an empty stack,
+that new frame has empty locals; otherwise every resulting frame has the
+same `locals` list as the corresponding old frame.
+-/
+theorem bindTopBinding_scope_locals_empty_or_old
+    {σ : State} {x : Ident} {b : Binding} {k : Nat} {fr : ScopeFrame}
+    (h : (bindTopBinding σ x b).scopes[k]? = some fr) :
+    fr.locals = [] ∨
+      ∃ fr₀, σ.scopes[k]? = some fr₀ ∧ fr.locals = fr₀.locals := by
+  cases hσ : σ.scopes with
+  | nil =>
+      cases k with
+      | zero =>
+          simp [bindTopBinding, hσ] at h
+          subst fr
+          exact Or.inl rfl
+      | succ k =>
+          simp [bindTopBinding, hσ] at h
+  | cons fr₀ frs =>
+      cases k with
+      | zero =>
+          simp [bindTopBinding, hσ] at h
+          subst fr
+          exact Or.inr ⟨fr₀, by simp , rfl⟩
+      | succ k =>
+          simp [bindTopBinding, hσ] at h
+          exact Or.inr ⟨fr, by simpa [hσ] using h, rfl⟩
+
+/--
+`pushScope` creates one new empty top frame.  Every non-top frame in the
+post-state is an old frame shifted by one index, with the same `locals`.
+-/
+theorem pushScope_scope_locals_empty_or_old
+    {σ : State} {k : Nat} {fr : ScopeFrame}
+    (h : (pushScope σ).scopes[k]? = some fr) :
+    fr.locals = [] ∨
+      ∃ (k₀ : Nat) (fr₀ : ScopeFrame),
+        k = Nat.succ k₀ ∧
+        σ.scopes[k₀]? = some fr₀ ∧
+        fr.locals = fr₀.locals := by
+  cases k with
+  | zero =>
+      simp [pushScope, emptyScopeFrame] at h
+      subst fr
+      exact Or.inl rfl
+  | succ k =>
+      have hk : σ.scopes[k]? = some fr := by
+        simpa [pushScope] using h
+      exact Or.inr ⟨k, fr, rfl, hk, rfl⟩
+
+
 end Cpp
