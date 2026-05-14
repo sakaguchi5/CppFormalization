@@ -1,4 +1,3 @@
-import CppFormalization.Cpp2.Closure.Foundation.BlockBodyDynamicBoundaryLite
 import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyLite
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
@@ -6,7 +5,6 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCoherence
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryLite
-import CppFormalization.Cpp2.Closure.Foundation.BodyDynamicBoundary
 import CppFormalization.Cpp2.Closure.Foundation.BodyStaticBoundaryCI
 import CppFormalization.Cpp2.Static.Pure.BodyStructuralBoundary
 import CppFormalization.Cpp2.Static.Pure.BodyStructuralBoundaryLite

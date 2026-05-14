@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Static.Safety.ReadinessObjectDeclBridge
-import CppFormalization.Cpp2.Closure.Foundation.BodyDynamicBoundary
+import CppFormalization.Cpp2.Static.Safety.BodyDynamicBoundary
 import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete.RecomputedCursor
 
 namespace Cpp

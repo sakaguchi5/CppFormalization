@@ -1,6 +1,6 @@
 import CppFormalization.Cpp2.Static.Pure.BodyStructuralBoundaryLite
-import CppFormalization.Cpp2.Closure.Foundation.BodyDynamicBoundary
-import CppFormalization.Cpp2.Closure.Foundation.BlockBodyDynamicBoundaryLite
+import CppFormalization.Cpp2.Static.Safety.BodyDynamicBoundary
+import CppFormalization.Cpp2.Static.Safety.BlockBodyDynamicBoundaryLite
 import CppFormalization.Cpp2.Typing.ControlProfileLite
 import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyLite
 import CppFormalization.Cpp2.Static.Safety.Facts.ControlExclusion

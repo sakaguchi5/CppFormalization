@@ -1,6 +1,18 @@
 import CppFormalization.Cpp2.Static.Safety.Readiness
 import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete
 
+/-!
+# CppFormalization.Cpp2.Static.Safety.BodyDynamicBoundary
+
+State-dependent dynamic entry boundaries for top-level function bodies.
+
+This module lives in `Static.Safety` because it is only a state-dependent
+entry safety boundary:
+- a concrete state invariant;
+- a concrete readiness assumption.
+
+It intentionally does not depend on Closure or adequacy.
+-/
 namespace Cpp
 
 /-!
