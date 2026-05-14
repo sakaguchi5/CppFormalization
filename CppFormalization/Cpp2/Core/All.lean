@@ -8,6 +8,7 @@ import CppFormalization.Cpp2.Core.TypeEnv
 import CppFormalization.Cpp2.Core.RuntimeState
 
 -- Pure syntax / environment / runtime observation vocabulary.
+import CppFormalization.Cpp2.Core.SyntaxShape
 import CppFormalization.Cpp2.Core.Fragment
 import CppFormalization.Cpp2.Core.TypeEnvQuery
 import CppFormalization.Cpp2.Core.RuntimeCell
@@ -33,6 +34,7 @@ alphabetically.
 Core.Types
   ├─ Core.Control
   ├─ Core.Syntax
+  │    ├─ Core.SyntaxShape
   │    └─ Core.Fragment
   ├─ Core.TypeEnv
   │    └─ Core.TypeEnvQuery

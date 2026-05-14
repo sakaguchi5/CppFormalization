@@ -1,7 +1,7 @@
 import CppFormalization.Cpp2.Static.Safety.Readiness
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 import CppFormalization.Cpp2.Semantics.Facts.AssignWrite
-import CppFormalization.Cpp2.Static.Pure.ReplayStableReadPlace
+import CppFormalization.Cpp2.Core.SyntaxShape
 
 namespace Cpp
 
