@@ -43,14 +43,14 @@ def ownedAddressesDisjoint (σ : State) : Prop :=
     ownedAddressesDisjoint σ →
     ownedAddressesDisjoint (writeHeap σ a c) := by
   intro hdisj
-  -- 1. 定義を展開
   unfold ownedAddressesDisjoint
-  -- 2. writeHeap σ a c の scopes が σ.scopes と等しいことを利用する
-  -- (writeHeap の定義が { σ with heap := ... } であれば、scopes は共通です)
-  have h_scopes : (writeHeap σ a c).scopes = σ.scopes := rfl
-  -- 3. ゴールの中の scopes を元の σ.scopes に書き換える
-  rw [h_scopes]
-  -- 4. これで型が一致するので exact で渡す
+  change
+    ∀ (i j : Nat) fi fj aOwned,
+      i ≠ j →
+      σ.scopes[i]? = some fi →
+      σ.scopes[j]? = some fj →
+      aOwned ∈ fi.locals →
+      aOwned ∉ fj.locals
   exact hdisj
 
 @[simp] theorem ownedAddressesDisjoint_setNext
@@ -59,9 +59,13 @@ def ownedAddressesDisjoint (σ : State) : Prop :=
     ownedAddressesDisjoint ({ σ with next := n }) := by
   intro hdisj
   unfold ownedAddressesDisjoint
-  -- 構造体更新 { σ with next := n } において scopes は不変であることを明示
-  have h_scopes : ({ σ with next := n } : State).scopes = σ.scopes := rfl
-  rw [h_scopes]
+  change
+    ∀ (i j : Nat) fi fj aOwned,
+      i ≠ j →
+      σ.scopes[i]? = some fi →
+      σ.scopes[j]? = some fj →
+      aOwned ∈ fi.locals →
+      aOwned ∉ fj.locals
   exact hdisj
 
 theorem ownedAddressesDisjoint_pushScope
@@ -169,26 +173,16 @@ theorem nextIsFreshForOwnedHeap_bindTopBinding
   intro h
   rcases h with ⟨hheap, hfresh⟩
   refine ⟨?_, ?_⟩
-  · -- pushScope は heap を変更しないことを示す
-    have h_heap : (pushScope σ).heap = σ.heap := rfl
-    rw [h_heap]
+  · change σ.heap σ.next = none
     exact hheap
   · intro k fr hk
-    cases k with
-    | zero =>
-        -- 新しく積まれた空のスコープ (index 0) はアドレスを持たない
-        unfold pushScope at hk
-        simp [emptyScopeFrame] at hk
-        subst fr
-        -- emptyScopeFrame のドメインが空であることを利用
-        simp
-    | succ k =>
-        -- 1番目以降のスコープは、元の σ.scopes[k] と同じ
-        have hk_old : σ.scopes[k]? = some fr := by
-          unfold pushScope at hk
-          -- (emptyScopeFrame :: σ.scopes)[k.succ]? = σ.scopes[k]?
-          exact hk
-        exact hfresh k fr hk_old
+    change σ.next ∉ fr.locals
+    rcases pushScope_scope_locals_empty_or_old hk with hfr_empty | ⟨k₀, fr₀, _, hk₀, hfr_locals⟩
+    · intro hmem
+      rw [hfr_empty] at hmem
+      cases hmem
+    · rw [hfr_locals]
+      exact hfresh k₀ fr₀ hk₀
 
 
 /-- `PlaceReady Γ σ p τ` は、`p` が現在の状態で安全に使える `τ`-place であること。 -/

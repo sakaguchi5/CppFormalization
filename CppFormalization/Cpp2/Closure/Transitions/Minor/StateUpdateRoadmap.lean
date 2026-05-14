@@ -9,7 +9,6 @@ import CppFormalization.Cpp2.Closure.Transitions.DeclareRef.Preservation
 import CppFormalization.Cpp2.Closure.Transitions.Scope.ClosePreservation
 import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.Preservation
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
-import CppFormalization.Cpp2.Boundary.FunctionBody
 import CppFormalization.Cpp2.Semantics.Divergence
 
 namespace Cpp
