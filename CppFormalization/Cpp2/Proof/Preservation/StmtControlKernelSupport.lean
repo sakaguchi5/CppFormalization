@@ -1,6 +1,6 @@
 import CppFormalization.Cpp2.Static.Safety.Readiness
 import CppFormalization.Cpp2.Static.Safety.ReadinessInversions
-import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
+import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete
 import CppFormalization.Cpp2.Typing.ControlIndexed
 import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
 import CppFormalization.Cpp2.Closure.Internal.WhileReentryReadyKernelCI

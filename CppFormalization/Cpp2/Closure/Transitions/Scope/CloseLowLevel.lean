@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Semantics.Stmt
-import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
+import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcretePreservation
 import CppFormalization.Cpp2.Core.Facts.TypeEnv
 
