@@ -1,10 +1,17 @@
 import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete.ReadyTransport
 import CppFormalization.Cpp2.Static.Safety.Readiness
 
+/-!
+# CppFormalization.Cpp2.Static.Safety.DeclareReadyStrongBridge
+
+Static/Safety bridge moved from Closure/Foundation.
+
+This file must not depend on Closure.
+-/
 namespace Cpp
 
 /-!
-# Closure.Foundation.DeclareReadyStrongBridge
+# CppFormalization.Cpp2.Static.Safety.DeclareReadyStrongBridge
 
 `DeclareObjectReadyStrong` / `DeclareRefReadyStrong` を、
 既存の
@@ -13,7 +20,7 @@ namespace Cpp
 - `ScopedTypedStateConcreteStrengthening`
 - `currentTypeScopeFresh`
 
-から組み立てる薄い bridge 層。
+から組み立てる薄い Static/Safety bridge 層。
 
 重要:
 - ここでは operational axiom 自体はまだ消さない。

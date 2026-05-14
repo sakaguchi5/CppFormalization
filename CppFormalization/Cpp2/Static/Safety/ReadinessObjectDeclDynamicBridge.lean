@@ -2,16 +2,25 @@ import CppFormalization.Cpp2.Static.Safety.ReadinessObjectDeclBridge
 import CppFormalization.Cpp2.Static.Safety.BodyDynamicBoundary
 import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete.RecomputedCursor
 
+/-!
+# CppFormalization.Cpp2.Static.Safety.ReadinessObjectDeclDynamicBridge
+
+Static/Safety bridge moved from Closure/Foundation.
+
+This file must not depend on Closure.
+-/
 namespace Cpp
 
 /-!
-# Closure.Foundation.ReadinessObjectDeclBridge
+# CppFormalization.Cpp2.Static.Safety.ReadinessObjectDeclDynamicBridge
 
-Closure-side bridge from recomputed-cursor object-declaration readiness to
+Static/Safety-side bridge from recomputed-cursor object-declaration readiness to
 `StmtReadyConcrete` / `BodyDynamicBoundary`.
 
 The pure stored-value payload now lives in
 `CppFormalization.Cpp2.Static.Safety.ReadinessObjectDeclBridge`.
+
+This file adds the dynamic-boundary-facing bridge layer.
 -/
 
 namespace DeclareObjectReadyRecomputed

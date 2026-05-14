@@ -6,14 +6,9 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryLite
 import CppFormalization.Cpp2.Closure.Foundation.BodyStaticBoundaryCI
-import CppFormalization.Cpp2.Static.Pure.BodyStructuralBoundary
-import CppFormalization.Cpp2.Static.Pure.BodyStructuralBoundaryLite
 import CppFormalization.Cpp2.Closure.Foundation.CoreBigStepFragment
-import CppFormalization.Cpp2.Closure.Foundation.DeclareReadyStrongBridge
 import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCompatibility
-import CppFormalization.Cpp2.Closure.Foundation.ReadinessObjectDeclBridge
-import CppFormalization.Cpp2.Static.Pure.WellFormedFromTyping
 import CppFormalization.Cpp2.Closure.Foundation.WhileEntryBoundaryCI
 
 /-!
