@@ -6,8 +6,8 @@ import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
 import CppFormalization.Cpp2.Closure.Internal.WhileReentryReadyKernelCI
 import CppFormalization.Cpp2.Closure.Internal.BlockNormalPreservation
 import CppFormalization.Cpp2.Static.Safety.ReadinessSemanticsBridge
-import CppFormalization.Cpp2.Lemmas.ExprTypeUniqueness
-import CppFormalization.Cpp2.Lemmas.TransitionDeterminism
+import CppFormalization.Cpp2.Typing.Facts.ExprUniqueness
+import CppFormalization.Cpp2.Semantics.Facts.TransitionDeterminism
 
 
 namespace Cpp

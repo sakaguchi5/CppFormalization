@@ -5,6 +5,7 @@ import CppFormalization.Cpp2.Typing.TopFrameWitness
 import CppFormalization.Cpp2.Typing.ControlEntryWitness
 import CppFormalization.Cpp2.Typing.ControlProfile
 import CppFormalization.Cpp2.Typing.ControlProfileLite
+import CppFormalization.Cpp2.Typing.Facts.All
 
 /-!
 # CppFormalization.Cpp2.Typing.All

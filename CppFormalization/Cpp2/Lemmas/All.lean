@@ -1,15 +1,15 @@
-import CppFormalization.Cpp2.Lemmas.AssignWriteEffect
-import CppFormalization.Cpp2.Lemmas.AssignWriteFootprint
-import CppFormalization.Cpp2.Lemmas.BigStepScopeDepth
-import CppFormalization.Cpp2.Lemmas.ControlExclusion
-import CppFormalization.Cpp2.Lemmas.ExprDeterminism
-import CppFormalization.Cpp2.Lemmas.ExprTypeUniqueness
-import CppFormalization.Cpp2.Lemmas.ReplayStableReadPlace
-import CppFormalization.Cpp2.Lemmas.RuntimeObjectCore
+import CppFormalization.Cpp2.Semantics.Facts.AssignWrite
+import CppFormalization.Cpp2.Semantics.Facts.AssignWrite
+import CppFormalization.Cpp2.Semantics.Facts.ScopeDepth
+import CppFormalization.Cpp2.Static.Safety.Facts.ControlExclusion
+import CppFormalization.Cpp2.Semantics.Facts.ExprDeterminism
+import CppFormalization.Cpp2.Typing.Facts.ExprUniqueness
+import CppFormalization.Cpp2.Static.Pure.ReplayStableReadPlace
+import CppFormalization.Cpp2.Core.Facts.RuntimeDeclUpdate
 import CppFormalization.Cpp2.Lemmas.RuntimeState
-import CppFormalization.Cpp2.Lemmas.SafetyBridge
-import CppFormalization.Cpp2.Lemmas.TransitionDeterminism
-import CppFormalization.Cpp2.Lemmas.TypeEnv
+import CppFormalization.Cpp2.Static.Safety.Facts.SafetyBridge
+import CppFormalization.Cpp2.Semantics.Facts.TransitionDeterminism
+import CppFormalization.Cpp2.Core.Facts.TypeEnv
 
 /-!
 # CppFormalization.Cpp2.Lemmas.All

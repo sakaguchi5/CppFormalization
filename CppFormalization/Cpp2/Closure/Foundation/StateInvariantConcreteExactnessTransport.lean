@@ -1,7 +1,7 @@
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteStrengthening
 import CppFormalization.Cpp2.Lemmas.RuntimeState
-import CppFormalization.Cpp2.Lemmas.TypeEnv
-import CppFormalization.Cpp2.Lemmas.RuntimeObjectCore
+import CppFormalization.Cpp2.Core.Facts.TypeEnv
+import CppFormalization.Cpp2.Core.Facts.RuntimeDeclUpdate
 
 namespace Cpp
 

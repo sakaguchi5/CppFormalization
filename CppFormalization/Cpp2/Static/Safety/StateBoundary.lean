@@ -1,6 +1,6 @@
 import CppFormalization.Cpp2.Static.Safety.Assumptions
 import CppFormalization.Cpp2.Core.RuntimeQuery
-import CppFormalization.Cpp2.Lemmas.RuntimeState
+import CppFormalization.Cpp2.Core.Facts.RuntimeState
 
 namespace Cpp
 

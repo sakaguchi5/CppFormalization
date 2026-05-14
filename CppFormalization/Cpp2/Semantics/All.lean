@@ -1,6 +1,7 @@
 import CppFormalization.Cpp2.Semantics.Expr
 import CppFormalization.Cpp2.Semantics.Stmt
 import CppFormalization.Cpp2.Semantics.Divergence
+import CppFormalization.Cpp2.Semantics.Facts.All
 
 /-!
 # CppFormalization.Cpp2.Semantics.All

@@ -1,4 +1,5 @@
 import CppFormalization.Cpp2.Core.Types
+import CppFormalization.Cpp2.Core.Facts.All
 
 -- Base vocabularies built directly on `Types`.
 import CppFormalization.Cpp2.Core.Control

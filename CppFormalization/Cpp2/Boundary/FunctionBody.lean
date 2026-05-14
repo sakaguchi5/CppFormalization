@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Lemmas.ControlExclusion
+import CppFormalization.Cpp2.Static.Safety.Facts.ControlExclusion
 import CppFormalization.Cpp2.Static.Inversions
 
 /-!

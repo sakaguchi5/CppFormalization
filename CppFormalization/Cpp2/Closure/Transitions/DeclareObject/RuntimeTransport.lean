@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
-import CppFormalization.Cpp2.Lemmas.RuntimeObjectCore
+import CppFormalization.Cpp2.Core.Facts.RuntimeDeclUpdate
 
 namespace Cpp
 namespace DeclareObjectTransport

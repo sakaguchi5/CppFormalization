@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Static.Safety.Readiness
-import CppFormalization.Cpp2.Lemmas.ExprDeterminism
+import CppFormalization.Cpp2.Semantics.Facts.ExprDeterminism
 
 namespace Cpp
 

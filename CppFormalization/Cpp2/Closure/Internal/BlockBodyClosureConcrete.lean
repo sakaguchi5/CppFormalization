@@ -2,9 +2,9 @@ import CppFormalization.Cpp2.Boundary.FunctionBody
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureConcreteRefined
 import CppFormalization.Cpp2.Closure.Internal.BlockNormalPreservation
 import CppFormalization.Cpp2.Closure.Transitions.Scope.OpenPreservation
-import CppFormalization.Cpp2.Lemmas.ControlExclusion
+import CppFormalization.Cpp2.Static.Safety.Facts.ControlExclusion
 import CppFormalization.Cpp2.Semantics.Divergence
-import CppFormalization.Cpp2.Lemmas.BigStepScopeDepth
+import CppFormalization.Cpp2.Semantics.Facts.ScopeDepth
 
 namespace Cpp
 

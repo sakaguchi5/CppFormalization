@@ -4,8 +4,8 @@ import CppFormalization.Cpp2.Typing.ControlIndexed
 import CppFormalization.Cpp2.Closure.Transitions.Assign.Preservation
 import CppFormalization.Cpp2.Closure.Transitions.DeclareRef.Preservation
 import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.Preservation
-import CppFormalization.Cpp2.Lemmas.AssignWriteEffect
-import CppFormalization.Cpp2.Lemmas.ExprTypeUniqueness
+import CppFormalization.Cpp2.Semantics.Facts.AssignWrite
+import CppFormalization.Cpp2.Typing.Facts.ExprUniqueness
 
 namespace Cpp
 

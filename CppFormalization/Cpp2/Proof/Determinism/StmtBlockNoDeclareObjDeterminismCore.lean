@@ -1,5 +1,5 @@
-import CppFormalization.Cpp2.Lemmas.ExprDeterminism
-import CppFormalization.Cpp2.Lemmas.TransitionDeterminism
+import CppFormalization.Cpp2.Semantics.Facts.ExprDeterminism
+import CppFormalization.Cpp2.Semantics.Facts.TransitionDeterminism
 import CppFormalization.Cpp2.Static.NoDeclareObj
 
 namespace Cpp

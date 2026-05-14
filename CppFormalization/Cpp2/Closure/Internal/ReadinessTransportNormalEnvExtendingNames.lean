@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalEnvExtending
-import CppFormalization.Cpp2.Lemmas.TypeEnv
+import CppFormalization.Cpp2.Core.Facts.TypeEnv
 
 namespace Cpp
 

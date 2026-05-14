@@ -1,6 +1,6 @@
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyFunctionClosureLite
 import CppFormalization.Cpp2.Closure.Internal.Transport.BlockBodyBoundaryTransportLite
-import CppFormalization.Cpp2.Lemmas.BigStepScopeDepth
+import CppFormalization.Cpp2.Semantics.Facts.ScopeDepth
 import CppFormalization.Cpp2.Boundary.FunctionBody
 import CppFormalization.Cpp2.Semantics.Divergence
 

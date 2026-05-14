@@ -1,25 +1,9 @@
-import CppFormalization.Cpp2.Core.Syntax
-
-namespace Cpp
+import CppFormalization.Cpp2.Static.Pure.ReplayStableReadPlace
 
 /-!
-# Lemmas.ReplayStableReadPlace
+# CppFormalization.Cpp2.Lemmas.ReplayStableReadPlace
 
-Small, static vocabulary for read-place replay across assignment-like updates.
+Compatibility wrapper.
 
-This file is intentionally below Closure/Internal: it contains no transport
-axiom and only classifies the syntactic read places whose address lookup is
-known to be replay-stable by shape alone.
+Moved to Static.Pure.ReplayStableReadPlace because it is vocabulary, not a theorem-only Facts file.
 -/
-
-/--
-Read-places whose address lookup is replay-stable across a heap write without
-committing to arbitrary alias-sensitive replay.
-
-Current honest base keeps only variable places.
--/
-inductive ReplayStableReadPlace : PlaceExpr → Prop where
-  | var {x : Ident} :
-      ReplayStableReadPlace (.var x)
-
-end Cpp
