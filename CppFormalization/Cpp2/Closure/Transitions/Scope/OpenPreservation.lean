@@ -1,6 +1,5 @@
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcretePreservation
-import CppFormalization.Cpp2.Lemmas.RuntimeState
 import CppFormalization.Cpp2.Core.Facts.TypeEnv
 
 namespace Cpp

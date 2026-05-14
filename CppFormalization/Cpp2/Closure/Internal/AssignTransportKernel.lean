@@ -21,11 +21,6 @@ namespace Cpp
 
 
 /-
-Lower-layer split:
-- `AssignWriteEffect` and `assignWriteEffect_of_Assigns` now live in
-  `Cpp2.Lemmas.AssignWriteEffect`.
-- `ReplayStableReadPlace` now lives in
-  `Cpp2.Lemmas.ReplayStableReadPlace`.
 
 This file remains the Closure/Internal owner of the current readiness and
 expression replay transport kernel.

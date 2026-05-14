@@ -2,7 +2,6 @@ import CppFormalization.Cpp2.Boundary.All
 import CppFormalization.Cpp2.Closure.All
 import CppFormalization.Cpp2.Core.All
 import CppFormalization.Cpp2.Frontier.All
-import CppFormalization.Cpp2.Lemmas.All
 import CppFormalization.Cpp2.Proof.All
 import CppFormalization.Cpp2.Roadmap.All
 import CppFormalization.Cpp2.Semantics.All

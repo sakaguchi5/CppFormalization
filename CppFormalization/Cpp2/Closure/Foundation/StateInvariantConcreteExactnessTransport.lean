@@ -1,5 +1,4 @@
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteStrengthening
-import CppFormalization.Cpp2.Lemmas.RuntimeState
 import CppFormalization.Cpp2.Core.Facts.TypeEnv
 import CppFormalization.Cpp2.Core.Facts.RuntimeDeclUpdate
 
@@ -465,4 +464,3 @@ theorem framewiseDeclBindingExact_declareTypeObject_declareObjectStateWithNext_o
   exact hold k Γfr σfr hkΓ hkσOld
 
 end Cpp
-
