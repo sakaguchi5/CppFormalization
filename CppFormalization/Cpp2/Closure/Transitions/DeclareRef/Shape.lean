@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteOwnershipTransport
+import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete.OwnershipTransport
 
 namespace Cpp
 

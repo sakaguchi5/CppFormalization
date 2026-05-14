@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteFullAssembly
+import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete.FullAssembly
 import CppFormalization.Cpp2.Closure.Transitions.DeclareRef.Preservation
 
 namespace Cpp

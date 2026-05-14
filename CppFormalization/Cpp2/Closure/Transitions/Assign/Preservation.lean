@@ -1,6 +1,6 @@
 import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete
 import CppFormalization.Cpp2.Static.Safety.Readiness
-import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcretePreservation
+import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete.Preservation
 
 namespace Cpp
 
