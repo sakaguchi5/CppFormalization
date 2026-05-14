@@ -2,7 +2,6 @@ import CppFormalization.Cpp2.Semantics.Expr
 import CppFormalization.Cpp2.Typing.Stmt
 import CppFormalization.Cpp2.Static.WellFormed
 import CppFormalization.Cpp2.Static.ScopeDiscipline
-import CppFormalization.Cpp2.Core.RuntimeState
 import CppFormalization.Cpp2.Core.DeclRuntimeMatch
 
 /-!

@@ -1,5 +1,4 @@
 import CppFormalization.Cpp2.Semantics.Expr
-import CppFormalization.Cpp2.Core.RuntimeCell
 
 namespace Cpp
 

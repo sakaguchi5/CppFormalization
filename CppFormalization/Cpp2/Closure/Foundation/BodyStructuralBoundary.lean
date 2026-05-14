@@ -12,7 +12,7 @@ The pure structural boundary records now live in
 `CppFormalization.Cpp2.Static.Pure.BodyStructuralBoundary`.
 
 Only the old `BodyReady.toStructural` bridge remains here because `BodyReady`
-belongs to `Closure.Foundation.StateBoundary`.
+belongs to `Static.Safety.StateBoundary`.
 -/
 
 def BodyReady.toStructural

@@ -1,4 +1,3 @@
-
 import CppFormalization.Cpp2.Typing.Stmt
 import CppFormalization.Cpp2.Core.Control
 

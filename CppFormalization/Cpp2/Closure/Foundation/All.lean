@@ -14,10 +14,7 @@ import CppFormalization.Cpp2.Closure.Foundation.CoreBigStepFragment
 import CppFormalization.Cpp2.Closure.Foundation.DeclareReadyStrongBridge
 import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCompatibility
-import CppFormalization.Cpp2.Closure.Foundation.Readiness
-import CppFormalization.Cpp2.Closure.Foundation.ReadinessInversions
 import CppFormalization.Cpp2.Closure.Foundation.ReadinessObjectDeclBridge
-import CppFormalization.Cpp2.Closure.Foundation.StateBoundary
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcrete
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteDeclRealization
 import CppFormalization.Cpp2.Closure.Foundation.StateInvariantConcreteDeclTransport
