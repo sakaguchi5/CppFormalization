@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Static.Safety.Facts.ControlExclusion
-import CppFormalization.Cpp2.Static.Inversions
+import CppFormalization.Cpp2.Static.Safety.Inversions
 
 /-!
 Return boundary for function bodies.

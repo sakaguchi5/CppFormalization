@@ -5,6 +5,7 @@ import CppFormalization.Cpp2.Static.Safety.ReadinessInversions
 import CppFormalization.Cpp2.Static.Safety.ReadinessSemanticsBridge
 import CppFormalization.Cpp2.Static.Safety.ReadinessObjectDeclBridge
 import CppFormalization.Cpp2.Static.Safety.Facts.All
+import CppFormalization.Cpp2.Static.Safety.Inversions
 /-!
 # CppFormalization.Cpp2.Static.Safety.All
 

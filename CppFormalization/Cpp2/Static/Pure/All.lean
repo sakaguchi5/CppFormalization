@@ -1,6 +1,7 @@
 import CppFormalization.Cpp2.Static.Pure.WellFormedFromTyping
 import CppFormalization.Cpp2.Static.Pure.BodyStructuralBoundary
 import CppFormalization.Cpp2.Static.Pure.BodyStructuralBoundaryLite
+import CppFormalization.Cpp2.Static.Pure.Inversions
 
 /-!
 # CppFormalization.Cpp2.Static.Pure.All
