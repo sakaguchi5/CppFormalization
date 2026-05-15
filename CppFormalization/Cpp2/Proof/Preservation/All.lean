@@ -1,5 +1,8 @@
 import CppFormalization.Cpp2.Proof.Preservation.StmtBlockNormalWitness
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlKernel
+import CppFormalization.Cpp2.Proof.Preservation.WhileDecompositionFacts
+import CppFormalization.Cpp2.Proof.Preservation.WhileReentryReady
+import CppFormalization.Cpp2.Proof.Preservation.BlockNormalPreservation
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlKernelSupport
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlPreservation
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlRecursorCore

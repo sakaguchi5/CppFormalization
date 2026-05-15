@@ -5,8 +5,9 @@ import CppFormalization.Cpp2.Closure.Internal.StmtControlPreservation
 import CppFormalization.Cpp2.Closure.Internal.StmtAbruptCompatibility
 import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyNormalPreservation
-import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
+import CppFormalization.Cpp2.Proof.Preservation.WhileDecompositionFacts
 import CppFormalization.Cpp2.Closure.Internal.WhileReplayStablePrimitiveFacts
+import CppFormalization.Cpp2.Closure.Internal.WhileReentryReadyKernelCI
 
 namespace Cpp
 

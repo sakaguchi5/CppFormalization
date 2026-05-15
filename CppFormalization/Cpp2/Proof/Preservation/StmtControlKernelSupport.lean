@@ -2,9 +2,9 @@ import CppFormalization.Cpp2.Static.Safety.Readiness
 import CppFormalization.Cpp2.Static.Safety.ReadinessInversions
 import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete
 import CppFormalization.Cpp2.Typing.ControlIndexed
-import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
-import CppFormalization.Cpp2.Closure.Internal.WhileReentryReadyKernelCI
-import CppFormalization.Cpp2.Closure.Internal.BlockNormalPreservation
+import CppFormalization.Cpp2.Proof.Preservation.WhileDecompositionFacts
+import CppFormalization.Cpp2.Proof.Preservation.WhileReentryReady
+import CppFormalization.Cpp2.Proof.Preservation.BlockNormalPreservation
 import CppFormalization.Cpp2.Static.Safety.ReadinessSemanticsBridge
 import CppFormalization.Cpp2.Typing.Facts.ExprUniqueness
 import CppFormalization.Cpp2.Semantics.Facts.TransitionDeterminism

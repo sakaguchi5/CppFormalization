@@ -4,7 +4,7 @@ import CppFormalization.Cpp2.Typing.ControlIndexed
 import CppFormalization.Cpp2.Closure.Internal.PrimitiveStmtNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.ReadinessReplayPrimitive
 import CppFormalization.Cpp2.Closure.Internal.StrongThinSeparatedCondReplay
-import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
+import CppFormalization.Cpp2.Proof.Preservation.WhileDecompositionFacts
 import CppFormalization.Cpp2.Closure.Internal.WhileReentryKernelFacts
 
 namespace Cpp

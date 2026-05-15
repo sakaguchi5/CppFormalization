@@ -6,6 +6,8 @@ import CppFormalization.Cpp2.Closure.Transitions.Scope.ClosePreservation
 namespace Cpp
 
 /-!
+# Proof.Preservation.BlockNormalPreservation
+
 `block` の normal-path preservation。
 
 本質は次の三段階:

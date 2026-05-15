@@ -6,7 +6,7 @@ import CppFormalization.Cpp2.Closure.Internal.ReadinessReplayPrimitive
 import CppFormalization.Cpp2.Closure.Internal.ConditionReplayKernel
 import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelCI
 import CppFormalization.Cpp2.Closure.Internal.StrongThinSeparatedCondReplay
-import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
+import CppFormalization.Cpp2.Proof.Preservation.WhileDecompositionFacts
 import CppFormalization.Cpp2.Closure.Internal.WhileReentryKernelFacts
 
 namespace Cpp

@@ -1,0 +1,95 @@
+import CppFormalization.Cpp2.Static.Safety.Readiness
+import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete
+import CppFormalization.Cpp2.Typing.ControlIndexed
+import CppFormalization.Cpp2.Proof.Preservation.WhileDecompositionFacts
+
+namespace Cpp
+
+/-!
+# Proof.Preservation.WhileReentryReady
+
+Lightweight while reentry-readiness vocabulary for preservation.
+
+This file deliberately does not import `Closure.Internal` or any closure
+boundary package.  The preservation kernel only needs a provider saying that,
+after a normal/continue body step, the same while header can be re-entered as a
+ready statement.
+-/
+
+/--
+Pure dynamic entry data for a `while` header at a concrete state.
+This is the minimal payload needed to rebuild `StmtReadyConcrete` for the
+same `while` after one body step.
+-/
+structure WhileEntryReadyCI
+    (Γ : TypeEnv) (σ : State) (c : ValExpr) (body : CppStmt) : Prop where
+  condReady : ExprReadyConcrete Γ σ c (.base .bool)
+  bodyReady : StmtReadyConcrete Γ σ body
+
+@[simp] theorem whileEntryReady_of_stmtReady
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
+    StmtReadyConcrete Γ σ (.whileStmt c body) →
+    WhileEntryReadyCI Γ σ c body := by
+  intro h
+  rcases while_ready_cond_data h with ⟨_hc, hcond⟩
+  exact ⟨hcond, while_ready_body_data h⟩
+
+@[simp] theorem stmtReady_of_whileEntryReady
+    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
+    (hc : HasValueType Γ c (.base .bool))
+    (h : WhileEntryReadyCI Γ σ c body) :
+    StmtReadyConcrete Γ σ (.whileStmt c body) := by
+  exact StmtReadyConcrete.whileStmt hc h.condReady h.bodyReady
+
+/--
+A state-indexed reentry kernel for preservation support.
+
+This is intentionally smaller than `LoopReentryKernelCI`:
+it does not expose any post-state loop-body boundary; it only reconstructs
+the next-entry readiness needed by the tail `while`.
+-/
+structure WhileReentryReadyAt
+    (Γ : TypeEnv) (σ : State) (c : ValExpr) (body : CppStmt) : Type where
+  after_normal :
+    ∀ {σ' : State},
+      BigStepStmt σ body .normal σ' →
+      WhileEntryReadyCI Γ σ' c body
+  after_continue :
+    ∀ {σ' : State},
+      BigStepStmt σ body .continueResult σ' →
+      WhileEntryReadyCI Γ σ' c body
+
+/--
+Provider consumed by preservation.
+
+The arguments are intentionally low-level: typing, concrete state invariant,
+and concrete statement readiness.  Closure-specific loop-body boundary bridges
+belong in `Closure.Internal.WhileReentryReadyKernelCI`, not here.
+-/
+abbrev WhileReentryReadyProvider : Type :=
+  ∀ {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt},
+    HasValueType Γ c (.base .bool) →
+    HasTypeStmtCI .normalK Γ body Γ →
+    HasTypeStmtCI .breakK Γ body Γ →
+    HasTypeStmtCI .continueK Γ body Γ →
+    ScopedTypedStateConcrete Γ σ →
+    StmtReadyConcrete Γ σ (.whileStmt c body) →
+    WhileReentryReadyAt Γ σ c body
+
+theorem whileStmtReady_after_normal
+    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
+    (hc : HasValueType Γ c (.base .bool))
+    (K : WhileReentryReadyAt Γ σ c body)
+    (hstep : BigStepStmt σ body .normal σ') :
+    StmtReadyConcrete Γ σ' (.whileStmt c body) := by
+  exact stmtReady_of_whileEntryReady hc (K.after_normal hstep)
+
+theorem whileStmtReady_after_continue
+    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
+    (hc : HasValueType Γ c (.base .bool))
+    (K : WhileReentryReadyAt Γ σ c body)
+    (hstep : BigStepStmt σ body .continueResult σ') :
+    StmtReadyConcrete Γ σ' (.whileStmt c body) := by
+  exact stmtReady_of_whileEntryReady hc (K.after_continue hstep)
+
+end Cpp

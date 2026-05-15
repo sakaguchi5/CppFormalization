@@ -3,7 +3,7 @@ import CppFormalization.Cpp2.Typing.ControlIndexed
 import CppFormalization.Cpp2.Closure.Internal.PrimitiveStmtNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.ConditionalNormalPreservation
-import CppFormalization.Cpp2.Closure.Internal.BlockNormalPreservation
+import CppFormalization.Cpp2.Proof.Preservation.BlockNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyNormalPreservation
 import CppFormalization.Cpp2.Proof.Control.StmtControlCompatibility
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlKernelSupport

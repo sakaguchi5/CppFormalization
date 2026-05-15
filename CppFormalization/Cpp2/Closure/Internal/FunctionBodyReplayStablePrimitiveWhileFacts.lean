@@ -3,7 +3,7 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI
 import CppFormalization.Cpp2.Closure.Internal.WhileBodyClassCI
-import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
+import CppFormalization.Cpp2.Proof.Preservation.WhileDecompositionFacts
 import CppFormalization.Cpp2.Closure.Internal.WhileReplayStablePrimitiveFacts
 import CppFormalization.Cpp2.Boundary.FunctionBody
 

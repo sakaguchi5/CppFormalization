@@ -11,7 +11,6 @@ import CppFormalization.Cpp2.Closure.Internal.BlockBodyFunctionClosureLite
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.BlockExecutionBridgeTargetCI
 import CppFormalization.Cpp2.Closure.Internal.BlockFunctionBodyClosureLite_recursor
-import CppFormalization.Cpp2.Closure.Internal.BlockNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.BodyBoundaryLiteCompatibility
 import CppFormalization.Cpp2.Closure.Internal.ConditionalNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.ConditionReplayKernel
@@ -110,7 +109,6 @@ import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryReplayFactored
 import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryReplaySurfaceCI
 import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryReplayTailAdequacyTheoremsCI
 import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryReturnAdequacyReplayCI
-import CppFormalization.Cpp2.Closure.Internal.WhileDecompositionFacts
 import CppFormalization.Cpp2.Closure.Internal.WhileFunctionClosureKernelCI
 import CppFormalization.Cpp2.Closure.Internal.WhileNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.WhileReentryKernelFacts
