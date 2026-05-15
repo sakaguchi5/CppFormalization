@@ -8,6 +8,7 @@ import CppFormalization.Cpp2.Proof.Preservation.StmtControlPreservation
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlRecursorCore
 import CppFormalization.Cpp2.Proof.Preservation.StmtNormalWitness
 import CppFormalization.Cpp2.Proof.Preservation.StmtWhileNormalWitness
+import CppFormalization.Cpp2.Proof.Preservation.StmtControlDemandRecursorCore
 import CppFormalization.Cpp2.Proof.Preservation.Scope.All
 import CppFormalization.Cpp2.Proof.Preservation.Assign.All
 import CppFormalization.Cpp2.Proof.Preservation.DeclareRef.All
