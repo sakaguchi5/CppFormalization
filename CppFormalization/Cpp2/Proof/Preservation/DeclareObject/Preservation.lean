@@ -1,13 +1,13 @@
-import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.Realizers
-import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.Ownership
-import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.RuntimeTransport
+import CppFormalization.Cpp2.Proof.Preservation.DeclareObject.Realizers
+import CppFormalization.Cpp2.Proof.Preservation.DeclareObject.Ownership
+import CppFormalization.Cpp2.Proof.Preservation.DeclareObject.RuntimeTransport
 import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete.Strengthening
 import CppFormalization.Cpp2.Core.Facts.RuntimeDeclUpdate
 
 namespace Cpp
 
 /-!
-# Closure.Transitions.DeclareObject.Preservation
+# Proof.Preservation.DeclareObject.Preservation
 
 `declareObject` の final assembly 層。
 

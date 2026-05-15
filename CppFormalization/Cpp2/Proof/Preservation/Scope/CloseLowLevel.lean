@@ -6,7 +6,7 @@ import CppFormalization.Cpp2.Core.Facts.TypeEnv
 namespace Cpp
 
 /-!
-# Closure.Transitions.Scope.CloseLowLevel
+# Proof.Preservation.Scope.CloseLowLevel
 
 Low-level reflection facts for `CloseScope`.
 

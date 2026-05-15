@@ -1,10 +1,10 @@
 import CppFormalization.Cpp2.Semantics.Stmt
-import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.RuntimeTransport
+import CppFormalization.Cpp2.Proof.Preservation.DeclareObject.RuntimeTransport
 
 namespace Cpp
 
 /-!
-# Closure.Transitions.DeclareObject.Realizers
+# Proof.Preservation.DeclareObject.Realizers
 
 `declareObject` の type-side 分解と old/new realizer 回収をまとめた層。
 kernel 側の責務だけを集め、ownership discipline の保存は別ファイルへ分離する。

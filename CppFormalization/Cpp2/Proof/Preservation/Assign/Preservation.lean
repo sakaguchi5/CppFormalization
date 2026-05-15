@@ -5,7 +5,7 @@ import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete.Preservation
 namespace Cpp
 
 /-!
-# Closure.Transitions.Assign.Preservation
+# Proof.Preservation.Assign.Preservation
 
 Canonical assign-transition preservation facts.
 

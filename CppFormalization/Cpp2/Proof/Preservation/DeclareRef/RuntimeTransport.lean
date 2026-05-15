@@ -1,9 +1,9 @@
-import CppFormalization.Cpp2.Closure.Transitions.DeclareRef.Shape
+import CppFormalization.Cpp2.Proof.Preservation.DeclareRef.Shape
 
 namespace Cpp
 
 /-!
-# Closure.Transitions.DeclareRef.RuntimeTransport
+# Proof.Preservation.DeclareRef.RuntimeTransport
 
 Runtime-state transport facts for `declareRefState`.
 `DeclareRef` adds a top-frame ref binding but preserves heap, ownership locals,

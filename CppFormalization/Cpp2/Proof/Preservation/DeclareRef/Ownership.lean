@@ -1,10 +1,10 @@
 import CppFormalization.Cpp2.Semantics.Stmt
-import CppFormalization.Cpp2.Closure.Transitions.DeclareRef.RuntimeTransport
+import CppFormalization.Cpp2.Proof.Preservation.DeclareRef.RuntimeTransport
 
 namespace Cpp
 
 /-!
-# Closure.Transitions.DeclareRef.Ownership
+# Proof.Preservation.DeclareRef.Ownership
 
 Ownership and reference-target discipline preservation for `DeclareRef`.
 -/

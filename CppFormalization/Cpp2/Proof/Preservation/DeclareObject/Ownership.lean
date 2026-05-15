@@ -1,10 +1,10 @@
 import CppFormalization.Cpp2.Semantics.Stmt
-import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.RuntimeTransport
+import CppFormalization.Cpp2.Proof.Preservation.DeclareObject.RuntimeTransport
 
 namespace Cpp
 
 /-!
-# Closure.Transitions.DeclareObject.Ownership
+# Proof.Preservation.DeclareObject.Ownership
 
 `declareObject` に対する ownership discipline 側の保存をまとめた層。
 `ScopedTypedStateConcreteKernel` に属する realizer 回収は扱わず、

@@ -1,9 +1,6 @@
-import CppFormalization.Cpp2.Closure.Transitions.Assign.All
-import CppFormalization.Cpp2.Closure.Transitions.DeclareObject.All
-import CppFormalization.Cpp2.Closure.Transitions.DeclareRef.All
 import CppFormalization.Cpp2.Closure.Transitions.Major.All
 import CppFormalization.Cpp2.Closure.Transitions.Minor.All
-import CppFormalization.Cpp2.Closure.Transitions.Scope.All
+
 
 /-!
 # CppFormalization.Cpp2.Closure.Transitions.All

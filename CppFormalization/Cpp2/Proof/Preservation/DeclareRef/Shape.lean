@@ -3,7 +3,7 @@ import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete.OwnershipTrans
 namespace Cpp
 
 /-!
-# Closure.Transitions.DeclareRef.Shape
+# Proof.Preservation.DeclareRef.Shape
 
 Type-environment and lookup shape lemmas for `declareTypeRef`.
 This layer contains no runtime preservation assembly.

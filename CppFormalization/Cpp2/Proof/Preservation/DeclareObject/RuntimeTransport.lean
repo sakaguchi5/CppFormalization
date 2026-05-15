@@ -5,7 +5,7 @@ namespace Cpp
 namespace DeclareObjectTransport
 
 /-!
-# Closure.Transitions.DeclareObject.RuntimeTransport
+# Proof.Preservation.DeclareObject.RuntimeTransport
 
 `declareObjectStateWithNext` が runtime witness をどう運ぶかだけをまとめた補助層。
 ここでは `ScopedTypedStateConcrete` の final assembly には触れず、

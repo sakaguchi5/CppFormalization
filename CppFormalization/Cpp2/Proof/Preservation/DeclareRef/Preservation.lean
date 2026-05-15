@@ -1,10 +1,10 @@
-import CppFormalization.Cpp2.Closure.Transitions.DeclareRef.Realizers
-import CppFormalization.Cpp2.Closure.Transitions.DeclareRef.Ownership
+import CppFormalization.Cpp2.Proof.Preservation.DeclareRef.Realizers
+import CppFormalization.Cpp2.Proof.Preservation.DeclareRef.Ownership
 
 namespace Cpp
 
 /-!
-# Closure.Transitions.DeclareRef.Preservation
+# Proof.Preservation.DeclareRef.Preservation
 
 Final assembly for `DeclaresRef` preservation.
 The lower layers are split into Shape, RuntimeTransport, Realizers, and Ownership.

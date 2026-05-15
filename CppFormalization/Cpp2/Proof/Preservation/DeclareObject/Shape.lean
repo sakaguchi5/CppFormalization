@@ -4,7 +4,7 @@ import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete.RecomputedCurs
 namespace Cpp
 
 /-!
-# Closure.Transitions.DeclareObject.Shape
+# Proof.Preservation.DeclareObject.Shape
 
 Shape lemmas for the existential-wrapper object-declaration semantics.
 

@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete.FullAssembly
-import CppFormalization.Cpp2.Closure.Transitions.DeclareRef.Preservation
+import CppFormalization.Cpp2.Proof.Preservation.DeclareRef.Preservation
 
 namespace Cpp
 
