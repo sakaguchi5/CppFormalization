@@ -1,6 +1,8 @@
-import CppFormalization.Cpp2.Proof.Preservation.Demand.FullPreservation
+import CppFormalization.Cpp2.Proof.Preservation.Demand.ExecutionTrace
 import CppFormalization.Cpp2.Proof.Control.StmtControlCompatibility
 import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete
+import CppFormalization.Cpp2.Proof.Preservation.Demand.PrimitivePreservation
+import CppFormalization.Cpp2.Proof.Preservation.Demand.FullPreservation
 
 namespace Cpp
 
@@ -86,7 +88,8 @@ abbrev StmtControlDemandPreservationTarget
     (hty : HasTypeStmtCI k Γ st Δ)
     (hstep : BigStepStmt σ st ctrl σ') : Prop :=
   StmtControlCompatible hty hstep →
-  StmtExecutionDemand Γ σ st ctrl σ' Δ →
+  (demand : StmtExecutionDemand Γ σ st ctrl σ' Δ) →
+  StmtDemandFollowsStep demand hstep →
   ScopedTypedStateConcrete Γ σ →
   ScopedTypedStateConcrete Δ σ'
 
@@ -99,7 +102,8 @@ abbrev BlockControlDemandPreservationTarget
     (hty : HasTypeBlockCI k Γ ss Δ)
     (hstep : BigStepBlock σ ss ctrl σ') : Prop :=
   BlockControlCompatible hty hstep →
-  BlockExecutionDemand Γ σ ss ctrl σ' Δ →
+  (demand : BlockExecutionDemand Γ σ ss ctrl σ' Δ) →
+  BlockDemandFollowsStep demand hstep →
   ScopedTypedStateConcrete Γ σ →
   ScopedTypedStateConcrete Δ σ'
 
