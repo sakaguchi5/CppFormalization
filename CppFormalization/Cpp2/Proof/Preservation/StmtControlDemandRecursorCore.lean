@@ -1,6 +1,7 @@
-import CppFormalization.Cpp2.Proof.Preservation.Demand.FromReady
+import CppFormalization.Cpp2.Proof.Preservation.Demand.PrimitivePreservation
 import CppFormalization.Cpp2.Proof.Control.StmtControlCompatibility
 import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete
+
 namespace Cpp
 
 /-!
@@ -101,5 +102,29 @@ abbrev BlockControlDemandPreservationTarget
   BlockExecutionDemand Γ σ ss ctrl σ' Δ →
   ScopedTypedStateConcrete Γ σ →
   ScopedTypedStateConcrete Δ σ'
+
+/--
+Primitive demand preservation packaged as a one-field kernel fragment.
+
+This is not yet the full recursive kernel.  It is the first axiom-free
+replacement step: primitive leaves no longer need any readiness-transport axiom.
+-/
+theorem primitive_stmt_demand_preservation_goal
+    {Γ Δ : TypeEnv} {σ σ' : State} {st : CppStmt} :
+    (match st with
+     | .skip => True
+     | .exprStmt _ => True
+     | .assign _ _ => True
+     | .declareObj _ _ _ => True
+     | .declareRef _ _ _ => True
+     | .breakStmt => False
+     | .continueStmt => False
+     | .returnStmt _ => False
+     | .seq _ _ => False
+     | .ite _ _ _ => False
+     | .whileStmt _ _ => False
+     | .block _ => False) →
+    StmtDemandPreservationGoal Γ Δ st σ .normal σ' :=
+  primitive_stmt_preserves_from_demand
 
 end Cpp
