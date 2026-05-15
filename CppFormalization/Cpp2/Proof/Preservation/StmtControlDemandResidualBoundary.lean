@@ -1,4 +1,5 @@
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlDemandRecursorCore
+import CppFormalization.Cpp2.Proof.Preservation.Demand.ResidualBoundary
 
 namespace Cpp
 
@@ -18,48 +19,6 @@ So an aligned demand should not be coerced back into ordinary readiness.
 Instead, this file gives the demand-side residual boundary used by the
 axiom-free demand recursor.
 -/
-
-/--
-Demand-side residual boundary for the tail statement of a sequence after the
-head statement has finished normally.
-
-It records the residual environment, the tail demand at the actual post-state,
-the concrete tail step, alignment between them, and the scoped/typed post-state
-needed to consume the tail demand.
--/
-def SeqDemandResidualBoundary
-    (Δ : TypeEnv) (σ₁ : State) (t : CppStmt)
-    (ctrl : CtrlResult) (σ₂ : State) : Prop :=
-  ∃ Θ,
-    ∃ demand : StmtExecutionDemand Θ σ₁ t ctrl σ₂ Δ,
-      ∃ step : BigStepStmt σ₁ t ctrl σ₂,
-        StmtDemandFollowsStep demand step ∧
-        ScopedTypedStateConcrete Θ σ₁
-
-/--
-Demand-side residual boundary for the tail of a block after the head statement
-has finished normally.
--/
-def ConsDemandResidualBoundary
-    (Δ : TypeEnv) (σ₁ : State) (ss : StmtBlock)
-    (ctrl : CtrlResult) (σ₂ : State) : Prop :=
-  ∃ Θ,
-    ∃ demand : BlockExecutionDemand Θ σ₁ ss ctrl σ₂ Δ,
-      ∃ step : BigStepBlock σ₁ ss ctrl σ₂,
-        BlockDemandFollowsStep demand step ∧
-        ScopedTypedStateConcrete Θ σ₁
-
-/--
-Demand-side tail boundary for a `while` re-entry point after the body finishes
-with `.normal` or `.continueResult`.
--/
-def WhileTailDemandBoundary
-    (Γ Δ : TypeEnv) (σ₁ : State) (c : ValExpr) (body : CppStmt)
-    (ctrl : CtrlResult) (σ₂ : State) : Prop :=
-  ∃ demand : StmtExecutionDemand Γ σ₁ (.whileStmt c body) ctrl σ₂ Δ,
-    ∃ step : BigStepStmt σ₁ (.whileStmt c body) ctrl σ₂,
-      StmtDemandFollowsStep demand step ∧
-      ScopedTypedStateConcrete Γ σ₁
 
 /-- Consume a sequence demand-side residual boundary to preserve the tail. -/
 theorem seq_demand_residual_boundary_preserves
