@@ -9,7 +9,7 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureConcrete
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureConcreteCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI
-import CppFormalization.Cpp2.Closure.Transitions.Scope.OpenPreservation
+import CppFormalization.Cpp2.Proof.Preservation.Scope.OpenPreservation
 import CppFormalization.Cpp2.Semantics.Divergence
 
 namespace Cpp

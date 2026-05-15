@@ -5,7 +5,7 @@ import CppFormalization.Cpp2.Typing.ControlIndexed
 namespace Cpp
 
 /-!
-# Closure.Transitions.Scope.ClosePreservation
+# Proof.Preservation.Scope.ClosePreservation
 
 Canonical public entry point for close-scope transition facts.
 

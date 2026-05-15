@@ -6,7 +6,7 @@ import CppFormalization.Cpp2.Core.Facts.TypeEnv
 namespace Cpp
 
 /-!
-# Closure.Transitions.Scope.OpenPreservation
+# Proof.Preservation.Scope.OpenPreservation
 
 Open-scope transition preservation facts.
 

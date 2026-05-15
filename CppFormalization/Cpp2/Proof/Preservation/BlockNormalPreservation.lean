@@ -1,8 +1,7 @@
-
 import CppFormalization.Cpp2.Static.Safety.Readiness
 import CppFormalization.Cpp2.Typing.ControlIndexed
-import CppFormalization.Cpp2.Closure.Transitions.Scope.OpenPreservation
-import CppFormalization.Cpp2.Closure.Transitions.Scope.ClosePreservation
+import CppFormalization.Cpp2.Proof.Preservation.Scope.OpenPreservation
+import CppFormalization.Cpp2.Proof.Preservation.Scope.ClosePreservation
 namespace Cpp
 
 /-!
