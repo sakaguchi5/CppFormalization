@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Proof.Preservation.Demand.PrimitivePreservation
+import CppFormalization.Cpp2.Proof.Preservation.Demand.FullPreservation
 import CppFormalization.Cpp2.Proof.Control.StmtControlCompatibility
 import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete
 
@@ -126,5 +126,23 @@ theorem primitive_stmt_demand_preservation_goal
      | .block _ => False) →
     StmtDemandPreservationGoal Γ Δ st σ .normal σ' :=
   primitive_stmt_preserves_from_demand
+
+/--
+Block-statement demand preservation packaged as a kernel fragment.
+
+This is the block-scope counterpart to `primitive_stmt_demand_preservation_goal`.
+It is still not the full mutual demand recursor, but it closes the largest
+non-primitive gap without `readinessTransportNormalCore`.
+-/
+theorem block_stmt_demand_preservation_goal
+    {Γ : TypeEnv} {σ σ' : State} {ss : StmtBlock} {ctrl : CtrlResult} :
+    (∀ {Θ : TypeEnv} {σ₀ σ₁ : State},
+        TopFrameExtensionOf Γ Θ →
+        BlockExecutionDemand (pushTypeScope Γ) σ₀ ss ctrl σ₁ Θ →
+        ScopedTypedStateConcrete (pushTypeScope Γ) σ₀ →
+        ScopedTypedStateConcrete Θ σ₁) →
+    StmtDemandPreservationGoal Γ Γ (.block ss) σ ctrl σ' := by
+  intro hbody hdemand hσ
+  exact block_stmt_preserves_from_demand hdemand hbody hσ
 
 end Cpp

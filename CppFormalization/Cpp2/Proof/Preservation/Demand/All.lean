@@ -5,6 +5,7 @@ import CppFormalization.Cpp2.Proof.Preservation.Demand.Inversions
 import CppFormalization.Cpp2.Proof.Preservation.Demand.FromReady
 import CppFormalization.Cpp2.Proof.Preservation.Demand.PrimitivePreservation
 import CppFormalization.Cpp2.Proof.Preservation.Demand.CompositePreservation
+import CppFormalization.Cpp2.Proof.Preservation.Demand.FullPreservation
 
 /-!
 # CppFormalization.Cpp2.Proof.Preservation.Demand.All

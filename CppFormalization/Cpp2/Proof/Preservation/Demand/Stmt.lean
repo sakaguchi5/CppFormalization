@@ -186,6 +186,7 @@ inductive StmtExecutionDemand :
       {Γ Θ : TypeEnv} {σ σ₀ σ₁ σ₂ : State}
       {ss : StmtBlock} {ctrl : CtrlResult} :
       OpenScope σ σ₀ →
+      TopFrameExtensionOf Γ Θ →
       BlockExecutionDemand (pushTypeScope Γ) σ₀ ss ctrl σ₁ Θ →
       CloseScope σ₁ σ₂ →
       StmtExecutionDemand Γ σ (.block ss) ctrl σ₂ Γ

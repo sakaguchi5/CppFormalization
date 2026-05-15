@@ -74,12 +74,13 @@ theorem block_stmt_demand_inv
     StmtExecutionDemand Γ σ (.block ss) ctrl σ₂ Δ →
     ∃ Θ σ₀ σ₁,
       OpenScope σ σ₀ ∧
+      TopFrameExtensionOf Γ Θ ∧
       BlockExecutionDemand (pushTypeScope Γ) σ₀ ss ctrl σ₁ Θ ∧
       CloseScope σ₁ σ₂ ∧
       Δ = Γ := by
   intro h
   cases h with
-  | block hopen hbody hclose =>
-      exact ⟨_, _, _, hopen, hbody, hclose, rfl⟩
+  | block hopen hExt hbody hclose =>
+      exact ⟨_, _, _, hopen, hExt, hbody, hclose, rfl⟩
 
 end Cpp
