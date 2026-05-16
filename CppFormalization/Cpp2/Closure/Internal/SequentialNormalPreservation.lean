@@ -59,8 +59,8 @@ theorem seq_ready_left
 Low-level residual-ready projection kernel.
 
 This file no longer owns an axiom for this exact kernel. Instead it is fed from
-`ReadinessTransportNormalCore`, so that the future mutual transport family has a
-single choke point.
+`ReadinessTransportNormalExactTail`, the isolated choke point for the
+remaining exact seq-tail readiness debt.
 -/
 theorem seq_ready_right_after_left_normal
     {Γ Θ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
@@ -69,7 +69,7 @@ theorem seq_ready_right_after_left_normal
     StmtReadyConcrete Γ σ (.seq s t) →
     BigStepStmt σ s .normal σ' →
     StmtReadyConcrete Θ σ' t :=
-  seq_ready_right_after_left_normal_of_core
+  seq_ready_right_after_left_normal_of_exact_tail
 
 
 /- =========================================================

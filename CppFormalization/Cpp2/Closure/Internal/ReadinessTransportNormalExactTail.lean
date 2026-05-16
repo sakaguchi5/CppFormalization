@@ -1,4 +1,6 @@
-import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalCore
+import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete
+import CppFormalization.Cpp2.Static.Safety.Readiness
+import CppFormalization.Cpp2.Typing.ControlIndexed
 
 namespace Cpp
 
@@ -82,26 +84,5 @@ theorem cons_block_ready_tail_after_head_normal_of_exact_tail
     BlockReadyConcrete Δ σ' ss :=
   readinessTransportNormalExactTail.consTailAfterHeadNormal
 
-/- =========================================================
-   Compatibility projection names retained for current callers
-   ========================================================= -/
-
-theorem seq_ready_right_after_left_normal_of_core
-    {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
-    HasTypeStmtCI .normalK Γ s Δ →
-    ScopedTypedStateConcrete Δ σ' →
-    StmtReadyConcrete Γ σ (.seq s t) →
-    BigStepStmt σ s .normal σ' →
-    StmtReadyConcrete Δ σ' t :=
-  seq_ready_right_after_left_normal_of_exact_tail
-
-theorem cons_block_ready_tail_after_head_normal_of_core
-    {Γ Δ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock} :
-    HasTypeStmtCI .normalK Γ s Δ →
-    ScopedTypedStateConcrete Δ σ' →
-    BlockReadyConcrete Γ σ (.cons s ss) →
-    BigStepStmt σ s .normal σ' →
-    BlockReadyConcrete Δ σ' ss :=
-  cons_block_ready_tail_after_head_normal_of_exact_tail
 
 end Cpp

@@ -3,6 +3,7 @@ import CppFormalization.Cpp2.Closure.Internal.BlockBodyNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.ConditionReplayKernel
 import CppFormalization.Cpp2.Closure.Internal.ReadinessReplayPrimitive
 import CppFormalization.Cpp2.Closure.Internal.PrimitiveStmtNormalPreservation
+import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormal
 
 namespace Cpp
 
@@ -38,25 +39,7 @@ theorem replay_stable_primitive_stmt_is_primitive_normal_local
      | .block _ => False) := by
   intro h
   cases st <;> simp [ReplayStablePrimitiveStmt] at h ⊢
-/-
-theorem seq_ready_right
-    {Γ : TypeEnv} {σ : State} {s t : CppStmt} :
-    StmtReadyConcrete Γ σ (.seq s t) →
-    StmtReadyConcrete Γ σ t := by
-  intro h
-  cases h with
-  | seq _ ht =>
-      exact ht
 
-theorem cons_block_ready_tail
-    {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock} :
-    BlockReadyConcrete Γ σ (.cons s ss) →
-    BlockReadyConcrete Γ σ ss := by
-  intro h
-  cases h with
-  | cons _ htail =>
-      exact htail
--/
 theorem replay_stable_read_place_ready_after_replay_stable_primitive
     {Γ : TypeEnv} {σ σ' : State}
     {head : CppStmt} {p : PlaceExpr} {τ : CppType} :

@@ -71,8 +71,8 @@ theorem cons_block_ready_head
 Low-level block-tail ready kernel.
 
 This file no longer owns an axiom for this exact kernel. Instead it is fed from
-`ReadinessTransportNormalCore`, so that the future mutual transport family has a
-single choke point.
+`ReadinessTransportNormalExactTail`, the isolated choke point for the
+remaining exact block-tail readiness debt.
 -/
 theorem cons_block_ready_tail_after_head_normal
     {Γ Ξ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock} :
@@ -81,7 +81,7 @@ theorem cons_block_ready_tail_after_head_normal
     BlockReadyConcrete Γ σ (.cons s ss) ->
     BigStepStmt σ s .normal σ' ->
     BlockReadyConcrete Ξ σ' ss :=
-  cons_block_ready_tail_after_head_normal_of_core
+  cons_block_ready_tail_after_head_normal_of_exact_tail
 
 theorem cons_block_normal_data
     {σ σ' : State} {s : CppStmt} {ss : StmtBlock} :
