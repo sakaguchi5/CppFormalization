@@ -9,6 +9,16 @@ namespace Cpp
 将来の mutual ready-transport theorem family を一箇所へ束ねる core file。
 
 この段階ではまだ theorem-backed 実装は入れない。
+
+注意:
+- この unrestricted core は最終的な theorem target ではなく、旧 general
+  readiness-transport debt の互換 surface である。
+- 今後の本線は `ReadinessTransportNormalRefined.lean` にあるように、
+  env-preserving / env-extending-old / fresh-name introduction / read 条件へ
+  分解して theorem-backed 化する。
+- 特に env-extending head では fresh name は transport ではなく post-state
+  binding から introduce する対象である。
+
 代わりに、place / expr / stmt / block の4本の future core goals を
 一つの bundled kernel にまとめる。
 
