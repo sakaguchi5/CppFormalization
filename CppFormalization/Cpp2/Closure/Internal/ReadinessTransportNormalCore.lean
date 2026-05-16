@@ -9,23 +9,17 @@ namespace Cpp
 将来の mutual ready-transport theorem family を一箇所へ束ねる core file。
 
 この段階ではまだ theorem-backed 実装は入れない。
-代わりに、
-
-- place / expr / stmt / block の4本の future core goals
-- 現在の mainline がまだ直接使っている legacy exact kernels
-  (`seq_ready_right_after_left_normal`,
-   `cons_block_ready_tail_after_head_normal`)
-
-を一つの bundled kernel にまとめる。
+代わりに、place / expr / stmt / block の4本の future core goals を
+一つの bundled kernel にまとめる。
 
 重要:
 - これは「axiom を増やす」ためのファイルではない。
-  既存の局所 debt を、将来 theorem に差し替えるための single choke point
-  に集約するための file である。
-- いま上位層は `SequentialNormalPreservation` / `BlockBodyNormalPreservation`
-  の中間 theorem を経由する形へかなり下がっている。
-  次段階では、そこに残る exact tail-ready kernels をこの core から給電し、
-  さらにその後 core 自体を theorem-backed に置き換える。
+  既存の general readiness-transport debt を、将来 theorem に差し替えるための
+  single choke point に集約するための file である。
+- 以前この file に同居していた legacy exact seq/block tail-ready kernels は、
+  `ReadinessTransportNormalExactTail.lean` へ分離した。
+  これにより、ordinary readiness transport family と exact tail-ready debt を
+  別々に縮小できる。
 -/
 
 
@@ -49,36 +43,6 @@ structure ReadinessTransportNormalCore : Type where
   blockTransport :
     ∀ {Γ Δ : TypeEnv} {σ σ' : State} {head : CppStmt},
       BlockReadyTransportGoal Γ Δ σ σ' head
-
-  /--
-  Legacy exact seq tail kernel still consumed by current mainline.
-
-  Long-term target:
-  this should become a corollary of `stmtTransport` once the mutual transport
-  family is theorem-backed strongly enough.
-  -/
-  seqRightAfterLeftNormal :
-    ∀ {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt},
-      HasTypeStmtCI .normalK Γ s Δ →
-      ScopedTypedStateConcrete Δ σ' →
-      StmtReadyConcrete Γ σ (.seq s t) →
-      BigStepStmt σ s .normal σ' →
-      StmtReadyConcrete Δ σ' t
-
-  /--
-  Legacy exact block-tail kernel still consumed by current mainline.
-
-  Long-term target:
-  this should become a corollary of `blockTransport` once the mutual transport
-  family is theorem-backed strongly enough.
-  -/
-  consTailAfterHeadNormal :
-    ∀ {Γ Δ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock},
-      HasTypeStmtCI .normalK Γ s Δ →
-      ScopedTypedStateConcrete Δ σ' →
-      BlockReadyConcrete Γ σ (.cons s ss) →
-      BigStepStmt σ s .normal σ' →
-      BlockReadyConcrete Δ σ' ss
 
 
 /- =========================================================
@@ -111,23 +75,4 @@ theorem block_ready_transport_of_normal
     {Γ Δ : TypeEnv} {σ σ' : State} {head : CppStmt} :
     BlockReadyTransportGoal Γ Δ σ σ' head :=
   readinessTransportNormalCore.blockTransport
-
-theorem seq_ready_right_after_left_normal_of_core
-    {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
-    HasTypeStmtCI .normalK Γ s Δ →
-    ScopedTypedStateConcrete Δ σ' →
-    StmtReadyConcrete Γ σ (.seq s t) →
-    BigStepStmt σ s .normal σ' →
-    StmtReadyConcrete Δ σ' t :=
-  readinessTransportNormalCore.seqRightAfterLeftNormal
-
-theorem cons_block_ready_tail_after_head_normal_of_core
-    {Γ Δ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock} :
-    HasTypeStmtCI .normalK Γ s Δ →
-    ScopedTypedStateConcrete Δ σ' →
-    BlockReadyConcrete Γ σ (.cons s ss) →
-    BigStepStmt σ s .normal σ' →
-    BlockReadyConcrete Δ σ' ss :=
-  readinessTransportNormalCore.consTailAfterHeadNormal
-
 end Cpp
