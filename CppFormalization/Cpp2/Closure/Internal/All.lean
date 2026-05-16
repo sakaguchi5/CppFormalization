@@ -12,7 +12,6 @@ import CppFormalization.Cpp2.Closure.Internal.BlockBodyNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.BlockExecutionBridgeTargetCI
 import CppFormalization.Cpp2.Closure.Internal.BlockFunctionBodyClosureLite_recursor
 import CppFormalization.Cpp2.Closure.Internal.BodyBoundaryLiteCompatibility
-import CppFormalization.Cpp2.Closure.Internal.ConditionalNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.ConditionReplayKernel
 import CppFormalization.Cpp2.Closure.Internal.CurrentShellCI
 import CppFormalization.Cpp2.Closure.Internal.DerefAssignLocalInterfaces
@@ -45,7 +44,6 @@ import CppFormalization.Cpp2.Closure.Internal.LoopBodyIterationReadyReplayCI
 import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelCI
 import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelSplitCI
 import CppFormalization.Cpp2.Closure.Internal.NormalPathTypingBridge
-import CppFormalization.Cpp2.Closure.Internal.PrimitiveStmtNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.ProviderInterfacesCI
 import CppFormalization.Cpp2.Closure.Internal.PtrExprAssignTransportKernel
 import CppFormalization.Cpp2.Closure.Internal.ReadinessBoundaryConcrete

@@ -1,7 +1,7 @@
 import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete
 import CppFormalization.Cpp2.Static.Safety.Readiness
 import CppFormalization.Cpp2.Typing.ControlIndexed
-import CppFormalization.Cpp2.Closure.Internal.PrimitiveStmtNormalPreservation
+import CppFormalization.Cpp2.Proof.Preservation.PrimitiveStmtNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.ReadinessReplayPrimitive
 import CppFormalization.Cpp2.Closure.Internal.ConditionReplayKernel
 import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelCI

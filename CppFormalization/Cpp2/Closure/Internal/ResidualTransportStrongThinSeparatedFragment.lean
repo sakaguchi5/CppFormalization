@@ -3,7 +3,7 @@ import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.StrongThinSeparatedCondReplay
 import CppFormalization.Cpp2.Closure.Internal.ResidualTransportStableFragment
-import CppFormalization.Cpp2.Closure.Internal.PrimitiveStmtNormalPreservation
+import CppFormalization.Cpp2.Proof.Preservation.PrimitiveStmtNormalPreservation
 
 namespace Cpp
 

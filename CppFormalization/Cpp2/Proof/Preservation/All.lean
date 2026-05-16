@@ -14,6 +14,8 @@ import CppFormalization.Cpp2.Proof.Preservation.StmtControlDemandSequentialResid
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlDemandBlockResidual
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlDemandSurface
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlDemandProvider
+import CppFormalization.Cpp2.Proof.Preservation.PrimitiveStmtNormalPreservation
+import CppFormalization.Cpp2.Proof.Preservation.ConditionalNormalPreservation
 
 import CppFormalization.Cpp2.Proof.Preservation.Scope.All
 import CppFormalization.Cpp2.Proof.Preservation.Assign.All
