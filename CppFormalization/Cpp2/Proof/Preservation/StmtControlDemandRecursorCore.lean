@@ -1,4 +1,5 @@
 import CppFormalization.Cpp2.Proof.Preservation.Demand.ExecutionTrace
+import CppFormalization.Cpp2.Proof.Preservation.Demand.ResidualBoundary
 import CppFormalization.Cpp2.Proof.Control.StmtControlCompatibility
 import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete
 import CppFormalization.Cpp2.Proof.Preservation.Demand.PrimitivePreservation
@@ -276,10 +277,17 @@ theorem stmt_preservation_from_demand_follows
         returnSome_preserves_from_demand
           (StmtExecutionDemand.returnSome hty hready hval) hσ
 
-  | .seqNormal hfHead hfTail =>
-      fun hσ =>
-        stmt_preservation_from_demand_follows hfTail
-          (stmt_preservation_from_demand_follows hfHead hσ)
+  | .seqNormal
+      (Θ := Θ) (Δ := Δ) (σ₁ := σ₁) (σ₂ := σ₂)
+      (t := t) (ctrl := ctrl)
+      (dTail := dTail) (stepTail := stepTail)
+      hfHead hfTail =>
+      fun hσ => by
+        let hσ₁ : ScopedTypedStateConcrete Θ σ₁ :=
+          stmt_preservation_from_demand_follows hfHead hσ
+        have _B : SeqDemandResidualBoundary Δ σ₁ t ctrl σ₂ :=
+          ⟨Θ, dTail, stepTail, hfTail, hσ₁⟩
+        exact stmt_preservation_from_demand_follows hfTail hσ₁
 
   | .seqBreak hfHead =>
       fun hσ =>
@@ -305,19 +313,33 @@ theorem stmt_preservation_from_demand_follows
       fun hσ => by
         simpa using hσ
 
-  | .whileTrueNormal hfBody hfTail =>
-      fun hσ =>
-        stmt_preservation_from_demand_follows hfTail
-          (stmt_preservation_from_demand_follows hfBody hσ)
+  | .whileTrueNormal
+      (Γ := Γ) (Δ := Δ) (σ₁ := σ₁) (σ₂ := σ₂)
+      (c := c) (body := body) (ctrl := ctrl)
+      (dTail := dTail) (stepTail := stepTail)
+      hfBody hfTail =>
+      fun hσ => by
+        let hσ₁ : ScopedTypedStateConcrete Γ σ₁ :=
+          stmt_preservation_from_demand_follows hfBody hσ
+        have _B : WhileTailDemandBoundary Γ Δ σ₁ c body ctrl σ₂ :=
+          ⟨dTail, stepTail, hfTail, hσ₁⟩
+        exact stmt_preservation_from_demand_follows hfTail hσ₁
 
   | .whileTrueBreak hfBody =>
       fun hσ =>
         stmt_preservation_from_demand_follows hfBody hσ
 
-  | .whileTrueContinue hfBody hfTail =>
-      fun hσ =>
-        stmt_preservation_from_demand_follows hfTail
-          (stmt_preservation_from_demand_follows hfBody hσ)
+  | .whileTrueContinue
+      (Γ := Γ) (Δ := Δ) (σ₁ := σ₁) (σ₂ := σ₂)
+      (c := c) (body := body) (ctrl := ctrl)
+      (dTail := dTail) (stepTail := stepTail)
+      hfBody hfTail =>
+      fun hσ => by
+        let hσ₁ : ScopedTypedStateConcrete Γ σ₁ :=
+          stmt_preservation_from_demand_follows hfBody hσ
+        have _B : WhileTailDemandBoundary Γ Δ σ₁ c body ctrl σ₂ :=
+          ⟨dTail, stepTail, hfTail, hσ₁⟩
+        exact stmt_preservation_from_demand_follows hfTail hσ₁
 
   | .whileTrueReturn hfBody =>
       fun hσ =>
@@ -348,10 +370,17 @@ theorem block_preservation_from_demand_follows
       fun hσ => by
         simpa using hσ
 
-  | .consNormal hfHead hfTail =>
-      fun hσ =>
-        block_preservation_from_demand_follows hfTail
-          (stmt_preservation_from_demand_follows hfHead hσ)
+  | .consNormal
+      (Θ := Θ) (Δ := Δ) (σ₁ := σ₁) (σ₂ := σ₂)
+      (ss := ss) (ctrl := ctrl)
+      (dTail := dTail) (stepTail := stepTail)
+      hfHead hfTail =>
+      fun hσ => by
+        let hσ₁ : ScopedTypedStateConcrete Θ σ₁ :=
+          stmt_preservation_from_demand_follows hfHead hσ
+        have _B : ConsDemandResidualBoundary Δ σ₁ ss ctrl σ₂ :=
+          ⟨Θ, dTail, stepTail, hfTail, hσ₁⟩
+        exact block_preservation_from_demand_follows hfTail hσ₁
 
   | .consBreak hfHead =>
       fun hσ =>
