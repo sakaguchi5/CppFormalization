@@ -52,6 +52,7 @@ import CppFormalization.Cpp2.Closure.Internal.ReadinessResidualBoundary
 import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormal
 import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalCore
 import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalRefined
+import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalRefinedAssets
 import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalEnvExtending
 import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalEnvExtendingNames
 import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalEnvExtendingOldNames
