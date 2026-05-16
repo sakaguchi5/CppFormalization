@@ -1,6 +1,5 @@
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlRecursorCore
-import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
-import CppFormalization.Cpp2.Closure.Internal.BlockBodyNormalPreservation
+import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalCore
 
 namespace Cpp
 
@@ -12,29 +11,43 @@ Theorem-backed preservation kernel over compatibility derivations.
 The old shell axioms are gone. The price is explicit: the kernel now requires
 `WhileCtxProvider`, because the recursive `while` branches genuinely need the
 extra local data encoded there.
+
+The `seq normal` and block `cons normal` handlers no longer use the legacy
+exact-tail projections directly.  They project the pre-world tail readiness and
+then use the general `ReadinessTransportNormalCore` stmt/block transport
+obligation.  This shifts the remaining ordinary-readiness debt from the
+specialized exact-tail axiom to the general readiness-transport family.
 -/
 
 def whileCompatHandlers_kernel
    (mkWhileReentry : WhileReentryReadyProvider):
     WhileCompatHandlers where
   seqNormal := by
-    intro Γ Θ σ σ₁ s t htyHead hstepHead _hcompatHead ihHead hσ hreadySeq
+    intro Γ Θ Δ σ σ₁ s t k htyHead hstepHead htyTail _hcompatHead ihHead hσ hreadySeq
     have hreadyHead : StmtReadyConcrete Γ σ s :=
       stmtControlRecursor_seq_ready_left hreadySeq
     have hσ₁ : ScopedTypedStateConcrete Θ σ₁ :=
       ihHead hσ hreadyHead
+    have hreadyTailPre : StmtReadyConcrete Γ σ t :=
+      seq_ready_right hreadySeq
+    have hctx : NormalTransportCtx Γ Θ σ σ₁ s :=
+      ⟨htyHead, hstepHead, hσ₁⟩
     have hreadyTail : StmtReadyConcrete Θ σ₁ t :=
-      seq_ready_right_after_left_normal htyHead hσ₁ hreadySeq hstepHead
+      stmt_ready_transport_of_normal hctx htyTail hreadyTailPre
     exact ⟨hσ₁, hreadyTail⟩
 
   consNormal := by
-    intro Γ Θ σ σ₁ s ss htyHead hstepHead _hcompatHead ihHead hσ hreadyCons
+    intro Γ Θ Δ σ σ₁ s ss k htyHead hstepHead htyTail _hcompatHead ihHead hσ hreadyCons
     have hreadyHead : StmtReadyConcrete Γ σ s :=
       stmtControlRecursor_cons_block_ready_head hreadyCons
     have hσ₁ : ScopedTypedStateConcrete Θ σ₁ :=
       ihHead hσ hreadyHead
+    have hreadyTailPre : BlockReadyConcrete Γ σ ss :=
+      cons_block_ready_tail hreadyCons
+    have hctx : NormalTransportCtx Γ Θ σ σ₁ s :=
+      ⟨htyHead, hstepHead, hσ₁⟩
     have hreadyTail : BlockReadyConcrete Θ σ₁ ss :=
-      cons_block_ready_tail_after_head_normal htyHead hσ₁ hreadyCons hstepHead
+      block_ready_transport_of_normal hctx htyTail hreadyTailPre
     exact ⟨hσ₁, hreadyTail⟩
 
   normalNormal := by

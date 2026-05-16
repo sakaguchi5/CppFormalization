@@ -19,10 +19,10 @@ the non-recursive leaves.  The route-specific variation points are:
 - ordinary-readiness reconstruction for `seq normal` and block `cons normal`;
 - the four genuinely recursive `while` branches.
 
-At this stage the old Closure imports are intentionally still present.  The
-recursor core is first refactored to *use* seq/cons handlers; a later import-only
-stage can remove the direct Closure dependencies once the legacy instantiation
-is made explicit.
+The recursor core does not choose how ordinary residual tail readiness is
+reconstructed.  That route is supplied by handlers.  This keeps the generic
+recursion skeleton separate from the current legacy readiness-transport
+instantiation.
 
 Naming convention inside this file:
 - `handlers` is the externally supplied while-branch handler package.
@@ -39,9 +39,10 @@ readiness.  How that tail readiness is reconstructed is supplied by an
 instantiation layer.
 -/
 abbrev SeqNormalReadyHandler : Prop :=
-  ∀ {Γ Θ : TypeEnv} {σ σ₁ : State} {s t : CppStmt}
+  ∀ {Γ Θ Δ : TypeEnv} {σ σ₁ : State} {s t : CppStmt} {k : ControlKind}
     {htyHead : HasTypeStmtCI .normalK Γ s Θ}
     {hstepHead : BigStepStmt σ s .normal σ₁},
+    HasTypeStmtCI k Θ t Δ →
     StmtControlCompatible htyHead hstepHead →
     (ScopedTypedStateConcrete Γ σ →
       StmtReadyConcrete Γ σ s →
@@ -57,9 +58,10 @@ As with `SeqNormalReadyHandler`, this keeps exact tail-ready reconstruction out
 of the recursion branch itself.
 -/
 abbrev ConsNormalReadyHandler : Prop :=
-  ∀ {Γ Θ : TypeEnv} {σ σ₁ : State} {s : CppStmt} {ss : StmtBlock}
+  ∀ {Γ Θ Δ : TypeEnv} {σ σ₁ : State} {s : CppStmt} {ss : StmtBlock} {k : ControlKind}
     {htyHead : HasTypeStmtCI .normalK Γ s Θ}
     {hstepHead : BigStepStmt σ s .normal σ₁},
+    HasTypeBlockCI k Θ ss Δ →
     StmtControlCompatible htyHead hstepHead →
     (ScopedTypedStateConcrete Γ σ →
       StmtReadyConcrete Γ σ s →
@@ -301,6 +303,7 @@ private theorem stmt_control_goal_of_handlers
         exact
           handlers.seqNormal
             (htyHead := htyHead) (hstepHead := hstepHead)
+            htyTail
             hcompatHead
             (stmt_control_goal_of_handlers handlers hcompatHead)
             hσ hready
@@ -438,6 +441,7 @@ private theorem block_control_goal_of_handlers
         exact
           handlers.consNormal
             (htyHead := htyHead) (hstepHead := hstepHead)
+            htyTail
             hcompatHead
             (stmt_control_goal_of_handlers handlers hcompatHead)
             hσ hready
