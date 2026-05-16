@@ -12,6 +12,7 @@ import CppFormalization.Cpp2.Proof.Preservation.StmtControlDemandRecursorCore
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlDemandResidualBoundary
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlDemandSequentialResidual
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlDemandBlockResidual
+import CppFormalization.Cpp2.Proof.Preservation.StmtControlDemandSurface
 
 import CppFormalization.Cpp2.Proof.Preservation.Scope.All
 import CppFormalization.Cpp2.Proof.Preservation.Assign.All
