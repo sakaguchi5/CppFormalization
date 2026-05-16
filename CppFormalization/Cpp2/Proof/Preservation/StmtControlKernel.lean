@@ -1,5 +1,7 @@
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlRecursorCore
---import CppFormalization.Cpp2.Proof.Preservation.StmtControlKernelSupport
+import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
+import CppFormalization.Cpp2.Closure.Internal.BlockBodyNormalPreservation
+
 namespace Cpp
 
 /-!
@@ -15,6 +17,26 @@ extra local data encoded there.
 def whileCompatHandlers_kernel
    (mkWhileReentry : WhileReentryReadyProvider):
     WhileCompatHandlers where
+  seqNormal := by
+    intro Γ Θ σ σ₁ s t htyHead hstepHead _hcompatHead ihHead hσ hreadySeq
+    have hreadyHead : StmtReadyConcrete Γ σ s :=
+      stmtControlRecursor_seq_ready_left hreadySeq
+    have hσ₁ : ScopedTypedStateConcrete Θ σ₁ :=
+      ihHead hσ hreadyHead
+    have hreadyTail : StmtReadyConcrete Θ σ₁ t :=
+      seq_ready_right_after_left_normal htyHead hσ₁ hreadySeq hstepHead
+    exact ⟨hσ₁, hreadyTail⟩
+
+  consNormal := by
+    intro Γ Θ σ σ₁ s ss htyHead hstepHead _hcompatHead ihHead hσ hreadyCons
+    have hreadyHead : StmtReadyConcrete Γ σ s :=
+      stmtControlRecursor_cons_block_ready_head hreadyCons
+    have hσ₁ : ScopedTypedStateConcrete Θ σ₁ :=
+      ihHead hσ hreadyHead
+    have hreadyTail : BlockReadyConcrete Θ σ₁ ss :=
+      cons_block_ready_tail_after_head_normal htyHead hσ₁ hreadyCons hstepHead
+    exact ⟨hσ₁, hreadyTail⟩
+
   normalNormal := by
     intro Γ σ0 σBody σTail c body hc hN hB hC hstepBody hstepLoopTail
       _hcompatBody _hcompatLoopTail ihBodyPres ihLoopPres hscIn hreadyWhile

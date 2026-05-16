@@ -1,10 +1,8 @@
 
 import CppFormalization.Cpp2.Typing.ControlIndexed
 import CppFormalization.Cpp2.Proof.Preservation.PrimitiveStmtNormalPreservation
-import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
 import CppFormalization.Cpp2.Proof.Preservation.ConditionalNormalPreservation
 import CppFormalization.Cpp2.Proof.Preservation.BlockNormalPreservation
-import CppFormalization.Cpp2.Closure.Internal.BlockBodyNormalPreservation
 import CppFormalization.Cpp2.Proof.Control.StmtControlCompatibility
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlKernelSupport
 
@@ -16,9 +14,15 @@ namespace Cpp
 Common structural recursion core for
 `StmtControlCompatible` / `BlockControlCompatible`.
 
-The shared skeleton is theorem-backed for primitive / seq / ite / block and for
-the non-recursive `while` leaves. The only variation point is the four genuinely
-recursive `while` branches.
+The shared skeleton is theorem-backed for primitive / ite / block and for
+the non-recursive leaves.  The route-specific variation points are:
+- ordinary-readiness reconstruction for `seq normal` and block `cons normal`;
+- the four genuinely recursive `while` branches.
+
+At this stage the old Closure imports are intentionally still present.  The
+recursor core is first refactored to *use* seq/cons handlers; a later import-only
+stage can remove the direct Closure dependencies once the legacy instantiation
+is made explicit.
 
 Naming convention inside this file:
 - `handlers` is the externally supplied while-branch handler package.
@@ -26,6 +30,43 @@ Naming convention inside this file:
 - `hcompatBody` / `hcompatLoopTail` are while body and recursive loop-tail compatibility proofs.
 - `ihBodyPres` / `ihLoopPres` are preservation IHs derived from those compatibility proofs.
 -/
+
+/--
+Handler for the ordinary-readiness `seq normal` residual step.
+
+The recursor core only needs the resulting post-state invariant and tail
+readiness.  How that tail readiness is reconstructed is supplied by an
+instantiation layer.
+-/
+abbrev SeqNormalReadyHandler : Prop :=
+  ∀ {Γ Θ : TypeEnv} {σ σ₁ : State} {s t : CppStmt}
+    {htyHead : HasTypeStmtCI .normalK Γ s Θ}
+    {hstepHead : BigStepStmt σ s .normal σ₁},
+    StmtControlCompatible htyHead hstepHead →
+    (ScopedTypedStateConcrete Γ σ →
+      StmtReadyConcrete Γ σ s →
+      ScopedTypedStateConcrete Θ σ₁) →
+    ScopedTypedStateConcrete Γ σ →
+    StmtReadyConcrete Γ σ (.seq s t) →
+    ScopedTypedStateConcrete Θ σ₁ ∧ StmtReadyConcrete Θ σ₁ t
+
+/--
+Handler for the ordinary-readiness block `cons normal` residual step.
+
+As with `SeqNormalReadyHandler`, this keeps exact tail-ready reconstruction out
+of the recursion branch itself.
+-/
+abbrev ConsNormalReadyHandler : Prop :=
+  ∀ {Γ Θ : TypeEnv} {σ σ₁ : State} {s : CppStmt} {ss : StmtBlock}
+    {htyHead : HasTypeStmtCI .normalK Γ s Θ}
+    {hstepHead : BigStepStmt σ s .normal σ₁},
+    StmtControlCompatible htyHead hstepHead →
+    (ScopedTypedStateConcrete Γ σ →
+      StmtReadyConcrete Γ σ s →
+      ScopedTypedStateConcrete Θ σ₁) →
+    ScopedTypedStateConcrete Γ σ →
+    BlockReadyConcrete Γ σ (.cons s ss) →
+    ScopedTypedStateConcrete Θ σ₁ ∧ BlockReadyConcrete Θ σ₁ ss
 
 abbrev WhileNormalNormalHandler : Prop :=
   ∀ {Γ : TypeEnv} {σ σ₁ σ₂ : State} {c : ValExpr} {body : CppStmt}
@@ -112,10 +153,38 @@ abbrev WhileContinueReturnHandler : Prop :=
     ScopedTypedStateConcrete Δ σ₂
 
 structure WhileCompatHandlers where
+  seqNormal : SeqNormalReadyHandler
+  consNormal : ConsNormalReadyHandler
   normalNormal : WhileNormalNormalHandler
   continueNormal : WhileContinueNormalHandler
   normalReturn : WhileNormalReturnHandler
   continueReturn : WhileContinueReturnHandler
+
+/-- Extract the left-statement readiness from sequence readiness.
+
+This duplicate-looking helper intentionally has a recursor-specific name so a
+later import-cleanup stage can stop importing `Closure.Internal.SequentialNormalPreservation`.
+-/
+theorem stmtControlRecursor_seq_ready_left
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt} :
+    StmtReadyConcrete Γ σ (.seq s t) →
+    StmtReadyConcrete Γ σ s := by
+  intro h
+  cases h with
+  | seq hs _ => exact hs
+
+/-- Extract the head-statement readiness from block-cons readiness.
+
+This duplicate-looking helper intentionally has a recursor-specific name so a
+later import-cleanup stage can stop importing `Closure.Internal.BlockBodyNormalPreservation`.
+-/
+theorem stmtControlRecursor_cons_block_ready_head
+    {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock} :
+    BlockReadyConcrete Γ σ (.cons s ss) →
+    StmtReadyConcrete Γ σ s := by
+  intro h
+  cases h with
+  | cons hs _ => exact hs
 
 structure StmtBlockPreservationKernel where
   stmt :
@@ -230,28 +299,27 @@ private theorem stmt_control_goal_of_handlers
       have hpost :
           ScopedTypedStateConcrete Θ σ₁ ∧ StmtReadyConcrete Θ σ₁ t := by
         exact
-          seq_left_normal_preserves_ready_of_left_preservation
-            (Γ := Γ) (Δ := Θ) (σ := σ) (σ' := σ₁) (s := s) (t := t)
-            (hpres := by
-              intro _htyHead hσ0 hreadyHead0 _hstepHead
-              exact stmt_control_goal_of_handlers handlers hcompatHead hσ0 hreadyHead0)
-            htyHead hready hstepHead hσ
+          handlers.seqNormal
+            (htyHead := htyHead) (hstepHead := hstepHead)
+            hcompatHead
+            (stmt_control_goal_of_handlers handlers hcompatHead)
+            hσ hready
       rcases hpost with ⟨hσ₁, hreadyTail⟩
       exact stmt_control_goal_of_handlers handlers hcompatTail hσ₁ hreadyTail
 
   | .seq_break hcompatHead =>
       intro hσ hready
-      have hreadyHead := seq_ready_left hready
+      have hreadyHead := stmtControlRecursor_seq_ready_left hready
       exact stmt_control_goal_of_handlers handlers hcompatHead hσ hreadyHead
 
   | .seq_continue hcompatHead =>
       intro hσ hready
-      have hreadyHead := seq_ready_left hready
+      have hreadyHead := stmtControlRecursor_seq_ready_left hready
       exact stmt_control_goal_of_handlers handlers hcompatHead hσ hreadyHead
 
   | .seq_return hcompatHead =>
       intro hσ hready
-      have hreadyHead := seq_ready_left hready
+      have hreadyHead := stmtControlRecursor_seq_ready_left hready
       exact stmt_control_goal_of_handlers handlers hcompatHead hσ hreadyHead
 
   | .ite_true hcompatThen =>
@@ -368,28 +436,27 @@ private theorem block_control_goal_of_handlers
       have hpost :
           ScopedTypedStateConcrete Θ σ₁ ∧ BlockReadyConcrete Θ σ₁ ss := by
         exact
-          cons_head_normal_preserves_ready_of_head_preservation
-            (Γ := Γ) (Ξ := Θ) (σ := σ) (σ' := σ₁) (s := s) (ss := ss)
-            (hpres := by
-              intro _htyHead hσ0 hreadyHead0 _hstepHead
-              exact stmt_control_goal_of_handlers handlers hcompatHead hσ0 hreadyHead0)
-            htyHead hready hstepHead hσ
+          handlers.consNormal
+            (htyHead := htyHead) (hstepHead := hstepHead)
+            hcompatHead
+            (stmt_control_goal_of_handlers handlers hcompatHead)
+            hσ hready
       rcases hpost with ⟨hσ₁, hreadyTail⟩
       exact block_control_goal_of_handlers handlers hcompatTail hσ₁ hreadyTail
 
   | .cons_break hcompatHead =>
       intro hσ hready
-      have hreadyHead := cons_block_ready_head hready
+      have hreadyHead := stmtControlRecursor_cons_block_ready_head hready
       exact stmt_control_goal_of_handlers handlers hcompatHead hσ hreadyHead
 
   | .cons_continue hcompatHead =>
       intro hσ hready
-      have hreadyHead := cons_block_ready_head hready
+      have hreadyHead := stmtControlRecursor_cons_block_ready_head hready
       exact stmt_control_goal_of_handlers handlers hcompatHead hσ hreadyHead
 
   | .cons_return hcompatHead =>
       intro hσ hready
-      have hreadyHead := cons_block_ready_head hready
+      have hreadyHead := stmtControlRecursor_cons_block_ready_head hready
       exact stmt_control_goal_of_handlers handlers hcompatHead hσ hreadyHead
 
 end
