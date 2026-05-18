@@ -1,4 +1,5 @@
 import CppFormalization.Cpp2.Closure.Internal.SeqReturnAwareRouteCI
+import CppFormalization.Cpp2.Continuation.Boundary.Body
 import CppFormalization.Cpp2.Closure.Internal.SeqNormalPreservationProviderCI
 
 namespace Cpp
@@ -99,6 +100,95 @@ theorem seq_function_body_closure_ci_return_aware_of_normalPreservationProvider
     FunctionBodyClosureResult σ (.seq s t) := by
   exact
     seq_function_body_closure_ci_honest_of_normalPreservationProvider
+      P hentry leftClosure tailClosure
+
+
+/- =========================================================
+   Continuation-callback surfaces
+   ========================================================= -/
+
+/-- Boundary-level route-aware sequence closure through a normal-preservation
+provider, with the tail callback receiving the full continuation boundary. -/
+theorem seq_function_body_closure_boundary_ci_return_aware_continuation_of_normalPreservationProvider
+    (P : StmtNormalPreservationProviderCI)
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyClosureBoundaryCI Γ σ s →
+      FunctionBodyClosureResult σ s)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        StmtContinuationBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  exact
+    seq_function_body_closure_boundary_ci_return_aware_continuation
+      P.toWhileReentryReadyProvider
+      hentry
+      leftClosure
+      tailClosure
+
+/-- Alias matching the older `honest` naming surface. -/
+theorem seq_function_body_closure_boundary_ci_honest_continuation_of_normalPreservationProvider
+    (P : StmtNormalPreservationProviderCI)
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyClosureBoundaryCI Γ σ s →
+      FunctionBodyClosureResult σ s)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        StmtContinuationBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  exact
+    seq_function_body_closure_boundary_ci_return_aware_continuation_of_normalPreservationProvider
+      P hentry leftClosure tailClosure
+
+/-- `BodyReadyCI` route-aware sequence closure through a normal-preservation
+provider, with the tail callback receiving the full continuation boundary. -/
+theorem seq_function_body_closure_ci_return_aware_continuation_of_normalPreservationProvider
+    (P : StmtNormalPreservationProviderCI)
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyReadyCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyReadyCI Γ σ s →
+      FunctionBodyClosureResult σ s)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry.toClosureBoundary).profile) →
+        StmtContinuationBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  exact
+    seq_function_body_closure_ci_return_aware_continuation
+      P.toWhileReentryReadyProvider
+      hentry
+      leftClosure
+      tailClosure
+
+/-- Alias matching the older `honest` naming surface. -/
+theorem seq_function_body_closure_ci_honest_continuation_of_normalPreservationProvider
+    (P : StmtNormalPreservationProviderCI)
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyReadyCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyReadyCI Γ σ s →
+      FunctionBodyClosureResult σ s)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry.toClosureBoundary).profile) →
+        StmtContinuationBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  exact
+    seq_function_body_closure_ci_return_aware_continuation_of_normalPreservationProvider
       P hentry leftClosure tailClosure
 
 end Cpp

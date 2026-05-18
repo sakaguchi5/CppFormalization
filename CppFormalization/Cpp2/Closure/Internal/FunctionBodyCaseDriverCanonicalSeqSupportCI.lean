@@ -1,4 +1,5 @@
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverBoundaryCoreSupportCI
+import CppFormalization.Cpp2.Continuation.Boundary.Body
 import CppFormalization.Cpp2.Closure.Internal.SeqCanonicalTailEntryMainlineSupportCI
 
 namespace Cpp
@@ -223,5 +224,63 @@ theorem body_ready_ci_function_body_progress_or_diverges_case_driver_body_static
     FunctionBodyCaseDriverResult σ st :=
   body_closure_ci_function_body_progress_or_diverges_case_driver_body_staticSources_routeTheoremBackedSeq
     P C Wh W IH hfrag hentry.toClosureBoundary
+
+
+/- =========================================================
+   Continuation-callback canonical seq surface
+   ========================================================= -/
+
+/-- Canonical fixed-static seq closure surface with a full continuation callback.
+
+This keeps `SeqCanonicalTailEntryMainlineSupportCI` as the canonical seq
+dependency, while exposing the post-route tail as a `StmtContinuationBoundaryCI`.
+-/
+theorem seq_function_body_closure_boundary_ci_canonicalTailEntry_continuation
+    {P : StmtNormalPreservationCoreCI}
+    (Seq : SeqCanonicalTailEntryMainlineSupportCI P)
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyClosureBoundaryCI Γ σ s →
+        FunctionBodyClosureResult σ s)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        StmtContinuationBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  exact
+    seq_function_body_closure_boundary_ci_canonicalTailEntry
+      Seq
+      hentry
+      leftClosure
+      (fun route htail =>
+        tailClosure route
+          (StmtContinuationBoundaryCI.ofBodyClosureBoundaryCI htail))
+
+/-- `BodyReadyCI` canonical fixed-static seq closure surface with a full
+continuation callback. -/
+theorem seq_function_body_closure_ci_canonicalTailEntry_continuation
+    {P : StmtNormalPreservationCoreCI}
+    (Seq : SeqCanonicalTailEntryMainlineSupportCI P)
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyReadyCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyReadyCI Γ σ s →
+        FunctionBodyClosureResult σ s)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry.toClosureBoundary).profile) →
+        StmtContinuationBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  exact
+    seq_function_body_closure_boundary_ci_canonicalTailEntry_continuation
+      Seq
+      hentry.toClosureBoundary
+      (fun hleft => leftClosure hleft.toBodyReadyCI)
+      (fun route htail => tailClosure route htail)
 
 end Cpp
