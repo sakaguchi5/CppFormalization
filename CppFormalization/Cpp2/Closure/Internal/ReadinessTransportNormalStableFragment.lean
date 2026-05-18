@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalCore
+import CppFormalization.Cpp2.Contracts.Obligations.ReadinessTransportNormalCore
 import CppFormalization.Cpp2.Closure.Internal.ResidualTransportStableFragment
 
 namespace Cpp

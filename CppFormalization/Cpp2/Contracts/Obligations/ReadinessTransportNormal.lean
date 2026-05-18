@@ -5,7 +5,7 @@ import CppFormalization.Cpp2.Typing.ControlIndexed
 namespace Cpp
 
 /-!
-# Closure.Internal.ReadinessTransportNormal
+# Contracts.Obligations.ReadinessTransportNormal
 
 Normal head-step のあとに、post-env / post-state 側へ readiness を輸送するための
 下層 transport kernel の足場。

@@ -1,11 +1,11 @@
-import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormal
+import CppFormalization.Cpp2.Contracts.Obligations.ReadinessTransportNormal
 
 namespace Cpp
 
 /-!
-# Closure.Internal.ReadinessTransportNormalCore
+# Contracts.Obligations.ReadinessTransportNormalCore
 
-`ReadinessTransportNormal.lean` で固定した transport context / goal aliases の上に、
+`Contracts.Obligations.ReadinessTransportNormal` で固定した transport context / goal aliases の上に、
 将来の mutual ready-transport theorem family を一箇所へ束ねる core file。
 
 この段階ではまだ theorem-backed 実装は入れない。

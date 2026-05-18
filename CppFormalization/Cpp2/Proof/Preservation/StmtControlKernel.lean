@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlRecursorCore
-import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalCore
+import CppFormalization.Cpp2.Contracts.Obligations.ReadinessTransportNormalCore
 
 namespace Cpp
 

@@ -3,7 +3,7 @@ import CppFormalization.Cpp2.Closure.Internal.BlockBodyNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.ConditionReplayKernel
 import CppFormalization.Cpp2.Closure.Internal.ReadinessReplayPrimitive
 import CppFormalization.Cpp2.Proof.Preservation.PrimitiveStmtNormalPreservation
-import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormal
+import CppFormalization.Cpp2.Contracts.Obligations.ReadinessTransportNormal
 
 namespace Cpp
 

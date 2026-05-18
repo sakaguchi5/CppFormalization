@@ -49,8 +49,6 @@ import CppFormalization.Cpp2.Closure.Internal.PtrExprAssignTransportKernel
 import CppFormalization.Cpp2.Closure.Internal.ReadinessBoundaryConcrete
 import CppFormalization.Cpp2.Closure.Internal.ReadinessReplayPrimitive
 import CppFormalization.Cpp2.Closure.Internal.ReadinessResidualBoundary
-import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormal
-import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalCore
 import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalRefined
 import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalRefinedAssets
 import CppFormalization.Cpp2.Closure.Internal.ReadinessTransportNormalFreshIntro
