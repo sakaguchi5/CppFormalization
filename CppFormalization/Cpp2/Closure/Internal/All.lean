@@ -122,6 +122,8 @@ import CppFormalization.Cpp2.Closure.Internal.WhileStrongThinSeparatedAssignFact
 import CppFormalization.Cpp2.Closure.Internal.WhileTailAdequacyProviderSplitCI
 import CppFormalization.Cpp2.Closure.Internal.WhileTailReentryProviderSplitCI
 import CppFormalization.Cpp2.Closure.Internal.Transport.All
+import CppFormalization.Cpp2.Closure.Internal.SeqFunctionBodyClosureContinuationCoreSupportCI
+import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverContinuationSeqSupportCI
 
 /-!
 # CppFormalization.Cpp2.Closure.Internal.All
