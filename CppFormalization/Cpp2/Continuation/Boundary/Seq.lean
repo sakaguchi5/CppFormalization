@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Continuation.Boundary.Dynamic
+import CppFormalization.Cpp2.Continuation.Boundary.Body
 import CppFormalization.Cpp2.Contracts.Obligations.ReadinessTransportNormalExactTail
 
 namespace Cpp
@@ -62,5 +62,76 @@ theorem seq_normal_continuation_dynamic_of_exact_tail
           safe :=
             seq_ready_right_after_left_normal_of_exact_tail
               hleft hpost hreadySeq hstepLeft } }
+
+
+/- =========================================================
+   Full continuation boundary surface
+   ========================================================= -/
+
+/-- Full continuation boundary after the left side of a sequence finishes
+normally.
+
+This is the intended public shape for selected-route seq continuation:
+the route determines the post environment/state, and the tail is represented by
+a full continuation boundary rather than by a readiness transport statement.
+-/
+structure SeqNormalContinuationBoundaryCI
+    (Γ Θ : TypeEnv) (σ σ₁ : State) (s t : CppStmt) : Type where
+  hleft : HasTypeStmtCI .normalK Γ s Θ
+  hstepLeft : BigStepStmt σ s .normal σ₁
+  tail : StmtContinuationBoundaryCI Θ σ₁ t
+
+namespace SeqNormalContinuationBoundaryCI
+
+def dynamic
+    {Γ Θ : TypeEnv} {σ σ₁ : State} {s t : CppStmt}
+    (h : SeqNormalContinuationBoundaryCI Γ Θ σ σ₁ s t) :
+    SeqNormalContinuationDynamicCI Γ Θ σ σ₁ s t :=
+  { hleft := h.hleft
+    hstepLeft := h.hstepLeft
+    tail := h.tail.dynamic }
+
+def tailBodyClosureBoundary
+    {Γ Θ : TypeEnv} {σ σ₁ : State} {s t : CppStmt}
+    (h : SeqNormalContinuationBoundaryCI Γ Θ σ σ₁ s t) :
+    BodyClosureBoundaryCI Θ σ₁ t :=
+  h.tail.toBodyClosureBoundaryCI
+
+def tailBodyReady
+    {Γ Θ : TypeEnv} {σ σ₁ : State} {s t : CppStmt}
+    (h : SeqNormalContinuationBoundaryCI Γ Θ σ σ₁ s t) :
+    BodyReadyCI Θ σ₁ t :=
+  h.tail.toBodyReadyCI
+
+theorem tailReady
+    {Γ Θ : TypeEnv} {σ σ₁ : State} {s t : CppStmt}
+    (h : SeqNormalContinuationBoundaryCI Γ Θ σ σ₁ s t) :
+    StmtReadyConcrete Θ σ₁ t :=
+  h.tail.ready
+
+theorem postState
+    {Γ Θ : TypeEnv} {σ σ₁ : State} {s t : CppStmt}
+    (h : SeqNormalContinuationBoundaryCI Γ Θ σ σ₁ s t) :
+    ScopedTypedStateConcrete Θ σ₁ :=
+  h.tail.postState
+
+end SeqNormalContinuationBoundaryCI
+
+/-- Build the full seq continuation boundary from an existing tail closure
+boundary.
+
+This is a compatibility constructor: it lets route-aware callers switch their
+callback surface from `BodyClosureBoundaryCI` to `SeqNormalContinuationBoundaryCI`
+without changing the old closure assembly yet.
+-/
+def seq_normal_continuation_boundary_of_tail_closure_boundary
+    {Γ Θ : TypeEnv} {σ σ₁ : State} {s t : CppStmt}
+    (hleft : HasTypeStmtCI .normalK Γ s Θ)
+    (hstepLeft : BigStepStmt σ s .normal σ₁)
+    (tail : BodyClosureBoundaryCI Θ σ₁ t) :
+    SeqNormalContinuationBoundaryCI Γ Θ σ σ₁ s t :=
+  { hleft := hleft
+    hstepLeft := hstepLeft
+    tail := StmtContinuationBoundaryCI.ofBodyClosureBoundaryCI tail }
 
 end Cpp

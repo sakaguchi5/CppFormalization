@@ -1,4 +1,5 @@
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseSplitCI
+import CppFormalization.Cpp2.Continuation.Boundary.Body
 
 namespace Cpp
 
@@ -58,5 +59,63 @@ theorem seq_function_body_closure_ci_return_aware
       hentry
       leftClosure
       tailClosure
+
+
+/- =========================================================
+   Continuation-callback route-aware wrappers
+   ========================================================= -/
+
+/-- Route-aware theorem-backed seq closure with a full continuation callback.
+
+This is a surface-level refactoring wrapper: internally it reuses the existing
+`BodyClosureBoundaryCI` route, but the user-facing tail callback receives the
+new continuation boundary shape.
+-/
+theorem seq_function_body_closure_boundary_ci_return_aware_continuation
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyClosureBoundaryCI Γ σ s →
+      FunctionBodyClosureResult σ s)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        StmtContinuationBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  exact
+    seq_function_body_closure_boundary_ci_return_aware
+      mkWhileReentry
+      hentry
+      leftClosure
+      (fun route htail =>
+        tailClosure route
+          (StmtContinuationBoundaryCI.ofBodyClosureBoundaryCI htail))
+
+/-- `BodyReadyCI` wrapper with a full continuation callback. -/
+theorem seq_function_body_closure_ci_return_aware_continuation
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyReadyCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyReadyCI Γ σ s →
+      FunctionBodyClosureResult σ s)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry.toClosureBoundary).profile) →
+        StmtContinuationBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  exact
+    seq_function_body_closure_ci_return_aware
+      mkWhileReentry
+      hentry
+      leftClosure
+      (fun route htail =>
+        tailClosure route
+          (StmtContinuationBoundaryCI.ofBodyReadyCI htail))
 
 end Cpp
