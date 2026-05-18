@@ -1,5 +1,8 @@
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlRecursorCore
-import CppFormalization.Cpp2.Continuation.Boundary.LegacyTransport
+--import CppFormalization.Cpp2.Continuation.Boundary.LegacyTransport
+import CppFormalization.Cpp2.Continuation.Boundary.Seq
+import CppFormalization.Cpp2.Continuation.Boundary.Cons
+
 
 namespace Cpp
 
@@ -24,36 +27,26 @@ def whileCompatHandlers_kernel
    (mkWhileReentry : WhileReentryReadyProvider):
     WhileCompatHandlers where
   seqNormal := by
-    intro Γ Θ Δ σ σ₁ s t k htyHead hstepHead htyTail _hcompatHead ihHead hσ hreadySeq
+    intro Γ Θ Δ σ σ₁ s t k htyHead hstepHead _htyTail _hcompatHead ihHead hσ hreadySeq
     have hreadyHead : StmtReadyConcrete Γ σ s :=
       stmtControlRecursor_seq_ready_left hreadySeq
     have hσ₁ : ScopedTypedStateConcrete Θ σ₁ :=
       ihHead hσ hreadyHead
-    have hreadyTailPre : StmtReadyConcrete Γ σ t :=
-      seq_ready_right hreadySeq
-    have hctx : NormalTransportCtx Γ Θ σ σ₁ s :=
-      ⟨htyHead, hstepHead, hσ₁⟩
-    have htailCont : StmtContinuationDynamicBoundary Θ σ₁ t :=
-      stmt_continuation_dynamic_of_legacy_transport hctx htyTail hreadyTailPre
-    have hreadyTail : StmtReadyConcrete Θ σ₁ t :=
-      htailCont.safe
-    exact ⟨htailCont.state, hreadyTail⟩
+    have hcont : SeqNormalContinuationDynamicCI Γ Θ σ σ₁ s t :=
+      seq_normal_continuation_dynamic_of_exact_tail
+        htyHead hσ₁ hreadySeq hstepHead
+    exact ⟨hcont.postState, hcont.tailReady⟩
 
   consNormal := by
-    intro Γ Θ Δ σ σ₁ s ss k htyHead hstepHead htyTail _hcompatHead ihHead hσ hreadyCons
+    intro Γ Θ Δ σ σ₁ s ss k htyHead hstepHead _htyTail _hcompatHead ihHead hσ hreadyCons
     have hreadyHead : StmtReadyConcrete Γ σ s :=
       stmtControlRecursor_cons_block_ready_head hreadyCons
     have hσ₁ : ScopedTypedStateConcrete Θ σ₁ :=
       ihHead hσ hreadyHead
-    have hreadyTailPre : BlockReadyConcrete Γ σ ss :=
-      cons_block_ready_tail hreadyCons
-    have hctx : NormalTransportCtx Γ Θ σ σ₁ s :=
-      ⟨htyHead, hstepHead, hσ₁⟩
-    have htailCont : BlockContinuationDynamicBoundary Θ σ₁ ss :=
-      block_continuation_dynamic_of_legacy_transport hctx htyTail hreadyTailPre
-    have hreadyTail : BlockReadyConcrete Θ σ₁ ss :=
-      htailCont.safe
-    exact ⟨htailCont.state, hreadyTail⟩
+    have hcont : ConsNormalContinuationDynamicCI Γ Θ σ σ₁ s ss :=
+      cons_normal_continuation_dynamic_of_exact_tail
+        htyHead hσ₁ hreadyCons hstepHead
+    exact ⟨hcont.postState, hcont.tailReady⟩
 
   normalNormal := by
     intro Γ σ0 σBody σTail c body hc hN hB hC hstepBody hstepLoopTail
