@@ -3,7 +3,7 @@ import CppFormalization.Cpp2.Static.Safety.Readiness
 import CppFormalization.Cpp2.Typing.ControlIndexed
 import CppFormalization.Cpp2.Closure.Internal.ReadinessResidualBoundary
 import CppFormalization.Cpp2.Proof.Preservation.PrimitiveStmtNormalPreservation
-import CppFormalization.Cpp2.Contracts.Obligations.ReadinessTransportNormalExactTail
+import CppFormalization.Cpp2.Continuation.Boundary.Seq
 
 namespace Cpp
 
@@ -68,8 +68,11 @@ theorem seq_ready_right_after_left_normal
     ScopedTypedStateConcrete Θ σ' →
     StmtReadyConcrete Γ σ (.seq s t) →
     BigStepStmt σ s .normal σ' →
-    StmtReadyConcrete Θ σ' t :=
-  seq_ready_right_after_left_normal_of_exact_tail
+    StmtReadyConcrete Θ σ' t := by
+  intro hleft hpost hreadySeq hstepLeft
+  exact
+    (seq_normal_continuation_dynamic_of_exact_tail
+      hleft hpost hreadySeq hstepLeft).tailReady
 
 
 /- =========================================================

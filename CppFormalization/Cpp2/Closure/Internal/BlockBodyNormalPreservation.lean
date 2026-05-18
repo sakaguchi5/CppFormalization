@@ -3,7 +3,7 @@ import CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete
 import CppFormalization.Cpp2.Static.Safety.Readiness
 import CppFormalization.Cpp2.Typing.ControlIndexed
 import CppFormalization.Cpp2.Closure.Internal.ReadinessResidualBoundary
-import CppFormalization.Cpp2.Contracts.Obligations.ReadinessTransportNormalExactTail
+import CppFormalization.Cpp2.Continuation.Boundary.Cons
 
 namespace Cpp
 
@@ -80,8 +80,11 @@ theorem cons_block_ready_tail_after_head_normal
     ScopedTypedStateConcrete Ξ σ' ->
     BlockReadyConcrete Γ σ (.cons s ss) ->
     BigStepStmt σ s .normal σ' ->
-    BlockReadyConcrete Ξ σ' ss :=
-  cons_block_ready_tail_after_head_normal_of_exact_tail
+    BlockReadyConcrete Ξ σ' ss := by
+  intro hhead hpost hreadyCons hstepHead
+  exact
+    (cons_normal_continuation_dynamic_of_exact_tail
+      hhead hpost hreadyCons hstepHead).tailReady
 
 theorem cons_block_normal_data
     {σ σ' : State} {s : CppStmt} {ss : StmtBlock} :

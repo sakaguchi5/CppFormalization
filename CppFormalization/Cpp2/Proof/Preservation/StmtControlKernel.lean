@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlRecursorCore
-import CppFormalization.Cpp2.Contracts.Obligations.ReadinessTransportNormalCore
+import CppFormalization.Cpp2.Continuation.Boundary.LegacyTransport
 
 namespace Cpp
 
@@ -14,8 +14,9 @@ extra local data encoded there.
 
 The `seq normal` and block `cons normal` handlers no longer use the legacy
 exact-tail projections directly.  They project the pre-world tail readiness and
-then use the general `ReadinessTransportNormalCore` stmt/block transport
-obligation.  This shifts the remaining ordinary-readiness debt from the
+then construct statement/block continuation dynamic boundaries.
+The temporary constructors still use the legacy `ReadinessTransportNormalCore`
+obligation internally.  This shifts the remaining ordinary-readiness debt from the
 specialized exact-tail axiom to the general readiness-transport family.
 -/
 
@@ -32,9 +33,11 @@ def whileCompatHandlers_kernel
       seq_ready_right hreadySeq
     have hctx : NormalTransportCtx Γ Θ σ σ₁ s :=
       ⟨htyHead, hstepHead, hσ₁⟩
+    have htailCont : StmtContinuationDynamicBoundary Θ σ₁ t :=
+      stmt_continuation_dynamic_of_legacy_transport hctx htyTail hreadyTailPre
     have hreadyTail : StmtReadyConcrete Θ σ₁ t :=
-      stmt_ready_transport_of_normal hctx htyTail hreadyTailPre
-    exact ⟨hσ₁, hreadyTail⟩
+      htailCont.safe
+    exact ⟨htailCont.state, hreadyTail⟩
 
   consNormal := by
     intro Γ Θ Δ σ σ₁ s ss k htyHead hstepHead htyTail _hcompatHead ihHead hσ hreadyCons
@@ -46,9 +49,11 @@ def whileCompatHandlers_kernel
       cons_block_ready_tail hreadyCons
     have hctx : NormalTransportCtx Γ Θ σ σ₁ s :=
       ⟨htyHead, hstepHead, hσ₁⟩
+    have htailCont : BlockContinuationDynamicBoundary Θ σ₁ ss :=
+      block_continuation_dynamic_of_legacy_transport hctx htyTail hreadyTailPre
     have hreadyTail : BlockReadyConcrete Θ σ₁ ss :=
-      block_ready_transport_of_normal hctx htyTail hreadyTailPre
-    exact ⟨hσ₁, hreadyTail⟩
+      htailCont.safe
+    exact ⟨htailCont.state, hreadyTail⟩
 
   normalNormal := by
     intro Γ σ0 σBody σTail c body hc hN hB hC hstepBody hstepLoopTail
