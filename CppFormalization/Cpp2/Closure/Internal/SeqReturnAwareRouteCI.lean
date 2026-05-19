@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseSplitCI
+import CppFormalization.Cpp2.Closure.Internal.SeqClosureRouteCI
 import CppFormalization.Cpp2.Closure.Internal.SeqRuntimeReplayRouteCI
 import CppFormalization.Cpp2.Continuation.Boundary.Body
 
@@ -184,7 +184,7 @@ theorem seq_function_body_closure_boundary_ci_return_aware_with_stability
       tailClosure
 
 
-/-- 
+/--
 Return-aware seq closure with post-state and runtime replay supplied separately.
 
 This is the most decomposed public surface at this stage.  Static/name-scope

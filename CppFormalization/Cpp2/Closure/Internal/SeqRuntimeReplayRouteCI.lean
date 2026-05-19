@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseSplitCI
+import CppFormalization.Cpp2.Closure.Internal.SeqClosureRouteCI
 import CppFormalization.Cpp2.Continuation.Boundary.Body
 
 namespace Cpp
