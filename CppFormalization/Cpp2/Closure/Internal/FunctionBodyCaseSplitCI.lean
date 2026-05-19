@@ -1127,6 +1127,56 @@ end SeqTailRuntimeReplayAtRouteCI
 /--
 Route-local stability contract for the tail of `s; t`.
 
+
+/--
+Runtime replay components for the selected tail route.
+
+This is the next refinement below `SeqTailRuntimeReplayAtRouteCI`: the C++
+meaningful parts are named separately, and the remaining coarse step is only the
+materialization theorem/obligation that turns those components into ordinary
+`StmtReadyConcrete`.
+-/
+-/
+structure SeqTailRuntimeReplayComponentsAtRouteCI
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) : Prop where
+  readSet : SeqTailReadSetNonClobberAtRouteCI route
+  derefPointer : SeqTailPointerDerefStabilityAtRouteCI route
+  loadReadability : SeqTailLoadReadabilityPreservationAtRouteCI route
+
+/--
+Materialize tail readiness from the named runtime replay components.
+
+This is intentionally still an obligation.  The progress is that the obligation
+is no longer "transport readiness after normal"; it is now "these concrete
+runtime replay components are sufficient for the selected route's tail
+readiness".
+-/
+axiom seq_tail_ready_of_runtime_replay_components_at_route_ci
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
+    (components : SeqTailRuntimeReplayComponentsAtRouteCI route) :
+    StmtReadyConcrete route.Θ σ1 t
+
+/-- Assemble the runtime replay package from named replay components. -/
+def seq_tail_runtime_replay_at_route_ci_of_components
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
+    (components : SeqTailRuntimeReplayComponentsAtRouteCI route) :
+    SeqTailRuntimeReplayAtRouteCI route :=
+  { readSet := components.readSet
+    derefPointer := components.derefPointer
+    loadReadability := components.loadReadability
+    tailReady :=
+      seq_tail_ready_of_runtime_replay_components_at_route_ci
+        hentry route components }
+
+/--
 Compared with the previous coarse version, this now has three visible layers:
 
 * `postStatePart`: preservation-shaped post-state/environment agreement;
@@ -1215,6 +1265,7 @@ def seq_tail_stability_at_route_ci_of_parts
     nameScopePart := SeqTailNameScopeStabilityAtRouteCI.ofRoute route
     runtimePart := runtime }
 
+
 /--
 Current post-state component obligation.
 
@@ -1229,18 +1280,74 @@ axiom seq_tail_post_state_at_route_ci_of_entry
     SeqTailPostStateAtRouteCI route
 
 /--
-Current runtime replay component obligation.
+Current read-set non-clobbering obligation for the selected route.
 
-This is still coarse, but it is now explicitly the runtime tail replay debt.
-Later refinements should split it into read-set non-clobbering, deref/pointer
-stability, and load readability preservation.
+Still a placeholder, but now individually named.
 -/
-axiom seq_tail_runtime_replay_at_route_ci_of_entry
+axiom seq_tail_read_set_non_clobber_at_route_ci_of_entry
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
-    SeqTailRuntimeReplayAtRouteCI route
+    SeqTailReadSetNonClobberAtRouteCI route
+
+/--
+Current pointer/deref stability obligation for the selected route.
+
+Still a placeholder, but now individually named.
+-/
+axiom seq_tail_pointer_deref_stability_at_route_ci_of_entry
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
+    SeqTailPointerDerefStabilityAtRouteCI route
+
+/--
+Current load-readability preservation obligation for the selected route.
+
+Still a placeholder, but now individually named.
+-/
+axiom seq_tail_load_readability_preservation_at_route_ci_of_entry
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
+    SeqTailLoadReadabilityPreservationAtRouteCI route
+
+/--
+Current runtime replay components for the selected route, assembled from the
+three named C++-meaningful obligations.
+-/
+def seq_tail_runtime_replay_components_at_route_ci_of_entry
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
+    SeqTailRuntimeReplayComponentsAtRouteCI route :=
+  { readSet :=
+      seq_tail_read_set_non_clobber_at_route_ci_of_entry hentry route
+    derefPointer :=
+      seq_tail_pointer_deref_stability_at_route_ci_of_entry hentry route
+    loadReadability :=
+      seq_tail_load_readability_preservation_at_route_ci_of_entry hentry route }
+
+/--
+Current runtime replay component obligation.
+
+Compatibility name.  The direct coarse axiom has been replaced by named
+component obligations plus a materialization obligation.
+-/
+def seq_tail_runtime_replay_at_route_ci_of_entry
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
+    SeqTailRuntimeReplayAtRouteCI route :=
+  seq_tail_runtime_replay_at_route_ci_of_components
+    hentry
+    route
+    (seq_tail_runtime_replay_components_at_route_ci_of_entry hentry route)
 
 /--
 Current coarse route-local tail stability obligation.
@@ -1333,6 +1440,104 @@ noncomputable def seq_tail_continuation_boundary_ci_of_head_normal_route
     static := route.tail.static
     dynamic := stability.toStmtContinuationDynamicBoundary
     adequacy := route.tail.support.toBodyAdequacyCI }
+
+/--
+Theorem-backed post-state component, assuming the existing normal-preservation
+provider needed by the current repository.
+
+This is the important conceptual cut: post-state preservation is not a C++
+tail-stability contract.  It is a preservation theorem once the normal route is
+known.
+-/
+noncomputable def seq_tail_post_state_at_route_ci_of_preservation
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
+    SeqTailPostStateAtRouteCI route := by
+  have hreadyLeft : StmtReadyConcrete Γ σ s :=
+    seq_ready_left hentry.dynamic.safe
+  have hσ1 : ScopedTypedStateConcrete route.Θ σ1 :=
+    stmt_normal_preserves_scoped_typed_state_concrete
+      mkWhileReentry route.hleft hentry.dynamic.state hreadyLeft route.hstepLeft
+  exact { postState := hσ1 }
+
+/--
+Assemble full route-local tail stability from theorem-backed post-state
+preservation plus explicit runtime replay.
+
+This is the preferred bridge when a caller can supply only the genuine runtime
+contract.
+-/
+def seq_tail_stability_at_route_ci_of_preservation_and_runtime_replay
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
+    (runtime : SeqTailRuntimeReplayAtRouteCI route) :
+    SeqTailStabilityAtRouteCI route :=
+  seq_tail_stability_at_route_ci_of_parts
+    route
+    (seq_tail_post_state_at_route_ci_of_preservation
+      mkWhileReentry hentry route)
+    runtime
+
+/--
+Assemble full route-local tail stability directly from named runtime replay
+components.
+-/
+def seq_tail_stability_at_route_ci_of_preservation_and_runtime_components
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
+    (components : SeqTailRuntimeReplayComponentsAtRouteCI route) :
+    SeqTailStabilityAtRouteCI route :=
+  seq_tail_stability_at_route_ci_of_preservation_and_runtime_replay
+    mkWhileReentry hentry route
+    (seq_tail_runtime_replay_at_route_ci_of_components
+      hentry route components)
+
+/--
+Build the full tail continuation from theorem-backed post-state preservation and
+explicit runtime replay.
+-/
+noncomputable def seq_tail_continuation_boundary_ci_of_head_normal_route_from_runtime_replay
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
+    (runtime : SeqTailRuntimeReplayAtRouteCI route) :
+    StmtContinuationBoundaryCI route.Θ σ1 t :=
+  seq_tail_continuation_boundary_ci_of_head_normal_route
+    hentry
+    route
+    (seq_tail_stability_at_route_ci_of_preservation_and_runtime_replay
+      mkWhileReentry hentry route runtime)
+
+/--
+Build the full tail continuation from theorem-backed post-state preservation and
+named runtime replay components.
+-/
+noncomputable def seq_tail_continuation_boundary_ci_of_head_normal_route_from_runtime_components
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
+    (components : SeqTailRuntimeReplayComponentsAtRouteCI route) :
+    StmtContinuationBoundaryCI route.Θ σ1 t :=
+  seq_tail_continuation_boundary_ci_of_head_normal_route_from_runtime_replay
+    mkWhileReentry
+    hentry
+    route
+    (seq_tail_runtime_replay_at_route_ci_of_components
+      hentry route components)
+
 
 /--
 Compatibility view of the route-local continuation boundary as an ordinary tail
@@ -1957,6 +2162,155 @@ theorem seq_function_body_closure_boundary_ci_honest
       leftClosure
       (fun route => seq_tail_stability_at_route_ci_of_entry hentry route)
       tailClosure
+
+
+/--
+Route-aware seq shell with theorem-backed post-state preservation and an
+explicit runtime replay callback.
+
+Compared with `...with_replay_parts`, callers no longer supply the post-state
+component; it is derived from normal preservation.  What remains visible is the
+genuine runtime replay contract for the tail.
+-/
+theorem seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_replay
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyClosureBoundaryCI Γ σ s →
+      FunctionBodyClosureResult σ s)
+    (tailRuntimeReplay :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        SeqTailRuntimeReplayAtRouteCI route)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        StmtContinuationBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  exact
+    seq_function_body_closure_boundary_ci_honest_continuation_with_stability
+      hentry
+      leftClosure
+      (fun route =>
+        seq_tail_stability_at_route_ci_of_preservation_and_runtime_replay
+          mkWhileReentry
+          hentry
+          route
+          (tailRuntimeReplay route))
+      tailClosure
+
+/--
+Body-boundary compatibility wrapper for theorem-backed post-state preservation
+and explicit runtime replay.
+-/
+theorem seq_function_body_closure_boundary_ci_honest_with_runtime_replay
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyClosureBoundaryCI Γ σ s →
+      FunctionBodyClosureResult σ s)
+    (tailRuntimeReplay :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        SeqTailRuntimeReplayAtRouteCI route)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        BodyClosureBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  exact
+    seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_replay
+      mkWhileReentry
+      hentry
+      leftClosure
+      tailRuntimeReplay
+      (fun route htail =>
+        tailClosure route htail.toBodyClosureBoundaryCI)
+
+/--
+Route-aware seq shell with theorem-backed post-state preservation and named
+runtime replay components.
+-/
+theorem seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_components
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyClosureBoundaryCI Γ σ s →
+      FunctionBodyClosureResult σ s)
+    (tailRuntimeComponents :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        SeqTailRuntimeReplayComponentsAtRouteCI route)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        StmtContinuationBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  exact
+    seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_replay
+      mkWhileReentry
+      hentry
+      leftClosure
+      (fun route =>
+        seq_tail_runtime_replay_at_route_ci_of_components
+          hentry route (tailRuntimeComponents route))
+      tailClosure
+
+/--
+Route-aware seq shell with three separate runtime component callbacks.
+-/
+theorem seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_component_callbacks
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyClosureBoundaryCI Γ σ s →
+      FunctionBodyClosureResult σ s)
+    (tailReadSet :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        SeqTailReadSetNonClobberAtRouteCI route)
+    (tailDerefPointer :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        SeqTailPointerDerefStabilityAtRouteCI route)
+    (tailLoadReadability :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        SeqTailLoadReadabilityPreservationAtRouteCI route)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        StmtContinuationBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  exact
+    seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_components
+      mkWhileReentry
+      hentry
+      leftClosure
+      (fun route =>
+        { readSet := tailReadSet route
+          derefPointer := tailDerefPointer route
+          loadReadability := tailLoadReadability route })
+      tailClosure
+
 
 /-!
 ## Ite branch boundary extraction

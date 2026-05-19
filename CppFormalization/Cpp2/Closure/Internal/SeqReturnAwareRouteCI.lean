@@ -266,4 +266,119 @@ theorem seq_function_body_closure_boundary_ci_return_aware_with_replay_parts
 
 
 
+/- =========================================================
+   Runtime-replay/component callback wrappers
+   ========================================================= -/
+
+/--
+Return-aware seq closure with theorem-backed post-state preservation and an
+explicit runtime replay callback.
+
+This is the public route where post-state preservation is no longer a caller
+contract; callers only provide the runtime replay contract for the selected
+route.
+-/
+theorem seq_function_body_closure_boundary_ci_return_aware_continuation_with_runtime_replay
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyClosureBoundaryCI Γ σ s →
+      FunctionBodyClosureResult σ s)
+    (tailRuntimeReplay :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        SeqTailRuntimeReplayAtRouteCI route)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        StmtContinuationBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  exact
+    seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_replay
+      mkWhileReentry
+      hentry
+      leftClosure
+      tailRuntimeReplay
+      tailClosure
+
+/--
+Return-aware seq closure with theorem-backed post-state preservation and named
+runtime replay components.
+-/
+theorem seq_function_body_closure_boundary_ci_return_aware_continuation_with_runtime_components
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyClosureBoundaryCI Γ σ s →
+      FunctionBodyClosureResult σ s)
+    (tailRuntimeComponents :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        SeqTailRuntimeReplayComponentsAtRouteCI route)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        StmtContinuationBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  exact
+    seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_components
+      mkWhileReentry
+      hentry
+      leftClosure
+      tailRuntimeComponents
+      tailClosure
+
+/--
+Return-aware seq closure with theorem-backed post-state preservation and three
+separate runtime component callbacks.
+-/
+theorem seq_function_body_closure_boundary_ci_return_aware_continuation_with_runtime_component_callbacks
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyClosureBoundaryCI Γ σ s →
+      FunctionBodyClosureResult σ s)
+    (tailReadSet :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        SeqTailReadSetNonClobberAtRouteCI route)
+    (tailDerefPointer :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        SeqTailPointerDerefStabilityAtRouteCI route)
+    (tailLoadReadability :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        SeqTailLoadReadabilityPreservationAtRouteCI route)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        StmtContinuationBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  exact
+    seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_component_callbacks
+      mkWhileReentry
+      hentry
+      leftClosure
+      tailReadSet
+      tailDerefPointer
+      tailLoadReadability
+      tailClosure
+
+
+
 end Cpp
