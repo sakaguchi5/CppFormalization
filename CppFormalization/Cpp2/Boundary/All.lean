@@ -1,10 +1,10 @@
 import CppFormalization.Cpp2.Boundary.FunctionBody
+import CppFormalization.Cpp2.Boundary.Static.BodyStaticBoundaryCI
+import CppFormalization.Cpp2.Boundary.Static.SeqStaticBoundaryProjectionCI
+import CppFormalization.Cpp2.Boundary.Adequacy.All
+import CppFormalization.Cpp2.Boundary.Body.All
+import CppFormalization.Cpp2.Boundary.Facts.All
 
 /-!
 # CppFormalization.Cpp2.Boundary.All
-
-Exhaustive aggregate for this directory.
-
-This file imports every Lean file directly under this directory, except itself,
-and every immediate child directory through that child directory's `All.lean`.
 -/

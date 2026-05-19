@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Boundary.Static.BodyStaticBoundaryCI
-import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
+import CppFormalization.Cpp2.Boundary.Adequacy.BodyAdequacyCI
 
 namespace Cpp
 

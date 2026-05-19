@@ -1,6 +1,6 @@
 import CppFormalization.Cpp2.Continuation.Route.Seq
 import CppFormalization.Cpp2.Continuation.Boundary.Dynamic
-import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
+import CppFormalization.Cpp2.Boundary.Body.BodyClosureBoundaryCI
 
 namespace Cpp
 

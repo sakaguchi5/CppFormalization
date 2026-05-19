@@ -1,6 +1,6 @@
-import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
+import CppFormalization.Cpp2.Boundary.Adequacy.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Internal.SecondarySeqAssetsCI
-import CppFormalization.Cpp2.Closure.Internal.IteBranchAdequacyAssetsCI
+import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseSplitCI
 import CppFormalization.Cpp2.Closure.Internal.SmallReusableWrappersCI
 import CppFormalization.Cpp2.Closure.Internal.ProviderInterfacesCI
 import CppFormalization.Cpp2.Closure.Internal.BlockExecutionBridgeTargetCI

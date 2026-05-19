@@ -1,6 +1,6 @@
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
-import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
+import CppFormalization.Cpp2.Boundary.Adequacy.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI
 import CppFormalization.Cpp2.Closure.Internal.WhileBodyClassCI
 import CppFormalization.Cpp2.Proof.Preservation.WhileDecompositionFacts

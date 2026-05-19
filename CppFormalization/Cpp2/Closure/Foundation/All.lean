@@ -1,9 +1,7 @@
-import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyLite
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCoherence
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
-import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryLite
 import CppFormalization.Cpp2.Closure.Foundation.CoreBigStepFragment
 import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCI

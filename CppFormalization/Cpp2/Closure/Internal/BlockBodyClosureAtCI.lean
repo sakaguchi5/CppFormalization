@@ -1,8 +1,8 @@
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureConcreteCI
 import CppFormalization.Cpp2.Closure.Internal.HeadTailReturnAwareRoutesCI
-import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
+import CppFormalization.Cpp2.Boundary.Body.BodyClosureBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
-import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
+import CppFormalization.Cpp2.Boundary.Adequacy.BodyAdequacyCI
 import CppFormalization.Cpp2.Semantics.Divergence
 
 namespace Cpp

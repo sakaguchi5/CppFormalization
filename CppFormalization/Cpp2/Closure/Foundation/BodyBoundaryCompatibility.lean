@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
-import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
+import CppFormalization.Cpp2.Boundary.Body.BodyClosureBoundaryCI
 
 namespace Cpp
 

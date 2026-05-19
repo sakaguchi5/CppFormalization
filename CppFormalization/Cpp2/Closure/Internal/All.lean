@@ -34,7 +34,6 @@ import CppFormalization.Cpp2.Closure.Internal.HeadTailReturnAwareRoutesCI
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmap
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapCI
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapConcrete
-import CppFormalization.Cpp2.Closure.Internal.IteBranchAdequacyAssetsCI
 import CppFormalization.Cpp2.Closure.Internal.LoopBodyDynamicReplayContinueStateTheoremsCI
 import CppFormalization.Cpp2.Closure.Internal.LoopBodyDynamicReplaySplitCI
 import CppFormalization.Cpp2.Closure.Internal.LoopBodyDynamicReplayStateTheoremsCI

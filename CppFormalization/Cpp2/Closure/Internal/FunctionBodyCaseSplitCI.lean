@@ -1,10 +1,10 @@
 import CppFormalization.Cpp2.Boundary.FunctionBody
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
-import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
+import CppFormalization.Cpp2.Boundary.Body.BodyClosureBoundaryCI
 import CppFormalization.Cpp2.Static.Pure.BodyStructuralBoundary
 import CppFormalization.Cpp2.Typing.ControlProfile
 import CppFormalization.Cpp2.Static.Safety.BodyDynamicBoundary
-import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
+import CppFormalization.Cpp2.Boundary.Adequacy.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Internal.HeadTailReturnAwareRoutesCI
 import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
 import CppFormalization.Cpp2.Closure.Internal.StmtControlPreservation

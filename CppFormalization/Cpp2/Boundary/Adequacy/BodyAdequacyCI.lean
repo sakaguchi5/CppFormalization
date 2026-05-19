@@ -5,7 +5,7 @@ import CppFormalization.Cpp2.Typing.ControlIndexed
 namespace Cpp
 
 /-!
-# Closure.Foundation.BodyAdequacyCI
+# CppFormalization.Cpp2.Boundary.Adequacy.BodyAdequacyCI
 
 四層分離の第4層。
 
