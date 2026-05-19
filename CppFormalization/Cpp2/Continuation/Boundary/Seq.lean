@@ -2,7 +2,7 @@ import CppFormalization.Cpp2.Contracts.Obligations.ReadinessTransportNormalExact
 import CppFormalization.Cpp2.Contracts.Obligations.SeqTailReplay
 import CppFormalization.Cpp2.Continuation.Boundary.Body
 import CppFormalization.Cpp2.Boundary.Static.SeqStaticBoundaryProjectionCI
-import CppFormalization.Cpp2.Boundary.Structural.SeqStructuralBoundaryProjectionCI
+import CppFormalization.Cpp2.Static.Pure.SeqStructuralProjectionCI
 
 namespace Cpp
 

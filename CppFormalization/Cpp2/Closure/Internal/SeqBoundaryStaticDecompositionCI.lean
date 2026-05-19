@@ -1,7 +1,7 @@
 import CppFormalization.Cpp2.Boundary.Static.SeqStaticBoundaryProjectionCI
 import CppFormalization.Cpp2.Static.Pure.SeqTypingProvenanceCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
-import CppFormalization.Cpp2.Boundary.Structural.SeqStructuralBoundaryProjectionCI
+import CppFormalization.Cpp2.Static.Pure.SeqStructuralProjectionCI
 
 namespace Cpp
 

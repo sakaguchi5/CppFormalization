@@ -3,7 +3,7 @@ import CppFormalization.Cpp2.Static.Pure.BodyStructuralBoundary
 namespace Cpp
 
 /-!
-# Seq structural boundary projection
+# Seq structural projection
 
 Pure structural projections for `seq`.
 

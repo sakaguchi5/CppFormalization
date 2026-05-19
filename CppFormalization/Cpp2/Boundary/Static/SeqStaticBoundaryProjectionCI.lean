@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Foundation.BodyStaticBoundaryCI
+import CppFormalization.Cpp2.Boundary.Static.BodyStaticBoundaryCI
 import CppFormalization.Cpp2.Static.Pure.SeqTypingProvenanceCI
 
 namespace Cpp

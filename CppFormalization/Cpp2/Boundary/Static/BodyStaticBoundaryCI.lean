@@ -5,9 +5,9 @@ import CppFormalization.Cpp2.Typing.Stmt
 namespace Cpp
 
 /-!
-# Closure.Foundation.BodyStaticBoundaryCI
+# CppFormalization.Cpp2.Boundary.Static.BodyStaticBoundaryCI
 
-Canonical static CI layer.
+Canonical static boundary CI layer.
 
 Purpose:
 - make `entry` and `profile` one coherent object,
