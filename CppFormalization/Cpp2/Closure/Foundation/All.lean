@@ -4,7 +4,7 @@ import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryLite
 import CppFormalization.Cpp2.Closure.Foundation.CoreBigStepFragment
 import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCompatibility
-import CppFormalization.Cpp2.Closure.Foundation.WhileEntryBoundaryCI
+import CppFormalization.Cpp2.Closure.Foundation.WhileEntryBoundaryCompatibilityCI
 
 /-!
 # CppFormalization.Cpp2.Closure.Foundation.All

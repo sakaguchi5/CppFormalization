@@ -1,65 +1,19 @@
+import CppFormalization.Cpp2.Boundary.While.EntryBoundaryCI
 import CppFormalization.Cpp2.Boundary.Body.BodyClosureBoundaryCI
 import CppFormalization.Cpp2.Static.Safety.ReadinessInversions
-import CppFormalization.Cpp2.Boundary.LoopBody.All
 
 namespace Cpp
 
 /-!
-# Closure.Foundation.WhileEntryBoundaryCI
+# CppFormalization.Cpp2.Closure.Foundation.WhileEntryBoundaryCompatibilityCI
 
-Canonical current-entry boundary for a top-level `while`.
+Closure-facing compatibility projection from a full body closure boundary to the
+canonical current-entry boundary for a `while`.
 
-Redesign:
-- read static information from `BodyStaticBoundaryCI`,
-  not from an ad hoc `entry/profile` split;
-- carry the optional body-return channel explicitly;
-- keep reentry laws out of this object.
+The boundary object itself lives in `Boundary.While.EntryBoundaryCI`.
+This file belongs in `Closure/Foundation` because it explains how the assembled
+four-layer body boundary is viewed by while-specific closure code.
 -/
-
-structure WhileEntryBoundaryCI
-    (Γ : TypeEnv) (σ : State) (c : ValExpr) (body : CppStmt) : Type where
-  hc : HasValueType Γ c (.base .bool)
-  hN : HasTypeStmtCI .normalK Γ body Γ
-  hB : HasTypeStmtCI .breakK Γ body Γ
-  hC : HasTypeStmtCI .continueK Γ body Γ
-  hR? : Option {Δ : TypeEnv // HasTypeStmtCI .returnK Γ body Δ}
-  state : ScopedTypedStateConcrete Γ σ
-  condReady : ExprReadyConcrete Γ σ c (.base .bool)
-  bodyReady : StmtReadyConcrete Γ σ body
-
-namespace WhileEntryBoundaryCI
-
-@[simp] theorem stmtReady
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
-    (h : WhileEntryBoundaryCI Γ σ c body) :
-    StmtReadyConcrete Γ σ (.whileStmt c body) := by
-  exact StmtReadyConcrete.whileStmt h.hc h.condReady h.bodyReady
-
-def toLoopBodyDynamic
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
-    (h : WhileEntryBoundaryCI Γ σ c body) :
-    LoopBodyDynamicBoundary Γ σ body :=
-  { state := h.state
-    safe := h.bodyReady }
-
-def toLoopBodyProfile
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
-    (h : WhileEntryBoundaryCI Γ σ c body) :
-    LoopBodyControlProfile Γ body := by
-  refine
-    { summary :=
-        { normalOut := some ⟨Γ, h.hN⟩
-          breakOut := some ⟨Γ, h.hB⟩
-          continueOut := some ⟨Γ, h.hC⟩
-          returnOut := h.hR? }
-      normalClosed := ?_
-      breakClosed := ?_
-      continueClosed := ?_ }
-  · exact ⟨h.hN, rfl⟩
-  · exact ⟨h.hB, rfl⟩
-  · exact ⟨h.hC, rfl⟩
-
-end WhileEntryBoundaryCI
 
 private theorem while_entry_static_of_root
     {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
@@ -122,6 +76,5 @@ theorem whileEntryBoundaryCI_toLoopBodyProfile_returnOut_of_static
     while_body_returnOut?_of_static hentry.static =
       some ⟨outW.1, (while_return_typing_data outW.2).2.2.2⟩
   simp [while_body_returnOut?_of_static, hW]
-
 
 end Cpp
