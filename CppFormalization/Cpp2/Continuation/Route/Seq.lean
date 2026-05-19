@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Static.Pure.SeqStaticDecompositionCI
+import CppFormalization.Cpp2.Closure.Foundation.BodyStaticBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyCI
 
 namespace Cpp
@@ -14,6 +14,19 @@ Long term, route core and tail adequacy can be separated further.  This file is
 already outside `Closure/Internal`, so downstream continuation/contract modules
 can depend on the route without importing the old seq closure scaffold file.
 -/
+
+/--
+Static and adequacy payload for the tail of a sequence after an actual
+left-normal route.
+
+This is not a pure static object: it is indexed by the actual post-state and
+contains semantic adequacy.  Therefore it belongs with the selected route /
+continuation layer, not under `Static/Pure`.
+-/
+structure SeqTailStaticAdequacyCI
+    (Θ : TypeEnv) (σ1 : State) (t : CppStmt) : Type where
+  static : BodyStaticBoundaryCI Θ t
+  adequacy : BodyAdequacyCI Θ σ1 t static.profile
 
 /--
 Normal-channel adequacy obligation for the tail after an actual left-normal

@@ -1,7 +1,7 @@
 import CppFormalization.Cpp2.Contracts.Obligations.ReadinessTransportNormalExactTail
 import CppFormalization.Cpp2.Contracts.Obligations.SeqTailReplay
 import CppFormalization.Cpp2.Continuation.Boundary.Body
-import CppFormalization.Cpp2.Static.Pure.SeqStaticDecompositionCI
+import CppFormalization.Cpp2.Boundary.Static.SeqStaticBoundaryProjectionCI
 
 namespace Cpp
 

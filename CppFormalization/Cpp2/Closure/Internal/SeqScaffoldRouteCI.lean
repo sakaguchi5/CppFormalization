@@ -12,7 +12,7 @@ import CppFormalization.Cpp2.Static.Safety.ReadinessSemanticsBridge
 import CppFormalization.Cpp2.Semantics.Divergence
 import CppFormalization.Cpp2.Continuation.Boundary.Body
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureResultCI
-import CppFormalization.Cpp2.Static.Pure.SeqStaticDecompositionCI
+import CppFormalization.Cpp2.Closure.Internal.SeqBoundaryStaticDecompositionCI
 import CppFormalization.Cpp2.Continuation.Route.Seq
 
 namespace Cpp

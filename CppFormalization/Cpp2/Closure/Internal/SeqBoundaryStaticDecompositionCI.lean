@@ -1,153 +1,19 @@
-import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
+import CppFormalization.Cpp2.Boundary.Static.SeqStaticBoundaryProjectionCI
+import CppFormalization.Cpp2.Static.Pure.SeqTypingProvenanceCI
 
 namespace Cpp
 
 /-!
-# Seq static decomposition and slot selection
+# Seq boundary/static decomposition compatibility layer
 
-Extracted aggressively from `Closure.Internal.SeqScaffoldRouteCI`.
-This module is intentionally below `Closure/Internal`: it contains sequence
-static/profile provenance, selected left slots, and theorem-backed structural /
-coarse-typing projections.
+This module contains the current `BodyClosureBoundaryCI`-indexed sequence
+static/profile decomposition API.
 
-Some definitions still mention `BodyClosureBoundaryCI` because the current API
-passes the assembled boundary as the carrier of the static profile.  That is a
-remaining interface debt, but the concepts here are static/provenance, not
-closure orchestration.
+It was split out of the mistakenly placed
+`Static/Pure/SeqStaticDecompositionCI.lean`.  The facts here are useful, but
+they are not pure static facts because their public carrier is a closure
+boundary.
 -/
-
-/--
-Static scaffold for the left side of a sequence, excluding the old `typed0`
-payload.
-
-`typed0` is theorem-backed from the whole sequence's coarse typing below.
-The remaining static data is the chosen CI profile/root/coherence for `s`.
--/
-structure SeqLeftStaticScaffoldCI
-    (Γ : TypeEnv) (s : CppStmt) : Type where
-  profile : BodyControlProfile Γ s
-  root : BodyEntryWitness Γ s
-  rootCoherent : BodyRootCoherent profile root
-
-namespace SeqLeftStaticScaffoldCI
-
-/-- Assemble the canonical left static boundary from theorem-backed `typed0`. -/
-def toBodyStaticBoundaryCI
-    {Γ : TypeEnv} {s : CppStmt}
-    (h : SeqLeftStaticScaffoldCI Γ s)
-    (htyped : WellTypedFrom Γ s) :
-    BodyStaticBoundaryCI Γ s :=
-  { typed0 := htyped
-    profile := h.profile
-    root := h.root
-    rootCoherent := h.rootCoherent }
-
-end SeqLeftStaticScaffoldCI
-
-/--
-Static and adequacy payload for the tail of a sequence after an actual
-left-normal route.
-
-This package is deliberately produced from the actual normal typing and
-execution route below. Keeping static and adequacy together prevents the tail
-adequacy obligation from degenerating into an over-broad statement about
-arbitrary post-states and arbitrary static packages.
--/
-structure SeqTailStaticAdequacyCI
-    (Θ : TypeEnv) (σ1 : State) (t : CppStmt) : Type where
-  static : BodyStaticBoundaryCI Θ t
-  adequacy : BodyAdequacyCI Θ σ1 t static.profile
-
-/--
-Normal channel provenance for a whole sequence payload.
-
-This must live in `Prop`, not `Type`, because it is obtained by eliminating
-a `HasTypeStmtCI` proof, and `HasTypeStmtCI` itself is a `Prop`.
--/
-inductive SeqNormalSourceCI
-    {Γ : TypeEnv} {s t : CppStmt}
-    (out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.seq s t) Δ}) : Prop where
-  | normal
-      {Θ Δ : TypeEnv}
-      (hleft : HasTypeStmtCI .normalK Γ s Θ)
-      (htail : HasTypeStmtCI .normalK Θ t Δ)
-      (hout : out = ⟨Δ, HasTypeStmtCI.seq_normal hleft htail⟩) :
-      SeqNormalSourceCI out
-
-/--
-Return channel provenance for a whole sequence payload.
-
-A sequence can return either because the left side returns, or because
-the left side is normal and the tail returns.
--/
-inductive SeqReturnSourceCI
-    {Γ : TypeEnv} {s t : CppStmt}
-    (out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ (.seq s t) Δ}) : Prop where
-  | leftReturn
-      {Δ : TypeEnv}
-      (hleft : HasTypeStmtCI .returnK Γ s Δ)
-      (hout : out = ⟨Δ, HasTypeStmtCI.seq_return hleft⟩) :
-      SeqReturnSourceCI out
-  | tailReturn
-      {Θ Δ : TypeEnv}
-      (hleft : HasTypeStmtCI .normalK Γ s Θ)
-      (htail : HasTypeStmtCI .returnK Θ t Δ)
-      (hout : out = ⟨Δ, HasTypeStmtCI.seq_normal hleft htail⟩) :
-      SeqReturnSourceCI out
-
-theorem seq_normal_source_ci_of_out
-    {Γ : TypeEnv} {s t : CppStmt}
-    (out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.seq s t) Δ}) :
-    SeqNormalSourceCI out := by
-  rcases out with ⟨Δ, hty⟩
-  cases hty with
-  | seq_normal hleft htail =>
-      exact SeqNormalSourceCI.normal hleft htail rfl
-
-theorem seq_return_source_ci_of_out
-    {Γ : TypeEnv} {s t : CppStmt}
-    (out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ (.seq s t) Δ}) :
-    SeqReturnSourceCI out := by
-  rcases out with ⟨Δ, hty⟩
-  cases hty with
-  | seq_normal hleft htail =>
-      exact SeqReturnSourceCI.tailReturn hleft htail rfl
-  | seq_return hleft =>
-      exact SeqReturnSourceCI.leftReturn hleft rfl
-
-/-- Extract the left normal payload from a whole-sequence normal source. -/
-theorem seq_normal_source_left_payload_ci
-    {Γ : TypeEnv} {s t : CppStmt}
-    {out : {Δ : TypeEnv // HasTypeStmtCI .normalK Γ (.seq s t) Δ}}
-    (hsrc : SeqNormalSourceCI out) :
-    ∃ Θ, ∃ hleft : HasTypeStmtCI .normalK Γ s Θ,
-      ∃ Δ, ∃ htail : HasTypeStmtCI .normalK Θ t Δ,
-        out = ⟨Δ, HasTypeStmtCI.seq_normal hleft htail⟩ := by
-  cases hsrc with
-  | normal hleft htail hout =>
-      exact ⟨_, hleft, _, htail, hout⟩
-
-/--
-Extract the left-side payload required by a whole-sequence return source.
-
-A left-return source gives a left return payload.  A tail-return source gives a
-left normal payload, because the tail is reached only after the left side falls
-through normally.
--/
-theorem seq_return_source_left_payload_ci
-    {Γ : TypeEnv} {s t : CppStmt}
-    {out : {Δ : TypeEnv // HasTypeStmtCI .returnK Γ (.seq s t) Δ}}
-    (hsrc : SeqReturnSourceCI out) :
-    (∃ Δ, ∃ hleft : HasTypeStmtCI .returnK Γ s Δ,
-        out = ⟨Δ, HasTypeStmtCI.seq_return hleft⟩) ∨
-      (∃ Θ, ∃ hleft : HasTypeStmtCI .normalK Γ s Θ,
-        ∃ Δ, ∃ htail : HasTypeStmtCI .returnK Θ t Δ,
-          out = ⟨Δ, HasTypeStmtCI.seq_normal hleft htail⟩) := by
-  cases hsrc with
-  | leftReturn hleft hout =>
-      exact Or.inl ⟨_, hleft, hout⟩
-  | tailReturn hleft htail hout =>
-      exact Or.inr ⟨_, hleft, _, htail, hout⟩
 
 /--
 Provenance certificate for the static channels of a whole sequence boundary.
@@ -304,55 +170,6 @@ structure SeqLeftStaticScaffoldCompatibleCI
     SeqLeftProfileCompatibleCI hentry D S.profile
 
 /--
-The left side of a well-typed sequence is well typed.
-
-This is deliberately proved from the coarse `typed0` payload of the whole
-sequence. It is not guessed from a CI root witness, because a return/break root
-by itself does not generally carry enough information to type unrelated sequence
-tails.
--/
-theorem seq_left_typed0_of_entry
-    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
-    WellTypedFrom Γ s := by
-  rcases hentry.static.typed0 with ⟨Δ, htySeq⟩
-  cases htySeq with
-  | seq hs _ht =>
-      exact ⟨_, hs⟩
-
-/-- The left side inherits structural admissibility from the whole sequence. -/
-theorem seq_left_structural_boundary_of_entry
-    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
-    BodyStructuralBoundary Γ s := by
-  have hwf : WellFormedStmt s ∧ WellFormedStmt t := by
-    simpa [WellFormedStmt] using hentry.structural.wf
-  have hbreak : BreakWellScoped s ∧ BreakWellScoped t := by
-    simpa [BreakWellScoped] using hentry.structural.breakScoped
-  have hcont : ContinueWellScoped s ∧ ContinueWellScoped t := by
-    simpa [ContinueWellScoped] using hentry.structural.continueScoped
-  exact
-    { wf := hwf.1
-      breakScoped := hbreak.1
-      continueScoped := hcont.1 }
-
-/-- The tail side inherits structural admissibility from the whole sequence. -/
-theorem seq_tail_structural_boundary_of_entry
-    {Γ Θ : TypeEnv} {σ : State} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
-    BodyStructuralBoundary Θ t := by
-  have hwf : WellFormedStmt s ∧ WellFormedStmt t := by
-    simpa [WellFormedStmt] using hentry.structural.wf
-  have hbreak : BreakWellScoped s ∧ BreakWellScoped t := by
-    simpa [BreakWellScoped] using hentry.structural.breakScoped
-  have hcont : ContinueWellScoped s ∧ ContinueWellScoped t := by
-    simpa [ContinueWellScoped] using hentry.structural.continueScoped
-  exact
-    { wf := hwf.2
-      breakScoped := hbreak.2
-      continueScoped := hcont.2 }
-
-/--
 Type-level package selecting a left profile together with Type-level support.
 
 This cannot be a subtype `{ P // SeqLeftProfileSupportCI ... P }`, because
@@ -364,42 +181,6 @@ structure SeqLeftProfilePayloadCI
     (D : SeqStaticDecompositionCI hentry) : Type where
   profile : BodyControlProfile Γ s
   support : SeqLeftProfileSupportCI hentry D profile
-
-/--
-A Type-level normal slot for the extracted left profile.
--/
-structure SeqLeftNormalSlotCI
-    (Γ : TypeEnv) (s : CppStmt) : Type where
-  Θ : TypeEnv
-  hleft : HasTypeStmtCI .normalK Γ s Θ
-
-namespace SeqLeftNormalSlotCI
-
-def out
-    {Γ : TypeEnv} {s : CppStmt}
-    (n : SeqLeftNormalSlotCI Γ s) :
-    {Δ : TypeEnv // HasTypeStmtCI .normalK Γ s Δ} :=
-  ⟨n.Θ, n.hleft⟩
-
-end SeqLeftNormalSlotCI
-
-/--
-A Type-level return slot for the extracted left profile.
--/
-structure SeqLeftReturnSlotCI
-    (Γ : TypeEnv) (s : CppStmt) : Type where
-  Δ : TypeEnv
-  hleft : HasTypeStmtCI .returnK Γ s Δ
-
-namespace SeqLeftReturnSlotCI
-
-def out
-    {Γ : TypeEnv} {s : CppStmt}
-    (r : SeqLeftReturnSlotCI Γ s) :
-    {Δ : TypeEnv // HasTypeStmtCI .returnK Γ s Δ} :=
-  ⟨r.Δ, r.hleft⟩
-
-end SeqLeftReturnSlotCI
 
 /--
 Slot-level profile selection for the left side of a sequence.
