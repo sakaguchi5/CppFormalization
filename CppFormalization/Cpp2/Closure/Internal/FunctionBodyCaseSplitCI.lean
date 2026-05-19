@@ -1035,25 +1035,146 @@ structure SeqHeadNormalRouteCI
    ========================================================= -/
 
 /--
-Route-local dynamic stability contract for the tail of `s; t`.
+Post-state component of the tail stability contract.
 
-This is the honest replacement target for the old exact-tail readiness
-transport.  It does not say that readiness can always be transported from the
-pre-state.  It says that this particular selected left-normal route leaves the
-tail dynamically enterable in the actual post-state.
-
-Later refinements should split `tailReady` into smaller C++-meaningful
-obligations: read-set non-clobbering, deref/pointer stability, readability
-preservation, and name/scope stability.
+This is preservation-shaped: after the selected left-normal route, the route's
+post-environment `route.Θ` and actual post-state `σ1` still agree concretely.
+Long term, this component should be theorem-backed by normal preservation rather
+than treated as a program contract.
 -/
-structure SeqTailStabilityAtRouteCI
+structure SeqTailPostStateAtRouteCI
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
     (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) : Prop where
   postState : ScopedTypedStateConcrete route.Θ σ1
+
+/--
+Name/scope/static component of the tail stability contract.
+
+This is intentionally separated from runtime readiness.  The selected route
+already determines `route.Θ`, and the tail static package lives exactly at that
+environment.  This records the future split point for name-resolution and scope
+stability.
+-/
+structure SeqTailNameScopeStabilityAtRouteCI
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) : Type where
+  typed0 : WellTypedFrom route.Θ t
+
+/-- Read-set non-clobbering component for the selected tail route.
+
+This is a deliberately small placeholder component.  Later it should be refined
+into an actual read-set/effect separation predicate. -/
+structure SeqTailReadSetNonClobberAtRouteCI
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (_route : SeqHeadNormalRouteCI Γ σ s t σ1 P) : Prop where
+  witness : True
+
+/-- Pointer/deref stability component for the selected tail route.
+
+Later this should say that pointer values used by tail dereferences remain
+valid/live/typed after the left route. -/
+structure SeqTailPointerDerefStabilityAtRouteCI
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (_route : SeqHeadNormalRouteCI Γ σ s t σ1 P) : Prop where
+  witness : True
+
+/-- Load readability preservation component for the selected tail route.
+
+Later this should say that places loaded by the tail remain readable, not merely
+live. -/
+structure SeqTailLoadReadabilityPreservationAtRouteCI
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (_route : SeqHeadNormalRouteCI Γ σ s t σ1 P) : Prop where
+  witness : True
+
+/--
+Runtime replay component of the tail stability contract.
+
+The three named subcomponents are the C++-meaningful future split points.  At
+this stage, `tailReady` is still the coarse runtime fact, but it is no longer
+mixed with post-state preservation or tail static/profile adequacy.
+-/
+structure SeqTailRuntimeReplayAtRouteCI
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) : Prop where
+  readSet : SeqTailReadSetNonClobberAtRouteCI route
+  derefPointer : SeqTailPointerDerefStabilityAtRouteCI route
+  loadReadability : SeqTailLoadReadabilityPreservationAtRouteCI route
   tailReady : StmtReadyConcrete route.Θ σ1 t
 
+namespace SeqTailRuntimeReplayAtRouteCI
+
+/-- Compatibility constructor from the still-coarse tail readiness fact. -/
+def ofTailReady
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    {route : SeqHeadNormalRouteCI Γ σ s t σ1 P}
+    (hready : StmtReadyConcrete route.Θ σ1 t) :
+    SeqTailRuntimeReplayAtRouteCI route :=
+  { readSet := { witness := trivial }
+    derefPointer := { witness := trivial }
+    loadReadability := { witness := trivial }
+    tailReady := hready }
+
+end SeqTailRuntimeReplayAtRouteCI
+
+/--
+Route-local stability contract for the tail of `s; t`.
+
+Compared with the previous coarse version, this now has three visible layers:
+
+* `postStatePart`: preservation-shaped post-state/environment agreement;
+* `nameScopePart`: static/name/scope side of the selected tail;
+* `runtimePart`: runtime replay/readiness side, with future C++ split points.
+
+The important change is that the public subject is still the selected route,
+not a global exact-tail readiness transport theorem.
+-/
+structure SeqTailStabilityAtRouteCI
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) : Type where
+  postStatePart : SeqTailPostStateAtRouteCI route
+  nameScopePart : SeqTailNameScopeStabilityAtRouteCI route
+  runtimePart : SeqTailRuntimeReplayAtRouteCI route
+
+namespace SeqTailNameScopeStabilityAtRouteCI
+
+/-- The current selected route already carries the coarse tail typing witness. -/
+def ofRoute
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
+    SeqTailNameScopeStabilityAtRouteCI route :=
+  { typed0 := route.tail.static.typed0 }
+
+end SeqTailNameScopeStabilityAtRouteCI
+
 namespace SeqTailStabilityAtRouteCI
+
+/-- Post-state projection preserved for old callers. -/
+def postState
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    {route : SeqHeadNormalRouteCI Γ σ s t σ1 P}
+    (h : SeqTailStabilityAtRouteCI route) :
+    ScopedTypedStateConcrete route.Θ σ1 :=
+  h.postStatePart.postState
+
+/-- Runtime tail-readiness projection preserved for old callers. -/
+def tailReady
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    {route : SeqHeadNormalRouteCI Γ σ s t σ1 P}
+    (h : SeqTailStabilityAtRouteCI route) :
+    StmtReadyConcrete route.Θ σ1 t :=
+  h.runtimePart.tailReady
 
 /-- The dynamic continuation boundary induced by a route-local stability proof. -/
 def toStmtContinuationDynamicBoundary
@@ -1077,32 +1198,95 @@ def toBodyDynamicBoundary
 end SeqTailStabilityAtRouteCI
 
 /--
-Current coarse route-local tail stability obligation.
+Assemble the route-local stability contract from its preservation/static/runtime
+parts.
 
-This is intentionally still coarse.  The progress is that the remaining debt is
-now indexed by the selected route, rather than being a global exact-tail
-readiness transport statement.
+This is the preferred constructor for the next stage: callers should eventually
+supply post-state preservation and runtime replay separately.
 -/
-axiom seq_tail_stability_at_route_ci_of_entry
+def seq_tail_stability_at_route_ci_of_parts
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
+    (postState : SeqTailPostStateAtRouteCI route)
+    (runtime : SeqTailRuntimeReplayAtRouteCI route) :
+    SeqTailStabilityAtRouteCI route :=
+  { postStatePart := postState
+    nameScopePart := SeqTailNameScopeStabilityAtRouteCI.ofRoute route
+    runtimePart := runtime }
+
+/--
+Current post-state component obligation.
+
+This is still an axiom for progress, but it is no longer mixed with tail runtime
+readiness.  It should eventually be replaced by ordinary normal preservation.
+-/
+axiom seq_tail_post_state_at_route_ci_of_entry
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
-    SeqTailStabilityAtRouteCI route
+    SeqTailPostStateAtRouteCI route
 
 /--
-Legacy compatibility constructor from the old exact-tail route.
+Current runtime replay component obligation.
 
-This keeps the old proof path available, but the public subject should now be
-`SeqTailStabilityAtRouteCI`.
+This is still coarse, but it is now explicitly the runtime tail replay debt.
+Later refinements should split it into read-set non-clobbering, deref/pointer
+stability, and load readability preservation.
 -/
-noncomputable def seq_tail_stability_at_route_ci_of_exact_tail
+axiom seq_tail_runtime_replay_at_route_ci_of_entry
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
+    SeqTailRuntimeReplayAtRouteCI route
+
+/--
+Current coarse route-local tail stability obligation.
+
+Compatibility name assembled from the newly split obligations.
+-/
+def seq_tail_stability_at_route_ci_of_entry
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
+    SeqTailStabilityAtRouteCI route :=
+  seq_tail_stability_at_route_ci_of_parts
+    route
+    (seq_tail_post_state_at_route_ci_of_entry hentry route)
+    (seq_tail_runtime_replay_at_route_ci_of_entry hentry route)
+
+/--
+Legacy compatibility constructor for the post-state component from the old
+exact-tail route.
+-/
+noncomputable def seq_tail_post_state_at_route_ci_of_exact_tail
     (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
-    SeqTailStabilityAtRouteCI route := by
+    SeqTailPostStateAtRouteCI route := by
+  have hreadyLeft : StmtReadyConcrete Γ σ s :=
+    seq_ready_left hentry.dynamic.safe
+  have hσ1 : ScopedTypedStateConcrete route.Θ σ1 :=
+    stmt_normal_preserves_scoped_typed_state_concrete
+      mkWhileReentry route.hleft hentry.dynamic.state hreadyLeft route.hstepLeft
+  exact { postState := hσ1 }
+
+/--
+Legacy compatibility constructor for the runtime replay component from the old
+exact-tail route.
+-/
+noncomputable def seq_tail_runtime_replay_at_route_ci_of_exact_tail
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
+    SeqTailRuntimeReplayAtRouteCI route := by
   have hreadyLeft : StmtReadyConcrete Γ σ s :=
     seq_ready_left hentry.dynamic.safe
   have hσ1 : ScopedTypedStateConcrete route.Θ σ1 :=
@@ -1110,9 +1294,25 @@ noncomputable def seq_tail_stability_at_route_ci_of_exact_tail
       mkWhileReentry route.hleft hentry.dynamic.state hreadyLeft route.hstepLeft
   have hreadyRight : StmtReadyConcrete route.Θ σ1 t :=
     seq_ready_right_after_left_normal route.hleft hσ1 hentry.dynamic.safe route.hstepLeft
-  exact
-    { postState := hσ1
-      tailReady := hreadyRight }
+  exact SeqTailRuntimeReplayAtRouteCI.ofTailReady hreadyRight
+
+/--
+Legacy compatibility constructor from the old exact-tail route.
+
+This keeps the old proof path available, but it now also passes through the
+post-state/runtime split.
+-/
+noncomputable def seq_tail_stability_at_route_ci_of_exact_tail
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
+    SeqTailStabilityAtRouteCI route :=
+  seq_tail_stability_at_route_ci_of_parts
+    route
+    (seq_tail_post_state_at_route_ci_of_exact_tail mkWhileReentry hentry route)
+    (seq_tail_runtime_replay_at_route_ci_of_exact_tail mkWhileReentry hentry route)
 
 /--
 Build the full post-state tail continuation from the selected route plus the

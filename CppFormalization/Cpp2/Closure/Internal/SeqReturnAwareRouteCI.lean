@@ -183,4 +183,87 @@ theorem seq_function_body_closure_boundary_ci_return_aware_with_stability
       tailClosure
 
 
+/-- 
+Return-aware seq closure with post-state and runtime replay supplied separately.
+
+This is the most decomposed public surface at this stage.  Static/name-scope
+data is read from the selected route; callers only provide the two genuinely
+dynamic pieces that remain visible now:
+
+* post-state/environment preservation;
+* runtime replay/readiness of the tail.
+-/
+theorem seq_function_body_closure_boundary_ci_return_aware_continuation_with_replay_parts
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyClosureBoundaryCI Γ σ s →
+      FunctionBodyClosureResult σ s)
+    (tailPostState :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        SeqTailPostStateAtRouteCI route)
+    (tailRuntimeReplay :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        SeqTailRuntimeReplayAtRouteCI route)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        StmtContinuationBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  exact
+    seq_function_body_closure_boundary_ci_return_aware_continuation_with_stability
+      hentry
+      leftClosure
+      (fun route =>
+        seq_tail_stability_at_route_ci_of_parts
+          route
+          (tailPostState route)
+          (tailRuntimeReplay route))
+      tailClosure
+
+/--
+Body-boundary compatibility wrapper for the post-state/runtime-replay split.
+-/
+theorem seq_function_body_closure_boundary_ci_return_aware_with_replay_parts
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyClosureBoundaryCI Γ σ s →
+      FunctionBodyClosureResult σ s)
+    (tailPostState :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        SeqTailPostStateAtRouteCI route)
+    (tailRuntimeReplay :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        SeqTailRuntimeReplayAtRouteCI route)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        BodyClosureBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  exact
+    seq_function_body_closure_boundary_ci_return_aware_with_stability
+      hentry
+      leftClosure
+      (fun route =>
+        seq_tail_stability_at_route_ci_of_parts
+          route
+          (tailPostState route)
+          (tailRuntimeReplay route))
+      tailClosure
+
+
+
 end Cpp
