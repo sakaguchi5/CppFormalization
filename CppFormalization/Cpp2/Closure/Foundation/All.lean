@@ -1,18 +1,13 @@
 import CppFormalization.Cpp2.Closure.Foundation.BodyAdequacyLite
-import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCoherence
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryLite
 import CppFormalization.Cpp2.Closure.Foundation.CoreBigStepFragment
-import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Foundation.WhileEntryBoundaryCI
 
 /-!
 # CppFormalization.Cpp2.Closure.Foundation.All
 
-Exhaustive aggregate for this directory.
-
-This file imports every Lean file directly under this directory, except itself,
-and every immediate child directory through that child directory's `All.lean`.
+Aggregate for the closure-facing foundation/compatibility layer.
 -/

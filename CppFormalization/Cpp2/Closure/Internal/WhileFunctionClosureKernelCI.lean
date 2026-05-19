@@ -2,7 +2,7 @@
 import CppFormalization.Cpp2.Boundary.FunctionBody
 import CppFormalization.Cpp2.Boundary.Body.BodyClosureBoundaryCI
 import CppFormalization.Cpp2.Closure.Foundation.WhileEntryBoundaryCI
-import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCI
+import CppFormalization.Cpp2.Boundary.LoopBody.All
 import CppFormalization.Cpp2.Closure.Internal.LoopBodyFunctionClosureCI
 import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelCI
 import CppFormalization.Cpp2.Semantics.Divergence

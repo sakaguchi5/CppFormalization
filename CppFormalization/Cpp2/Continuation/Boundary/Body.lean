@@ -1,5 +1,6 @@
 import CppFormalization.Cpp2.Continuation.Boundary.Dynamic
-import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
+import CppFormalization.Cpp2.Boundary.Body.BodyReadyCI
+import CppFormalization.Cpp2.Boundary.Facts.BodyReadyControlExclusionCI
 
 namespace Cpp
 

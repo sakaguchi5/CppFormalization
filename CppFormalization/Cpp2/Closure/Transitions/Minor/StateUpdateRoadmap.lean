@@ -8,7 +8,6 @@ import CppFormalization.Cpp2.Proof.Preservation.Scope.OpenPreservation
 import CppFormalization.Cpp2.Proof.Preservation.DeclareRef.Preservation
 import CppFormalization.Cpp2.Proof.Preservation.Scope.ClosePreservation
 import CppFormalization.Cpp2.Proof.Preservation.DeclareObject.Preservation
-import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Semantics.Divergence
 
 namespace Cpp

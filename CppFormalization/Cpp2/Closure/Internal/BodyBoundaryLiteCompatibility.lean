@@ -1,5 +1,6 @@
 import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryLite
-import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
+import CppFormalization.Cpp2.Boundary.Body.BodyReadyCI
+import CppFormalization.Cpp2.Boundary.Facts.BodyReadyControlExclusionCI
 import CppFormalization.Cpp2.Boundary.Body.BodyClosureBoundaryCI
 import CppFormalization.Cpp2.Typing.ControlProfileLite
 import CppFormalization.Cpp2.Static.Safety.Readiness

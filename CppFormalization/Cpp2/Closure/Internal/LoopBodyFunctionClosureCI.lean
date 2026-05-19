@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Boundary.FunctionBody
-import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCI
+import CppFormalization.Cpp2.Boundary.LoopBody.All
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI
 import CppFormalization.Cpp2.Closure.Internal.ReadinessReplayPrimitive
 import CppFormalization.Cpp2.Semantics.Divergence

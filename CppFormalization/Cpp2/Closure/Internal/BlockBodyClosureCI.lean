@@ -1,5 +1,6 @@
 import CppFormalization.Cpp2.Boundary.FunctionBody
-import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCI
+import CppFormalization.Cpp2.Boundary.Body.BodyReadyCI
+import CppFormalization.Cpp2.Boundary.Facts.BodyReadyControlExclusionCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Boundary.Body.BodyClosureBoundaryCI
 import CppFormalization.Cpp2.Static.Pure.BodyStructuralBoundary

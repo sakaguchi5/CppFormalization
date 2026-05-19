@@ -1,28 +1,16 @@
-import CppFormalization.Cpp2.Boundary.Body.BodyClosureBoundaryCI
+import CppFormalization.Cpp2.Boundary.Body.BodyReadyCI
 import CppFormalization.Cpp2.Static.Safety.Facts.ControlExclusion
+
 namespace Cpp
 
 /-!
-# Closure.Foundation.BodyBoundaryCI
+# BodyReadyCI control-exclusion facts
 
-Compatibility wrapper after the static-layer redesign.
+Semantic consequences of a full ready boundary and structural scopedness.
 
-This is intentionally no longer a flat record.
-The old flat surface was exactly what encouraged incoherent combinations of
-`typed0 / entry / summary`.
+The ready object itself lives in `Boundary.Body.BodyReadyCI`; these facts are
+separated because they connect that boundary to big-step execution.
 -/
-
-structure BodyReadyCI (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
-  structural : BodyStructuralBoundary Γ st
-  static : BodyStaticBoundaryCI Γ st
-  dynamic : BodyDynamicBoundary Γ σ st
-  adequacy : BodyAdequacyCI Γ σ st static.profile
-
-structure BlockBodyReadyCI (Γ : TypeEnv) (σ : State) (ss : StmtBlock) : Type where
-  structural : BlockBodyStructuralBoundary Γ ss
-  static : BlockBodyStaticBoundaryCI Γ ss
-  dynamic : BlockBodyDynamicBoundary Γ σ ss
-  adequacy : BlockBodyAdequacyCI Γ σ ss static.profile
 
 theorem break_excluded_from_bodyReadyCI
     {Γ : TypeEnv} {σ : State} {st : CppStmt}

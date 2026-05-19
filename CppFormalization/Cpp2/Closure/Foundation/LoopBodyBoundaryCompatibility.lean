@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Foundation.LoopBodyBoundaryCI
+import CppFormalization.Cpp2.Boundary.LoopBody.All
 import CppFormalization.Cpp2.Boundary.Body.BodyClosureBoundaryCI
 
 namespace Cpp
