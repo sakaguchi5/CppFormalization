@@ -1,5 +1,4 @@
-import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
-import CppFormalization.Cpp2.Static.Pure.BodyStructuralBoundary
+import CppFormalization.Cpp2.Closure.Foundation.BodyStaticBoundaryCI
 import CppFormalization.Cpp2.Static.Pure.SeqTypingProvenanceCI
 
 namespace Cpp
@@ -7,11 +6,15 @@ namespace Cpp
 /-!
 # Seq static boundary projection
 
-Transitional boundary/static projections for `seq`.
+Static projections for `seq`.
 
-This file is deliberately outside `Static/Pure`: it still receives a
-`BodyClosureBoundaryCI` because the current API uses the assembled closure
-boundary as the carrier of structural/static profile data.
+The public subject is now `BodyStaticBoundaryCI Γ (.seq s t)`, not
+`BodyClosureBoundaryCI Γ σ (.seq s t)`.  This file therefore does not depend on
+runtime state, dynamic readiness, semantic adequacy, or closure-boundary
+orchestration.
+
+Transitional `BodyClosureBoundaryCI`-indexed wrappers belong in
+`Closure.Internal.SeqBoundaryStaticDecompositionCI`, not here.
 -/
 
 /--
@@ -43,52 +46,19 @@ def toBodyStaticBoundaryCI
 end SeqLeftStaticScaffoldCI
 
 /--
-The left side of a well-typed sequence is well typed.
+The left side of a statically bounded sequence is well typed.
 
-This is deliberately proved from the coarse `typed0` payload of the whole
-sequence. It is not guessed from a CI root witness, because a return/break root
-by itself does not generally carry enough information to type unrelated sequence
-tails.
+This is a static projection from `BodyStaticBoundaryCI`, not a closure-boundary
+projection.  The compatibility wrapper from a full `BodyClosureBoundaryCI` lives
+above this file.
 -/
-theorem seq_left_typed0_of_entry
-    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
+theorem seq_left_typed0_of_static
+    {Γ : TypeEnv} {s t : CppStmt}
+    (hstatic : BodyStaticBoundaryCI Γ (.seq s t)) :
     WellTypedFrom Γ s := by
-  rcases hentry.static.typed0 with ⟨Δ, htySeq⟩
+  rcases hstatic.typed0 with ⟨Δ, htySeq⟩
   cases htySeq with
   | seq hs _ht =>
       exact ⟨_, hs⟩
-
-/-- The left side inherits structural admissibility from the whole sequence. -/
-theorem seq_left_structural_boundary_of_entry
-    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
-    BodyStructuralBoundary Γ s := by
-  have hwf : WellFormedStmt s ∧ WellFormedStmt t := by
-    simpa [WellFormedStmt] using hentry.structural.wf
-  have hbreak : BreakWellScoped s ∧ BreakWellScoped t := by
-    simpa [BreakWellScoped] using hentry.structural.breakScoped
-  have hcont : ContinueWellScoped s ∧ ContinueWellScoped t := by
-    simpa [ContinueWellScoped] using hentry.structural.continueScoped
-  exact
-    { wf := hwf.1
-      breakScoped := hbreak.1
-      continueScoped := hcont.1 }
-
-/-- The tail side inherits structural admissibility from the whole sequence. -/
-theorem seq_tail_structural_boundary_of_entry
-    {Γ Θ : TypeEnv} {σ : State} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
-    BodyStructuralBoundary Θ t := by
-  have hwf : WellFormedStmt s ∧ WellFormedStmt t := by
-    simpa [WellFormedStmt] using hentry.structural.wf
-  have hbreak : BreakWellScoped s ∧ BreakWellScoped t := by
-    simpa [BreakWellScoped] using hentry.structural.breakScoped
-  have hcont : ContinueWellScoped s ∧ ContinueWellScoped t := by
-    simpa [ContinueWellScoped] using hentry.structural.continueScoped
-  exact
-    { wf := hwf.2
-      breakScoped := hbreak.2
-      continueScoped := hcont.2 }
 
 end Cpp

@@ -1,5 +1,7 @@
 import CppFormalization.Cpp2.Boundary.Static.SeqStaticBoundaryProjectionCI
 import CppFormalization.Cpp2.Static.Pure.SeqTypingProvenanceCI
+import CppFormalization.Cpp2.Closure.Foundation.BodyClosureBoundaryCI
+import CppFormalization.Cpp2.Boundary.Structural.SeqStructuralBoundaryProjectionCI
 
 namespace Cpp
 
@@ -44,6 +46,27 @@ theorem seq_static_decomposition_ci_of_entry
     exact seq_normal_source_ci_of_out out
   · intro out _hout
     exact seq_return_source_ci_of_out out
+
+/-- Compatibility wrapper from the current full closure boundary carrier. -/
+theorem seq_left_typed0_of_entry
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
+    WellTypedFrom Γ s :=
+  seq_left_typed0_of_static hentry.static
+
+/-- Compatibility wrapper from the current full closure boundary carrier. -/
+theorem seq_left_structural_boundary_of_entry
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
+    BodyStructuralBoundary Γ s :=
+  seq_left_structural_boundary_of_structural hentry.structural
+
+/-- Compatibility wrapper from the current full closure boundary carrier. -/
+theorem seq_tail_structural_boundary_of_entry
+    {Γ Θ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
+    BodyStructuralBoundary Θ t :=
+  seq_tail_structural_boundary_of_structural hentry.structural
 
 /--
 Compatibility condition for a chosen left profile.
@@ -679,6 +702,6 @@ noncomputable def seq_left_static_boundary_ci_of_entry
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
     BodyStaticBoundaryCI Γ s :=
   (seq_left_static_scaffold_ci_of_entry hentry).toBodyStaticBoundaryCI
-    (seq_left_typed0_of_entry hentry)
+    (seq_left_typed0_of_static hentry.static)
 
 end Cpp

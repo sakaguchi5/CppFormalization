@@ -1,4 +1,5 @@
 import CppFormalization.Cpp2.Closure.Internal.SeqCanonicalTailEntryDesignCI
+import CppFormalization.Cpp2.Boundary.Structural.SeqStructuralBoundaryProjectionCI
 
 namespace Cpp
 

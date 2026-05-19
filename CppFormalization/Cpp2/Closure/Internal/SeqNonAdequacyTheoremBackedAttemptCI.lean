@@ -1,4 +1,5 @@
 import CppFormalization.Cpp2.Closure.Internal.SeqTailRouteBoundaryFactoredCoreSupportCI
+import CppFormalization.Cpp2.Boundary.Structural.SeqStructuralBoundaryProjectionCI
 
 namespace Cpp
 
@@ -51,7 +52,7 @@ noncomputable def seq_left_boundary_of_adequacy_residual
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
     BodyClosureBoundaryCI Γ σ s :=
-  { structural := seq_left_structural_boundary_of_entry hentry
+  { structural := seq_left_structural_boundary_of_structural hentry.structural
     static := seq_left_static_boundary_ci_of_entry hentry
     dynamic := seq_left_dynamic_boundary_of_entry hentry
     adequacy := A.leftAdequacy hentry }

@@ -1,6 +1,7 @@
 import CppFormalization.Cpp2.Closure.Internal.SeqTailStabilityRouteCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureResultCI
 import CppFormalization.Cpp2.Continuation.Boundary.Body
+import CppFormalization.Cpp2.Boundary.Structural.SeqStructuralBoundaryProjectionCI
 
 namespace Cpp
 
@@ -302,7 +303,7 @@ noncomputable def seq_left_closure_scaffold_ci_of_entry
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
     SeqLeftClosureScaffoldCI Γ σ s :=
   let hstatic := seq_left_static_boundary_ci_of_entry hentry
-  { structural := seq_left_structural_boundary_of_entry hentry
+  { structural := seq_left_structural_boundary_of_structural hentry.structural
     static := hstatic
     adequacy := seq_left_adequacy_ci_of_entry hentry hstatic }
 
@@ -439,7 +440,7 @@ noncomputable def seq_tail_closure_scaffold_ci_of_left_normal
   intro σ1 hstepLeft
   let htail := seq_tail_static_adequacy_ci_of_left_normal hentry hstepLeft
   exact
-    { structural := seq_tail_structural_boundary_of_entry hentry
+    { structural := seq_tail_structural_boundary_of_structural hentry.structural
       static := htail.static
       adequacy := htail.adequacy }
 /--
@@ -454,7 +455,7 @@ noncomputable def seq_tail_closure_scaffold_ci_of_head_normal_route
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
     SeqTailClosureScaffoldCI route.Θ σ1 t :=
-  { structural := seq_tail_structural_boundary_of_entry hentry
+  { structural := seq_tail_structural_boundary_of_structural hentry.structural
     static := route.tail.static
     adequacy := route.tail.support.toBodyAdequacyCI }
 

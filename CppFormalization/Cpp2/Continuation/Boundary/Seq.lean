@@ -2,6 +2,7 @@ import CppFormalization.Cpp2.Contracts.Obligations.ReadinessTransportNormalExact
 import CppFormalization.Cpp2.Contracts.Obligations.SeqTailReplay
 import CppFormalization.Cpp2.Continuation.Boundary.Body
 import CppFormalization.Cpp2.Boundary.Static.SeqStaticBoundaryProjectionCI
+import CppFormalization.Cpp2.Boundary.Structural.SeqStructuralBoundaryProjectionCI
 
 namespace Cpp
 
@@ -167,7 +168,7 @@ noncomputable def seq_tail_continuation_boundary_ci_of_head_normal_route
     (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
     (stability : SeqTailStabilityAtRouteCI route) :
     StmtContinuationBoundaryCI route.Θ σ1 t :=
-  { structural := seq_tail_structural_boundary_of_entry hentry
+  { structural := seq_tail_structural_boundary_of_structural hentry.structural
     static := route.tail.static
     dynamic := stability.toStmtContinuationDynamicBoundary
     adequacy := route.tail.support.toBodyAdequacyCI }
