@@ -118,4 +118,69 @@ theorem seq_function_body_closure_ci_return_aware_continuation
         tailClosure route
           (StmtContinuationBoundaryCI.ofBodyReadyCI htail))
 
+/- =========================================================
+   Explicit stability-callback wrappers
+   ========================================================= -/
+
+/--
+Return-aware seq closure with an explicit route-local tail stability callback.
+
+This is the public wrapper closest to the intended final shape:
+callers provide the selected route, prove that this route leaves the tail
+dynamically enterable, and then receive a full post-state continuation boundary.
+-/
+theorem seq_function_body_closure_boundary_ci_return_aware_continuation_with_stability
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyClosureBoundaryCI Γ σ s →
+      FunctionBodyClosureResult σ s)
+    (tailStability :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        SeqTailStabilityAtRouteCI route)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        StmtContinuationBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  exact
+    seq_function_body_closure_boundary_ci_honest_continuation_with_stability
+      hentry
+      leftClosure
+      tailStability
+      tailClosure
+
+/--
+Body-boundary compatibility wrapper for the explicit route-stability surface.
+-/
+theorem seq_function_body_closure_boundary_ci_return_aware_with_stability
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyClosureBoundaryCI Γ σ s →
+      FunctionBodyClosureResult σ s)
+    (tailStability :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        SeqTailStabilityAtRouteCI route)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        BodyClosureBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  exact
+    seq_function_body_closure_boundary_ci_honest_with_stability
+      hentry
+      leftClosure
+      tailStability
+      tailClosure
+
+
 end Cpp

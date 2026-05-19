@@ -1029,6 +1029,125 @@ structure SeqHeadNormalRouteCI
   hstepLeft : BigStepStmt σ s .normal σ1
   tail : SeqTailStaticAdequacyPayloadCI Θ σ1 t
 
+
+/- =========================================================
+   Seq tail route-stability / continuation decomposition
+   ========================================================= -/
+
+/--
+Route-local dynamic stability contract for the tail of `s; t`.
+
+This is the honest replacement target for the old exact-tail readiness
+transport.  It does not say that readiness can always be transported from the
+pre-state.  It says that this particular selected left-normal route leaves the
+tail dynamically enterable in the actual post-state.
+
+Later refinements should split `tailReady` into smaller C++-meaningful
+obligations: read-set non-clobbering, deref/pointer stability, readability
+preservation, and name/scope stability.
+-/
+structure SeqTailStabilityAtRouteCI
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) : Prop where
+  postState : ScopedTypedStateConcrete route.Θ σ1
+  tailReady : StmtReadyConcrete route.Θ σ1 t
+
+namespace SeqTailStabilityAtRouteCI
+
+/-- The dynamic continuation boundary induced by a route-local stability proof. -/
+def toStmtContinuationDynamicBoundary
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    {route : SeqHeadNormalRouteCI Γ σ s t σ1 P}
+    (h : SeqTailStabilityAtRouteCI route) :
+    StmtContinuationDynamicBoundary route.Θ σ1 t :=
+  { state := h.postState
+    safe := h.tailReady }
+
+/-- Compatibility view as the old body dynamic boundary. -/
+def toBodyDynamicBoundary
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    {route : SeqHeadNormalRouteCI Γ σ s t σ1 P}
+    (h : SeqTailStabilityAtRouteCI route) :
+    BodyDynamicBoundary route.Θ σ1 t :=
+  h.toStmtContinuationDynamicBoundary.toBodyDynamicBoundary
+
+end SeqTailStabilityAtRouteCI
+
+/--
+Current coarse route-local tail stability obligation.
+
+This is intentionally still coarse.  The progress is that the remaining debt is
+now indexed by the selected route, rather than being a global exact-tail
+readiness transport statement.
+-/
+axiom seq_tail_stability_at_route_ci_of_entry
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
+    SeqTailStabilityAtRouteCI route
+
+/--
+Legacy compatibility constructor from the old exact-tail route.
+
+This keeps the old proof path available, but the public subject should now be
+`SeqTailStabilityAtRouteCI`.
+-/
+noncomputable def seq_tail_stability_at_route_ci_of_exact_tail
+    (mkWhileReentry : WhileReentryReadyProvider)
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
+    SeqTailStabilityAtRouteCI route := by
+  have hreadyLeft : StmtReadyConcrete Γ σ s :=
+    seq_ready_left hentry.dynamic.safe
+  have hσ1 : ScopedTypedStateConcrete route.Θ σ1 :=
+    stmt_normal_preserves_scoped_typed_state_concrete
+      mkWhileReentry route.hleft hentry.dynamic.state hreadyLeft route.hstepLeft
+  have hreadyRight : StmtReadyConcrete route.Θ σ1 t :=
+    seq_ready_right_after_left_normal route.hleft hσ1 hentry.dynamic.safe route.hstepLeft
+  exact
+    { postState := hσ1
+      tailReady := hreadyRight }
+
+/--
+Build the full post-state tail continuation from the selected route plus the
+route-local stability contract.
+
+This is the central decomposition theorem/definition: static and adequacy come
+from the selected route, while dynamic readiness comes from the explicit
+stability contract.
+-/
+noncomputable def seq_tail_continuation_boundary_ci_of_head_normal_route
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
+    (stability : SeqTailStabilityAtRouteCI route) :
+    StmtContinuationBoundaryCI route.Θ σ1 t :=
+  { structural := seq_tail_structural_boundary_of_entry hentry
+    static := route.tail.static
+    dynamic := stability.toStmtContinuationDynamicBoundary
+    adequacy := route.tail.support.toBodyAdequacyCI }
+
+/--
+Compatibility view of the route-local continuation boundary as an ordinary tail
+closure boundary.
+-/
+noncomputable def seq_tail_closure_boundary_ci_of_head_normal_route_from_stability
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
+    (stability : SeqTailStabilityAtRouteCI route) :
+    BodyClosureBoundaryCI route.Θ σ1 t :=
+  (seq_tail_continuation_boundary_ci_of_head_normal_route
+    hentry route stability).toBodyClosureBoundaryCI
+
 /--
 Normal-channel adequacy support for the extracted left boundary.
 
@@ -1479,28 +1598,21 @@ noncomputable def seq_tail_closure_scaffold_ci_of_head_normal_route
 /--
 Tail closure boundary extracted from a selected head-normal route.
 
-This is the preferred route-aware replacement for the older
-`seq_tail_closure_boundary_ci_of_left_normal` path.
+Compatibility surface: internally this now factors through the route-local
+`SeqTailStabilityAtRouteCI` obligation and then forgets the resulting full
+continuation boundary back to `BodyClosureBoundaryCI`.
 -/
 noncomputable def seq_tail_closure_boundary_ci_of_head_normal_route
-    (mkWhileReentry : WhileReentryReadyProvider)
+    (_mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
     BodyClosureBoundaryCI route.Θ σ1 t := by
-  have hreadyLeft : StmtReadyConcrete Γ σ s :=
-    seq_ready_left hentry.dynamic.safe
-  have hσ1 : ScopedTypedStateConcrete route.Θ σ1 :=
-    stmt_normal_preserves_scoped_typed_state_concrete
-      mkWhileReentry route.hleft hentry.dynamic.state hreadyLeft route.hstepLeft
-  have hreadyRight : StmtReadyConcrete route.Θ σ1 t :=
-    seq_ready_right_after_left_normal route.hleft hσ1 hentry.dynamic.safe route.hstepLeft
-  let hs := seq_tail_closure_scaffold_ci_of_head_normal_route hentry route
-  let hd : BodyDynamicBoundary route.Θ σ1 t :=
-    { state := hσ1
-      safe := hreadyRight }
-  exact mkBodyClosureBoundaryCI hs.structural hs.static hd hs.adequacy
+  let stability := seq_tail_stability_at_route_ci_of_entry hentry route
+  exact
+    seq_tail_closure_boundary_ci_of_head_normal_route_from_stability
+      hentry route stability
 
 
 /--
@@ -1543,15 +1655,90 @@ theorem seq_left_normalWitness_of_entry
   let route := seq_left_normalRoute_of_entry hentry hstep
   exact ⟨route.Θ, route.hleft⟩
 
+
+/--
+Route-aware seq shell with an explicit route-local tail stability callback.
+
+This is the clean decomposition surface:
+
+* `SeqHeadNormalRouteCI` says which left-normal route actually occurred;
+* `SeqTailStabilityAtRouteCI` says the route did not break the tail dynamic
+  entry conditions;
+* `StmtContinuationBoundaryCI` is assembled from route static/adequacy plus
+  that stability proof.
+-/
+theorem seq_function_body_closure_boundary_ci_honest_continuation_with_stability
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyClosureBoundaryCI Γ σ s →
+      FunctionBodyClosureResult σ s)
+    (tailStability :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        SeqTailStabilityAtRouteCI route)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        StmtContinuationBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  have hleft : FunctionBodyClosureResult σ s :=
+    leftClosure (seq_left_closure_boundary_ci_of_entry hentry)
+  exact
+    seq_function_body_result_return_aware
+      hleft
+      (fun hstep =>
+        let route := seq_left_normalRoute_of_entry hentry hstep
+        let htailBoundary :=
+          seq_tail_continuation_boundary_ci_of_head_normal_route
+            hentry route (tailStability route)
+        tailClosure route htailBoundary)
+
+/--
+Body-boundary version of the explicit-stability seq shell.
+
+The callback still receives the selected route, but the post-state continuation
+is forgotten to the old `BodyClosureBoundaryCI` surface for compatibility.
+-/
+theorem seq_function_body_closure_boundary_ci_honest_with_stability
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (leftClosure :
+      BodyClosureBoundaryCI Γ σ s →
+      FunctionBodyClosureResult σ s)
+    (tailStability :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        SeqTailStabilityAtRouteCI route)
+    (tailClosure :
+      ∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (seq_left_static_boundary_ci_of_entry hentry).profile) →
+        BodyClosureBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) :
+    FunctionBodyClosureResult σ (.seq s t) := by
+  exact
+    seq_function_body_closure_boundary_ci_honest_continuation_with_stability
+      hentry
+      leftClosure
+      tailStability
+      (fun route htail =>
+        tailClosure route htail.toBodyClosureBoundaryCI)
+
 /--
 Route-aware theorem version of the seq shell.
 
-The tail is invoked only with the selected head-normal route supplied by the
-left adequacy support.  This avoids treating an arbitrary normal witness as a
-valid tail continuation route.
+Compatibility surface.  The implementation now enters the tail through the
+route-local stability contract; the old `mkWhileReentry` argument is retained
+for downstream callers but is no longer the conceptual source of tail dynamic
+readiness.
 -/
 theorem seq_function_body_closure_boundary_ci_honest
-    (mkWhileReentry : WhileReentryReadyProvider)
+    (_mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (leftClosure :
@@ -1564,17 +1751,12 @@ theorem seq_function_body_closure_boundary_ci_honest
         BodyClosureBoundaryCI route.Θ σ1 t →
         FunctionBodyClosureResult σ1 t) :
     FunctionBodyClosureResult σ (.seq s t) := by
-  have hleft : FunctionBodyClosureResult σ s :=
-    leftClosure (seq_left_closure_boundary_ci_of_entry hentry)
   exact
-    seq_function_body_result_return_aware
-      hleft
-      (fun hstep =>
-        let route := seq_left_normalRoute_of_entry hentry hstep
-        let htailBoundary :=
-          seq_tail_closure_boundary_ci_of_head_normal_route
-            mkWhileReentry hentry route
-        tailClosure route htailBoundary)
+    seq_function_body_closure_boundary_ci_honest_with_stability
+      hentry
+      leftClosure
+      (fun route => seq_tail_stability_at_route_ci_of_entry hentry route)
+      tailClosure
 
 /-!
 ## Ite branch boundary extraction

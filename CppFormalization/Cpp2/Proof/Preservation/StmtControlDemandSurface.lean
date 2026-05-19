@@ -9,9 +9,6 @@ namespace Cpp
 
 Public exact-tail-free surface for the demand preservation route.
 
-This file intentionally imports only the demand-side preservation route.  In
-particular, it does not import `Closure.Internal.ReadinessTransportNormalExactTail`.
-
 The theorem names here are thin aliases.  Their purpose is to give callers a
 single migration target when they do not need ordinary post-state
 `StmtReadyConcrete` / `BlockReadyConcrete`, but only preservation along an
