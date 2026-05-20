@@ -597,6 +597,119 @@ def seq_tail_runtime_replay_at_route_ci_of_static_only
     hentry route components hstaticOnly
 
 
+/- =========================================================
+   Stage 3c: theorem-backed materialization for literal-expression tails
+   ========================================================= -/
+
+/--
+Literal-expression tail shapes whose readiness is constructor-backed.
+
+These cases are the smallest expression fragment: literals do not read memory,
+do not dereference pointers, and do not require alias/readability evidence.
+-/
+inductive SeqTailLiteralExprConstructorAtRouteCI
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) : Prop where
+  | exprStmtBool
+      {b : Bool} :
+      t = .exprStmt (.litBool b) →
+      SeqTailLiteralExprConstructorAtRouteCI route
+  | exprStmtInt
+      {n : Int} :
+      t = .exprStmt (.litInt n) →
+      SeqTailLiteralExprConstructorAtRouteCI route
+  | returnSomeBool
+      {b : Bool} :
+      t = .returnStmt (some (.litBool b)) →
+      SeqTailLiteralExprConstructorAtRouteCI route
+  | returnSomeInt
+      {n : Int} :
+      t = .returnStmt (some (.litInt n)) →
+      SeqTailLiteralExprConstructorAtRouteCI route
+
+/--
+Materialize tail readiness for the literal-expression fragment.
+
+This is theorem-backed and does not use the broad materialization axiom.  The
+runtime components are retained in the statement for a uniform component-based
+interface, but literal expressions do not need them.
+-/
+theorem seq_tail_ready_of_runtime_replay_components_literal_expr_at_route_ci
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (_hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
+    (_components : SeqTailRuntimeReplayComponentsAtRouteCI route)
+    (hlit : SeqTailLiteralExprConstructorAtRouteCI route) :
+    StmtReadyConcrete route.Θ σ1 t := by
+  cases hlit with
+  | exprStmtBool h =>
+      cases h
+      exact
+        StmtReadyConcrete.exprStmt
+          HasValueType.litBool
+          ExprReadyConcrete.litBool
+  | exprStmtInt h =>
+      cases h
+      exact
+        StmtReadyConcrete.exprStmt
+          HasValueType.litInt
+          ExprReadyConcrete.litInt
+  | returnSomeBool h =>
+      cases h
+      exact
+        StmtReadyConcrete.returnSome
+          HasValueType.litBool
+          ExprReadyConcrete.litBool
+  | returnSomeInt h =>
+      cases h
+      exact
+        StmtReadyConcrete.returnSome
+          HasValueType.litInt
+          ExprReadyConcrete.litInt
+
+/--
+Assemble the runtime replay package for a literal-expression tail using the
+theorem-backed readiness fragment.
+
+Unlike `seq_tail_runtime_replay_at_route_ci_of_components`, this definition does
+not use the broad materialization axiom.
+-/
+def seq_tail_runtime_replay_at_route_ci_of_literal_expr_components
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
+    (components : SeqTailRuntimeReplayComponentsAtRouteCI route)
+    (hlit : SeqTailLiteralExprConstructorAtRouteCI route) :
+    SeqTailRuntimeReplayAtRouteCI route :=
+  { readSet := components.readSet
+    derefPointer := components.derefPointer
+    loadReadability := components.loadReadability
+    tailReady :=
+      seq_tail_ready_of_runtime_replay_components_literal_expr_at_route_ci
+        hentry route components hlit }
+
+/--
+Convenience constructor for the literal-expression fragment using the current
+coarse component witnesses.
+-/
+def seq_tail_runtime_replay_at_route_ci_of_literal_expr
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
+    (hlit : SeqTailLiteralExprConstructorAtRouteCI route) :
+    SeqTailRuntimeReplayAtRouteCI route :=
+  let components : SeqTailRuntimeReplayComponentsAtRouteCI route :=
+    { readSet := SeqTailReadSetNonClobberAtRouteCI.trivial
+      derefPointer := SeqTailPointerDerefStabilityAtRouteCI.trivial
+      loadReadability := SeqTailLoadReadabilityPreservationAtRouteCI.trivial }
+  seq_tail_runtime_replay_at_route_ci_of_literal_expr_components
+    hentry route components hlit
+
+
 /--
 Materialize tail readiness from the named runtime replay components.
 
