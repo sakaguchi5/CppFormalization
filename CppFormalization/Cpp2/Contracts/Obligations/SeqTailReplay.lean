@@ -496,6 +496,107 @@ def seq_tail_runtime_replay_at_route_ci_of_control_only
   seq_tail_runtime_replay_at_route_ci_of_control_only_components
     hentry route components hcontrol
 
+/- =========================================================
+   Stage 3b: theorem-backed materialization for static-only tails
+   ========================================================= -/
+
+/--
+Static-only tail shapes whose readiness is constructor-backed from the selected
+route's tail static boundary.
+
+The first such case is `declareObj τ x none`: it has no initializer expression,
+so it needs no value/place/load/deref replay.  Its readiness follows from the
+freshness and object-type evidence contained in the static typing witness.
+-/
+inductive SeqTailStaticOnlyConstructorAtRouteCI
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) : Prop where
+  | declareObjNone
+      {τ : CppType} {x : Ident} :
+      t = .declareObj τ x none →
+      SeqTailStaticOnlyConstructorAtRouteCI route
+
+/--
+Extract the readiness constructor inputs for `declareObj τ x none` from a
+selected tail static boundary.
+
+This is deliberately stated for ordinary `WellTypedFrom`, because
+`BodyStaticBoundaryCI.typed0` stores the coarse statement typing surface.
+-/
+theorem seq_tail_declare_obj_none_ready_of_typed0_at_route_ci
+    {Γ : TypeEnv} {σ σ1 : State} {s : CppStmt}
+    {P : BodyControlProfile Γ s}
+    {τ : CppType} {x : Ident}
+    {route : SeqHeadNormalRouteCI Γ σ s (.declareObj τ x none) σ1 P} :
+    StmtReadyConcrete route.Θ σ1 (.declareObj τ x none) := by
+  rcases route.tail.static.typed0 with ⟨Δ, hty⟩
+  cases hty with
+  | declareObjNone hfresh hobj =>
+      exact StmtReadyConcrete.declareObjNone hfresh hobj
+
+/--
+Materialize tail readiness for the static-only fragment.
+
+This is the second theorem-backed replacement fragment for the coarse
+`seq_tail_ready_of_runtime_replay_components_at_route_ci` obligation.
+The runtime components are kept in the statement for drop-in compatibility, but
+`declareObj none` does not need them.
+-/
+theorem seq_tail_ready_of_runtime_replay_components_static_only_at_route_ci
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (_hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
+    (_components : SeqTailRuntimeReplayComponentsAtRouteCI route)
+    (hstaticOnly : SeqTailStaticOnlyConstructorAtRouteCI route) :
+    StmtReadyConcrete route.Θ σ1 t := by
+  cases hstaticOnly with
+  | declareObjNone h =>
+      cases h
+      exact seq_tail_declare_obj_none_ready_of_typed0_at_route_ci
+
+/--
+Assemble the runtime replay package for a static-only tail using the
+theorem-backed readiness fragment.
+
+Unlike `seq_tail_runtime_replay_at_route_ci_of_components`, this definition does
+not use the broad materialization axiom.
+-/
+def seq_tail_runtime_replay_at_route_ci_of_static_only_components
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
+    (components : SeqTailRuntimeReplayComponentsAtRouteCI route)
+    (hstaticOnly : SeqTailStaticOnlyConstructorAtRouteCI route) :
+    SeqTailRuntimeReplayAtRouteCI route :=
+  { readSet := components.readSet
+    derefPointer := components.derefPointer
+    loadReadability := components.loadReadability
+    tailReady :=
+      seq_tail_ready_of_runtime_replay_components_static_only_at_route_ci
+        hentry route components hstaticOnly }
+
+/--
+Convenience constructor for the static-only fragment using the current coarse
+component witnesses.
+-/
+def seq_tail_runtime_replay_at_route_ci_of_static_only
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
+    (hstaticOnly : SeqTailStaticOnlyConstructorAtRouteCI route) :
+    SeqTailRuntimeReplayAtRouteCI route :=
+  let components : SeqTailRuntimeReplayComponentsAtRouteCI route :=
+    { readSet := SeqTailReadSetNonClobberAtRouteCI.trivial
+      derefPointer := SeqTailPointerDerefStabilityAtRouteCI.trivial
+      loadReadability := SeqTailLoadReadabilityPreservationAtRouteCI.trivial }
+  seq_tail_runtime_replay_at_route_ci_of_static_only_components
+    hentry route components hstaticOnly
+
+
 /--
 Materialize tail readiness from the named runtime replay components.
 
