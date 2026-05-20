@@ -393,6 +393,109 @@ structure SeqTailRuntimeReplayComponentsAtRouteCI
   derefPointer : SeqTailPointerDerefStabilityAtRouteCI route
   loadReadability : SeqTailLoadReadabilityPreservationAtRouteCI route
 
+/- =========================================================
+   Stage 3a: theorem-backed materialization for control-only tails
+   ========================================================= -/
+
+/--
+Control-only tail shapes whose readiness is constructor-backed.
+
+These cases do not need expression, place, load, dereference, alias, or
+readability evidence.  Once the selected route says the tail is one of these
+forms, `StmtReadyConcrete route.Θ σ1 t` follows directly by the corresponding
+constructor.
+-/
+inductive SeqTailControlOnlyConstructorAtRouteCI
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) : Prop where
+  | skip :
+      t = .skip →
+      SeqTailControlOnlyConstructorAtRouteCI route
+  | breakStmt :
+      t = .breakStmt →
+      SeqTailControlOnlyConstructorAtRouteCI route
+  | continueStmt :
+      t = .continueStmt →
+      SeqTailControlOnlyConstructorAtRouteCI route
+  | returnNone :
+      t = .returnStmt none →
+      SeqTailControlOnlyConstructorAtRouteCI route
+
+/--
+Materialize tail readiness for the control-only fragment.
+
+This is the first theorem-backed replacement fragment for the coarse
+`seq_tail_ready_of_runtime_replay_components_at_route_ci` obligation.
+The runtime components are kept in the statement so callers can use this theorem
+as a drop-in fragment of the component-based materialization route, but these
+control-only constructors do not need them.
+-/
+theorem seq_tail_ready_of_runtime_replay_components_control_only_at_route_ci
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (_hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
+    (_components : SeqTailRuntimeReplayComponentsAtRouteCI route)
+    (hcontrol : SeqTailControlOnlyConstructorAtRouteCI route) :
+    StmtReadyConcrete route.Θ σ1 t := by
+  cases hcontrol with
+  | skip h =>
+      cases h
+      exact StmtReadyConcrete.skip
+  | breakStmt h =>
+      cases h
+      exact StmtReadyConcrete.breakStmt
+  | continueStmt h =>
+      cases h
+      exact StmtReadyConcrete.continueStmt
+  | returnNone h =>
+      cases h
+      exact StmtReadyConcrete.returnNone
+
+/--
+Assemble the runtime replay package for a control-only tail using the
+theorem-backed readiness fragment.
+
+Unlike `seq_tail_runtime_replay_at_route_ci_of_components`, this definition does
+not use the broad materialization axiom.
+-/
+def seq_tail_runtime_replay_at_route_ci_of_control_only_components
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
+    (components : SeqTailRuntimeReplayComponentsAtRouteCI route)
+    (hcontrol : SeqTailControlOnlyConstructorAtRouteCI route) :
+    SeqTailRuntimeReplayAtRouteCI route :=
+  { readSet := components.readSet
+    derefPointer := components.derefPointer
+    loadReadability := components.loadReadability
+    tailReady :=
+      seq_tail_ready_of_runtime_replay_components_control_only_at_route_ci
+        hentry route components hcontrol }
+
+/--
+Convenience constructor for the control-only fragment using the current coarse
+component witnesses.
+
+This is useful for callers that only want to demonstrate the new theorem-backed
+path without supplying meaningful runtime components yet.
+-/
+def seq_tail_runtime_replay_at_route_ci_of_control_only
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
+    (hcontrol : SeqTailControlOnlyConstructorAtRouteCI route) :
+    SeqTailRuntimeReplayAtRouteCI route :=
+  let components : SeqTailRuntimeReplayComponentsAtRouteCI route :=
+    { readSet := SeqTailReadSetNonClobberAtRouteCI.trivial
+      derefPointer := SeqTailPointerDerefStabilityAtRouteCI.trivial
+      loadReadability := SeqTailLoadReadabilityPreservationAtRouteCI.trivial }
+  seq_tail_runtime_replay_at_route_ci_of_control_only_components
+    hentry route components hcontrol
+
 /--
 Materialize tail readiness from the named runtime replay components.
 
