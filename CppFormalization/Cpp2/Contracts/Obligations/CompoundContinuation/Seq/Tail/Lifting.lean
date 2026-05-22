@@ -1,0 +1,60 @@
+import CppFormalization.Cpp2.Contracts.Obligations.CompoundContinuation.Seq.Tail.ProofDemand
+
+namespace Cpp
+namespace CompoundContinuation
+namespace Seq
+namespace Tail
+
+/-!
+# Seq tail lifting
+
+A tail result is lifted through `BigStepStmt.seqNormal`; tail divergence is
+lifted through `BigStepStmtDiv.seqRight`.
+-/
+
+theorem step
+    {Γ : TypeEnv} {σ σ1 σ2 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    {route : SeqHeadNormalRouteCI Γ σ s t σ1 P}
+    {ctrl : CtrlResult}
+    (tailStep : BigStepStmt σ1 t ctrl σ2) :
+    BigStepStmt σ (.seq s t) ctrl σ2 := by
+  exact BigStepStmt.seqNormal route.hstepLeft tailStep
+
+theorem diverges
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    {route : SeqHeadNormalRouteCI Γ σ s t σ1 P}
+    (tailDiv : BigStepStmtDiv σ1 t) :
+    BigStepStmtDiv σ (.seq s t) := by
+  exact BigStepStmtDiv.seqRight route.hstepLeft tailDiv
+
+theorem closeAndLift
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    {route : SeqHeadNormalRouteCI Γ σ s t σ1 P}
+    (pkg : Package route) :
+    (∃ ctrl σ2, BigStepStmt σ (.seq s t) ctrl σ2) ∨
+      BigStepStmtDiv σ (.seq s t) := by
+  match pkg.closeTail with
+  | Or.inl ⟨ctrl, σ2, hstep⟩ =>
+      exact
+        Or.inl
+          ⟨ctrl, σ2,
+            step
+              (Γ := Γ) (σ := σ) (σ1 := σ1) (σ2 := σ2)
+              (s := s) (t := t) (P := P) (route := route)
+              (ctrl := ctrl)
+              hstep⟩
+  | Or.inr hdiv =>
+      exact
+        Or.inr
+          (diverges
+            (Γ := Γ) (σ := σ) (σ1 := σ1)
+            (s := s) (t := t) (P := P) (route := route)
+            hdiv)
+
+end Tail
+end Seq
+end CompoundContinuation
+end Cpp

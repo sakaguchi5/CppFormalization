@@ -1,0 +1,38 @@
+import CppFormalization.Cpp2.Contracts.Obligations.CompoundContinuation.Cons.Route
+
+namespace Cpp
+namespace CompoundContinuation
+namespace Cons
+
+/-!
+# Cons head-local progress demand
+
+This is proof architecture, not a C++ replay contract.  The head of `head :: tail`
+must be classified as one of the local outcomes understood by block semantics.
+-/
+
+inductive HeadLocalOutcome
+    {Γ : TypeEnv} {σ : State} {head : CppStmt} {tail : StmtBlock} : Type where
+  | normal (σ1 : State) :
+      HeadNormalRoute Γ σ σ1 head tail →
+      HeadLocalOutcome
+  | broke (σ1 : State) :
+      HeadBreakRoute Γ σ σ1 head tail →
+      HeadLocalOutcome
+  | continued (σ1 : State) :
+      HeadContinueRoute Γ σ σ1 head tail →
+      HeadLocalOutcome
+  | returned (rv : Option Value) (σ1 : State) :
+      HeadReturnRoute Γ σ σ1 head tail rv →
+      HeadLocalOutcome
+  | diverged :
+      HeadDivergesRoute Γ σ head tail →
+      HeadLocalOutcome
+
+structure HeadLocalProgress
+    (Γ : TypeEnv) (σ : State) (head : CppStmt) (tail : StmtBlock) : Type where
+  outcome : HeadLocalOutcome (Γ := Γ) (σ := σ) (head := head) (tail := tail)
+
+end Cons
+end CompoundContinuation
+end Cpp
