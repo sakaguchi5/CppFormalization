@@ -1,25 +1,39 @@
-import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.TailDemand
-import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.ExitLifting
+import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.Progress.BodyLocal
+import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.Tail.Lifting
+import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.Exit.Lifting
 
 namespace Cpp
 namespace WhileClosure2
 
 /-!
-# C++-facing surface for while contracts
+# C++-facing surface
 
-This file is an explanation surface.  It does not add a broad provider.  It gives
-names to the small obligations that a C++ programmer should recognize.
+This file gives names to the three different kinds of obligations that used to
+be mixed together:
+
+* program contracts;
+* theorem obligations;
+* proof-architecture demands.
 -/
 
-inductive WhileContractKind2 where
-  | postStatePreservation
+inductive WhileProgramContractKind2 where
   | conditionReplayAfterNormal
   | conditionReplayAfterContinue
   | bodyReplayAfterNormal
   | bodyReplayAfterContinue
   | loadReadability
   | pointerDerefStability
+deriving DecidableEq, Repr
+
+inductive WhileTheoremObligationKind2 where
+  | postStatePreservation
   | tailAdequacy
+  | exitLifting
+  | tailLifting
+deriving DecidableEq, Repr
+
+inductive WhileProofDemandKind2 where
+  | bodyLocalProgress
   | tailRecursionDemand
 deriving DecidableEq, Repr
 
@@ -29,21 +43,23 @@ structure NormalBackedgeSurface2
     {entry : WhileEntry2 Γ σ c body}
     {cond : ConditionTrueRoute2 entry}
     (route : BodyNormalRoute2 cond σ') : Type where
-  replay : NormalBackedgeReplay2 route
-  note :
-    List WhileContractKind2 :=
-      [ .postStatePreservation
-      , .conditionReplayAfterNormal
-      , .bodyReplayAfterNormal ]
+  postState : NormalBackedgePostState2 route
+  replay : NormalBackedgeReplayInvariant2 route
+  programContracts : List WhileProgramContractKind2 :=
+    [ .conditionReplayAfterNormal
+    , .bodyReplayAfterNormal ]
+  theoremObligations : List WhileTheoremObligationKind2 :=
+    [ .postStatePreservation ]
 
-def NormalBackedgeSurface2.toReplay
+def NormalBackedgeSurface2.toContinuationInput
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
     {entry : WhileEntry2 Γ σ c body}
     {cond : ConditionTrueRoute2 entry}
     {route : BodyNormalRoute2 cond σ'}
     (h : NormalBackedgeSurface2 route) :
-    NormalBackedgeReplay2 route :=
-  h.replay
+    NormalBackedgeContinuationInput2 route :=
+  { postState := h.postState
+    replay := h.replay }
 
 /-- Explanation surface for a continue backedge. -/
 structure ContinueBackedgeSurface2
@@ -51,26 +67,25 @@ structure ContinueBackedgeSurface2
     {entry : WhileEntry2 Γ σ c body}
     {cond : ConditionTrueRoute2 entry}
     (route : BodyContinueRoute2 cond σ') : Type where
-  replay : ContinueBackedgeReplay2 route
-  note :
-    List WhileContractKind2 :=
-      [ .postStatePreservation
-      , .conditionReplayAfterContinue
-      , .bodyReplayAfterContinue ]
+  postState : ContinueBackedgePostState2 route
+  replay : ContinueBackedgeReplayInvariant2 route
+  programContracts : List WhileProgramContractKind2 :=
+    [ .conditionReplayAfterContinue
+    , .bodyReplayAfterContinue ]
+  theoremObligations : List WhileTheoremObligationKind2 :=
+    [ .postStatePreservation ]
 
-def ContinueBackedgeSurface2.toReplay
+def ContinueBackedgeSurface2.toContinuationInput
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
     {entry : WhileEntry2 Γ σ c body}
     {cond : ConditionTrueRoute2 entry}
     {route : BodyContinueRoute2 cond σ'}
     (h : ContinueBackedgeSurface2 route) :
-    ContinueBackedgeReplay2 route :=
-  h.replay
+    ContinueBackedgeContinuationInput2 route :=
+  { postState := h.postState
+    replay := h.replay }
 
-/--
-Full surface for a normal-tail route.  This is the C++-readable decomposition of
-the old "while tail provider" idea.
--/
+/-- Full surface for a normal-tail route. -/
 structure NormalTailSurface2
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
     {entry : WhileEntry2 Γ σ c body}
@@ -78,12 +93,25 @@ structure NormalTailSurface2
     (route : BodyNormalRoute2 cond σ') : Type where
   backedge : NormalBackedgeSurface2 route
   tailAdequacy : NormalTailAdequacyDemand2 route
-  tailDemand : NormalTailDemand2 route
+  tailProof : NormalTailProofDemand2 route
+  theoremObligations : List WhileTheoremObligationKind2 :=
+    [ .tailAdequacy
+    , .tailLifting ]
+  proofDemands : List WhileProofDemandKind2 :=
+    [ .tailRecursionDemand ]
 
-/--
-Full surface for a continue-tail route.  This is the C++-readable decomposition
-of the old "while tail provider" idea.
--/
+def NormalTailSurface2.toPackage
+    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
+    {entry : WhileEntry2 Γ σ c body}
+    {cond : ConditionTrueRoute2 entry}
+    {route : BodyNormalRoute2 cond σ'}
+    (h : NormalTailSurface2 route) :
+    NormalTailPackage2 route :=
+  { continuation := h.backedge.toContinuationInput
+    adequacy := h.tailAdequacy
+    tailProof := h.tailProof }
+
+/-- Full surface for a continue-tail route. -/
 structure ContinueTailSurface2
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
     {entry : WhileEntry2 Γ σ c body}
@@ -91,7 +119,23 @@ structure ContinueTailSurface2
     (route : BodyContinueRoute2 cond σ') : Type where
   backedge : ContinueBackedgeSurface2 route
   tailAdequacy : ContinueTailAdequacyDemand2 route
-  tailDemand : ContinueTailDemand2 route
+  tailProof : ContinueTailProofDemand2 route
+  theoremObligations : List WhileTheoremObligationKind2 :=
+    [ .tailAdequacy
+    , .tailLifting ]
+  proofDemands : List WhileProofDemandKind2 :=
+    [ .tailRecursionDemand ]
+
+def ContinueTailSurface2.toPackage
+    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
+    {entry : WhileEntry2 Γ σ c body}
+    {cond : ConditionTrueRoute2 entry}
+    {route : BodyContinueRoute2 cond σ'}
+    (h : ContinueTailSurface2 route) :
+    ContinueTailPackage2 route :=
+  { continuation := h.backedge.toContinuationInput
+    adequacy := h.tailAdequacy
+    tailProof := h.tailProof }
 
 end WhileClosure2
 end Cpp

@@ -6,23 +6,29 @@ namespace Cpp
 namespace WhileClosure2
 
 /-!
-# WhileClosure2: clean-room while scaffold
+# WhileClosure2 basic surfaces
 
-This directory is a clean-room reconstruction of the while closure/reentry
-story.  It intentionally does not import the existing while provider/kernel
-modules from `Closure.Internal`.
+This directory is a zero-base clean-room reconstruction of the while-closure
+shape.
 
-Design principles:
+The intended mathematical split is:
 
-* `while` is not one opaque axiom/provider.
-* Entry, condition routing, body routing, exit lifting, backedge replay,
-  tail adequacy, and recursion demand are separate objects.
-* Readiness is local.
-* Backedge continuation is path-sensitive.
-* The genuinely program-dependent contract is backedge replay/invariance.
+* entry/local readiness;
+* condition-first routes;
+* body-local progress under the true route;
+* post-state preservation;
+* replay invariants;
+* derived continuation boundaries;
+* tail adequacy;
+* proof recursion demand;
+* theorem-backed semantic lifting.
+
+In particular, the program-facing contract is not the whole while closure.
+The genuinely C++-dependent part is the replay/invariant obligation needed to
+start the next iteration after the body exits by `normal` or `continue`.
 -/
 
-/-- Post-state preservation for a concrete environment/state pair. -/
+/-- A scoped/typed post-state at a fixed concrete environment. -/
 structure PostStateAt (Γ : TypeEnv) (σ : State) : Prop where
   state : ScopedTypedStateConcrete Γ σ
 

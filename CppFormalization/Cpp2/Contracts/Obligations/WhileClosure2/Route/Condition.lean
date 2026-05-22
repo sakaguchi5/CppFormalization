@@ -5,9 +5,9 @@ namespace Cpp
 namespace WhileClosure2
 
 /-!
-# Condition routes
+# Condition-first routes
 
-A clean while proof starts by routing the condition.  Body results should only be
+A clean while proof starts by routing the condition.  Body results are only
 considered under the true route.
 -/
 
@@ -26,9 +26,11 @@ structure ConditionFalseRoute2
 /--
 Condition-divergence route.
 
-The first scaffold stores the already lifted while divergence fact rather than
-guessing the exact expression-divergence primitive name.  A later refinement can
-replace this by a smaller condition-divergence witness plus a lifting theorem.
+The current semantics has statement divergence but no separate expression
+divergence object.  Therefore this route stores the already lifted while
+divergence fact.  If an expression-divergence semantics is later introduced,
+this should be replaced by a smaller condition-divergence witness plus a lifting
+theorem.
 -/
 structure ConditionDivergesRoute2
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}

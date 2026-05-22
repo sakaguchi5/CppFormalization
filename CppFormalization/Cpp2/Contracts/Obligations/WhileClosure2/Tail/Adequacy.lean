@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.BackedgeContinuation
+import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.Backedge.Continuation
 
 namespace Cpp
 namespace WhileClosure2

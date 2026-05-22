@@ -1,66 +1,65 @@
-import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.BodyRoute
+import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.Backedge.PostState
 
 namespace Cpp
 namespace WhileClosure2
 
 /-!
-# Backedge replay
+# Backedge replay invariants
 
-This is the genuinely C++-dependent while invariant layer.
+After the body exits by `normal` or `continue`, the next iteration can only
+start if the condition and body can be replayed in the post-state.
 
-After the body exits by `normal` or `continue`, the next iteration can only start
-if the condition and body can be replayed in the post-state.
+This is the C++-dependent invariant layer.  It deliberately does not include
+post-state preservation.
 -/
 
-structure NormalBackedgeReplay2
+structure NormalBackedgeReplayInvariant2
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
     {entry : WhileEntry2 Γ σ c body}
     {cond : ConditionTrueRoute2 entry}
-    (route : BodyNormalRoute2 cond σ') : Type where
-  postState : PostStateAt Γ σ'
+    (route : BodyNormalRoute2 cond σ') : Prop where
   condReplay : ValueReplayAt Γ σ' c (.base .bool)
   bodyReplay : StmtReplayAt Γ σ' body
 
-structure ContinueBackedgeReplay2
+structure ContinueBackedgeReplayInvariant2
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
     {entry : WhileEntry2 Γ σ c body}
     {cond : ConditionTrueRoute2 entry}
-    (route : BodyContinueRoute2 cond σ') : Type where
-  postState : PostStateAt Γ σ'
+    (route : BodyContinueRoute2 cond σ') : Prop where
   condReplay : ValueReplayAt Γ σ' c (.base .bool)
   bodyReplay : StmtReplayAt Γ σ' body
 
-namespace NormalBackedgeReplay2
+namespace NormalBackedgeReplayInvariant2
 
 def whileReady
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
     {entry : WhileEntry2 Γ σ c body}
     {cond : ConditionTrueRoute2 entry}
     {route : BodyNormalRoute2 cond σ'}
-    (h : NormalBackedgeReplay2 route) :
+    (h : NormalBackedgeReplayInvariant2 route) :
     StmtReadyConcrete Γ σ' (.whileStmt c body) :=
   StmtReadyConcrete.whileStmt
     h.condReplay.hasValueType
     h.condReplay.ready
     h.bodyReplay.ready
 
-end NormalBackedgeReplay2
+end NormalBackedgeReplayInvariant2
 
-namespace ContinueBackedgeReplay2
+namespace ContinueBackedgeReplayInvariant2
 
 def whileReady
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
     {entry : WhileEntry2 Γ σ c body}
     {cond : ConditionTrueRoute2 entry}
     {route : BodyContinueRoute2 cond σ'}
-    (h : ContinueBackedgeReplay2 route) :
+    (h : ContinueBackedgeReplayInvariant2 route) :
     StmtReadyConcrete Γ σ' (.whileStmt c body) :=
   StmtReadyConcrete.whileStmt
     h.condReplay.hasValueType
     h.condReplay.ready
     h.bodyReplay.ready
 
-end ContinueBackedgeReplay2
+end ContinueBackedgeReplayInvariant2
 
 end WhileClosure2
 end Cpp

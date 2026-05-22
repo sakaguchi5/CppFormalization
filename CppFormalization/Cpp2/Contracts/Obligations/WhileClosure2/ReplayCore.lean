@@ -6,10 +6,9 @@ namespace WhileClosure2
 /-!
 # Route-independent replay core
 
-This is the route-independent core extracted from the successful seq-tail
-experiment.  It is intentionally not indexed by a seq route.  A seq tail, cons
-tail, or while backedge can all instantiate it by choosing the relevant
-post-environment `Γ` and post-state `σ`.
+This is the route-independent replay core extracted from the successful seq-tail
+experiment.  A seq tail, cons tail, or while backedge can instantiate it by
+choosing the relevant post-environment and post-state.
 -/
 
 /-- Replay witness for a place at a concrete environment/state pair. -/
@@ -167,8 +166,8 @@ end ValueReplayAt
 Replay witness for a block tail in the current/open block scope.
 
 The `cons` constructor deliberately takes the head statement readiness directly
-under pushed scopes.  This keeps the first clean-room scaffold small; later this
-can be refined into a fully recursive block replay core.
+under pushed scopes.  This keeps the first clean-room scaffold small; it can
+later be refined into a fully recursive block replay core.
 -/
 inductive BlockReplayAt (Γ : TypeEnv) (σ : State) :
     StmtBlock → Prop where

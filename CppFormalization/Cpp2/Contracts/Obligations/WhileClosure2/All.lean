@@ -1,13 +1,16 @@
 import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.Basic
 import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.ReplayCore
 import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.Entry
-import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.ConditionRoute
-import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.BodyRoute
-import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.ExitLifting
-import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.BackedgeReplay
-import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.BackedgeContinuation
-import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.TailAdequacy
-import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.TailDemand
+import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.Route.Condition
+import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.Route.Body
+import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.Progress.BodyLocal
+import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.Backedge.PostState
+import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.Backedge.ReplayInvariant
+import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.Backedge.Continuation
+import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.Tail.Adequacy
+import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.Tail.ProofDemand
+import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.Tail.Lifting
+import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.Exit.Lifting
 import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.Surface
 
 /-!

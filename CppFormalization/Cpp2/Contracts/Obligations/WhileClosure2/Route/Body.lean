@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.ConditionRoute
+import CppFormalization.Cpp2.Contracts.Obligations.WhileClosure2.Route.Condition
 
 namespace Cpp
 namespace WhileClosure2
