@@ -102,13 +102,30 @@ noncomputable def SeqTailStaticAdequacyPayloadCI.toStaticAdequacyCI
     adequacy := p.support.toBodyAdequacyCI }
 
 /--
-Actual head-normal route through a sequence.
+Core actual head-normal route through a sequence.
 
-This is the route-aware replacement for passing around a bare
-`HasTypeStmtCI .normalK Γ s Θ` and an unrelated normal step.  The package
-records the selected left normal witness, the actual head-normal execution, the
-fact that the chosen left profile exposes that witness, and the tail
-static/adequacy payload for the resulting post-state.
+This is the mathematically/C++-natural route object: it records only that the
+left statement `s` actually took the selected normal path from the pre-state to
+the post-state, and which post-environment `Θ` that normal channel selects.
+
+It deliberately does not contain tail static/adequacy/replay payloads.  Those
+are continuation facts attached to this route, not the route itself.
+-/
+structure SeqHeadNormalRouteCoreCI
+    (Γ : TypeEnv) (σ : State) (s t : CppStmt)
+    (σ1 : State) (P : BodyControlProfile Γ s) : Type where
+  Θ : TypeEnv
+  hleft : HasTypeStmtCI .normalK Γ s Θ
+  hprofile : P.summary.normalOut = some ⟨Θ, hleft⟩
+  hstepLeft : BigStepStmt σ s .normal σ1
+
+/--
+Legacy full route through a sequence.
+
+This extends the core actual route with the old bundled tail static/adequacy
+payload.  New continuation/contract code should prefer
+`SeqHeadNormalRouteCoreCI` plus explicit tail continuation facts.  This full
+route remains as a compatibility wrapper for the older closure scaffold.
 -/
 structure SeqHeadNormalRouteCI
     (Γ : TypeEnv) (σ : State) (s t : CppStmt)
@@ -118,5 +135,16 @@ structure SeqHeadNormalRouteCI
   hprofile : P.summary.normalOut = some ⟨Θ, hleft⟩
   hstepLeft : BigStepStmt σ s .normal σ1
   tail : SeqTailStaticAdequacyPayloadCI Θ σ1 t
+
+/-- Forget the legacy bundled tail payload and keep only the actual route core. -/
+def SeqHeadNormalRouteCI.toCore
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
+    SeqHeadNormalRouteCoreCI Γ σ s t σ1 P :=
+  { Θ := route.Θ
+    hleft := route.hleft
+    hprofile := route.hprofile
+    hstepLeft := route.hstepLeft }
 
 end Cpp

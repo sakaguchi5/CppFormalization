@@ -8,11 +8,21 @@ namespace Seq
 /-!
 # Seq routes
 
-The normal route is the existing selected `SeqHeadNormalRouteCI`.  Non-tail
-exits are named separately because they do not enter the continuation target.
+The normal route is now the core selected `SeqHeadNormalRouteCoreCI`.
+The older `SeqHeadNormalRouteCI` remains available as a legacy full route that
+bundles tail static/adequacy payloads, but the compound-continuation contract
+surface should not depend on that payload.
+
+Non-tail exits are named separately because they do not enter the continuation
+target.
 -/
 
 abbrev NormalRoute
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s} :=
+  SeqHeadNormalRouteCoreCI Γ σ s t σ1 P
+
+abbrev LegacyNormalRoute
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s} :=
   SeqHeadNormalRouteCI Γ σ s t σ1 P

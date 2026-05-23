@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Contracts.Obligations.CompoundContinuation.Seq.Tail.Continuation
+import CppFormalization.Cpp2.Contracts.Obligations.CompoundContinuation.Seq.Route
 
 namespace Cpp
 namespace CompoundContinuation
@@ -8,47 +8,38 @@ namespace Tail
 /-!
 # Seq tail static/adequacy projection
 
-The selected seq route already carries the tail static boundary and adequacy
-payload.  This file exposes those projections under the shared continuation
-naming scheme.
+Tail static/adequacy is a continuation payload attached to a core route; it is
+not part of the core route itself and not a programmer-side replay contract.
+
+The legacy full `SeqHeadNormalRouteCI` still bundles this payload, so this file
+also provides an adapter from the legacy full route to the standalone demand.
 -/
-
-def static
-    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
-    {P : BodyControlProfile Γ s}
-    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
-    BodyStaticBoundaryCI route.Θ t :=
-  route.tail.static
-
-noncomputable def adequacy
-    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
-    {P : BodyControlProfile Γ s}
-    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
-    BodyAdequacyCI route.Θ σ1 t (static route).profile :=
-  route.tail.support.toBodyAdequacyCI
 
 structure AdequacyDemand
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
-    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) : Type where
-  tailAdequacy : BodyAdequacyCI route.Θ σ1 t (static route).profile := adequacy route
+    (route : SeqHeadNormalRouteCoreCI Γ σ s t σ1 P) : Type where
+  static : BodyStaticBoundaryCI route.Θ t
+  tailAdequacy : BodyAdequacyCI route.Θ σ1 t static.profile
 
 namespace AdequacyDemand
 
 /--
-The selected seq route already carries the tail adequacy payload, so this is
-not a programmer-side contract.  It can be materialized canonically from the
-route.
+Materialize the standalone tail adequacy demand from the legacy full route.
+
+This is a compatibility adapter: new code should pass the demand separately or
+derive it from lower adequacy/proof infrastructure, not treat it as part of the
+actual route.
 -/
-noncomputable def canonical
+noncomputable def ofLegacy
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
     (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
-    AdequacyDemand route :=
-  { tailAdequacy := adequacy route }
+    AdequacyDemand route.toCore :=
+  { static := route.tail.static
+    tailAdequacy := route.tail.support.toBodyAdequacyCI }
 
 end AdequacyDemand
-
 
 end Tail
 end Seq

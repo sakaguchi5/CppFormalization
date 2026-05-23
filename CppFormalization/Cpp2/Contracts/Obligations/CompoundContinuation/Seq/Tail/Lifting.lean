@@ -10,12 +10,15 @@ namespace Tail
 
 A tail result is lifted through `BigStepStmt.seqNormal`; tail divergence is
 lifted through `BigStepStmtDiv.seqRight`.
+
+This file depends only on the core route, continuation input, and proof demand.
+Tail adequacy is not needed for this semantic lifting theorem.
 -/
 
 theorem step
     {Γ : TypeEnv} {σ σ1 σ2 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
-    {route : SeqHeadNormalRouteCI Γ σ s t σ1 P}
+    {route : SeqHeadNormalRouteCoreCI Γ σ s t σ1 P}
     {ctrl : CtrlResult}
     (tailStep : BigStepStmt σ1 t ctrl σ2) :
     BigStepStmt σ (.seq s t) ctrl σ2 := by
@@ -24,7 +27,7 @@ theorem step
 theorem diverges
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
-    {route : SeqHeadNormalRouteCI Γ σ s t σ1 P}
+    {route : SeqHeadNormalRouteCoreCI Γ σ s t σ1 P}
     (tailDiv : BigStepStmtDiv σ1 t) :
     BigStepStmtDiv σ (.seq s t) := by
   exact BigStepStmtDiv.seqRight route.hstepLeft tailDiv
@@ -32,7 +35,7 @@ theorem diverges
 theorem closeAndLiftFromContinuationAndProof
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
-    {route : SeqHeadNormalRouteCI Γ σ s t σ1 P}
+    {route : SeqHeadNormalRouteCoreCI Γ σ s t σ1 P}
     (continuation : ContinuationInput route)
     (tailProof : ProofDemand route) :
     (∃ ctrl σ2, BigStepStmt σ (.seq s t) ctrl σ2) ∨
@@ -60,7 +63,7 @@ theorem closeAndLiftFromContinuationAndProof
 theorem closeAndLift
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
-    {route : SeqHeadNormalRouteCI Γ σ s t σ1 P}
+    {route : SeqHeadNormalRouteCoreCI Γ σ s t σ1 P}
     (pkg : Package route) :
     (∃ ctrl σ2, BigStepStmt σ (.seq s t) ctrl σ2) ∨
       BigStepStmtDiv σ (.seq s t) := by
