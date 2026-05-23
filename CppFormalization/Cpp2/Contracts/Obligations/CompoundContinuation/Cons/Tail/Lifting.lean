@@ -10,11 +10,14 @@ namespace Tail
 
 A block-tail result is lifted through `BigStepBlock.consNormal`; block-tail
 divergence is lifted through `BigStepBlockDiv.consTail`.
+
+Theorems are indexed by `HeadNormalRouteCore`, not by the legacy full route,
+because lifting only needs the operational head-normal step.
 -/
 
 theorem step
     {Γ : TypeEnv} {σ σ1 σ2 : State} {head : CppStmt} {tail : StmtBlock}
-    {route : HeadNormalRoute Γ σ σ1 head tail}
+    {route : HeadNormalRouteCore Γ σ σ1 head tail}
     {ctrl : CtrlResult}
     (tailStep : BigStepBlock σ1 tail ctrl σ2) :
     BigStepBlock σ (.cons head tail) ctrl σ2 := by
@@ -22,14 +25,14 @@ theorem step
 
 theorem diverges
     {Γ : TypeEnv} {σ σ1 : State} {head : CppStmt} {tail : StmtBlock}
-    {route : HeadNormalRoute Γ σ σ1 head tail}
+    {route : HeadNormalRouteCore Γ σ σ1 head tail}
     (tailDiv : BigStepBlockDiv σ1 tail) :
     BigStepBlockDiv σ (.cons head tail) := by
   exact BigStepBlockDiv.consTail route.hhead tailDiv
 
 theorem closeAndLiftFromContinuationAndProof
     {Γ : TypeEnv} {σ σ1 : State} {head : CppStmt} {tail : StmtBlock}
-    {route : HeadNormalRoute Γ σ σ1 head tail}
+    {route : HeadNormalRouteCore Γ σ σ1 head tail}
     (continuation : ContinuationInput route)
     (tailProof : ProofDemand route) :
     (∃ ctrl σ2, BigStepBlock σ (.cons head tail) ctrl σ2) ∨
@@ -56,7 +59,7 @@ theorem closeAndLiftFromContinuationAndProof
 
 theorem closeAndLift
     {Γ : TypeEnv} {σ σ1 : State} {head : CppStmt} {tail : StmtBlock}
-    {route : HeadNormalRoute Γ σ σ1 head tail}
+    {route : HeadNormalRouteCore Γ σ σ1 head tail}
     (pkg : Package route) :
     (∃ ctrl σ2, BigStepBlock σ (.cons head tail) ctrl σ2) ∨
       BigStepBlockDiv σ (.cons head tail) := by
@@ -66,6 +69,19 @@ theorem closeAndLift
       (head := head) (tail := tail) (route := route)
       pkg.continuation
       pkg.tailProof
+
+/-- Compatibility wrapper for callers that still carry the legacy full route. -/
+theorem closeAndLiftLegacy
+    {Γ : TypeEnv} {σ σ1 : State} {head : CppStmt} {tail : StmtBlock}
+    {route : HeadNormalRoute Γ σ σ1 head tail}
+    (pkg : Package route.toCore) :
+    (∃ ctrl σ2, BigStepBlock σ (.cons head tail) ctrl σ2) ∨
+      BigStepBlockDiv σ (.cons head tail) := by
+  exact
+    closeAndLift
+      (Γ := Γ) (σ := σ) (σ1 := σ1)
+      (head := head) (tail := tail) (route := route.toCore)
+      pkg
 
 end Tail
 end Cons
