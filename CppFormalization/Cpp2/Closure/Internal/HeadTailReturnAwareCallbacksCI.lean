@@ -1,5 +1,4 @@
 import CppFormalization.Cpp2.Closure.Internal.HeadTailReturnAwareRoutesCI
-import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureConcreteCI
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseSplitCI
 
