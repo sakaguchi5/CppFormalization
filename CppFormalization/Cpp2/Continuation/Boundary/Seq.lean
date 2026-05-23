@@ -1,5 +1,6 @@
 import CppFormalization.Cpp2.Contracts.Obligations.ReadinessTransportNormalExactTail
 import CppFormalization.Cpp2.Contracts.Obligations.SeqTailReplay
+import CppFormalization.Cpp2.Contracts.Obligations.CompoundContinuation.Seq.Tail.Continuation
 import CppFormalization.Cpp2.Continuation.Boundary.Body
 import CppFormalization.Cpp2.Boundary.Static.SeqStaticBoundaryProjectionCI
 import CppFormalization.Cpp2.Static.Pure.SeqStructuralProjectionCI
@@ -171,6 +172,55 @@ noncomputable def seq_tail_continuation_boundary_ci_of_head_normal_route
   { structural := seq_tail_structural_boundary_of_structural hentry.structural
     static := route.tail.static
     dynamic := stability.toStmtContinuationDynamicBoundary
+    adequacy := route.tail.support.toBodyAdequacyCI }
+
+
+/- =========================================================
+   CompoundContinuation selected-route bridge
+   ========================================================= -/
+
+/--
+Build the legacy dynamic seq-continuation compatibility surface from the
+new `CompoundContinuation` route-local continuation input.
+
+This does not prove or use `ReadinessTransportNormalExactTail`.  The dynamic
+tail readiness is materialized from
+
+* post-state preservation, and
+* `StmtReplayAt route.Θ σ1 t`
+
+inside `CompoundContinuation.Seq.Tail.ContinuationInput`.
+-/
+def seq_normal_continuation_dynamic_of_compound_continuation
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
+    (input : CompoundContinuation.Seq.Tail.ContinuationInput route.toCore) :
+    SeqNormalContinuationDynamicCI Γ route.Θ σ σ1 s t :=
+  { hleft := route.hleft
+    hstepLeft := route.hstepLeft
+    tail := by
+      simpa [SeqHeadNormalRouteCI.toCore] using input.toDynamicBoundary }
+
+/--
+Build the full seq tail continuation boundary from the selected route plus the
+new `CompoundContinuation` continuation input.
+
+This is the selected-route replacement target for the old exact-tail path:
+static and adequacy come from `route.tail`; dynamic readiness comes from
+CompoundContinuation replay.
+-/
+noncomputable def seq_tail_continuation_boundary_ci_of_compound_continuation
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
+    (input : CompoundContinuation.Seq.Tail.ContinuationInput route.toCore) :
+    StmtContinuationBoundaryCI route.Θ σ1 t :=
+  { structural := seq_tail_structural_boundary_of_structural hentry.structural
+    static := route.tail.static
+    dynamic := by
+      simpa [SeqHeadNormalRouteCI.toCore] using input.toDynamicBoundary
     adequacy := route.tail.support.toBodyAdequacyCI }
 
 end Cpp

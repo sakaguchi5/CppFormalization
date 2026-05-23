@@ -124,6 +124,7 @@ import CppFormalization.Cpp2.Closure.Internal.Transport.All
 import CppFormalization.Cpp2.Closure.Internal.SeqFunctionBodyClosureContinuationCoreSupportCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverContinuationSeqSupportCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverContinuationIHCI
+import CppFormalization.Cpp2.Closure.Internal.CompoundContinuationSelectedRouteSupportCI
 /-!
 # CppFormalization.Cpp2.Closure.Internal.All
 
