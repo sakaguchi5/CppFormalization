@@ -20,6 +20,20 @@ structure TailSurface
   adequacy : Tail.AdequacyDemand route
   proof : Tail.ProofDemand route
 
+/--
+Surface constructor with the route-projected adequacy filled in canonically.
+-/
+def TailSurface.ofContinuationAndProof
+    {Γ : TypeEnv} {σ σ1 : State} {head : CppStmt} {tail : StmtBlock}
+    {route : HeadNormalRoute Γ σ σ1 head tail}
+    (continuation : Tail.ContinuationInput route)
+    (proof : Tail.ProofDemand route) :
+    TailSurface route :=
+  { continuation := continuation
+    adequacy := Tail.AdequacyDemand.canonical route
+    proof := proof }
+
+
 def TailSurface.toPackage
     {Γ : TypeEnv} {σ σ1 : State} {head : CppStmt} {tail : StmtBlock}
     {route : HeadNormalRoute Γ σ σ1 head tail}

@@ -29,14 +29,17 @@ theorem diverges
     BigStepStmtDiv σ (.seq s t) := by
   exact BigStepStmtDiv.seqRight route.hstepLeft tailDiv
 
-theorem closeAndLift
+theorem closeAndLiftFromContinuationAndProof
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
     {route : SeqHeadNormalRouteCI Γ σ s t σ1 P}
-    (pkg : Package route) :
+    (continuation : ContinuationInput route)
+    (tailProof : ProofDemand route) :
     (∃ ctrl σ2, BigStepStmt σ (.seq s t) ctrl σ2) ∨
       BigStepStmtDiv σ (.seq s t) := by
-  match pkg.closeTail with
+  let dyn : StmtContinuationDynamicBoundary route.Θ σ1 t :=
+    continuation.toDynamicBoundary
+  match tailProof.close dyn with
   | Or.inl ⟨ctrl, σ2, hstep⟩ =>
       exact
         Or.inl
@@ -53,6 +56,20 @@ theorem closeAndLift
             (Γ := Γ) (σ := σ) (σ1 := σ1)
             (s := s) (t := t) (P := P) (route := route)
             hdiv)
+
+theorem closeAndLift
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    {route : SeqHeadNormalRouteCI Γ σ s t σ1 P}
+    (pkg : Package route) :
+    (∃ ctrl σ2, BigStepStmt σ (.seq s t) ctrl σ2) ∨
+      BigStepStmtDiv σ (.seq s t) := by
+  exact
+    closeAndLiftFromContinuationAndProof
+      (Γ := Γ) (σ := σ) (σ1 := σ1)
+      (s := s) (t := t) (P := P) (route := route)
+      pkg.continuation
+      pkg.tailProof
 
 end Tail
 end Seq

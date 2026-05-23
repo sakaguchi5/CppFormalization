@@ -34,15 +34,18 @@ theorem diverges
       (Or.inl route.hbody)
       tailDiv
 
-theorem closeAndLift
+theorem closeAndLiftFromContinuationAndProof
     {Γ : TypeEnv} {σ σ1 : State} {c : ValExpr} {body : CppStmt}
     {entry : Entry Γ σ c body}
     {cond : ConditionTrueRoute entry}
     {route : BodyNormalRoute cond σ1}
-    (pkg : NormalPackage route) :
+    (continuation : Backedge.NormalContinuationInput route)
+    (tailProof : NormalProofDemand route) :
     (∃ ctrl σ2, BigStepStmt σ (.whileStmt c body) ctrl σ2) ∨
       BigStepStmtDiv σ (.whileStmt c body) := by
-  match pkg.closeTail with
+  let dyn : StmtContinuationDynamicBoundary Γ σ1 (.whileStmt c body) :=
+    continuation.toDynamicBoundary
+  match tailProof.demand.close dyn with
   | Or.inl ⟨ctrl, σ2, hstep⟩ =>
       exact
         Or.inl
@@ -61,6 +64,22 @@ theorem closeAndLift
             (c := c) (body := body)
             (entry := entry) (cond := cond) (route := route)
             hdiv)
+
+theorem closeAndLift
+    {Γ : TypeEnv} {σ σ1 : State} {c : ValExpr} {body : CppStmt}
+    {entry : Entry Γ σ c body}
+    {cond : ConditionTrueRoute entry}
+    {route : BodyNormalRoute cond σ1}
+    (pkg : NormalPackage route) :
+    (∃ ctrl σ2, BigStepStmt σ (.whileStmt c body) ctrl σ2) ∨
+      BigStepStmtDiv σ (.whileStmt c body) := by
+  exact
+    closeAndLiftFromContinuationAndProof
+      (Γ := Γ) (σ := σ) (σ1 := σ1)
+      (c := c) (body := body)
+      (entry := entry) (cond := cond) (route := route)
+      pkg.continuation
+      pkg.tailProof
 
 end Normal
 
@@ -89,15 +108,18 @@ theorem diverges
       (Or.inr route.hbody)
       tailDiv
 
-theorem closeAndLift
+theorem closeAndLiftFromContinuationAndProof
     {Γ : TypeEnv} {σ σ1 : State} {c : ValExpr} {body : CppStmt}
     {entry : Entry Γ σ c body}
     {cond : ConditionTrueRoute entry}
     {route : BodyContinueRoute cond σ1}
-    (pkg : ContinuePackage route) :
+    (continuation : Backedge.ContinueContinuationInput route)
+    (tailProof : ContinueProofDemand route) :
     (∃ ctrl σ2, BigStepStmt σ (.whileStmt c body) ctrl σ2) ∨
       BigStepStmtDiv σ (.whileStmt c body) := by
-  match pkg.closeTail with
+  let dyn : StmtContinuationDynamicBoundary Γ σ1 (.whileStmt c body) :=
+    continuation.toDynamicBoundary
+  match tailProof.demand.close dyn with
   | Or.inl ⟨ctrl, σ2, hstep⟩ =>
       exact
         Or.inl
@@ -116,6 +138,22 @@ theorem closeAndLift
             (c := c) (body := body)
             (entry := entry) (cond := cond) (route := route)
             hdiv)
+
+theorem closeAndLift
+    {Γ : TypeEnv} {σ σ1 : State} {c : ValExpr} {body : CppStmt}
+    {entry : Entry Γ σ c body}
+    {cond : ConditionTrueRoute entry}
+    {route : BodyContinueRoute cond σ1}
+    (pkg : ContinuePackage route) :
+    (∃ ctrl σ2, BigStepStmt σ (.whileStmt c body) ctrl σ2) ∨
+      BigStepStmtDiv σ (.whileStmt c body) := by
+  exact
+    closeAndLiftFromContinuationAndProof
+      (Γ := Γ) (σ := σ) (σ1 := σ1)
+      (c := c) (body := body)
+      (entry := entry) (cond := cond) (route := route)
+      pkg.continuation
+      pkg.tailProof
 
 end Continued
 

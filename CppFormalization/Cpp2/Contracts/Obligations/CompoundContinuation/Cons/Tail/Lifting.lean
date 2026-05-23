@@ -27,13 +27,16 @@ theorem diverges
     BigStepBlockDiv σ (.cons head tail) := by
   exact BigStepBlockDiv.consTail route.hhead tailDiv
 
-theorem closeAndLift
+theorem closeAndLiftFromContinuationAndProof
     {Γ : TypeEnv} {σ σ1 : State} {head : CppStmt} {tail : StmtBlock}
     {route : HeadNormalRoute Γ σ σ1 head tail}
-    (pkg : Package route) :
+    (continuation : ContinuationInput route)
+    (tailProof : ProofDemand route) :
     (∃ ctrl σ2, BigStepBlock σ (.cons head tail) ctrl σ2) ∨
       BigStepBlockDiv σ (.cons head tail) := by
-  match pkg.closeTail with
+  let dyn : BlockContinuationDynamicBoundary Γ σ1 tail :=
+    continuation.toDynamicBoundary
+  match tailProof.close dyn with
   | Or.inl ⟨ctrl, σ2, hstep⟩ =>
       exact
         Or.inl
@@ -50,6 +53,19 @@ theorem closeAndLift
             (Γ := Γ) (σ := σ) (σ1 := σ1)
             (head := head) (tail := tail) (route := route)
             hdiv)
+
+theorem closeAndLift
+    {Γ : TypeEnv} {σ σ1 : State} {head : CppStmt} {tail : StmtBlock}
+    {route : HeadNormalRoute Γ σ σ1 head tail}
+    (pkg : Package route) :
+    (∃ ctrl σ2, BigStepBlock σ (.cons head tail) ctrl σ2) ∨
+      BigStepBlockDiv σ (.cons head tail) := by
+  exact
+    closeAndLiftFromContinuationAndProof
+      (Γ := Γ) (σ := σ) (σ1 := σ1)
+      (head := head) (tail := tail) (route := route)
+      pkg.continuation
+      pkg.tailProof
 
 end Tail
 end Cons

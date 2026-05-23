@@ -32,6 +32,22 @@ structure Package
 
 namespace Package
 
+/--
+Seq tail adequacy is route-projected, not an extra programmer contract.
+This constructor keeps package construction focused on the genuine dynamic
+continuation input and the proof demand.
+-/
+noncomputable def ofContinuationAndProof
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    {route : SeqHeadNormalRouteCI Γ σ s t σ1 P}
+    (continuation : ContinuationInput route)
+    (tailProof : ProofDemand route) :
+    Package route :=
+  { continuation := continuation
+    adequacy := AdequacyDemand.canonical route
+    tailProof := tailProof }
+
 def dynamicBoundary
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}

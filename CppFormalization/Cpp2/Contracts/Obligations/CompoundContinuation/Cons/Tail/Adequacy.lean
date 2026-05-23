@@ -26,6 +26,21 @@ structure AdequacyDemand
     (route : HeadNormalRoute Γ σ σ1 head tail) : Type where
   tailAdequacy : BlockBodyAdequacyCI Γ σ1 tail (static route).profile := adequacy route
 
+namespace AdequacyDemand
+
+/--
+The selected cons head-normal route already carries the block-tail adequacy
+payload, so this is not an additional programmer-side contract.
+-/
+def canonical
+    {Γ : TypeEnv} {σ σ1 : State} {head : CppStmt} {tail : StmtBlock}
+    (route : HeadNormalRoute Γ σ σ1 head tail) :
+    AdequacyDemand route :=
+  { tailAdequacy := adequacy route }
+
+end AdequacyDemand
+
+
 end Tail
 end Cons
 end CompoundContinuation

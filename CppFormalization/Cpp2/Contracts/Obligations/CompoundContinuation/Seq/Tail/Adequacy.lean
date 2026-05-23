@@ -33,6 +33,23 @@ structure AdequacyDemand
     (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) : Type where
   tailAdequacy : BodyAdequacyCI route.Θ σ1 t (static route).profile := adequacy route
 
+namespace AdequacyDemand
+
+/--
+The selected seq route already carries the tail adequacy payload, so this is
+not a programmer-side contract.  It can be materialized canonically from the
+route.
+-/
+noncomputable def canonical
+    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
+    {P : BodyControlProfile Γ s}
+    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
+    AdequacyDemand route :=
+  { tailAdequacy := adequacy route }
+
+end AdequacyDemand
+
+
 end Tail
 end Seq
 end CompoundContinuation

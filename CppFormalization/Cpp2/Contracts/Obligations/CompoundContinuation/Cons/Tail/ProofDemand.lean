@@ -29,6 +29,19 @@ structure Package
 
 namespace Package
 
+/--
+Cons tail adequacy is route-projected, not an extra programmer contract.
+-/
+def ofContinuationAndProof
+    {Γ : TypeEnv} {σ σ1 : State} {head : CppStmt} {tail : StmtBlock}
+    {route : HeadNormalRoute Γ σ σ1 head tail}
+    (continuation : ContinuationInput route)
+    (tailProof : ProofDemand route) :
+    Package route :=
+  { continuation := continuation
+    adequacy := AdequacyDemand.canonical route
+    tailProof := tailProof }
+
 def dynamicBoundary
     {Γ : TypeEnv} {σ σ1 : State} {head : CppStmt} {tail : StmtBlock}
     {route : HeadNormalRoute Γ σ σ1 head tail}
