@@ -22,6 +22,8 @@ import CppFormalization.Cpp2.Proof.Preservation.Assign.All
 import CppFormalization.Cpp2.Proof.Preservation.DeclareRef.All
 import CppFormalization.Cpp2.Proof.Preservation.DeclareObject.All
 
+import CppFormalization.Cpp2.Proof.Preservation.PrimitiveStmtNormalStateOnly
+import CppFormalization.Cpp2.Proof.Preservation.StmtControlStateOnly
 /-!
 # CppFormalization.Cpp2.Proof.Preservation.All
 

@@ -2,7 +2,7 @@ import CppFormalization.Cpp2.Proof.Preservation.StmtControlRecursorCore
 --import CppFormalization.Cpp2.Continuation.Boundary.LegacyTransport
 import CppFormalization.Cpp2.Continuation.Boundary.Seq
 import CppFormalization.Cpp2.Continuation.Boundary.Cons
-
+import CppFormalization.Cpp2.Proof.Preservation.StmtControlStateOnly
 
 namespace Cpp
 
@@ -23,70 +23,8 @@ obligation internally.  This shifts the remaining ordinary-readiness debt from t
 specialized exact-tail axiom to the general readiness-transport family.
 -/
 
-def whileCompatHandlers_kernel
-   (mkWhileReentry : WhileReentryReadyProvider):
-    WhileCompatHandlers where
-  seqNormal := by
-    intro Γ Θ Δ σ σ₁ s t k htyHead hstepHead _htyTail _hcompatHead ihHead hσ hreadySeq
-    have hreadyHead : StmtReadyConcrete Γ σ s :=
-      stmtControlRecursor_seq_ready_left hreadySeq
-    have hσ₁ : ScopedTypedStateConcrete Θ σ₁ :=
-      ihHead hσ hreadyHead
-    have hcont : SeqNormalContinuationDynamicCI Γ Θ σ σ₁ s t :=
-      seq_normal_continuation_dynamic_of_exact_tail
-        htyHead hσ₁ hreadySeq hstepHead
-    exact ⟨hcont.postState, hcont.tailReady⟩
-
-  consNormal := by
-    intro Γ Θ Δ σ σ₁ s ss k htyHead hstepHead _htyTail _hcompatHead ihHead hσ hreadyCons
-    have hreadyHead : StmtReadyConcrete Γ σ s :=
-      stmtControlRecursor_cons_block_ready_head hreadyCons
-    have hσ₁ : ScopedTypedStateConcrete Θ σ₁ :=
-      ihHead hσ hreadyHead
-    have hcont : ConsNormalContinuationDynamicCI Γ Θ σ σ₁ s ss :=
-      cons_normal_continuation_dynamic_of_exact_tail
-        htyHead hσ₁ hreadyCons hstepHead
-    exact ⟨hcont.postState, hcont.tailReady⟩
-
-  normalNormal := by
-    intro Γ σ0 σBody σTail c body hc hN hB hC hstepBody hstepLoopTail
-      _hcompatBody _hcompatLoopTail ihBodyPres ihLoopPres hscIn hreadyWhile
-    exact
-      whileNormalNormalCase
-        mkWhileReentry hc hN hB hC hstepBody ihBodyPres ihLoopPres
-        hscIn hreadyWhile
-
-  continueNormal := by
-    intro Γ σ0 σBody σTail c body hc hN hB hC hstepBody hstepLoopTail
-      _hcompatBody _hcompatLoopTail ihBodyPres ihLoopPres hscIn hreadyWhile
-    exact
-      whileContinueNormalCase
-        mkWhileReentry hc hN hB hC hstepBody ihBodyPres ihLoopPres
-        hscIn hreadyWhile
-
-  normalReturn := by
-    intro Γ Δ σ0 σBody σTail c body rv hc hN hB hC hR hstepBody hstepLoopTail
-      _hcompatBody _hcompatLoopTail ihBodyPres ihLoopPres hscIn hreadyWhile
-    exact
-      whileNormalReturnCase
-        mkWhileReentry hc hN hB hC hstepBody ihBodyPres ihLoopPres
-        hscIn hreadyWhile
-
-  continueReturn := by
-    intro Γ Δ σ0 σBody σTail c body rv hc hN hB hC hR hstepBody hstepLoopTail
-      _hcompatBody _hcompatLoopTail ihBodyPres ihLoopPres hscIn hreadyWhile
-    exact
-      whileContinueReturnCase
-        mkWhileReentry hc hN hB hC hstepBody ihBodyPres ihLoopPres
-        hscIn hreadyWhile
-
-def stmtBlock_preservation_kernel
-    (mkWhileReentry : WhileReentryReadyProvider):
-    StmtBlockPreservationKernel :=
-  stmtBlock_preservation_kernel_of_handlers (whileCompatHandlers_kernel mkWhileReentry)
-
 theorem stmt_control_preserves_scoped_typed_state_of_compatible
-    (mkWhileReentry : WhileReentryReadyProvider)
+    (_mkWhileReentry : WhileReentryReadyProvider)
     {k : ControlKind} {Γ Δ : TypeEnv} {s : CppStmt}
     {σ : State} {ctrl : CtrlResult} {σ' : State}
     {hty : HasTypeStmtCI k Γ s Δ}
@@ -94,11 +32,14 @@ theorem stmt_control_preserves_scoped_typed_state_of_compatible
     (hcomp : StmtControlCompatible hty hstep) :
     ScopedTypedStateConcrete Γ σ →
     StmtReadyConcrete Γ σ s →
-    ScopedTypedStateConcrete Δ σ' :=
-  (stmtBlock_preservation_kernel mkWhileReentry).stmt hcomp
+    ScopedTypedStateConcrete Δ σ' := by
+  intro hσ _hready
+  exact
+    stmt_control_preserves_scoped_typed_state_of_compatible_noReady
+      hcomp hσ
 
 theorem block_control_preserves_scoped_typed_state_of_compatible
-    (mkWhileReentry : WhileReentryReadyProvider)
+    (_mkWhileReentry : WhileReentryReadyProvider)
     {k : ControlKind} {Γ Δ : TypeEnv} {ss : StmtBlock}
     {σ : State} {ctrl : CtrlResult} {σ' : State}
     {hty : HasTypeBlockCI k Γ ss Δ}
@@ -106,7 +47,10 @@ theorem block_control_preserves_scoped_typed_state_of_compatible
     (hcomp : BlockControlCompatible hty hstep) :
     ScopedTypedStateConcrete Γ σ →
     BlockReadyConcrete Γ σ ss →
-    ScopedTypedStateConcrete Δ σ' :=
-  (stmtBlock_preservation_kernel mkWhileReentry).block hcomp
+    ScopedTypedStateConcrete Δ σ' := by
+  intro hσ _hready
+  exact
+    block_control_preserves_scoped_typed_state_of_compatible_noReady
+      hcomp hσ
 
 end Cpp
