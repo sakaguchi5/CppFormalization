@@ -467,7 +467,6 @@ Compatibility surface: internally this now factors through the route-local
 continuation boundary back to `BodyClosureBoundaryCI`.
 -/
 noncomputable def seq_tail_closure_boundary_ci_of_head_normal_route
-    (_mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
@@ -487,7 +486,6 @@ selected head-normal route from the entry boundary and the actual left-normal
 execution, then delegates to the route-aware boundary constructor.
 -/
 noncomputable def seq_tail_closure_boundary_ci_of_left_normal
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
     ∀ {σ1 : State}
@@ -499,7 +497,6 @@ noncomputable def seq_tail_closure_boundary_ci_of_left_normal
   intro σ1 hstepLeft
   exact
     seq_tail_closure_boundary_ci_of_head_normal_route
-      mkWhileReentry
       hentry
       (seq_left_normalRoute_of_entry hentry hstepLeft)
 

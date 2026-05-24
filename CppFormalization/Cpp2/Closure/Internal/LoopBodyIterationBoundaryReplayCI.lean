@@ -91,13 +91,11 @@ The state part is supplied by preservation; readiness and adequacy come from the
 route-level replay contract.
 -/
 def loopBodyAfterContinueSameProfileCI_of_iterationBoundaryReplay
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
     (R : LoopIterationBoundaryReplayAfterContinueCI Γ c body) :
     LoopBodyAfterContinueSameProfileCI Γ c body :=
   loopBodyAfterContinueSameProfileCI_of_dynamic_split
     (loopBodyDynamicAfterContinueSplitCI_of_state_preservation
-      mkWhileReentry
       (loopBodyReadyAfterContinueCI_of_iterationReady R.ready))
     R.body_adequacy_after_continue
 

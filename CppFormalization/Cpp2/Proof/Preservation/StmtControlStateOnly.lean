@@ -1,6 +1,9 @@
 import CppFormalization.Cpp2.Proof.Preservation.PrimitiveStmtNormalStateOnly
 import CppFormalization.Cpp2.Proof.Control.StmtControlCompatibility
 import CppFormalization.Cpp2.Proof.Preservation.StmtControlKernelSupport
+import CppFormalization.Cpp2.Proof.Preservation.Scope.OpenPreservation
+import CppFormalization.Cpp2.Proof.Preservation.Scope.ClosePreservation
+
 
 set_option maxHeartbeats 0
 
@@ -658,7 +661,6 @@ theorem block_normal_preserves_scoped_typed_state_concrete_noReady
 --旧Proof.Preservation.StmtControlKernelにあった公開用のtheorem
 
 theorem stmt_control_preserves_scoped_typed_state_of_compatible
-    (_mkWhileReentry : WhileReentryReadyProvider)
     {k : ControlKind} {Γ Δ : TypeEnv} {s : CppStmt}
     {σ : State} {ctrl : CtrlResult} {σ' : State}
     {hty : HasTypeStmtCI k Γ s Δ}
@@ -673,7 +675,6 @@ theorem stmt_control_preserves_scoped_typed_state_of_compatible
       hcomp hσ
 
 theorem block_control_preserves_scoped_typed_state_of_compatible
-    (_mkWhileReentry : WhileReentryReadyProvider)
     {k : ControlKind} {Γ Δ : TypeEnv} {ss : StmtBlock}
     {σ : State} {ctrl : CtrlResult} {σ' : State}
     {hty : HasTypeBlockCI k Γ ss Δ}

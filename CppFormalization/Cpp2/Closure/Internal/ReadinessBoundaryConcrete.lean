@@ -85,7 +85,6 @@ theorem while_body_normal_preserves_entry_ready_concrete_typed
   exact ⟨hσ', hentry'⟩
 
 theorem while_body_continue_preserves_entry_ready_concrete_typed
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
     ExprReadyConcrete Γ σ c (.base .bool) →
     LoopBodyBoundaryCI Γ σ body →
@@ -100,7 +99,6 @@ theorem while_body_continue_preserves_entry_ready_concrete_typed
       stmt_normal_control_compatible hC hstepBody
   have hσ' : ScopedTypedStateConcrete Γ σ' :=
     stmt_continue_preserves_scoped_typed_state_concrete
-      mkWhileReentry
       hC hstepBody hcompBody hbody.dynamic.state hbody.dynamic.safe
   have hentry' : WhileEntryReadyCI Γ σ' c body :=
     whileEntryReady_after_continue_of_loopReentry hcond hbody K hstepBody
@@ -122,7 +120,6 @@ theorem while_body_normal_preserves_body_ready_concrete_typed
   exact ⟨hσ', stmtReady_of_whileEntryReady K.hc hentry'⟩
 
 theorem while_body_continue_preserves_body_ready_concrete_typed
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
     ExprReadyConcrete Γ σ c (.base .bool) →
     LoopBodyBoundaryCI Γ σ body →
@@ -131,7 +128,7 @@ theorem while_body_continue_preserves_body_ready_concrete_typed
     ScopedTypedStateConcrete Γ σ' ∧ StmtReadyConcrete Γ σ' (.whileStmt c body) := by
   intro hcond hbody K hstepBody
   rcases while_body_continue_preserves_entry_ready_concrete_typed
-      mkWhileReentry hcond hbody K hstepBody with
+      hcond hbody K hstepBody with
     ⟨hσ', hentry'⟩
   exact ⟨hσ', stmtReady_of_whileEntryReady K.hc hentry'⟩
 

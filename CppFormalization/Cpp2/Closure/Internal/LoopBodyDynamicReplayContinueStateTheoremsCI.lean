@@ -46,7 +46,6 @@ The typing witness is `hbody.profile.continueTyping`, and the concrete
 preconditions are `hbody.dynamic.state` and `hbody.dynamic.safe`.
 -/
 def loopBody_state_after_continue_of_preservation
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {body : CppStmt} :
     ∀ {σ σ' : State},
       (hbody : LoopBodyBoundaryCI Γ σ body) →
@@ -60,7 +59,6 @@ def loopBody_state_after_continue_of_preservation
       stmt_normal_control_compatible hC hstep
   exact
     stmt_continue_preserves_scoped_typed_state_concrete
-      mkWhileReentry
       hC hstep hcompBody hbody.dynamic.state hbody.dynamic.safe
 
 /--
@@ -68,7 +66,6 @@ Rebuild the continue-side dynamic split from theorem-backed state preservation
 plus the genuinely residual body-readiness replay component.
 -/
 def loopBodyDynamicAfterContinueSplitCI_of_state_preservation
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
     (hready : LoopBodyReadyAfterContinueCI Γ c body) :
     LoopBodyDynamicAfterContinueSplitCI Γ c body :=
@@ -76,7 +73,7 @@ def loopBodyDynamicAfterContinueSplitCI_of_state_preservation
       intro σ σ' hbody hstep
       exact
         loopBody_state_after_continue_of_preservation
-          mkWhileReentry hbody hstep
+          hbody hstep
     body_ready_after_continue := hready.body_ready_after_continue }
 
 /--
@@ -136,11 +133,10 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_splitDynamicR
       hadequacyNormal
       hcondContinue
       (loopBodyDynamicAfterContinueSplitCI_of_state_preservation
-        mkWhileReentry hreadyContinue)
+        hreadyContinue)
       hadequacyContinue
       hnormal
       hcontinue
       htailClosure
 
 end Cpp
-
