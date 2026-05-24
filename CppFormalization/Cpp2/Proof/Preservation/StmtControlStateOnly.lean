@@ -655,4 +655,37 @@ theorem block_normal_preserves_scoped_typed_state_concrete_noReady
     block_control_preserves_scoped_typed_state_of_compatible_noReady
       hcomp
 
+--旧Proof.Preservation.StmtControlKernelにあった公開用のtheorem
+
+theorem stmt_control_preserves_scoped_typed_state_of_compatible
+    (_mkWhileReentry : WhileReentryReadyProvider)
+    {k : ControlKind} {Γ Δ : TypeEnv} {s : CppStmt}
+    {σ : State} {ctrl : CtrlResult} {σ' : State}
+    {hty : HasTypeStmtCI k Γ s Δ}
+    {hstep : BigStepStmt σ s ctrl σ'}
+    (hcomp : StmtControlCompatible hty hstep) :
+    ScopedTypedStateConcrete Γ σ →
+    StmtReadyConcrete Γ σ s →
+    ScopedTypedStateConcrete Δ σ' := by
+  intro hσ _hready
+  exact
+    stmt_control_preserves_scoped_typed_state_of_compatible_noReady
+      hcomp hσ
+
+theorem block_control_preserves_scoped_typed_state_of_compatible
+    (_mkWhileReentry : WhileReentryReadyProvider)
+    {k : ControlKind} {Γ Δ : TypeEnv} {ss : StmtBlock}
+    {σ : State} {ctrl : CtrlResult} {σ' : State}
+    {hty : HasTypeBlockCI k Γ ss Δ}
+    {hstep : BigStepBlock σ ss ctrl σ'}
+    (hcomp : BlockControlCompatible hty hstep) :
+    ScopedTypedStateConcrete Γ σ →
+    BlockReadyConcrete Γ σ ss →
+    ScopedTypedStateConcrete Δ σ' := by
+  intro hσ _hready
+  exact
+    block_control_preserves_scoped_typed_state_of_compatible_noReady
+      hcomp hσ
+
+
 end Cpp

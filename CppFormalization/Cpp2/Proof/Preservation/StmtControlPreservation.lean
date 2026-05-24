@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Proof.Preservation.StmtControlKernel
+import CppFormalization.Cpp2.Proof.Preservation.StmtControlStateOnly
 import CppFormalization.Cpp2.Proof.Control.StmtAbruptCompatibility
 
 namespace Cpp
