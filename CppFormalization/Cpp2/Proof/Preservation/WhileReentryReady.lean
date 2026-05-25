@@ -59,23 +59,6 @@ structure WhileReentryReadyAt
       BigStepStmt σ body .continueResult σ' →
       WhileEntryReadyCI Γ σ' c body
 
-/--
-Provider consumed by preservation.
-
-The arguments are intentionally low-level: typing, concrete state invariant,
-and concrete statement readiness.  Closure-specific loop-body boundary bridges
-belong in `Closure.Internal.WhileReentryReadyKernelCI`, not here.
--/
-abbrev WhileReentryReadyProvider : Type :=
-  ∀ {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt},
-    HasValueType Γ c (.base .bool) →
-    HasTypeStmtCI .normalK Γ body Γ →
-    HasTypeStmtCI .breakK Γ body Γ →
-    HasTypeStmtCI .continueK Γ body Γ →
-    ScopedTypedStateConcrete Γ σ →
-    StmtReadyConcrete Γ σ (.whileStmt c body) →
-    WhileReentryReadyAt Γ σ c body
-
 theorem whileStmtReady_after_normal
     {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt}
     (hc : HasValueType Γ c (.base .bool))
