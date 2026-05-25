@@ -93,7 +93,6 @@ This is just the previous cleaned theorem with the raw recursion function named
 as `WhileTailClosureShellCI`.
 -/
 theorem while_function_body_closure_boundary_ci_of_currentBoundary_backedgeInvariant_tailClosureShell
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
     (hinvariant : WhileBackedgeInvariantCI Γ c body)
@@ -102,7 +101,6 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_backedgeInvar
       BigStepStmtDiv σ (.whileStmt c body) := by
   exact
     while_function_body_closure_boundary_ci_of_currentBoundary_backedgeInvariant_tailAdequacyTheorems
-      mkWhileReentry
       hentry
       hinvariant
       htail.close
@@ -115,7 +113,6 @@ particular state.  The support object contains the reusable route invariant plus
 the tail-recursion hook.
 -/
 theorem while_function_body_closure_boundary_ci_of_currentBoundary_closureStep
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
     (S : WhileCurrentBoundaryClosureStepCI Γ c body) :
@@ -123,7 +120,6 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_closureStep
       BigStepStmtDiv σ (.whileStmt c body) := by
   exact
     while_function_body_closure_boundary_ci_of_currentBoundary_backedgeInvariant_tailClosureShell
-      mkWhileReentry
       hentry
       S.invariant
       S.tail

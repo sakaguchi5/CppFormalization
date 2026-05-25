@@ -36,7 +36,6 @@ def whileTailClosureShellCI_of_caseDriverIH
 
 /-- The while branch through the cleaned closure-step route. -/
 theorem while_case_driver_branch_of_closureStep
-    (P : StmtNormalPreservationProviderCI)
     (W : FunctionBodyWhileBackedgeInvariantProviderCI)
     (IH : FunctionBodyCaseDriverIH)
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
@@ -45,10 +44,10 @@ theorem while_case_driver_branch_of_closureStep
     FunctionBodyCaseDriverResult σ (.whileStmt c body) := by
   exact
     while_function_body_closure_boundary_ci_of_currentBoundary_closureStep
-      P.toWhileReentryReadyProvider
       hentry
       { invariant := W.invariant hfrag hentry
         tail := whileTailClosureShellCI_of_caseDriverIH IH hfrag }
+
 
 /--
 Constructor-level case-driver body using the provider-shaped seq surface.
@@ -108,7 +107,7 @@ theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body_prov
   | whileStmt c body =>
       exact
         while_case_driver_branch_of_closureStep
-          P W IH hfrag hentry
+          W IH hfrag hentry
   | block ss =>
       exact
         block_function_body_closure_boundary_ci_from_opened_body

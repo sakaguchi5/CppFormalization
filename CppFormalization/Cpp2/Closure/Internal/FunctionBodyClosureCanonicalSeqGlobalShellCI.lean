@@ -39,7 +39,6 @@ global recursion hypothesis.
 -/
 theorem body_closure_ci_function_body_progress_or_diverges_sourcePackage_globalShell
     (S : SeqSelectedTailStaticRouteTypingSourcePackageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hfrag : CoreBigStepFragment st)
@@ -47,7 +46,6 @@ theorem body_closure_ci_function_body_progress_or_diverges_sourcePackage_globalS
     FunctionBodyCaseDriverResult σ st :=
   body_closure_case_driver_sourcePackage_theorem
     S
-    mkWhileReentry
     W
     body_closure_ci_function_body_global_recursion
     hfrag
@@ -63,7 +61,6 @@ fixed-static `seq` design.
 theorem body_closure_ci_function_body_progress_or_diverges_oldTyping_globalShell
     (T : SeqTailOldTypingSourceCoverageCI)
     (C : SeqSelectedTailStaticDecisionReturnTypingSourceCoverageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hfrag : CoreBigStepFragment st)
@@ -72,7 +69,6 @@ theorem body_closure_ci_function_body_progress_or_diverges_oldTyping_globalShell
   body_closure_case_driver_oldTyping_theorem
     T
     C
-    mkWhileReentry
     W
     body_closure_ci_function_body_global_recursion
     hfrag
@@ -85,7 +81,6 @@ return-typing decision coverage.
 theorem body_closure_ci_function_body_progress_or_diverges_alignedStatic_globalShell
     (S : SeqSelectedTailStaticSourceFromAlignedSelectionCI)
     (C : SeqSelectedTailStaticDecisionReturnTypingSourceCoverageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hfrag : CoreBigStepFragment st)
@@ -94,7 +89,6 @@ theorem body_closure_ci_function_body_progress_or_diverges_alignedStatic_globalS
   body_closure_case_driver_alignedStatic_theorem
     S
     C
-    mkWhileReentry
     W
     body_closure_ci_function_body_global_recursion
     hfrag
@@ -105,7 +99,6 @@ Master closure wrapper using decision-source coverage.
 -/
 theorem body_closure_ci_function_body_progress_or_diverges_decisionSources_globalShell
     (C : SeqSelectedTailStaticDecisionSourceCoverageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hfrag : CoreBigStepFragment st)
@@ -113,7 +106,6 @@ theorem body_closure_ci_function_body_progress_or_diverges_decisionSources_globa
     FunctionBodyCaseDriverResult σ st :=
   body_closure_case_driver_decisionSources_theorem
     C
-    mkWhileReentry
     W
     body_closure_ci_function_body_global_recursion
     hfrag
@@ -128,14 +120,13 @@ theorem body_closure_ci_function_body_progress_or_diverges_decisionSources_globa
 -/
 theorem body_ready_ci_function_body_progress_or_diverges_sourcePackage_globalShell
     (S : SeqSelectedTailStaticRouteTypingSourcePackageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hfrag : CoreBigStepFragment st)
     (hentry : BodyReadyCI Γ σ st) :
     FunctionBodyCaseDriverResult σ st :=
   body_closure_ci_function_body_progress_or_diverges_sourcePackage_globalShell
-    S mkWhileReentry W hfrag hentry.toClosureBoundary
+    S W hfrag hentry.toClosureBoundary
 
 /--
 `BodyReadyCI` wrapper for the old-typing-source global-shell theorem.
@@ -143,14 +134,13 @@ theorem body_ready_ci_function_body_progress_or_diverges_sourcePackage_globalShe
 theorem body_ready_ci_function_body_progress_or_diverges_oldTyping_globalShell
     (T : SeqTailOldTypingSourceCoverageCI)
     (C : SeqSelectedTailStaticDecisionReturnTypingSourceCoverageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hfrag : CoreBigStepFragment st)
     (hentry : BodyReadyCI Γ σ st) :
     FunctionBodyCaseDriverResult σ st :=
   body_closure_ci_function_body_progress_or_diverges_oldTyping_globalShell
-    T C mkWhileReentry W hfrag hentry.toClosureBoundary
+    T C W hfrag hentry.toClosureBoundary
 
 /--
 `BodyReadyCI` wrapper for the aligned-static global-shell theorem.
@@ -158,28 +148,26 @@ theorem body_ready_ci_function_body_progress_or_diverges_oldTyping_globalShell
 theorem body_ready_ci_function_body_progress_or_diverges_alignedStatic_globalShell
     (S : SeqSelectedTailStaticSourceFromAlignedSelectionCI)
     (C : SeqSelectedTailStaticDecisionReturnTypingSourceCoverageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hfrag : CoreBigStepFragment st)
     (hentry : BodyReadyCI Γ σ st) :
     FunctionBodyCaseDriverResult σ st :=
   body_closure_ci_function_body_progress_or_diverges_alignedStatic_globalShell
-    S C mkWhileReentry W hfrag hentry.toClosureBoundary
+    S C W hfrag hentry.toClosureBoundary
 
 /--
 `BodyReadyCI` wrapper for the decision-source global-shell theorem.
 -/
 theorem body_ready_ci_function_body_progress_or_diverges_decisionSources_globalShell
     (C : SeqSelectedTailStaticDecisionSourceCoverageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hfrag : CoreBigStepFragment st)
     (hentry : BodyReadyCI Γ σ st) :
     FunctionBodyCaseDriverResult σ st :=
   body_closure_ci_function_body_progress_or_diverges_decisionSources_globalShell
-    C mkWhileReentry W hfrag hentry.toClosureBoundary
+    C W hfrag hentry.toClosureBoundary
 
 /-!
 ## 3. Named status theorem
@@ -196,13 +184,12 @@ debt.  The only shell consumed by this theorem is
 -/
 theorem canonicalSeq_closure_reduces_to_global_recursion_shell
     (S : SeqSelectedTailStaticRouteTypingSourcePackageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hfrag : CoreBigStepFragment st)
     (hentry : BodyClosureBoundaryCI Γ σ st) :
     FunctionBodyCaseDriverResult σ st :=
   body_closure_ci_function_body_progress_or_diverges_sourcePackage_globalShell
-    S mkWhileReentry W hfrag hentry
+    S W hfrag hentry
 
 end Cpp

@@ -55,12 +55,11 @@ def seqFunctionBodyClosureBoundaryCoreSupportCI_of_normalPreservationProvider
     (seqFunctionBodyClosureCoreSupportCI_of_normalPreservationProvider P)
 
 /-- Compatibility bridge from the old while-reentry provider. -/
-def seqFunctionBodyClosureBoundaryCoreSupportCI_of_whileReentry
-    (mkWhileReentry : WhileReentryReadyProvider) :
+def seqFunctionBodyClosureBoundaryCoreSupportCI_of_whileReentry:
     SeqFunctionBodyClosureBoundaryCoreSupportCI
-      (stmtNormalPreservationProviderCI_of_whileReentry mkWhileReentry).toCore :=
+      (stmtNormalPreservationProviderCI_of_whileReentry ).toCore :=
   seqFunctionBodyClosureBoundaryCoreSupportCI_of_normalPreservationProvider
-    (stmtNormalPreservationProviderCI_of_whileReentry mkWhileReentry)
+    (stmtNormalPreservationProviderCI_of_whileReentry )
 
 /--
 Boundary closure through boundary-only core support.

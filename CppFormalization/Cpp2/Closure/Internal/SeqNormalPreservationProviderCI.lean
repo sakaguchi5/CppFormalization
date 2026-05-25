@@ -33,7 +33,6 @@ structure StmtNormalPreservationProviderCI : Type where
       StmtReadyConcrete Γ σ st →
       BigStepStmt σ st .normal σ' →
       ScopedTypedStateConcrete Δ σ'
-  reentry : WhileReentryReadyProvider
 
 namespace StmtNormalPreservationProviderCI
 
@@ -50,11 +49,6 @@ def leftPreservation
   intro Θ htyLeft hσ hreadyLeft hstepLeft
   exact P.preserve htyLeft hσ hreadyLeft hstepLeft
 
-/-- Compatibility projection for older surfaces that still need while reentry. -/
-def toWhileReentryReadyProvider
-    (P : StmtNormalPreservationProviderCI) : WhileReentryReadyProvider :=
-  P.reentry
-
 end StmtNormalPreservationProviderCI
 
 /--
@@ -64,15 +58,13 @@ This bridge is intentionally one-way: old code can still supply
 `WhileReentryReadyProvider`, but seq-facing code can talk only about generic
 normal preservation.
 -/
-def stmtNormalPreservationProviderCI_of_whileReentry
-    (mkWhileReentry : WhileReentryReadyProvider) :
+def stmtNormalPreservationProviderCI_of_whileReentry :
     StmtNormalPreservationProviderCI :=
   { preserve := by
       intro Γ Δ σ σ' st hty hσ hready hstep
       exact
         stmt_normal_preserves_scoped_typed_state_concrete
-          mkWhileReentry hty hσ hready hstep
-    reentry := mkWhileReentry }
+          hty hσ hready hstep }
 
 /--
 Sequence residual-boundary reconstruction from the generic normal-preservation
@@ -116,7 +108,6 @@ theorem seq_left_normal_preserves_ready_of_normal_preservation_provider
 
 /-- Compatibility corollary for older callers. -/
 theorem seq_left_normal_preserves_residual_boundary_of_whileReentry
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
     HasTypeStmtCI .normalK Γ (.seq s t) Δ →
     ScopedTypedStateConcrete Γ σ →
@@ -124,11 +115,10 @@ theorem seq_left_normal_preserves_residual_boundary_of_whileReentry
     BigStepStmt σ s .normal σ' →
     SeqResidualBoundary Δ σ' t :=
   seq_left_normal_preserves_residual_boundary_of_normal_preservation_provider
-    (stmtNormalPreservationProviderCI_of_whileReentry mkWhileReentry)
+    (stmtNormalPreservationProviderCI_of_whileReentry)
 
 /-- Compatibility corollary for the fixed-post-environment ready/state surface. -/
 theorem seq_left_normal_preserves_ready_of_whileReentry
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
     HasTypeStmtCI .normalK Γ s Δ →
     StmtReadyConcrete Γ σ (.seq s t) →
@@ -136,6 +126,6 @@ theorem seq_left_normal_preserves_ready_of_whileReentry
     ScopedTypedStateConcrete Γ σ →
     ScopedTypedStateConcrete Δ σ' ∧ StmtReadyConcrete Δ σ' t :=
   seq_left_normal_preserves_ready_of_normal_preservation_provider
-    (stmtNormalPreservationProviderCI_of_whileReentry mkWhileReentry)
+    (stmtNormalPreservationProviderCI_of_whileReentry )
 
 end Cpp

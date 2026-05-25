@@ -160,7 +160,6 @@ this theorem exposes the remaining replay surface in the audit-friendly shape:
 The recursion shell remains separate.
 -/
 theorem while_function_body_closure_boundary_ci_of_currentBoundary_factoredReplaySurface_tailAdequacyTheorems
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
     (hsurface : WhileCurrentBoundaryReplayFactoredSurfaceCI Γ c body)
@@ -173,7 +172,6 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_factoredRepla
       BigStepStmtDiv σ (.whileStmt c body) := by
   exact
     while_function_body_closure_boundary_ci_of_currentBoundary_replaySurface_tailAdequacyTheorems
-      mkWhileReentry
       hentry
       (whileCurrentBoundaryReplaySurfaceCI_of_factored hsurface)
       htailClosure

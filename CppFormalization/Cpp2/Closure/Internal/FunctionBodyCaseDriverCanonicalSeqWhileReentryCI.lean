@@ -39,14 +39,13 @@ This is the canonical counterpart of
 `boundarySeqAndWhileCoreSupports_of_whileReentry`.
 -/
 noncomputable def canonicalSeqAndWhileCoreSupports_of_staticSourcesAndWhileReentry
-    (C : SeqCanonicalSelectedTailStaticSourceCoverageCI)
-    (mkWhileReentry : WhileReentryReadyProvider) :
-    let P := (stmtNormalPreservationProviderCI_of_whileReentry mkWhileReentry).toCore
+    (C : SeqCanonicalSelectedTailStaticSourceCoverageCI):
+    let P := (stmtNormalPreservationProviderCI_of_whileReentry ).toCore
     SeqCanonicalTailEntryMainlineSupportCI P × WhileCurrentBoundaryClosureCoreSupportCI :=
-  let Pold := stmtNormalPreservationProviderCI_of_whileReentry mkWhileReentry
+  let Pold := stmtNormalPreservationProviderCI_of_whileReentry
   let P := Pold.toCore
   (seqCanonicalTailEntryMainlineSupportCI_of_staticSourcesAndRouteTheoremBacked P C,
-   whileCurrentBoundaryClosureCoreSupportCI_of_whileReentry mkWhileReentry)
+   whileCurrentBoundaryClosureCoreSupportCI_of_whileReentry )
 
 /--
 Build the canonical case-driver support package from selected-tail static source
@@ -54,14 +53,13 @@ coverage and the current `whileReentry` provider.
 -/
 noncomputable def functionBodyCanonicalSeqCaseDriverSupportCI_of_staticSourcesAndWhileReentry
     (C : SeqCanonicalSelectedTailStaticSourceCoverageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI) :
     FunctionBodyCanonicalSeqCaseDriverSupportCI :=
-  let Pold := stmtNormalPreservationProviderCI_of_whileReentry mkWhileReentry
+  let Pold := stmtNormalPreservationProviderCI_of_whileReentry
   let P := Pold.toCore
   { P := P
     seq := seqCanonicalTailEntryMainlineSupportCI_of_staticSourcesAndRouteTheoremBacked P C
-    whileSupport := whileCurrentBoundaryClosureCoreSupportCI_of_whileReentry mkWhileReentry
+    whileSupport := whileCurrentBoundaryClosureCoreSupportCI_of_whileReentry
     whileInvariant := W }
 
 /--
@@ -70,7 +68,6 @@ with canonical fixed-static `seq` support made explicit.
 -/
 theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body_canonicalSeq_whileReentry
     (C : SeqCanonicalSelectedTailStaticSourceCoverageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     (IH : FunctionBodyCaseDriverIH)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
@@ -78,7 +75,7 @@ theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body_cano
     (hentry : BodyClosureBoundaryCI Γ σ st) :
     FunctionBodyCaseDriverResult σ st :=
   (functionBodyCanonicalSeqCaseDriverSupportCI_of_staticSourcesAndWhileReentry
-    C mkWhileReentry W).bodyClosure IH hfrag hentry
+    C  W).bodyClosure IH hfrag hentry
 
 /--
 `BodyReadyCI` wrapper for the canonical fixed-static `seq` / `whileReentry`
@@ -86,7 +83,6 @@ case-driver body.
 -/
 theorem body_ready_ci_function_body_progress_or_diverges_case_driver_body_canonicalSeq_whileReentry
     (C : SeqCanonicalSelectedTailStaticSourceCoverageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     (IH : FunctionBodyCaseDriverIH)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
@@ -94,7 +90,7 @@ theorem body_ready_ci_function_body_progress_or_diverges_case_driver_body_canoni
     (hentry : BodyReadyCI Γ σ st) :
     FunctionBodyCaseDriverResult σ st :=
   body_closure_ci_function_body_progress_or_diverges_case_driver_body_canonicalSeq_whileReentry
-    C mkWhileReentry W IH hfrag hentry.toClosureBoundary
+    C W IH hfrag hentry.toClosureBoundary
 
 /-!
 ## Pair-level compatibility projections
@@ -124,11 +120,10 @@ Use this as a drop-in migration bridge when a caller still expects the old pair
 shape.
 -/
 noncomputable def boundarySeqAndWhileCoreSupports_of_staticSourcesAndWhileReentry_fixedStatic
-    (C : SeqCanonicalSelectedTailStaticSourceCoverageCI)
-    (mkWhileReentry : WhileReentryReadyProvider) :
-    let P := (stmtNormalPreservationProviderCI_of_whileReentry mkWhileReentry).toCore
+    (C : SeqCanonicalSelectedTailStaticSourceCoverageCI):
+    let P := (stmtNormalPreservationProviderCI_of_whileReentry ).toCore
     SeqFunctionBodyClosureBoundaryCoreSupportCI P × WhileCurrentBoundaryClosureCoreSupportCI :=
-  let pair := canonicalSeqAndWhileCoreSupports_of_staticSourcesAndWhileReentry C mkWhileReentry
+  let pair := canonicalSeqAndWhileCoreSupports_of_staticSourcesAndWhileReentry C
   boundarySeqAndWhileCoreSupports_of_canonicalSeqAndWhile pair.1 pair.2
 
 /--
@@ -138,20 +133,19 @@ for callers that are not yet ready to depend on
 -/
 theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body_boundaryCoreSupport_fixedStaticWhileReentry
     (C : SeqCanonicalSelectedTailStaticSourceCoverageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     (IH : FunctionBodyCaseDriverIH)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hfrag : CoreBigStepFragment st)
     (hentry : BodyClosureBoundaryCI Γ σ st) :
     FunctionBodyCaseDriverResult σ st :=
-  let Pold := stmtNormalPreservationProviderCI_of_whileReentry mkWhileReentry
+  let Pold := stmtNormalPreservationProviderCI_of_whileReentry
   let P := Pold.toCore
   let Seq := seqCanonicalTailEntryMainlineSupportCI_of_staticSourcesAndRouteTheoremBacked P C
   body_closure_ci_function_body_progress_or_diverges_case_driver_body_boundaryCoreSupport
     P
     Seq.toBoundaryCoreSupport
-    (whileCurrentBoundaryClosureCoreSupportCI_of_whileReentry mkWhileReentry)
+    (whileCurrentBoundaryClosureCoreSupportCI_of_whileReentry )
     W
     IH
     hfrag

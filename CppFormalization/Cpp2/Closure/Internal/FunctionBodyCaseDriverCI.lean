@@ -47,7 +47,6 @@ seq / ite / block / while の shell surface へ分配し、
 recursive hypothesis は substatement と while-tail に対してだけ使う。
 -/
 theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body
-    (mkWhileReentry : WhileReentryReadyProvider)
     (IH : FunctionBodyCaseDriverIH)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hfrag : CoreBigStepFragment st)
@@ -80,7 +79,6 @@ theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body
     rcases hfragST with ⟨hfragS, hfragT⟩
     exact
       seq_function_body_closure_boundary_ci_honest
-        mkWhileReentry
         hentry
         (fun hleftBoundary =>
           IH (st := s) hfragS hleftBoundary)
@@ -127,7 +125,6 @@ theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body
 
 /-- `BodyReadyCI` entry wrapper for the constructor-level case-driver body. -/
 theorem body_ready_ci_function_body_progress_or_diverges_case_driver_body
-    (mkWhileReentry : WhileReentryReadyProvider)
     (IH : FunctionBodyCaseDriverIH)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hfrag : CoreBigStepFragment st)
@@ -135,6 +132,6 @@ theorem body_ready_ci_function_body_progress_or_diverges_case_driver_body
     FunctionBodyCaseDriverResult σ st := by
   exact
     body_closure_ci_function_body_progress_or_diverges_case_driver_body
-      mkWhileReentry IH hfrag hentry.toClosureBoundary
+      IH hfrag hentry.toClosureBoundary
 
 end Cpp

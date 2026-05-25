@@ -28,13 +28,12 @@ structure WhileCurrentBoundaryClosureCoreSupportCI : Type where
         BigStepStmtDiv σ (.whileStmt c body)
 
 /-- Build the current implementation support from a while-reentry provider. -/
-def whileCurrentBoundaryClosureCoreSupportCI_of_whileReentry
-    (mkWhileReentry : WhileReentryReadyProvider) :
+def whileCurrentBoundaryClosureCoreSupportCI_of_whileReentry :
     WhileCurrentBoundaryClosureCoreSupportCI :=
   { close := by
       intro Γ σ c body hentry S
       exact
         while_function_body_closure_boundary_ci_of_currentBoundary_closureStep
-          mkWhileReentry hentry S }
+          hentry S }
 
 end Cpp

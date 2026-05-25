@@ -1,6 +1,5 @@
 import CppFormalization.Cpp2.Proof.Preservation.PrimitiveStmtNormalStateOnly
 import CppFormalization.Cpp2.Proof.Control.StmtControlCompatibility
-import CppFormalization.Cpp2.Proof.Preservation.StmtControlKernelSupport
 import CppFormalization.Cpp2.Proof.Preservation.Scope.OpenPreservation
 import CppFormalization.Cpp2.Proof.Preservation.Scope.ClosePreservation
 

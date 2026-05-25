@@ -74,13 +74,11 @@ The state part is supplied by preservation; readiness and adequacy come from the
 route-level replay contract.
 -/
 def loopBodyAfterNormalSameProfileCI_of_iterationBoundaryReplay
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
     (R : LoopIterationBoundaryReplayAfterNormalCI Γ c body) :
     LoopBodyAfterNormalSameProfileCI Γ c body :=
   loopBodyAfterNormalSameProfileCI_of_dynamic_split
     (loopBodyDynamicAfterNormalSplitCI_of_state_preservation
-      mkWhileReentry
       (loopBodyReadyAfterNormalCI_of_iterationReady R.ready))
     R.body_adequacy_after_normal
 
@@ -112,7 +110,6 @@ adequacy as separate arguments.  Each reentry route gets one residual contract:
 - body-continue route: next iteration boundary replay.
 -/
 theorem while_function_body_closure_boundary_ci_of_currentBoundary_iterationBoundaryReplay_stateTheorems
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
     (hheader : LoopReentryHeaderCI Γ c)
@@ -129,7 +126,6 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_iterationBoun
       BigStepStmtDiv σ (.whileStmt c body) := by
   exact
     while_function_body_closure_boundary_ci_of_currentBoundary_iterationReady_stateTheorems
-      mkWhileReentry
       hentry
       hheader
       hnormalReplay.ready

@@ -159,12 +159,11 @@ theorem body_ready_ci_function_body_progress_or_diverges_case_driver_body_coreSu
 Compatibility constructor for the new driver dependencies from the current
 while-reentry implementation.
 -/
-def seqAndWhileCoreSupports_of_whileReentry
-    (mkWhileReentry : WhileReentryReadyProvider) :
-    let P := (stmtNormalPreservationProviderCI_of_whileReentry mkWhileReentry).toCore
+def seqAndWhileCoreSupports_of_whileReentry :
+    let P := (stmtNormalPreservationProviderCI_of_whileReentry ).toCore
     SeqFunctionBodyClosureCoreSupportCI P × WhileCurrentBoundaryClosureCoreSupportCI :=
-  let Pold := stmtNormalPreservationProviderCI_of_whileReentry mkWhileReentry
+  let Pold := stmtNormalPreservationProviderCI_of_whileReentry
   (seqFunctionBodyClosureCoreSupportCI_of_normalPreservationProvider Pold,
-   whileCurrentBoundaryClosureCoreSupportCI_of_whileReentry mkWhileReentry)
+   whileCurrentBoundaryClosureCoreSupportCI_of_whileReentry )
 
 end Cpp

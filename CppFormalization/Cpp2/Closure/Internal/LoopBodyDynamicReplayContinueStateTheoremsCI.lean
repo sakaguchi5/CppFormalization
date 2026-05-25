@@ -96,7 +96,6 @@ remaining normal/continue body-readiness replay components; both scoped/typed
 post-state facts are supplied by preservation.
 -/
 theorem while_function_body_closure_boundary_ci_of_currentBoundary_splitDynamicReentry_stateTheorems
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
     (hheader : LoopReentryHeaderCI Γ c)
@@ -129,7 +128,7 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_splitDynamicR
       hheader
       hcondNormal
       (loopBodyDynamicAfterNormalSplitCI_of_state_preservation
-        mkWhileReentry hreadyNormal)
+        hreadyNormal)
       hadequacyNormal
       hcondContinue
       (loopBodyDynamicAfterContinueSplitCI_of_state_preservation

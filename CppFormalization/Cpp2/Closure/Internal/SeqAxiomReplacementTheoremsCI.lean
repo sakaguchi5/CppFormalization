@@ -224,7 +224,6 @@ case-driver surface.
 -/
 theorem body_closure_case_driver_sourcePackage_theorem
     (S : SeqSelectedTailStaticRouteTypingSourcePackageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     (IH : FunctionBodyCaseDriverIH)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
@@ -232,7 +231,7 @@ theorem body_closure_case_driver_sourcePackage_theorem
     (hentry : BodyClosureBoundaryCI Γ σ st) :
     FunctionBodyCaseDriverResult σ st :=
   body_closure_ci_function_body_progress_or_diverges_case_driver_body_sourcePackage_canonicalSeq
-    S mkWhileReentry W IH hfrag hentry
+    S W IH hfrag hentry
 
 /--
 Case-driver theorem-backed replacement using old typing source coverage plus
@@ -241,7 +240,6 @@ return-typing decision coverage.
 theorem body_closure_case_driver_oldTyping_theorem
     (T : SeqTailOldTypingSourceCoverageCI)
     (C : SeqSelectedTailStaticDecisionReturnTypingSourceCoverageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     (IH : FunctionBodyCaseDriverIH)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
@@ -249,7 +247,7 @@ theorem body_closure_case_driver_oldTyping_theorem
     (hentry : BodyClosureBoundaryCI Γ σ st) :
     FunctionBodyCaseDriverResult σ st :=
   body_closure_ci_function_body_progress_or_diverges_case_driver_body_returnTypingOldTyping_canonicalSeq
-    T C mkWhileReentry W IH hfrag hentry
+    T C W IH hfrag hentry
 
 /--
 Case-driver theorem-backed replacement using aligned static sources plus
@@ -258,7 +256,6 @@ return-typing decision coverage.
 theorem body_closure_case_driver_alignedStatic_theorem
     (S : SeqSelectedTailStaticSourceFromAlignedSelectionCI)
     (C : SeqSelectedTailStaticDecisionReturnTypingSourceCoverageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     (IH : FunctionBodyCaseDriverIH)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
@@ -266,14 +263,13 @@ theorem body_closure_case_driver_alignedStatic_theorem
     (hentry : BodyClosureBoundaryCI Γ σ st) :
     FunctionBodyCaseDriverResult σ st :=
   body_closure_ci_function_body_progress_or_diverges_case_driver_body_returnTypingAlignedStatic_canonicalSeq
-    S C mkWhileReentry W IH hfrag hentry
+    S C W IH hfrag hentry
 
 /--
 Case-driver theorem-backed replacement using decision-source coverage.
 -/
 theorem body_closure_case_driver_decisionSources_theorem
     (C : SeqSelectedTailStaticDecisionSourceCoverageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     (IH : FunctionBodyCaseDriverIH)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
@@ -281,6 +277,6 @@ theorem body_closure_case_driver_decisionSources_theorem
     (hentry : BodyClosureBoundaryCI Γ σ st) :
     FunctionBodyCaseDriverResult σ st :=
   body_closure_ci_function_body_progress_or_diverges_case_driver_body_decisionSources_canonicalSeq
-    C mkWhileReentry W IH hfrag hentry
+    C W IH hfrag hentry
 
 end Cpp

@@ -126,7 +126,6 @@ Legacy compatibility constructor for the post-state component from the old
 exact-tail route.
 -/
 noncomputable def seq_tail_post_state_at_route_ci_of_exact_tail
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
@@ -136,7 +135,7 @@ noncomputable def seq_tail_post_state_at_route_ci_of_exact_tail
     seq_ready_left hentry.dynamic.safe
   have hσ1 : ScopedTypedStateConcrete route.Θ σ1 :=
     stmt_normal_preserves_scoped_typed_state_concrete
-      mkWhileReentry route.hleft hentry.dynamic.state hreadyLeft route.hstepLeft
+      route.hleft hentry.dynamic.state hreadyLeft route.hstepLeft
   exact { postState := hσ1 }
 
 /--
@@ -144,7 +143,6 @@ Legacy compatibility constructor for the runtime replay component from the old
 exact-tail route.
 -/
 noncomputable def seq_tail_runtime_replay_at_route_ci_of_exact_tail
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
@@ -154,7 +152,7 @@ noncomputable def seq_tail_runtime_replay_at_route_ci_of_exact_tail
     seq_ready_left hentry.dynamic.safe
   have hσ1 : ScopedTypedStateConcrete route.Θ σ1 :=
     stmt_normal_preserves_scoped_typed_state_concrete
-      mkWhileReentry route.hleft hentry.dynamic.state hreadyLeft route.hstepLeft
+      route.hleft hentry.dynamic.state hreadyLeft route.hstepLeft
   have hreadyRight : StmtReadyConcrete route.Θ σ1 t :=
     seq_ready_right_after_left_normal route.hleft hσ1 hentry.dynamic.safe route.hstepLeft
   exact SeqTailRuntimeReplayAtRouteCI.ofTailReady hreadyRight
@@ -166,7 +164,6 @@ This keeps the old proof path available, but it now also passes through the
 post-state/runtime split.
 -/
 noncomputable def seq_tail_stability_at_route_ci_of_exact_tail
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
@@ -174,8 +171,8 @@ noncomputable def seq_tail_stability_at_route_ci_of_exact_tail
     SeqTailStabilityAtRouteCI route :=
   seq_tail_stability_at_route_ci_of_parts
     route
-    (seq_tail_post_state_at_route_ci_of_exact_tail mkWhileReentry hentry route)
-    (seq_tail_runtime_replay_at_route_ci_of_exact_tail mkWhileReentry hentry route)
+    (seq_tail_post_state_at_route_ci_of_exact_tail hentry route)
+    (seq_tail_runtime_replay_at_route_ci_of_exact_tail hentry route)
 
 
 /-!
@@ -192,7 +189,6 @@ tail-stability contract.  It is a preservation theorem once the normal route is
 known.
 -/
 noncomputable def seq_tail_post_state_at_route_ci_of_preservation
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
@@ -202,7 +198,7 @@ noncomputable def seq_tail_post_state_at_route_ci_of_preservation
     seq_ready_left hentry.dynamic.safe
   have hσ1 : ScopedTypedStateConcrete route.Θ σ1 :=
     stmt_normal_preserves_scoped_typed_state_concrete
-      mkWhileReentry route.hleft hentry.dynamic.state hreadyLeft route.hstepLeft
+      route.hleft hentry.dynamic.state hreadyLeft route.hstepLeft
   exact { postState := hσ1 }
 
 /--
@@ -213,7 +209,6 @@ This is the preferred bridge when a caller can supply only the genuine runtime
 contract.
 -/
 def seq_tail_stability_at_route_ci_of_preservation_and_runtime_replay
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
@@ -223,7 +218,7 @@ def seq_tail_stability_at_route_ci_of_preservation_and_runtime_replay
   seq_tail_stability_at_route_ci_of_parts
     route
     (seq_tail_post_state_at_route_ci_of_preservation
-      mkWhileReentry hentry route)
+      hentry route)
     runtime
 
 /--
@@ -231,7 +226,6 @@ Assemble full route-local tail stability directly from named runtime replay
 components.
 -/
 def seq_tail_stability_at_route_ci_of_preservation_and_runtime_components
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
@@ -239,7 +233,7 @@ def seq_tail_stability_at_route_ci_of_preservation_and_runtime_components
     (components : SeqTailRuntimeReplayComponentsAtRouteCI route) :
     SeqTailStabilityAtRouteCI route :=
   seq_tail_stability_at_route_ci_of_preservation_and_runtime_replay
-    mkWhileReentry hentry route
+    hentry route
     (seq_tail_runtime_replay_at_route_ci_of_components
       hentry route components)
 
@@ -248,7 +242,6 @@ Build the full tail continuation from theorem-backed post-state preservation and
 explicit runtime replay.
 -/
 noncomputable def seq_tail_continuation_boundary_ci_of_head_normal_route_from_runtime_replay
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
@@ -259,14 +252,13 @@ noncomputable def seq_tail_continuation_boundary_ci_of_head_normal_route_from_ru
     hentry
     route
     (seq_tail_stability_at_route_ci_of_preservation_and_runtime_replay
-      mkWhileReentry hentry route runtime)
+       hentry route runtime)
 
 /--
 Build the full tail continuation from theorem-backed post-state preservation and
 named runtime replay components.
 -/
 noncomputable def seq_tail_continuation_boundary_ci_of_head_normal_route_from_runtime_components
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
     {P : BodyControlProfile Γ s}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
@@ -274,7 +266,6 @@ noncomputable def seq_tail_continuation_boundary_ci_of_head_normal_route_from_ru
     (components : SeqTailRuntimeReplayComponentsAtRouteCI route) :
     StmtContinuationBoundaryCI route.Θ σ1 t :=
   seq_tail_continuation_boundary_ci_of_head_normal_route_from_runtime_replay
-    mkWhileReentry
     hentry
     route
     (seq_tail_runtime_replay_at_route_ci_of_components

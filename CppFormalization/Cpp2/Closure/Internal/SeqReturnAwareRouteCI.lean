@@ -22,7 +22,6 @@ This is the canonical boundary-level surface.  The tail callback receives the
 selected head-normal route and the boundary at `route.Θ`.
 -/
 theorem seq_function_body_closure_boundary_ci_return_aware
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (leftClosure :
@@ -37,11 +36,10 @@ theorem seq_function_body_closure_boundary_ci_return_aware
     FunctionBodyClosureResult σ (.seq s t) := by
   exact
     seq_function_body_closure_boundary_ci_honest
-      mkWhileReentry hentry leftClosure tailClosure
+      hentry leftClosure tailClosure
 
 /-- Route-aware theorem-backed `BodyReadyCI` wrapper. -/
 theorem seq_function_body_closure_ci_return_aware
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyReadyCI Γ σ (.seq s t))
     (leftClosure :
@@ -56,7 +54,6 @@ theorem seq_function_body_closure_ci_return_aware
     FunctionBodyClosureResult σ (.seq s t) := by
   exact
     seq_function_body_closure_ci_honest
-      mkWhileReentry
       hentry
       leftClosure
       tailClosure
@@ -73,7 +70,6 @@ This is a surface-level refactoring wrapper: internally it reuses the existing
 new continuation boundary shape.
 -/
 theorem seq_function_body_closure_boundary_ci_return_aware_continuation
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (leftClosure :
@@ -88,7 +84,6 @@ theorem seq_function_body_closure_boundary_ci_return_aware_continuation
     FunctionBodyClosureResult σ (.seq s t) := by
   exact
     seq_function_body_closure_boundary_ci_return_aware
-      mkWhileReentry
       hentry
       leftClosure
       (fun route htail =>
@@ -97,7 +92,6 @@ theorem seq_function_body_closure_boundary_ci_return_aware_continuation
 
 /-- `BodyReadyCI` wrapper with a full continuation callback. -/
 theorem seq_function_body_closure_ci_return_aware_continuation
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyReadyCI Γ σ (.seq s t))
     (leftClosure :
@@ -112,7 +106,6 @@ theorem seq_function_body_closure_ci_return_aware_continuation
     FunctionBodyClosureResult σ (.seq s t) := by
   exact
     seq_function_body_closure_ci_return_aware
-      mkWhileReentry
       hentry
       leftClosure
       (fun route htail =>

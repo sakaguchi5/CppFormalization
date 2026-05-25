@@ -23,7 +23,6 @@ component; it is derived from normal preservation.  What remains visible is the
 genuine runtime replay contract for the tail.
 -/
 theorem seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_replay
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (leftClosure :
@@ -47,7 +46,6 @@ theorem seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_r
       leftClosure
       (fun route =>
         seq_tail_stability_at_route_ci_of_preservation_and_runtime_replay
-          mkWhileReentry
           hentry
           route
           (tailRuntimeReplay route))
@@ -58,7 +56,6 @@ Body-boundary compatibility wrapper for theorem-backed post-state preservation
 and explicit runtime replay.
 -/
 theorem seq_function_body_closure_boundary_ci_honest_with_runtime_replay
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (leftClosure :
@@ -78,7 +75,6 @@ theorem seq_function_body_closure_boundary_ci_honest_with_runtime_replay
     FunctionBodyClosureResult σ (.seq s t) := by
   exact
     seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_replay
-      mkWhileReentry
       hentry
       leftClosure
       tailRuntimeReplay
@@ -90,7 +86,6 @@ Route-aware seq shell with theorem-backed post-state preservation and named
 runtime replay components.
 -/
 theorem seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_components
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (leftClosure :
@@ -110,7 +105,6 @@ theorem seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_c
     FunctionBodyClosureResult σ (.seq s t) := by
   exact
     seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_replay
-      mkWhileReentry
       hentry
       leftClosure
       (fun route =>
@@ -122,7 +116,6 @@ theorem seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_c
 Route-aware seq shell with three separate runtime component callbacks.
 -/
 theorem seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_component_callbacks
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (leftClosure :
@@ -152,7 +145,6 @@ theorem seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_c
     FunctionBodyClosureResult σ (.seq s t) := by
   exact
     seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_components
-      mkWhileReentry
       hentry
       leftClosure
       (fun route =>
@@ -174,7 +166,6 @@ contract; callers only provide the runtime replay contract for the selected
 route.
 -/
 theorem seq_function_body_closure_boundary_ci_return_aware_continuation_with_runtime_replay
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (leftClosure :
@@ -194,7 +185,6 @@ theorem seq_function_body_closure_boundary_ci_return_aware_continuation_with_run
     FunctionBodyClosureResult σ (.seq s t) := by
   exact
     seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_replay
-      mkWhileReentry
       hentry
       leftClosure
       tailRuntimeReplay
@@ -205,7 +195,6 @@ Return-aware seq closure with theorem-backed post-state preservation and named
 runtime replay components.
 -/
 theorem seq_function_body_closure_boundary_ci_return_aware_continuation_with_runtime_components
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (leftClosure :
@@ -225,7 +214,6 @@ theorem seq_function_body_closure_boundary_ci_return_aware_continuation_with_run
     FunctionBodyClosureResult σ (.seq s t) := by
   exact
     seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_components
-      mkWhileReentry
       hentry
       leftClosure
       tailRuntimeComponents
@@ -236,7 +224,6 @@ Return-aware seq closure with theorem-backed post-state preservation and three
 separate runtime component callbacks.
 -/
 theorem seq_function_body_closure_boundary_ci_return_aware_continuation_with_runtime_component_callbacks
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (leftClosure :
@@ -266,7 +253,6 @@ theorem seq_function_body_closure_boundary_ci_return_aware_continuation_with_run
     FunctionBodyClosureResult σ (.seq s t) := by
   exact
     seq_function_body_closure_boundary_ci_honest_continuation_with_runtime_component_callbacks
-      mkWhileReentry
       hentry
       leftClosure
       tailReadSet

@@ -94,7 +94,6 @@ The tail recursion shell remains separate because it is proof architecture, not 
 program replay contract.
 -/
 theorem while_function_body_closure_boundary_ci_of_currentBoundary_headerlessReturnFactoredReplaySurface_tailAdequacyTheorems
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
     (hsurface : WhileCurrentBoundaryReplayHeaderlessSurfaceCI Γ c body)
@@ -107,7 +106,6 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_headerlessRet
       BigStepStmtDiv σ (.whileStmt c body) := by
   exact
     while_function_body_closure_boundary_ci_of_currentBoundary_returnFactoredReplaySurface_tailAdequacyTheorems
-      mkWhileReentry
       hentry
       (whileCurrentBoundaryReplayReturnFactoredSurfaceCI_of_headerless
         hentry hsurface)

@@ -5,7 +5,6 @@ namespace Cpp
 namespace InternalClosureRoadmapConcrete
 
 theorem while_body_normal_preserves_entry_ready_typed
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ₁ : State} {c : ValExpr} {body : CppStmt}
     (hcond : ExprReadyConcrete Γ σ c (.base .bool))
     (hbody : LoopBodyBoundaryCI Γ σ body)
@@ -14,7 +13,7 @@ theorem while_body_normal_preserves_entry_ready_typed
     WhileEntryReadyCI Γ σ₁ c body := by
   exact
     (Cpp.while_body_normal_preserves_entry_ready_concrete_typed
-      mkWhileReentry hcond hbody K hstepBody).2
+      hcond hbody K hstepBody).2
 
 theorem while_body_continue_preserves_entry_ready_typed
     {Γ : TypeEnv} {σ σ₁ : State} {c : ValExpr} {body : CppStmt}
@@ -28,7 +27,6 @@ theorem while_body_continue_preserves_entry_ready_typed
       hcond hbody K hstepBody).2
 
 theorem while_body_normal_preserves_body_ready_typed
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ σ₁ : State} {c : ValExpr} {body : CppStmt}
     (hcond : ExprReadyConcrete Γ σ c (.base .bool))
     (hbody : LoopBodyBoundaryCI Γ σ body)
@@ -38,7 +36,7 @@ theorem while_body_normal_preserves_body_ready_typed
   exact
     stmtReady_of_whileEntryReady K.hc
       (while_body_normal_preserves_entry_ready_typed
-        mkWhileReentry hcond hbody K hstepBody)
+        hcond hbody K hstepBody)
 
 theorem while_body_continue_preserves_body_ready_typed
     {Γ : TypeEnv} {σ σ₁ : State} {c : ValExpr} {body : CppStmt}

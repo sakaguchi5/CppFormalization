@@ -22,7 +22,7 @@ now consumes a normal-preservation provider.
 
 /-- Boundary-level route-aware sequence closure through a normal-preservation provider. -/
 theorem seq_function_body_closure_boundary_ci_honest_of_normalPreservationProvider
-    (P : StmtNormalPreservationProviderCI)
+    (_P : StmtNormalPreservationProviderCI)
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (leftClosure :
@@ -37,7 +37,6 @@ theorem seq_function_body_closure_boundary_ci_honest_of_normalPreservationProvid
     FunctionBodyClosureResult σ (.seq s t) := by
   exact
     seq_function_body_closure_boundary_ci_honest
-      P.toWhileReentryReadyProvider
       hentry
       leftClosure
       tailClosure
@@ -63,7 +62,7 @@ theorem seq_function_body_closure_boundary_ci_return_aware_of_normalPreservation
 
 /-- `BodyReadyCI` route-aware sequence closure through a normal-preservation provider. -/
 theorem seq_function_body_closure_ci_honest_of_normalPreservationProvider
-    (P : StmtNormalPreservationProviderCI)
+    (_P : StmtNormalPreservationProviderCI)
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyReadyCI Γ σ (.seq s t))
     (leftClosure :
@@ -78,7 +77,6 @@ theorem seq_function_body_closure_ci_honest_of_normalPreservationProvider
     FunctionBodyClosureResult σ (.seq s t) := by
   exact
     seq_function_body_closure_ci_honest
-      P.toWhileReentryReadyProvider
       hentry
       leftClosure
       tailClosure
@@ -110,7 +108,7 @@ theorem seq_function_body_closure_ci_return_aware_of_normalPreservationProvider
 /-- Boundary-level route-aware sequence closure through a normal-preservation
 provider, with the tail callback receiving the full continuation boundary. -/
 theorem seq_function_body_closure_boundary_ci_return_aware_continuation_of_normalPreservationProvider
-    (P : StmtNormalPreservationProviderCI)
+    (_P : StmtNormalPreservationProviderCI)
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (leftClosure :
@@ -125,7 +123,6 @@ theorem seq_function_body_closure_boundary_ci_return_aware_continuation_of_norma
     FunctionBodyClosureResult σ (.seq s t) := by
   exact
     seq_function_body_closure_boundary_ci_return_aware_continuation
-      P.toWhileReentryReadyProvider
       hentry
       leftClosure
       tailClosure
@@ -152,7 +149,7 @@ theorem seq_function_body_closure_boundary_ci_honest_continuation_of_normalPrese
 /-- `BodyReadyCI` route-aware sequence closure through a normal-preservation
 provider, with the tail callback receiving the full continuation boundary. -/
 theorem seq_function_body_closure_ci_return_aware_continuation_of_normalPreservationProvider
-    (P : StmtNormalPreservationProviderCI)
+    (_P : StmtNormalPreservationProviderCI)
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyReadyCI Γ σ (.seq s t))
     (leftClosure :
@@ -167,7 +164,6 @@ theorem seq_function_body_closure_ci_return_aware_continuation_of_normalPreserva
     FunctionBodyClosureResult σ (.seq s t) := by
   exact
     seq_function_body_closure_ci_return_aware_continuation
-      P.toWhileReentryReadyProvider
       hentry
       leftClosure
       tailClosure

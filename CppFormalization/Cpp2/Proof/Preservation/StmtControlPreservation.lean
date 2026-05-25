@@ -764,7 +764,6 @@ theorem block_normal_control_compatible
   simpa using (block_compat_claim hstep) hty
 
 theorem stmt_normal_preserves_scoped_typed_state_concrete
-    (_mkWhileReentry : WhileReentryReadyProvider)
     {Γ Δ : TypeEnv} {σ σ' : State} {s : CppStmt} :
     HasTypeStmtCI .normalK Γ s Δ →
     ScopedTypedStateConcrete Γ σ →

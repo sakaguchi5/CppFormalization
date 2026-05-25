@@ -38,7 +38,6 @@ It no longer asks callers to supply `WhileTailNormalAdequacyCI` or
 `WhileTailContinueAdequacyCI` explicitly.
 -/
 theorem while_function_body_closure_boundary_ci_of_currentBoundary_iterationBoundaryReplay_tailAdequacyTheorems
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
     (hheader : LoopReentryHeaderCI Γ c)
@@ -53,7 +52,6 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_iterationBoun
       BigStepStmtDiv σ (.whileStmt c body) := by
   exact
     while_function_body_closure_boundary_ci_of_currentBoundary_iterationBoundaryReplay_stateTheorems
-      mkWhileReentry
       hentry
       hheader
       hnormalReplay

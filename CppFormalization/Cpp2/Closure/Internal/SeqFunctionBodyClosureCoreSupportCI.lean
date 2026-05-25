@@ -75,11 +75,10 @@ def seqFunctionBodyClosureCoreSupportCI_of_normalPreservationProvider
           P hentry leftClosure tailClosure }
 
 /-- Compatibility bridge from the old while-reentry provider. -/
-def seqFunctionBodyClosureCoreSupportCI_of_whileReentry
-    (mkWhileReentry : WhileReentryReadyProvider) :
+def seqFunctionBodyClosureCoreSupportCI_of_whileReentry:
     SeqFunctionBodyClosureCoreSupportCI
-      (stmtNormalPreservationProviderCI_of_whileReentry mkWhileReentry).toCore :=
+      (stmtNormalPreservationProviderCI_of_whileReentry ).toCore :=
   seqFunctionBodyClosureCoreSupportCI_of_normalPreservationProvider
-    (stmtNormalPreservationProviderCI_of_whileReentry mkWhileReentry)
+    (stmtNormalPreservationProviderCI_of_whileReentry )
 
 end Cpp

@@ -70,10 +70,9 @@ This is a compatibility bridge for existing global preservation.  New seq-facing
 statements should target `StmtNormalPreservationCoreCI`; construction of the core
 from while reentry is an implementation detail.
 -/
-def stmtNormalPreservationCoreCI_of_whileReentry
-    (mkWhileReentry : WhileReentryReadyProvider) :
+def stmtNormalPreservationCoreCI_of_whileReentry :
     StmtNormalPreservationCoreCI :=
-  (stmtNormalPreservationProviderCI_of_whileReentry mkWhileReentry).toCore
+  (stmtNormalPreservationProviderCI_of_whileReentry).toCore
 
 /--
 Sequence residual-boundary reconstruction from the pure normal-preservation core.

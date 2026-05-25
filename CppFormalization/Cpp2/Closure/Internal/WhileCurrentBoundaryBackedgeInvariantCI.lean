@@ -74,7 +74,6 @@ return-only adequacy factoring.  The remaining caller-visible pieces are:
 - the tail-recursion shell.
 -/
 theorem while_function_body_closure_boundary_ci_of_currentBoundary_backedgeInvariant_tailAdequacyTheorems
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
     (hinvariant : WhileBackedgeInvariantCI Γ c body)
@@ -87,7 +86,6 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_backedgeInvar
       BigStepStmtDiv σ (.whileStmt c body) := by
   exact
     while_function_body_closure_boundary_ci_of_currentBoundary_headerlessReturnFactoredReplaySurface_tailAdequacyTheorems
-      mkWhileReentry
       hentry
       (whileCurrentBoundaryReplayHeaderlessSurfaceCI_of_backedgeInvariant
         hinvariant)

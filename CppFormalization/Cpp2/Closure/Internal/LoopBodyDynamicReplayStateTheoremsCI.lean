@@ -44,7 +44,6 @@ boundary.  The typing witness is `hbody.profile.normalTyping`, and the concrete
 preconditions are `hbody.dynamic.state` and `hbody.dynamic.safe`.
 -/
 def loopBody_state_after_normal_of_preservation
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {body : CppStmt} :
     ∀ {σ σ' : State},
       (hbody : LoopBodyBoundaryCI Γ σ body) →
@@ -53,7 +52,6 @@ def loopBody_state_after_normal_of_preservation
   intro σ σ' hbody hstep
   exact
     stmt_normal_preserves_scoped_typed_state_concrete
-      mkWhileReentry
       hbody.profile.normalTyping
       hbody.dynamic.state
       hbody.dynamic.safe
@@ -64,7 +62,6 @@ Rebuild the normal-side dynamic split from theorem-backed state preservation
 plus the genuinely residual body-readiness replay component.
 -/
 def loopBodyDynamicAfterNormalSplitCI_of_state_preservation
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
     (hready : LoopBodyReadyAfterNormalCI Γ c body) :
     LoopBodyDynamicAfterNormalSplitCI Γ c body :=
@@ -72,7 +69,7 @@ def loopBodyDynamicAfterNormalSplitCI_of_state_preservation
       intro σ σ' hbody hstep
       exact
         loopBody_state_after_normal_of_preservation
-          mkWhileReentry hbody hstep
+          hbody hstep
     body_ready_after_normal := hready.body_ready_after_normal }
 
 /--
@@ -95,7 +92,6 @@ only for the genuinely residual normal-side body-readiness replay, while the
 normal post-state scoped/typed fact is supplied by preservation.
 -/
 theorem while_function_body_closure_boundary_ci_of_currentBoundary_splitDynamicReentry_stateAfterNormalTheorem
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
     (hheader : LoopReentryHeaderCI Γ c)
@@ -128,7 +124,7 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_splitDynamicR
       hheader
       hcondNormal
       (loopBodyDynamicAfterNormalSplitCI_of_state_preservation
-        mkWhileReentry hreadyNormal)
+        hreadyNormal)
       hadequacyNormal
       hcondContinue
       hdynContinue
@@ -138,4 +134,3 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_splitDynamicR
       htailClosure
 
 end Cpp
-

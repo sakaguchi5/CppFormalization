@@ -230,7 +230,6 @@ The remaining replay obligations are now:
 The recursion shell stays separate.
 -/
 theorem while_function_body_closure_boundary_ci_of_currentBoundary_returnFactoredReplaySurface_tailAdequacyTheorems
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
     (hsurface : WhileCurrentBoundaryReplayReturnFactoredSurfaceCI Γ c body)
@@ -243,7 +242,6 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_returnFactore
       BigStepStmtDiv σ (.whileStmt c body) := by
   exact
     while_function_body_closure_boundary_ci_of_currentBoundary_factoredReplaySurface_tailAdequacyTheorems
-      mkWhileReentry
       hentry
       (whileCurrentBoundaryReplayFactoredSurfaceCI_of_returnFactored hsurface)
       htailClosure

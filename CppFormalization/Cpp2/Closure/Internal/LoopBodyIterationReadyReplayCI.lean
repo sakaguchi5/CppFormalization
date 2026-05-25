@@ -110,7 +110,6 @@ separate arguments.  Each route gets one C++-meaningful contract:
 - after body-continue, the next iteration is ready.
 -/
 theorem while_function_body_closure_boundary_ci_of_currentBoundary_iterationReady_stateTheorems
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
     (hheader : LoopReentryHeaderCI Γ c)
@@ -137,7 +136,6 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_iterationRead
       BigStepStmtDiv σ (.whileStmt c body) := by
   exact
     while_function_body_closure_boundary_ci_of_currentBoundary_splitDynamicReentry_stateTheorems
-      mkWhileReentry
       hentry
       hheader
       (loopCondAfterNormalCI_of_iterationReady hreadyNormal)

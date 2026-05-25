@@ -170,14 +170,13 @@ Canonical case-driver support from a static certificate provider and the current
 -/
 noncomputable def functionBodyCanonicalSeqCaseDriverSupportCI_of_staticProviderAndWhileReentry
     (S : SeqTailStaticRouteCertificateProviderCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI) :
     FunctionBodyCanonicalSeqCaseDriverSupportCI :=
-  let Pold := stmtNormalPreservationProviderCI_of_whileReentry mkWhileReentry
+  let Pold := stmtNormalPreservationProviderCI_of_whileReentry
   let P := Pold.toCore
   { P := P
     seq := seqCanonicalTailEntryMainlineSupportCI_of_staticProviderAndRouteTheoremBacked P S
-    whileSupport := whileCurrentBoundaryClosureCoreSupportCI_of_whileReentry mkWhileReentry
+    whileSupport := whileCurrentBoundaryClosureCoreSupportCI_of_whileReentry
     whileInvariant := W }
 
 /--
@@ -186,12 +185,10 @@ Canonical case-driver support from decision-source coverage and the current
 -/
 noncomputable def functionBodyCanonicalSeqCaseDriverSupportCI_of_decisionSourcesAndWhileReentry
     (C : SeqSelectedTailStaticDecisionSourceCoverageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI) :
     FunctionBodyCanonicalSeqCaseDriverSupportCI :=
   functionBodyCanonicalSeqCaseDriverSupportCI_of_staticProviderAndWhileReentry
     (seqTailStaticRouteCertificateProviderCI_of_decisionSources C)
-    mkWhileReentry
     W
 
 /--
@@ -201,12 +198,10 @@ selected-tail coarse typing.
 noncomputable def functionBodyCanonicalSeqCaseDriverSupportCI_of_returnTypingAndTailCoarseTyping
     (T : SeqTailCoarseTypingAtSelectedNormalCI)
     (C : SeqSelectedTailStaticDecisionReturnTypingSourceCoverageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI) :
     FunctionBodyCanonicalSeqCaseDriverSupportCI :=
   functionBodyCanonicalSeqCaseDriverSupportCI_of_staticProviderAndWhileReentry
     (seqTailStaticRouteCertificateProviderCI_of_returnTypingAndTailCoarseTyping T C)
-    mkWhileReentry
     W
 
 /-!
@@ -219,7 +214,6 @@ from decision-source coverage.
 -/
 theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body_decisionSources_canonicalSeq
     (C : SeqSelectedTailStaticDecisionSourceCoverageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     (IH : FunctionBodyCaseDriverIH)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
@@ -227,14 +221,13 @@ theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body_deci
     (hentry : BodyClosureBoundaryCI Γ σ st) :
     FunctionBodyCaseDriverResult σ st :=
   (functionBodyCanonicalSeqCaseDriverSupportCI_of_decisionSourcesAndWhileReentry
-    C mkWhileReentry W).bodyClosure IH hfrag hentry
+    C W).bodyClosure IH hfrag hentry
 
 /--
 `BodyReadyCI` wrapper for the decision-source canonical `seq` case-driver body.
 -/
 theorem body_ready_ci_function_body_progress_or_diverges_case_driver_body_decisionSources_canonicalSeq
     (C : SeqSelectedTailStaticDecisionSourceCoverageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     (IH : FunctionBodyCaseDriverIH)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
@@ -242,7 +235,7 @@ theorem body_ready_ci_function_body_progress_or_diverges_case_driver_body_decisi
     (hentry : BodyReadyCI Γ σ st) :
     FunctionBodyCaseDriverResult σ st :=
   body_closure_ci_function_body_progress_or_diverges_case_driver_body_decisionSources_canonicalSeq
-    C mkWhileReentry W IH hfrag hentry.toClosureBoundary
+    C W IH hfrag hentry.toClosureBoundary
 
 /--
 Case-driver body using canonical fixed-static `seq` support supplied from split
@@ -251,7 +244,6 @@ return-typing decision coverage plus lower selected-tail coarse typing.
 theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body_returnTypingTailCoarse_canonicalSeq
     (T : SeqTailCoarseTypingAtSelectedNormalCI)
     (C : SeqSelectedTailStaticDecisionReturnTypingSourceCoverageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     (IH : FunctionBodyCaseDriverIH)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
@@ -259,7 +251,7 @@ theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body_retu
     (hentry : BodyClosureBoundaryCI Γ σ st) :
     FunctionBodyCaseDriverResult σ st :=
   (functionBodyCanonicalSeqCaseDriverSupportCI_of_returnTypingAndTailCoarseTyping
-    T C mkWhileReentry W).bodyClosure IH hfrag hentry
+    T C W).bodyClosure IH hfrag hentry
 
 /--
 `BodyReadyCI` wrapper for the split return-typing / coarse-tail canonical `seq`
@@ -268,7 +260,6 @@ case-driver body.
 theorem body_ready_ci_function_body_progress_or_diverges_case_driver_body_returnTypingTailCoarse_canonicalSeq
     (T : SeqTailCoarseTypingAtSelectedNormalCI)
     (C : SeqSelectedTailStaticDecisionReturnTypingSourceCoverageCI)
-    (mkWhileReentry : WhileReentryReadyProvider)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     (IH : FunctionBodyCaseDriverIH)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
@@ -276,6 +267,6 @@ theorem body_ready_ci_function_body_progress_or_diverges_case_driver_body_return
     (hentry : BodyReadyCI Γ σ st) :
     FunctionBodyCaseDriverResult σ st :=
   body_closure_ci_function_body_progress_or_diverges_case_driver_body_returnTypingTailCoarse_canonicalSeq
-    T C mkWhileReentry W IH hfrag hentry.toClosureBoundary
+    T C W IH hfrag hentry.toClosureBoundary
 
 end Cpp

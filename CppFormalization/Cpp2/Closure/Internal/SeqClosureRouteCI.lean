@@ -599,7 +599,6 @@ for downstream callers but is no longer the conceptual source of tail dynamic
 readiness.
 -/
 theorem seq_function_body_closure_boundary_ci_honest
-    (_mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
     (leftClosure :
@@ -627,7 +626,6 @@ selected head-normal route and the tail boundary at `route.Θ`; it no longer
 chooses an arbitrary post-environment from a bare normal typing witness.
 -/
 theorem seq_function_body_closure_ci_honest
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyReadyCI Γ σ (.seq s t))
     (leftClosure :
@@ -642,7 +640,6 @@ theorem seq_function_body_closure_ci_honest
     FunctionBodyClosureResult σ (.seq s t) := by
   exact
     seq_function_body_closure_boundary_ci_honest
-      mkWhileReentry
       hentry.toClosureBoundary
       (fun hleftBoundary => leftClosure hleftBoundary.toBodyReadyCI)
       (fun route htailBoundary =>

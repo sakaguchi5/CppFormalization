@@ -118,7 +118,6 @@ The remaining separate input is `htailClosure`, because that is the recursion /
 case-driver shell rather than a while replay contract.
 -/
 theorem while_function_body_closure_boundary_ci_of_currentBoundary_replaySurface_tailAdequacyTheorems
-    (mkWhileReentry : WhileReentryReadyProvider)
     {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body))
     (hsurface : WhileCurrentBoundaryReplaySurfaceCI Γ c body)
@@ -131,7 +130,6 @@ theorem while_function_body_closure_boundary_ci_of_currentBoundary_replaySurface
       BigStepStmtDiv σ (.whileStmt c body) := by
   exact
     while_function_body_closure_boundary_ci_of_currentBoundary_iterationBoundaryReplay_tailAdequacyTheorems
-      mkWhileReentry
       hentry
       hsurface.header
       hsurface.backedge.normalReplay
