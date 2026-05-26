@@ -3,6 +3,7 @@ import CppFormalization.Cpp2.Boundary.Facts.BodyReadyControlExclusionCI
 import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapConcrete
 import CppFormalization.Cpp2.Closure.Internal.CurrentShellCI
+import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverContinuationIHCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyReplayStablePrimitiveWhileFacts
 import CppFormalization.Cpp2.Boundary.FunctionBody
 
@@ -59,5 +60,70 @@ theorem body_ready_ci_function_body_progress_or_diverges
     (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
   intro hfrag hready
   exact body_closure_ci_function_body_progress_or_diverges hfrag hready.toClosureBoundary
+/-!
+## Mainline continuation root
+
+The old public wrappers above are still kept as compatibility roots.  The
+preferred root for new auditing is the continuation-boundary route below.
+
+Design reading:
+- the recursive hypothesis speaks in terms of `StmtContinuationBoundaryCI`;
+- the `seq` dependency is continuation-tail support;
+- normal preservation, seq continuation support, while support, while invariant,
+  and recursion are explicit inputs;
+- this avoids treating old `BodyClosureBoundaryCI` tail reconstruction as the
+  mainline root.
+-/
+
+/-- Mainline function-body closure root through the continuation-boundary case
+driver.
+
+This is intentionally parameterized by the normal-preservation core, continuation
+seq support, while support, while backedge invariant provider, and
+continuation-boundary IH.  That makes the remaining assumptions visible to
+`#print axioms` instead of hiding them behind the old global root. -/
+theorem body_closure_ci_function_body_progress_or_diverges_mainline_continuation
+    (P : StmtNormalPreservationCoreCI)
+    (Seq : SeqFunctionBodyClosureContinuationCoreSupportCI P)
+    (Wh : WhileCurrentBoundaryClosureCoreSupportCI)
+    (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
+    (IH : FunctionBodyContinuationCaseDriverIH)
+    {Γ : TypeEnv} {σ : State} {st : CppStmt} :
+    CoreBigStepFragment st →
+    BodyClosureBoundaryCI Γ σ st →
+    (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
+  intro hfrag hentry
+  exact
+    body_closure_ci_function_body_progress_or_diverges_case_driver_body_continuationIH
+      P
+      Seq
+      Wh
+      W
+      IH
+      hfrag
+      hentry
+
+/-- `BodyReadyCI` wrapper for the mainline continuation root. -/
+theorem body_ready_ci_function_body_progress_or_diverges_mainline_continuation
+    (P : StmtNormalPreservationCoreCI)
+    (Seq : SeqFunctionBodyClosureContinuationCoreSupportCI P)
+    (Wh : WhileCurrentBoundaryClosureCoreSupportCI)
+    (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
+    (IH : FunctionBodyContinuationCaseDriverIH)
+    {Γ : TypeEnv} {σ : State} {st : CppStmt} :
+    CoreBigStepFragment st →
+    BodyReadyCI Γ σ st →
+    (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
+  intro hfrag hready
+  exact
+    body_closure_ci_function_body_progress_or_diverges_mainline_continuation
+      P
+      Seq
+      Wh
+      W
+      IH
+      hfrag
+      hready.toClosureBoundary
+
 
 end Cpp
