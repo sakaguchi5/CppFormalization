@@ -21,6 +21,38 @@ speak in terms of post-state continuation boundaries, while the old IH remains
 unchanged until the next recursion-interface refactor.
 -/
 
+/-- Mainline-facing `ite` closure support.
+
+The older case-driver closes the `ite` branch by directly calling
+`ite_function_body_closure_boundary_ci_honest`.  That call hides the current
+then/else branch profile and adequacy obligations inside every mainline audit.
+
+This package makes the conditional dependency explicit.  The mainline root can
+now say: condition/branch closure for `ite` is supplied by an external support,
+rather than silently using the compatibility branch-boundary extraction route.
+-/
+structure FunctionBodyIteClosureSupportCI : Type where
+  close :
+    ∀ {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt},
+      BodyClosureBoundaryCI Γ σ (.ite c s t) →
+      (BodyClosureBoundaryCI Γ σ s → FunctionBodyCaseDriverResult σ s) →
+      (BodyClosureBoundaryCI Γ σ t → FunctionBodyCaseDriverResult σ t) →
+      FunctionBodyCaseDriverResult σ (.ite c s t)
+
+/-- Compatibility `ite` support using the current branch-boundary route.
+
+Keep this out of the mainline audit root unless you intentionally want to count
+the current `ite` branch profile/adequacy obligations as supplied evidence.
+-/
+def functionBodyIteClosureSupportCI_of_currentIteRoute :
+    FunctionBodyIteClosureSupportCI :=
+  { close := fun hentry thenClosure elseClosure =>
+      ite_function_body_closure_boundary_ci_honest
+        hentry
+        thenClosure
+        elseClosure }
+
+
 /-- Mainline-facing primitive statement closure support.
 
 The older case-driver closes primitive statements by directly calling
@@ -302,6 +334,94 @@ theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body_cont
   | returnStmt rv =>
       exact Primitive.close (st := .returnStmt rv) (by simp [PrimitiveCoreStmtConcrete]) hentry
 
+/-- Constructor-level case-driver body using explicit primitive, `ite`,
+continuation-seq, and block support.
+
+This is the current most audit-friendly surface:
+- primitive closure is supplied explicitly;
+- `ite` branch closure is supplied explicitly;
+- seq tail closure is supplied through continuation support;
+- block closure is supplied explicitly;
+- while closure support and invariant are explicit.
+-/
+theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body_continuationSeqBlockPrimitiveIteSupport
+    (Primitive : FunctionBodyPrimitiveClosureSupportCI)
+    (Ite : FunctionBodyIteClosureSupportCI)
+    (P : StmtNormalPreservationCoreCI)
+    (Seq : SeqFunctionBodyClosureContinuationCoreSupportCI P)
+    (Wh : WhileCurrentBoundaryClosureCoreSupportCI)
+    (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
+    (Block : FunctionBodyBlockClosureSupportCI)
+    (IH : FunctionBodyCaseDriverIH)
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (hfrag : CoreBigStepFragment st)
+    (hentry : BodyClosureBoundaryCI Γ σ st) :
+    FunctionBodyCaseDriverResult σ st := by
+  cases st with
+  | skip =>
+      exact Primitive.close (st := .skip) (by simp [PrimitiveCoreStmtConcrete]) hentry
+  | exprStmt e =>
+      exact Primitive.close (st := .exprStmt e) (by simp [PrimitiveCoreStmtConcrete]) hentry
+  | assign p e =>
+      exact Primitive.close (st := .assign p e) (by simp [PrimitiveCoreStmtConcrete]) hentry
+  | declareObj τ x ov =>
+      exact Primitive.close (st := .declareObj τ x ov) (by simp [PrimitiveCoreStmtConcrete]) hentry
+  | declareRef τ x p =>
+      exact Primitive.close (st := .declareRef τ x p) (by simp [PrimitiveCoreStmtConcrete]) hentry
+  | seq s t =>
+      have hfragST : CoreBigStepFragment s ∧ CoreBigStepFragment t := by
+        simpa [CoreBigStepFragment, InBigStepFragment] using hfrag
+      rcases hfragST with ⟨hfragS, hfragT⟩
+      exact
+        Seq.close
+          hentry
+          (fun hleftBoundary =>
+            IH (st := s) hfragS hleftBoundary)
+          (fun _route htailContinuation =>
+            IH (st := t) hfragT htailContinuation.toBodyClosureBoundaryCI)
+  | ite c s t =>
+      have hfragST : CoreBigStepFragment s ∧ CoreBigStepFragment t := by
+        simpa [CoreBigStepFragment, InBigStepFragment] using hfrag
+      rcases hfragST with ⟨hfragS, hfragT⟩
+      exact
+        Ite.close
+          hentry
+          (fun hthenBoundary =>
+            IH (st := s) hfragS hthenBoundary)
+          (fun helseBoundary =>
+            IH (st := t) hfragT helseBoundary)
+  | whileStmt c body =>
+      exact
+        while_case_driver_branch_of_coreSupport
+          Wh W IH hfrag hentry
+  | block ss =>
+      exact Block.close hentry
+  | breakStmt =>
+      exact Primitive.close (st := .breakStmt) (by simp [PrimitiveCoreStmtConcrete]) hentry
+  | continueStmt =>
+      exact Primitive.close (st := .continueStmt) (by simp [PrimitiveCoreStmtConcrete]) hentry
+  | returnStmt rv =>
+      exact Primitive.close (st := .returnStmt rv) (by simp [PrimitiveCoreStmtConcrete]) hentry
+
+/-- `BodyReadyCI` wrapper for the primitive/ite/continuation-seq/block-support case-driver body. -/
+theorem body_ready_ci_function_body_progress_or_diverges_case_driver_body_continuationSeqBlockPrimitiveIteSupport
+    (Primitive : FunctionBodyPrimitiveClosureSupportCI)
+    (Ite : FunctionBodyIteClosureSupportCI)
+    (P : StmtNormalPreservationCoreCI)
+    (Seq : SeqFunctionBodyClosureContinuationCoreSupportCI P)
+    (Wh : WhileCurrentBoundaryClosureCoreSupportCI)
+    (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
+    (Block : FunctionBodyBlockClosureSupportCI)
+    (IH : FunctionBodyCaseDriverIH)
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (hfrag : CoreBigStepFragment st)
+    (hentry : BodyReadyCI Γ σ st) :
+    FunctionBodyCaseDriverResult σ st := by
+  exact
+    body_closure_ci_function_body_progress_or_diverges_case_driver_body_continuationSeqBlockPrimitiveIteSupport
+      Primitive Ite P Seq Wh W Block IH hfrag hentry.toClosureBoundary
+
+
 /-- `BodyReadyCI` wrapper for the primitive/continuation-seq/block-support case-driver body. -/
 theorem body_ready_ci_function_body_progress_or_diverges_case_driver_body_continuationSeqBlockPrimitiveSupport
     (Primitive : FunctionBodyPrimitiveClosureSupportCI)
@@ -351,6 +471,76 @@ theorem body_ready_ci_function_body_progress_or_diverges_case_driver_body_contin
   exact
     body_closure_ci_function_body_progress_or_diverges_case_driver_body_continuationSeqSupport
       P Seq Wh W IH hfrag hentry.toClosureBoundary
+
+/-- Support package whose dependencies are primitive support, `ite` support,
+continuation seq support, and explicit block support.
+
+This is the cleanest audit package currently available: it does not hide
+primitive, `ite`, or block compatibility routes inside the constructor-level
+case driver.
+-/
+structure FunctionBodyContinuationSeqBlockPrimitiveIteCaseDriverSupportCI : Type where
+  primitiveSupport : FunctionBodyPrimitiveClosureSupportCI
+  iteSupport : FunctionBodyIteClosureSupportCI
+  P : StmtNormalPreservationCoreCI
+  seq : SeqFunctionBodyClosureContinuationCoreSupportCI P
+  whileSupport : WhileCurrentBoundaryClosureCoreSupportCI
+  whileInvariant : FunctionBodyWhileBackedgeInvariantCoreProviderCI
+  blockSupport : FunctionBodyBlockClosureSupportCI
+
+namespace FunctionBodyContinuationSeqBlockPrimitiveIteCaseDriverSupportCI
+
+/-- Run the case-driver body from the primitive/ite/continuation-seq/block package. -/
+theorem bodyClosure
+    (S : FunctionBodyContinuationSeqBlockPrimitiveIteCaseDriverSupportCI)
+    (IH : FunctionBodyCaseDriverIH)
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (hfrag : CoreBigStepFragment st)
+    (hentry : BodyClosureBoundaryCI Γ σ st) :
+    FunctionBodyCaseDriverResult σ st :=
+  body_closure_ci_function_body_progress_or_diverges_case_driver_body_continuationSeqBlockPrimitiveIteSupport
+    S.primitiveSupport
+    S.iteSupport
+    S.P
+    S.seq
+    S.whileSupport
+    S.whileInvariant
+    S.blockSupport
+    IH
+    hfrag
+    hentry
+
+/-- `BodyReadyCI` wrapper for the packaged primitive/ite/continuation-seq/block driver body. -/
+theorem bodyReady
+    (S : FunctionBodyContinuationSeqBlockPrimitiveIteCaseDriverSupportCI)
+    (IH : FunctionBodyCaseDriverIH)
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (hfrag : CoreBigStepFragment st)
+    (hentry : BodyReadyCI Γ σ st) :
+    FunctionBodyCaseDriverResult σ st :=
+  S.bodyClosure IH hfrag hentry.toClosureBoundary
+
+end FunctionBodyContinuationSeqBlockPrimitiveIteCaseDriverSupportCI
+
+/-- Build the audit-friendly primitive/ite/continuation-seq/block support package
+from components. -/
+noncomputable def functionBodyContinuationSeqBlockPrimitiveIteCaseDriverSupportCI_of_components
+    (Primitive : FunctionBodyPrimitiveClosureSupportCI)
+    (Ite : FunctionBodyIteClosureSupportCI)
+    (P : StmtNormalPreservationCoreCI)
+    (Seq : SeqFunctionBodyClosureContinuationCoreSupportCI P)
+    (Wh : WhileCurrentBoundaryClosureCoreSupportCI)
+    (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
+    (Block : FunctionBodyBlockClosureSupportCI) :
+    FunctionBodyContinuationSeqBlockPrimitiveIteCaseDriverSupportCI :=
+  { primitiveSupport := Primitive
+    iteSupport := Ite
+    P := P
+    seq := Seq
+    whileSupport := Wh
+    whileInvariant := W
+    blockSupport := Block }
+
 
 /-- Support package whose dependencies are primitive support, continuation seq
 support, and explicit block support.

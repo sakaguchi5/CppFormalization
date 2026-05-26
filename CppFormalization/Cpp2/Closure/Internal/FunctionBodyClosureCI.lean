@@ -69,8 +69,8 @@ preferred root for new auditing is the continuation-boundary route below.
 Design reading:
 - the recursive hypothesis speaks in terms of `StmtContinuationBoundaryCI`;
 - the `seq` dependency is continuation-tail support;
-- primitive closure, normal preservation, seq continuation support, while support,
-  while invariant, block support, and recursion are explicit inputs;
+- primitive closure, `ite` closure, normal preservation, seq continuation support,
+  while support, while invariant, block support, and recursion are explicit inputs;
 - this avoids treating old `BodyClosureBoundaryCI` tail reconstruction as the
   mainline root.
 -/
@@ -78,12 +78,13 @@ Design reading:
 /-- Mainline function-body closure root through the continuation-boundary case
 driver.
 
-This is intentionally parameterized by primitive support, the normal-preservation core,
+This is intentionally parameterized by primitive support, `ite` support, the normal-preservation core,
 continuation seq support, while support, while backedge invariant provider,
 explicit block support, and continuation-boundary IH.  That makes the remaining assumptions visible to
 `#print axioms` instead of hiding them behind the old global root. -/
 theorem body_closure_ci_function_body_progress_or_diverges_mainline_continuation
     (Primitive : FunctionBodyPrimitiveClosureSupportCI)
+    (Ite : FunctionBodyIteClosureSupportCI)
     (P : StmtNormalPreservationCoreCI)
     (Seq : SeqFunctionBodyClosureContinuationCoreSupportCI P)
     (Wh : WhileCurrentBoundaryClosureCoreSupportCI)
@@ -96,8 +97,9 @@ theorem body_closure_ci_function_body_progress_or_diverges_mainline_continuation
     (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
   intro hfrag hentry
   exact
-    body_closure_ci_function_body_progress_or_diverges_case_driver_body_continuationSeqBlockPrimitiveSupport
+    body_closure_ci_function_body_progress_or_diverges_case_driver_body_continuationSeqBlockPrimitiveIteSupport
       Primitive
+      Ite
       P
       Seq
       Wh
@@ -110,6 +112,7 @@ theorem body_closure_ci_function_body_progress_or_diverges_mainline_continuation
 /-- `BodyReadyCI` wrapper for the mainline continuation root. -/
 theorem body_ready_ci_function_body_progress_or_diverges_mainline_continuation
     (Primitive : FunctionBodyPrimitiveClosureSupportCI)
+    (Ite : FunctionBodyIteClosureSupportCI)
     (P : StmtNormalPreservationCoreCI)
     (Seq : SeqFunctionBodyClosureContinuationCoreSupportCI P)
     (Wh : WhileCurrentBoundaryClosureCoreSupportCI)
@@ -124,6 +127,7 @@ theorem body_ready_ci_function_body_progress_or_diverges_mainline_continuation
   exact
     body_closure_ci_function_body_progress_or_diverges_mainline_continuation
       Primitive
+      Ite
       P
       Seq
       Wh

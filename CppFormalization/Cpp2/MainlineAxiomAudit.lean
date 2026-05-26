@@ -29,27 +29,4 @@ set_option pp.all false
 namespace Cpp
 
 
-
-
-
-/-!
-## Mainline continuation root with explicit primitive and block support
-
-Expected: `primitive_stmt_function_body_step_or_diverges_concrete_refined`
-should disappear from this root unless the supplied `Primitive` support is
-instantiated with the compatibility primitive route.
--/
-
-#check body_closure_ci_function_body_progress_or_diverges_mainline_continuation
-#print axioms body_closure_ci_function_body_progress_or_diverges_mainline_continuation
-
-#check body_ready_ci_function_body_progress_or_diverges_mainline_continuation
-#print axioms body_ready_ci_function_body_progress_or_diverges_mainline_continuation
-
-#check body_closure_ci_function_body_progress_or_diverges_case_driver_body_continuationSeqBlockPrimitiveSupport
-#print axioms body_closure_ci_function_body_progress_or_diverges_case_driver_body_continuationSeqBlockPrimitiveSupport
-
-#check body_ready_ci_function_body_progress_or_diverges_case_driver_body_continuationSeqBlockPrimitiveSupport
-#print axioms body_ready_ci_function_body_progress_or_diverges_case_driver_body_continuationSeqBlockPrimitiveSupport
-
 end Cpp
