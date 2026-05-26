@@ -538,33 +538,6 @@ def ofSelections
 end SeqLeftProfileSlotPayloadCI
 
 /--
-Remaining normal-slot selection obligation for the left side of a sequence.
-
-This is now separated from return-slot selection.  The normal slot is the
-critical slot used both by whole-sequence normal execution and by tail-originated
-returns.
--/
-axiom seq_left_normal_slot_selection_ci_of_decomposition
-    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
-    (D : SeqStaticDecompositionCI hentry) :
-    SeqLeftNormalSlotSelectionCI hentry D
-
-/--
-Remaining return-slot selection obligation for the left side of a sequence,
-relative to the chosen normal slot.
-
-This is deliberately relative to `N`: tail-originated returns must point back to
-the same selected left normal slot, not an unrelated normal witness.
--/
-axiom seq_left_return_slot_selection_ci_of_decomposition
-    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
-    (D : SeqStaticDecompositionCI hentry)
-    (N : SeqLeftNormalSlotSelectionCI hentry D) :
-    SeqLeftReturnSlotSelectionCI hentry D N
-
-/--
 Type-level static decomposition data for the left side of a sequence.
 
 `SeqStaticDecompositionCI` remains a `Prop`: it says the whole sequence profile
@@ -607,35 +580,6 @@ def toProfilePayload
 
 end SeqLeftSlotSelectionDataCI
 
-
-/--
-Compatibility name for the previous profile-slot payload.
-
-The payload is now assembled from separately selected normal and return slots.
--/
-noncomputable def seq_left_profile_slots_ci_of_decomposition
-    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
-    (D : SeqStaticDecompositionCI hentry) :
-    SeqLeftProfileSlotPayloadCI hentry D :=
-  let N := seq_left_normal_slot_selection_ci_of_decomposition hentry D
-  let R := seq_left_return_slot_selection_ci_of_decomposition hentry D N
-  SeqLeftProfileSlotPayloadCI.ofSelections N R
-
-/--
-Compatibility package selecting a left profile together with Type-level support.
-
-This is now assembled from slot-level selection rather than postulating an
-arbitrary profile directly.
--/
-noncomputable def seq_left_profile_payload_ci_of_decomposition
-    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
-    (D : SeqStaticDecompositionCI hentry) :
-    SeqLeftProfilePayloadCI hentry D :=
-  let S := seq_left_profile_slots_ci_of_decomposition hentry D
-  { profile := S.toProfile
-    support := S.toSupport }
 
 /--
 Root/coherence for a chosen left profile is definitionally assembled from
@@ -728,77 +672,19 @@ noncomputable def SeqLeftSlotSelectionDataCI.staticBoundary
   D.staticScaffold.toBodyStaticBoundaryCI
     (seq_left_typed0_of_static hentry.static)
 
-
 /--
-Assemble the full left static scaffold from separately chosen profile and root
-packages.
+Temporary compile axiom for the old seq route tree.
 
-The remaining static assumption is now only profile selection with Type-level
-support.  Root/coherence is definitionally assembled from that support.
+This is not part of the data-backed mainline.  It exists only so old files that
+still mention `seq_left_static_boundary_ci_of_entry` continue to elaborate while
+the old route tree is being deleted.
+
+Do not use this in new mainline code.  The mainline should consume explicit
+`SeqLeftSlotSelectionDataCI` and `SeqFunctionBodyClosureContinuationDataSupportCI`.
 -/
-noncomputable def seq_left_static_scaffold_payload_ci_of_decomposition
-    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
-    (D : SeqStaticDecompositionCI hentry) :
-    { S : SeqLeftStaticScaffoldCI Γ s //
-      SeqLeftStaticScaffoldCompatibleCI hentry D S } := by
-  let Ppack := seq_left_profile_payload_ci_of_decomposition hentry D
-  let R :=
-    seq_left_root_scaffold_ci_of_profile
-      hentry
-      D
-      Ppack.profile
-      Ppack.support
-  refine
-    ⟨{ profile := Ppack.profile
-       root := R.root
-       rootCoherent := R.rootCoherent }, ?_⟩
-  exact
-    { profileCompatible := Ppack.support.toCompatible }
-
-/-- Compatibility projection for the chosen left static scaffold. -/
-noncomputable def seq_left_static_scaffold_ci_of_decomposition
-    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
-    (D : SeqStaticDecompositionCI hentry) :
-    SeqLeftStaticScaffoldCI Γ s :=
-  (seq_left_static_scaffold_payload_ci_of_decomposition hentry D).1
-
-/-- The compatibility certificate carried by the chosen left static scaffold. -/
-theorem seq_left_static_scaffold_compatible_ci_of_decomposition
-    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
-    (D : SeqStaticDecompositionCI hentry) :
-    SeqLeftStaticScaffoldCompatibleCI hentry D
-      (seq_left_static_scaffold_ci_of_decomposition hentry D) :=
-  (seq_left_static_scaffold_payload_ci_of_decomposition hentry D).2
-
-/-- Compatibility name for downstream callers. -/
-noncomputable def seq_left_static_scaffold_ci_of_entry
+axiom seq_left_static_boundary_ci_of_entry
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}
     (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
-    SeqLeftStaticScaffoldCI Γ s :=
-  seq_left_static_scaffold_ci_of_decomposition
-    hentry
-    (seq_static_decomposition_ci_of_entry hentry)
-
-/-- Compatibility certificate for the downstream-name scaffold. -/
-theorem seq_left_static_scaffold_compatible_ci_of_entry
-    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
-    SeqLeftStaticScaffoldCompatibleCI hentry
-      (seq_static_decomposition_ci_of_entry hentry)
-      (seq_left_static_scaffold_ci_of_entry hentry) :=
-  seq_left_static_scaffold_compatible_ci_of_decomposition
-    hentry
-    (seq_static_decomposition_ci_of_entry hentry)
-
-/-- Left static boundary assembled from theorem-backed `typed0` and the static scaffold. -/
-noncomputable def seq_left_static_boundary_ci_of_entry
-    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
-    BodyStaticBoundaryCI Γ s :=
-  (seq_left_static_scaffold_ci_of_entry hentry).toBodyStaticBoundaryCI
-    (seq_left_typed0_of_static hentry.static)
+    BodyStaticBoundaryCI Γ s
 
 end Cpp
