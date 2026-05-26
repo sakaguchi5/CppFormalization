@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Internal.SeqFunctionBodyClosureContinuationCoreSupportCI
+import CppFormalization.Cpp2.Closure.Internal.SeqFunctionBodyClosureBoundaryCoreSupportCI
 import CppFormalization.Cpp2.Continuation.Boundary.Seq
 import CppFormalization.Cpp2.Continuation.Boundary.Cons
 import CppFormalization.Cpp2.Contracts.Obligations.CompoundContinuation.Seq.Tail.Continuation
@@ -61,11 +61,6 @@ noncomputable def seq_tail_body_ready_ci_of_compoundContinuation
 /--
 A seq closure support surface whose tail callback receives the new
 CompoundContinuation input instead of a prebuilt continuation boundary.
-
-This is a new upstream surface.  It is intentionally not inter-converted from
-`SeqFunctionBodyClosureContinuationCoreSupportCI`, because an arbitrary
-`StmtContinuationBoundaryCI` does not contain the replay witness required by
-`CompoundContinuation.Seq.Tail.ContinuationInput`.
 -/
 structure SeqFunctionBodyClosureCompoundContinuationCoreSupportCI
     (P : StmtNormalPreservationCoreCI) : Type where
