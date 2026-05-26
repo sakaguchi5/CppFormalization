@@ -21,6 +21,19 @@ speak in terms of post-state continuation boundaries, while the old IH remains
 unchanged until the next recursion-interface refactor.
 -/
 
+/-- Mainline-facing provider of Type-level seq slot-selection data.
+
+The Prop-level `SeqStaticDecompositionCI` remains useful as a proof.  This
+provider supplies the Type-level normal/return slot-selection bundle that the
+mainline seq route actually consumes.
+-/
+structure FunctionBodySeqSlotSelectionDataSupportCI : Type where
+  select :
+    ∀ {Γ : TypeEnv} {σ : State} {s t : CppStmt},
+      (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) →
+      SeqLeftSlotSelectionDataCI hentry
+
+
 /-- Mainline-facing `ite` closure support.
 
 The older case-driver closes the `ite` branch by directly calling
@@ -403,6 +416,93 @@ theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body_cont
   | returnStmt rv =>
       exact Primitive.close (st := .returnStmt rv) (by simp [PrimitiveCoreStmtConcrete]) hentry
 
+/-- Constructor-level case-driver body using data-backed seq support.
+
+This is the intended mainline audit surface after separating Prop-level seq
+decomposition from Type-level slot-selection data.
+-/
+theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body_continuationSeqDataBlockPrimitiveIteSupport
+    (Primitive : FunctionBodyPrimitiveClosureSupportCI)
+    (Ite : FunctionBodyIteClosureSupportCI)
+    (P : StmtNormalPreservationCoreCI)
+    (SeqSlots : FunctionBodySeqSlotSelectionDataSupportCI)
+    (Seq : SeqFunctionBodyClosureContinuationDataSupportCI P)
+    (Wh : WhileCurrentBoundaryClosureCoreSupportCI)
+    (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
+    (Block : FunctionBodyBlockClosureSupportCI)
+    (IH : FunctionBodyCaseDriverIH)
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (hfrag : CoreBigStepFragment st)
+    (hentry : BodyClosureBoundaryCI Γ σ st) :
+    FunctionBodyCaseDriverResult σ st := by
+  cases st with
+  | skip =>
+      exact Primitive.close (st := .skip) (by simp [PrimitiveCoreStmtConcrete]) hentry
+  | exprStmt e =>
+      exact Primitive.close (st := .exprStmt e) (by simp [PrimitiveCoreStmtConcrete]) hentry
+  | assign p e =>
+      exact Primitive.close (st := .assign p e) (by simp [PrimitiveCoreStmtConcrete]) hentry
+  | declareObj τ x ov =>
+      exact Primitive.close (st := .declareObj τ x ov) (by simp [PrimitiveCoreStmtConcrete]) hentry
+  | declareRef τ x p =>
+      exact Primitive.close (st := .declareRef τ x p) (by simp [PrimitiveCoreStmtConcrete]) hentry
+  | seq s t =>
+      have hfragST : CoreBigStepFragment s ∧ CoreBigStepFragment t := by
+        simpa [CoreBigStepFragment, InBigStepFragment] using hfrag
+      rcases hfragST with ⟨hfragS, hfragT⟩
+      let slotData := SeqSlots.select hentry
+      exact
+        Seq.close
+          hentry
+          slotData
+          (fun hleftBoundary =>
+            IH (st := s) hfragS hleftBoundary)
+          (fun _route htailContinuation =>
+            IH (st := t) hfragT htailContinuation.toBodyClosureBoundaryCI)
+  | ite c s t =>
+      have hfragST : CoreBigStepFragment s ∧ CoreBigStepFragment t := by
+        simpa [CoreBigStepFragment, InBigStepFragment] using hfrag
+      rcases hfragST with ⟨hfragS, hfragT⟩
+      exact
+        Ite.close
+          hentry
+          (fun hthenBoundary =>
+            IH (st := s) hfragS hthenBoundary)
+          (fun helseBoundary =>
+            IH (st := t) hfragT helseBoundary)
+  | whileStmt c body =>
+      exact
+        while_case_driver_branch_of_coreSupport
+          Wh W IH hfrag hentry
+  | block ss =>
+      exact Block.close hentry
+  | breakStmt =>
+      exact Primitive.close (st := .breakStmt) (by simp [PrimitiveCoreStmtConcrete]) hentry
+  | continueStmt =>
+      exact Primitive.close (st := .continueStmt) (by simp [PrimitiveCoreStmtConcrete]) hentry
+  | returnStmt rv =>
+      exact Primitive.close (st := .returnStmt rv) (by simp [PrimitiveCoreStmtConcrete]) hentry
+
+/-- `BodyReadyCI` wrapper for the data-backed seq mainline case-driver body. -/
+theorem body_ready_ci_function_body_progress_or_diverges_case_driver_body_continuationSeqDataBlockPrimitiveIteSupport
+    (Primitive : FunctionBodyPrimitiveClosureSupportCI)
+    (Ite : FunctionBodyIteClosureSupportCI)
+    (P : StmtNormalPreservationCoreCI)
+    (SeqSlots : FunctionBodySeqSlotSelectionDataSupportCI)
+    (Seq : SeqFunctionBodyClosureContinuationDataSupportCI P)
+    (Wh : WhileCurrentBoundaryClosureCoreSupportCI)
+    (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
+    (Block : FunctionBodyBlockClosureSupportCI)
+    (IH : FunctionBodyCaseDriverIH)
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (hfrag : CoreBigStepFragment st)
+    (hentry : BodyReadyCI Γ σ st) :
+    FunctionBodyCaseDriverResult σ st := by
+  exact
+    body_closure_ci_function_body_progress_or_diverges_case_driver_body_continuationSeqDataBlockPrimitiveIteSupport
+      Primitive Ite P SeqSlots Seq Wh W Block IH hfrag hentry.toClosureBoundary
+
+
 /-- `BodyReadyCI` wrapper for the primitive/ite/continuation-seq/block-support case-driver body. -/
 theorem body_ready_ci_function_body_progress_or_diverges_case_driver_body_continuationSeqBlockPrimitiveIteSupport
     (Primitive : FunctionBodyPrimitiveClosureSupportCI)
@@ -471,6 +571,77 @@ theorem body_ready_ci_function_body_progress_or_diverges_case_driver_body_contin
   exact
     body_closure_ci_function_body_progress_or_diverges_case_driver_body_continuationSeqSupport
       P Seq Wh W IH hfrag hentry.toClosureBoundary
+
+/-- Support package whose seq dependency is backed by explicit Type-level slot data.
+
+This is the cleanest current mainline package: primitive, `ite`, seq slot data,
+seq closure, while, and block are all explicit inputs.
+-/
+structure FunctionBodyContinuationSeqDataBlockPrimitiveIteCaseDriverSupportCI : Type where
+  primitiveSupport : FunctionBodyPrimitiveClosureSupportCI
+  iteSupport : FunctionBodyIteClosureSupportCI
+  P : StmtNormalPreservationCoreCI
+  seqSlots : FunctionBodySeqSlotSelectionDataSupportCI
+  seq : SeqFunctionBodyClosureContinuationDataSupportCI P
+  whileSupport : WhileCurrentBoundaryClosureCoreSupportCI
+  whileInvariant : FunctionBodyWhileBackedgeInvariantCoreProviderCI
+  blockSupport : FunctionBodyBlockClosureSupportCI
+
+namespace FunctionBodyContinuationSeqDataBlockPrimitiveIteCaseDriverSupportCI
+
+/-- Run the data-backed seq mainline case-driver body. -/
+theorem bodyClosure
+    (S : FunctionBodyContinuationSeqDataBlockPrimitiveIteCaseDriverSupportCI)
+    (IH : FunctionBodyCaseDriverIH)
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (hfrag : CoreBigStepFragment st)
+    (hentry : BodyClosureBoundaryCI Γ σ st) :
+    FunctionBodyCaseDriverResult σ st :=
+  body_closure_ci_function_body_progress_or_diverges_case_driver_body_continuationSeqDataBlockPrimitiveIteSupport
+    S.primitiveSupport
+    S.iteSupport
+    S.P
+    S.seqSlots
+    S.seq
+    S.whileSupport
+    S.whileInvariant
+    S.blockSupport
+    IH
+    hfrag
+    hentry
+
+/-- `BodyReadyCI` wrapper for the data-backed seq package. -/
+theorem bodyReady
+    (S : FunctionBodyContinuationSeqDataBlockPrimitiveIteCaseDriverSupportCI)
+    (IH : FunctionBodyCaseDriverIH)
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (hfrag : CoreBigStepFragment st)
+    (hentry : BodyReadyCI Γ σ st) :
+    FunctionBodyCaseDriverResult σ st :=
+  S.bodyClosure IH hfrag hentry.toClosureBoundary
+
+end FunctionBodyContinuationSeqDataBlockPrimitiveIteCaseDriverSupportCI
+
+/-- Build the data-backed seq mainline support package from components. -/
+noncomputable def functionBodyContinuationSeqDataBlockPrimitiveIteCaseDriverSupportCI_of_components
+    (Primitive : FunctionBodyPrimitiveClosureSupportCI)
+    (Ite : FunctionBodyIteClosureSupportCI)
+    (P : StmtNormalPreservationCoreCI)
+    (SeqSlots : FunctionBodySeqSlotSelectionDataSupportCI)
+    (Seq : SeqFunctionBodyClosureContinuationDataSupportCI P)
+    (Wh : WhileCurrentBoundaryClosureCoreSupportCI)
+    (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
+    (Block : FunctionBodyBlockClosureSupportCI) :
+    FunctionBodyContinuationSeqDataBlockPrimitiveIteCaseDriverSupportCI :=
+  { primitiveSupport := Primitive
+    iteSupport := Ite
+    P := P
+    seqSlots := SeqSlots
+    seq := Seq
+    whileSupport := Wh
+    whileInvariant := W
+    blockSupport := Block }
+
 
 /-- Support package whose dependencies are primitive support, `ite` support,
 continuation seq support, and explicit block support.

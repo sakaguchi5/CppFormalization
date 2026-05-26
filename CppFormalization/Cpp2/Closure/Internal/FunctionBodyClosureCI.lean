@@ -69,8 +69,9 @@ preferred root for new auditing is the continuation-boundary route below.
 Design reading:
 - the recursive hypothesis speaks in terms of `StmtContinuationBoundaryCI`;
 - the `seq` dependency is continuation-tail support;
-- primitive closure, `ite` closure, normal preservation, seq continuation support,
-  while support, while invariant, block support, and recursion are explicit inputs;
+- primitive closure, `ite` closure, normal preservation, seq slot data,
+  data-backed seq continuation support, while support, while invariant,
+  block support, and recursion are explicit inputs;
 - this avoids treating old `BodyClosureBoundaryCI` tail reconstruction as the
   mainline root.
 -/
@@ -79,14 +80,15 @@ Design reading:
 driver.
 
 This is intentionally parameterized by primitive support, `ite` support, the normal-preservation core,
-continuation seq support, while support, while backedge invariant provider,
-explicit block support, and continuation-boundary IH.  That makes the remaining assumptions visible to
+seq slot data support, data-backed continuation seq support, while support,
+while backedge invariant provider, explicit block support, and continuation-boundary IH.  That makes the remaining assumptions visible to
 `#print axioms` instead of hiding them behind the old global root. -/
 theorem body_closure_ci_function_body_progress_or_diverges_mainline_continuation
     (Primitive : FunctionBodyPrimitiveClosureSupportCI)
     (Ite : FunctionBodyIteClosureSupportCI)
     (P : StmtNormalPreservationCoreCI)
-    (Seq : SeqFunctionBodyClosureContinuationCoreSupportCI P)
+    (SeqSlots : FunctionBodySeqSlotSelectionDataSupportCI)
+    (Seq : SeqFunctionBodyClosureContinuationDataSupportCI P)
     (Wh : WhileCurrentBoundaryClosureCoreSupportCI)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     (Block : FunctionBodyBlockClosureSupportCI)
@@ -97,10 +99,11 @@ theorem body_closure_ci_function_body_progress_or_diverges_mainline_continuation
     (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st := by
   intro hfrag hentry
   exact
-    body_closure_ci_function_body_progress_or_diverges_case_driver_body_continuationSeqBlockPrimitiveIteSupport
+    body_closure_ci_function_body_progress_or_diverges_case_driver_body_continuationSeqDataBlockPrimitiveIteSupport
       Primitive
       Ite
       P
+      SeqSlots
       Seq
       Wh
       W
@@ -114,7 +117,8 @@ theorem body_ready_ci_function_body_progress_or_diverges_mainline_continuation
     (Primitive : FunctionBodyPrimitiveClosureSupportCI)
     (Ite : FunctionBodyIteClosureSupportCI)
     (P : StmtNormalPreservationCoreCI)
-    (Seq : SeqFunctionBodyClosureContinuationCoreSupportCI P)
+    (SeqSlots : FunctionBodySeqSlotSelectionDataSupportCI)
+    (Seq : SeqFunctionBodyClosureContinuationDataSupportCI P)
     (Wh : WhileCurrentBoundaryClosureCoreSupportCI)
     (W : FunctionBodyWhileBackedgeInvariantCoreProviderCI)
     (Block : FunctionBodyBlockClosureSupportCI)
@@ -129,6 +133,7 @@ theorem body_ready_ci_function_body_progress_or_diverges_mainline_continuation
       Primitive
       Ite
       P
+      SeqSlots
       Seq
       Wh
       W

@@ -1,4 +1,5 @@
 import CppFormalization.Cpp2.Closure.Internal.SeqFunctionBodyClosureBoundaryCoreSupportCI
+import CppFormalization.Cpp2.Closure.Internal.SeqBoundaryStaticDecompositionCI
 import CppFormalization.Cpp2.Continuation.Boundary.Body
 
 namespace Cpp
@@ -33,6 +34,30 @@ structure SeqFunctionBodyClosureContinuationCoreSupportCI
         StmtContinuationBoundaryCI route.Θ σ1 t →
         FunctionBodyClosureResult σ1 t) →
       FunctionBodyClosureResult σ (.seq s t)
+
+/-- Seq closure support with explicit Type-level slot-selection data.
+
+This is the mainline-facing replacement for the old continuation support type
+when auditing the root theorem.  The selected left static profile is obtained
+from `SeqLeftSlotSelectionDataCI.staticBoundary`, not from
+`seq_left_static_boundary_ci_of_entry`; therefore the type of this support does
+not force the old slot-selection axioms into `#print axioms` of the root.
+-/
+structure SeqFunctionBodyClosureContinuationDataSupportCI
+    (P : StmtNormalPreservationCoreCI) : Type where
+  close :
+    ∀ {Γ : TypeEnv} {σ : State} {s t : CppStmt},
+      (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) →
+      (slotData : SeqLeftSlotSelectionDataCI hentry) →
+      (BodyClosureBoundaryCI Γ σ s →
+        FunctionBodyClosureResult σ s) →
+      (∀ {σ1 : State},
+        (route : SeqHeadNormalRouteCI Γ σ s t σ1
+          (SeqLeftSlotSelectionDataCI.staticBoundary slotData).profile) →
+        StmtContinuationBoundaryCI route.Θ σ1 t →
+        FunctionBodyClosureResult σ1 t) →
+      FunctionBodyClosureResult σ (.seq s t)
+
 
 namespace SeqFunctionBodyClosureContinuationCoreSupportCI
 

@@ -565,6 +565,50 @@ axiom seq_left_return_slot_selection_ci_of_decomposition
     SeqLeftReturnSlotSelectionCI hentry D N
 
 /--
+Type-level static decomposition data for the left side of a sequence.
+
+`SeqStaticDecompositionCI` remains a `Prop`: it says the whole sequence profile
+has seq-shaped provenance.  This structure is the separate Type-level data:
+it chooses a normal slot and the matching return-slot dispatcher together.
+
+This avoids the bad direction
+
+`SeqStaticDecompositionCI : Prop` → `SeqLeftNormalSlotSelectionCI : Type`
+
+in the mainline.  Compatibility declarations may still expose the older
+projection names, but the mainline should consume this bundle.
+-/
+structure SeqLeftSlotSelectionDataCI
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) : Type where
+  decomposition : SeqStaticDecompositionCI hentry
+  normal : SeqLeftNormalSlotSelectionCI hentry decomposition
+  returned : SeqLeftReturnSlotSelectionCI hentry decomposition normal
+
+namespace SeqLeftSlotSelectionDataCI
+
+/-- The old slot-payload surface induced by Type-level slot-selection data. -/
+def toProfileSlots
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    {hentry : BodyClosureBoundaryCI Γ σ (.seq s t)}
+    (D : SeqLeftSlotSelectionDataCI hentry) :
+    SeqLeftProfileSlotPayloadCI hentry D.decomposition :=
+  SeqLeftProfileSlotPayloadCI.ofSelections D.normal D.returned
+
+/-- The left profile payload induced by Type-level slot-selection data. -/
+def toProfilePayload
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    {hentry : BodyClosureBoundaryCI Γ σ (.seq s t)}
+    (D : SeqLeftSlotSelectionDataCI hentry) :
+    SeqLeftProfilePayloadCI hentry D.decomposition :=
+  let S := D.toProfileSlots
+  { profile := S.toProfile
+    support := S.toSupport }
+
+end SeqLeftSlotSelectionDataCI
+
+
+/--
 Compatibility name for the previous profile-slot payload.
 
 The payload is now assembled from separately selected normal and return slots.
@@ -631,6 +675,59 @@ def seq_left_root_scaffold_ci_of_profile
           exact
             { root := .normal ⟨hnorm.Θ, hnorm.hleft⟩
               rootCoherent := BodyRootCoherent.normal hnorm.hprofile }
+
+/--
+Assemble the full left static scaffold from Type-level slot-selection data.
+
+This is the theorem-backed/data-backed mainline constructor.  It does not call
+`seq_left_normal_slot_selection_ci_of_decomposition` or
+`seq_left_return_slot_selection_ci_of_decomposition`.
+-/
+noncomputable def SeqLeftSlotSelectionDataCI.staticScaffoldPayload
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    {hentry : BodyClosureBoundaryCI Γ σ (.seq s t)}
+    (D : SeqLeftSlotSelectionDataCI hentry) :
+    { S : SeqLeftStaticScaffoldCI Γ s //
+      SeqLeftStaticScaffoldCompatibleCI hentry D.decomposition S } := by
+  let Ppack := D.toProfilePayload
+  let R :=
+    seq_left_root_scaffold_ci_of_profile
+      hentry
+      D.decomposition
+      Ppack.profile
+      Ppack.support
+  refine
+    ⟨{ profile := Ppack.profile
+       root := R.root
+       rootCoherent := R.rootCoherent }, ?_⟩
+  exact
+    { profileCompatible := Ppack.support.toCompatible }
+
+/-- Static scaffold projected from Type-level slot-selection data. -/
+noncomputable def SeqLeftSlotSelectionDataCI.staticScaffold
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    {hentry : BodyClosureBoundaryCI Γ σ (.seq s t)}
+    (D : SeqLeftSlotSelectionDataCI hentry) :
+    SeqLeftStaticScaffoldCI Γ s :=
+  (D.staticScaffoldPayload).1
+
+/-- Compatibility certificate for the data-backed static scaffold. -/
+theorem SeqLeftSlotSelectionDataCI.staticScaffoldCompatible
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    {hentry : BodyClosureBoundaryCI Γ σ (.seq s t)}
+    (D : SeqLeftSlotSelectionDataCI hentry) :
+    SeqLeftStaticScaffoldCompatibleCI hentry D.decomposition D.staticScaffold :=
+  (D.staticScaffoldPayload).2
+
+/-- Left static boundary assembled from Type-level slot-selection data. -/
+noncomputable def SeqLeftSlotSelectionDataCI.staticBoundary
+    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
+    {hentry : BodyClosureBoundaryCI Γ σ (.seq s t)}
+    (D : SeqLeftSlotSelectionDataCI hentry) :
+    BodyStaticBoundaryCI Γ s :=
+  D.staticScaffold.toBodyStaticBoundaryCI
+    (seq_left_typed0_of_static hentry.static)
+
 
 /--
 Assemble the full left static scaffold from separately chosen profile and root
