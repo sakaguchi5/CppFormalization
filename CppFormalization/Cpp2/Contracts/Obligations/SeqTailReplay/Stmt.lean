@@ -225,9 +225,6 @@ theorem seq_tail_ready_of_runtime_replay_components_stmt_replay_at_route_ci
 
 /--
 Assemble the runtime replay package from statement-level replay.
-
-Unlike `seq_tail_runtime_replay_at_route_ci_of_components`, this definition does
-not use the broad materialization axiom.
 -/
 def seq_tail_runtime_replay_at_route_ci_of_stmt_replay_components
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}

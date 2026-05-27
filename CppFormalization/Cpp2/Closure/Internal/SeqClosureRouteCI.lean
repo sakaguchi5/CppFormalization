@@ -338,23 +338,4 @@ noncomputable def seq_tail_closure_scaffold_ci_of_head_normal_route
     static := route.tail.static
     adequacy := route.tail.support.toBodyAdequacyCI }
 
-/--
-Tail closure boundary extracted from a selected head-normal route.
-
-Compatibility surface: internally this now factors through the route-local
-`SeqTailStabilityAtRouteCI` obligation and then forgets the resulting full
-continuation boundary back to `BodyClosureBoundaryCI`.
--/
-noncomputable def seq_tail_closure_boundary_ci_of_head_normal_route
-    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
-    {P : BodyControlProfile Γ s}
-    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
-    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
-    BodyClosureBoundaryCI route.Θ σ1 t := by
-  let stability := seq_tail_stability_at_route_ci_of_entry hentry route
-  exact
-    seq_tail_closure_boundary_ci_of_head_normal_route_from_stability
-      hentry route stability
-
-
 end Cpp

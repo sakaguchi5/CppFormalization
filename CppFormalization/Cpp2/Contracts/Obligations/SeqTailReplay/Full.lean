@@ -366,9 +366,6 @@ theorem seq_tail_ready_of_runtime_replay_components_full_stmt_replay_at_route_ci
 
 /--
 Assemble the runtime replay package from full statement replay.
-
-This is the main replacement constructor for future migrations away from
-`seq_tail_runtime_replay_at_route_ci_of_components`.
 -/
 def seq_tail_runtime_replay_at_route_ci_of_full_stmt_replay_components
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}

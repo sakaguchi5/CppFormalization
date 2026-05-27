@@ -256,9 +256,6 @@ theorem seq_tail_ready_of_runtime_replay_components_value_expr_at_route_ci
 /--
 Assemble the runtime replay package for a mixed value-expression tail using the
 theorem-backed readiness fragment.
-
-Unlike `seq_tail_runtime_replay_at_route_ci_of_components`, this definition does
-not use the broad materialization axiom.
 -/
 def seq_tail_runtime_replay_at_route_ci_of_value_expr_components
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}

@@ -97,9 +97,6 @@ theorem seq_tail_ready_of_runtime_replay_components_structured_stmt_at_route_ci
 /--
 Assemble the runtime replay package for a structured statement tail using the
 theorem-backed readiness fragment.
-
-Unlike `seq_tail_runtime_replay_at_route_ci_of_components`, this definition does
-not use the broad materialization axiom.
 -/
 def seq_tail_runtime_replay_at_route_ci_of_structured_stmt_components
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
