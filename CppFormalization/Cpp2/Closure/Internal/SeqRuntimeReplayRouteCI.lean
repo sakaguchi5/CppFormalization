@@ -6,12 +6,6 @@ namespace Cpp
 /-!
 # Seq runtime replay route wrappers
 
-This module holds the seq-only runtime replay wrapper surfaces that were
-previously accumulated in `FunctionBodyCaseSplitCI.lean` and
-`SeqReturnAwareRouteCI.lean`.
-
-The core route/stability definitions still live in `FunctionBodyCaseSplitCI`
-for now; this file is only the first safe extraction step.
 -/
 
 /--
