@@ -672,19 +672,4 @@ noncomputable def SeqLeftSlotSelectionDataCI.staticBoundary
   D.staticScaffold.toBodyStaticBoundaryCI
     (seq_left_typed0_of_static hentry.static)
 
-/--
-Temporary compile axiom for the old seq route tree.
-
-This is not part of the data-backed mainline.  It exists only so old files that
-still mention `seq_left_static_boundary_ci_of_entry` continue to elaborate while
-the old route tree is being deleted.
-
-Do not use this in new mainline code.  The mainline should consume explicit
-`SeqLeftSlotSelectionDataCI` and `SeqFunctionBodyClosureContinuationDataSupportCI`.
--/
-axiom seq_left_static_boundary_ci_of_entry
-    {Γ : TypeEnv} {σ : State} {s t : CppStmt}
-    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t)) :
-    BodyStaticBoundaryCI Γ s
-
 end Cpp
