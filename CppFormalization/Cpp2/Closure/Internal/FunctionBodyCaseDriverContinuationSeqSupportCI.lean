@@ -40,15 +40,6 @@ structure FunctionBodyIteClosureSupportCI : Type where
       (BodyClosureBoundaryCI Γ σ t → FunctionBodyCaseDriverResult σ t) →
       FunctionBodyCaseDriverResult σ (.ite c s t)
 
-/-- Compatibility `ite` support using the current branch-boundary route. -/
-def functionBodyIteClosureSupportCI_of_currentIteRoute :
-    FunctionBodyIteClosureSupportCI :=
-  { close := fun hentry thenClosure elseClosure =>
-      ite_function_body_closure_boundary_ci_honest
-        hentry
-        thenClosure
-        elseClosure }
-
 /-- Mainline-facing primitive statement closure support. -/
 structure FunctionBodyPrimitiveClosureSupportCI : Type where
   close :
@@ -57,28 +48,12 @@ structure FunctionBodyPrimitiveClosureSupportCI : Type where
       BodyClosureBoundaryCI Γ σ st →
       FunctionBodyCaseDriverResult σ st
 
-/-- Compatibility primitive support using the current concrete-refined route. -/
-def functionBodyPrimitiveClosureSupportCI_of_currentPrimitiveRoute :
-    FunctionBodyPrimitiveClosureSupportCI :=
-  { close := fun hprim hentry =>
-      primitive_stmt_function_body_step_or_diverges_body_closure
-        hprim hentry }
-
 /-- Mainline-facing block closure support. -/
 structure FunctionBodyBlockClosureSupportCI : Type where
   close :
     ∀ {Γ : TypeEnv} {σ : State} {ss : StmtBlock},
       BodyClosureBoundaryCI Γ σ (.block ss) →
       FunctionBodyCaseDriverResult σ (.block ss)
-
-/-- Compatibility block support using the current old block route. -/
-def functionBodyBlockClosureSupportCI_of_currentBlockRoute :
-    FunctionBodyBlockClosureSupportCI :=
-  { close := fun hentry =>
-      block_function_body_closure_boundary_ci_from_opened_body
-        hentry
-        (fun _hopen hopenedBoundary =>
-          block_body_function_closure_boundary_ci hopenedBoundary) }
 
 /-- Constructor-level case-driver body using data-backed seq support. -/
 theorem body_closure_ci_function_body_progress_or_diverges_case_driver_body_continuationSeqDataBlockPrimitiveIteSupport

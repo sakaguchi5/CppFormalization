@@ -11,16 +11,10 @@ namespace Cpp
 
 Data-backed seq continuation support.
 
-This is the mainline seq support surface.  It consumes explicit Type-level
-slot-selection data instead of reconstructing the left static boundary from the
-old `seq_left_static_boundary_ci_of_entry` compatibility route.
+This is the mainline seq support surface.
 -/
 
-/-- Seq closure support with explicit Type-level slot-selection data.
-
-The selected left static profile is obtained from
-`SeqLeftSlotSelectionDataCI.staticBoundary`, not from
-`seq_left_static_boundary_ci_of_entry`.
+/-- Seq closure support with explicit Type-level slot-selection data..
 -/
 structure SeqFunctionBodyClosureContinuationDataSupportCI
     (P : StmtNormalPreservationCoreCI) : Type where

@@ -622,10 +622,6 @@ def seq_left_root_scaffold_ci_of_profile
 
 /--
 Assemble the full left static scaffold from Type-level slot-selection data.
-
-This is the theorem-backed/data-backed mainline constructor.  It does not call
-`seq_left_normal_slot_selection_ci_of_decomposition` or
-`seq_left_return_slot_selection_ci_of_decomposition`.
 -/
 noncomputable def SeqLeftSlotSelectionDataCI.staticScaffoldPayload
     {Γ : TypeEnv} {σ : State} {s t : CppStmt}

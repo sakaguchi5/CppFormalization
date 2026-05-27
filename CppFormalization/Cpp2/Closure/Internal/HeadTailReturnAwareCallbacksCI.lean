@@ -10,21 +10,6 @@ namespace Cpp
 Callback-shaped CI surfaces for the low-level return-aware head/tail assembly.
 -/
 
-/-- Callback-shaped CI route for statement sequencing. -/
-theorem seq_function_body_closure_boundary_ci_return_aware_from_callbacks
-    {σ : State} {s t : CppStmt}
-    (headClosure :
-      (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨
-        BigStepStmtDiv σ s)
-    (tailAfterHeadNormal :
-      ∀ {σ' : State},
-        BigStepStmt σ s .normal σ' →
-        (∃ ex σ'', BigStepFunctionBody σ' t ex σ'') ∨
-          BigStepStmtDiv σ' t) :
-    (∃ ex σ', BigStepFunctionBody σ (.seq s t) ex σ') ∨
-      BigStepStmtDiv σ (.seq s t) := by
-  exact seq_function_body_result_return_aware headClosure tailAfterHeadNormal
-
 /-- Callback-shaped CI route for block-body cons. -/
 theorem block_cons_function_body_closure_boundary_ci_return_aware_from_callbacks
     {σ : State} {s : CppStmt} {ss : StmtBlock}
