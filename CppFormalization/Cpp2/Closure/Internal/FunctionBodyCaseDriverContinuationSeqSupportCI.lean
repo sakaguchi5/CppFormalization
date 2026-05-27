@@ -1,4 +1,7 @@
 import CppFormalization.Cpp2.Closure.Internal.SeqFunctionBodyClosureContinuationDataSupportCI
+import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverCI
+import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryClosureCoreSupportCI
+import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverCoreSupportCI
 
 namespace Cpp
 

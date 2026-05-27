@@ -14,7 +14,6 @@ import CppFormalization.Cpp2.Closure.Internal.ConditionReplayKernel
 import CppFormalization.Cpp2.Closure.Internal.CurrentShellCI
 import CppFormalization.Cpp2.Closure.Internal.DerefAssignLocalInterfaces
 import CppFormalization.Cpp2.Closure.Internal.DerefAssignTransportKernel
-import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverBoundaryCoreSupportCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverCoreSupportCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverProviderCI
