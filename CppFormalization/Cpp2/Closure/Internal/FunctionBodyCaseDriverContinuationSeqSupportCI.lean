@@ -1,4 +1,3 @@
-import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverBoundaryCoreSupportCI
 import CppFormalization.Cpp2.Closure.Internal.SeqFunctionBodyClosureContinuationDataSupportCI
 
 namespace Cpp
