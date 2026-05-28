@@ -9,7 +9,7 @@ namespace Cpp
 Axiom-free composite preservation combinators for path-sensitive demand.
 
 These theorems are the direct replacement shape for the old
-`readinessTransportNormalCore` use in `seq` and block `cons`.
+` 削除済み` use in `seq` and block `cons`.
 
 Instead of proving that readiness is transported from the pre-state to the
 post-state, we consume the post-state tail demand already stored in

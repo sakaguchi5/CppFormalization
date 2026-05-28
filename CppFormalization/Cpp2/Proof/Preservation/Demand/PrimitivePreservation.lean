@@ -12,7 +12,7 @@ namespace Cpp
 Primitive preservation from path-sensitive execution demand.
 
 This is the first theorem-backed replacement point for the old
-`readinessTransportNormalCore` route.  Primitive statements do not need tail
+` 削除済み` route.  Primitive statements do not need tail
 readiness transport.  Their demand evidence contains exactly the local
 expression/place readiness consumed by the corresponding semantic step.
 -/

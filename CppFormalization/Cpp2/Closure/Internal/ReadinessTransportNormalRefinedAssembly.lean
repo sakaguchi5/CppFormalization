@@ -8,10 +8,10 @@ namespace Cpp
 Stage 8 assembly surface for the refined readiness-transport route.
 
 This is the bridge from the staged refined assets to the full refined surface.
-It is not a bridge back to the old unrestricted `ReadinessTransportNormalCore`.
+It is not a bridge back to the old unrestricted ` 削除済み`.
 That distinction is intentional:
 
-- `ReadinessTransportNormalCore` is now a compatibility/debt surface.
+- ` 削除済み` is now a compatibility/debt surface.
 - `ReadinessTransportNormalRefinedSurface` is the C++-honest target.
 - A full refined surface can be assembled once the Stage-7 old-name
   statement/block fragment is theorem-backed.
@@ -72,25 +72,5 @@ def refinedSurface_of_completeFragment
     (F : ReadinessTransportNormalRefinedCompleteFragment) :
     ReadinessTransportNormalRefinedSurface :=
   F.toRefinedSurface
-
-/- =========================================================
-   2. Stage-8 replacement boundary
-   ========================================================= -/
-
-/--
-A named boundary for the future replacement of the old general transport debt.
-
-This deliberately stores a refined surface, not `ReadinessTransportNormalCore`.
-The old core is too coarse as a final theorem target; replacement means moving
-callers to refined obligations, not proving the unrestricted core verbatim.
--/
-structure ReadinessTransportNormalCoreReplacementBoundary : Type where
-  refined : ReadinessTransportNormalRefinedSurface
-
-/-- Build the replacement boundary from a complete refined fragment. -/
-def coreReplacementBoundary_of_completeFragment
-    (F : ReadinessTransportNormalRefinedCompleteFragment) :
-    ReadinessTransportNormalCoreReplacementBoundary :=
-  { refined := F.toRefinedSurface }
 
 end Cpp

@@ -9,7 +9,7 @@ namespace Cpp
 Theorem-backed shape layer for env-extending normal heads.
 
 At this point in the development, the true hard part of
-`ReadinessTransportNormalCore` is no longer the env-preserving fragment
+` 削除済み` is no longer the env-preserving fragment
 (`skip / exprStmt / assign`), but the heads that *change* the post environment:
 - `declareObj τ x none`
 - `declareObj τ x (some e)`

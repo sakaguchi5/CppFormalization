@@ -1,4 +1,3 @@
-import CppFormalization.Cpp2.Contracts.Obligations.ReadinessTransportNormalCore
 import CppFormalization.Cpp2.Closure.Internal.ResidualTransportStableFragment
 
 namespace Cpp
@@ -6,7 +5,7 @@ namespace Cpp
 /-!
 # Closure.Internal.ReadinessTransportNormalStableFragment
 
-`ReadinessTransportNormalCore` 全体はまだ bundled debt を含むが、
+` 削除済み` 全体はまだ bundled debt を含むが、
 replay-stable primitive head (`skip / exprStmt / assign`) に限れば、
 かなり大きい部分は既に theorem-backed である。
 

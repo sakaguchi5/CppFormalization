@@ -13,7 +13,7 @@ namespace Cpp
 A demand-oriented replacement target for the old readiness-transport recursor.
 
 This file intentionally does not introduce an axiom.  It fixes the theorem target
-that should replace `readinessTransportNormalCore`:
+that should replace ` 削除済み`:
 
 * preservation consumes path-sensitive execution demand;
 * the demand must be aligned with the concrete big-step derivation;
@@ -190,7 +190,7 @@ theorem primitive_stmt_demand_preservation_goal
 /--
 Block-statement demand preservation packaged as a kernel fragment.
 
-This closes the block-scope component without `readinessTransportNormalCore`.
+This closes the block-scope component without ` 削除済み`.
 -/
 theorem block_stmt_demand_preservation_goal
     {Γ : TypeEnv} {σ σ' : State} {ss : StmtBlock} {ctrl : CtrlResult} :

@@ -8,7 +8,7 @@ namespace Cpp
 Theorem-backed transport layer for env-preserving normal heads.
 
 At this stage of the development:
-- `ReadinessTransportNormalCore` is the single choke point for the remaining
+- ` 削除済み` is the single choke point for the remaining
   bundled tail-ready debt.
 - the replay-stable primitive fragment is already theorem-backed.
 - those heads are exactly the normal heads that preserve the ambient type

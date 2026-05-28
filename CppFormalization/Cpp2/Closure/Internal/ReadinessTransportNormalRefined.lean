@@ -7,7 +7,7 @@ namespace Cpp
 # Closure.Internal.ReadinessTransportNormalRefined
 
 Refined surface for replacing the old unrestricted
-`ReadinessTransportNormalCore` debt.
+` 削除済み` debt.
 
 The old core bundles four unrestricted transport goals:
 - place readiness transport
@@ -247,7 +247,7 @@ theorem readinessTransportRefined_load_ready_of_place_and_readable
 Refined replacement surface for the old unrestricted core.
 
 This is not instantiated yet.  It records the theorem targets that should
-replace the coarse `ReadinessTransportNormalCore` over time.
+replace the coarse ` 削除済み` over time.
 -/
 structure ReadinessTransportNormalRefinedSurface : Type where
   envPreserving : ReadinessTransportNormalEnvPreservingFragment

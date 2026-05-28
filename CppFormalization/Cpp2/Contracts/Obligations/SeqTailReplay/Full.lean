@@ -7,7 +7,6 @@ namespace Cpp
 
 This module is the first post-split integration layer.  It introduces the main
 theorem-backed replacement API while keeping the broad fallback axiom available
-in `Stability.lean`.
 -/
 
 /--

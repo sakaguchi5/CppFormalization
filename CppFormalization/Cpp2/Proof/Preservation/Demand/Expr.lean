@@ -7,7 +7,7 @@ namespace Cpp
 
 Execution-demand vocabulary for expression and place readiness.
 
-The old `ReadinessTransportNormalCore` treated readiness as something that can be
+The old ` 削除済み` treated readiness as something that can be
 transported across an arbitrary normal step.  That is too strong: readiness is
 state-sensitive.  This file deliberately keeps the expression/place layer small:
 a demand at a program point is exactly the concrete readiness required at that

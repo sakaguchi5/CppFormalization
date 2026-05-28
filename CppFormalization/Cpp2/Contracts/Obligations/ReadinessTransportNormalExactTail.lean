@@ -7,7 +7,7 @@ namespace Cpp
 /-!
 # Contracts.Obligations.ReadinessTransportNormalExactTail
 
-Legacy exact tail-ready kernels split out of `ReadinessTransportNormalCore`.
+Legacy exact tail-ready kernels split out of ` 削除済み`.
 
 These kernels are still consumed by the ordinary-readiness route in
 `SequentialNormalPreservation` and `BlockBodyNormalPreservation`:
@@ -57,7 +57,7 @@ structure ReadinessTransportNormalExactTail : Type where
 /--
 Single choke point for the remaining exact tail-ready debt.
 
-This axiom was previously bundled inside `ReadinessTransportNormalCore`; it is
+This axiom was previously bundled inside ` 削除済み`; it is
 now isolated so that the core transport family can shrink independently.
 -/
 axiom readinessTransportNormalExactTail : ReadinessTransportNormalExactTail

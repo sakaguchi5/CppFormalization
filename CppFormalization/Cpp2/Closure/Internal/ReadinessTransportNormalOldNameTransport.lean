@@ -11,7 +11,7 @@ This file is intentionally conservative.  Old-name transport for env-extending
 heads is the first genuinely hard part after the fresh-name local layer.
 
 The important design point is that this file does **not** reintroduce the old
-unrestricted `ReadinessTransportNormalCore` claim.  It records only the C++-honest
+unrestricted ` 削除済み` claim.  It records only the C++-honest
 old-name transport targets:
 
 - the transported target must syntactically avoid the freshly introduced name;

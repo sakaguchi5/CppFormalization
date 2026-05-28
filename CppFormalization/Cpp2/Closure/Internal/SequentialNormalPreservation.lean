@@ -23,7 +23,7 @@ namespace Cpp
 
 重要:
 - low-level exact tail-ready kernel は、このファイルで直接 axiom を持たず、
-  `ReadinessTransportNormalCore` から給電する。
+  ` 削除済み` から給電する。
 - current mainline が public に使うべき主語は `StmtReadyConcrete Θ σ' t` 単体ではなく、
   `SeqResidualBoundary Δ σ' t` である。
 - ただし downstream の concrete roadmap では、「最終 codomain ではなく

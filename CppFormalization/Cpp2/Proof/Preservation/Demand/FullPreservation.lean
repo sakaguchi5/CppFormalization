@@ -10,7 +10,7 @@ namespace Cpp
 Theorem-backed preservation components for the path-sensitive demand route.
 
 This file advances the demand route to the point just before removing the old
-`readinessTransportNormalCore` route.  The key addition is block statement
+` 削除済み` route.  The key addition is block statement
 preservation: demand now carries the `TopFrameExtensionOf Γ Θ` witness needed
 to close the runtime scope and return to the outer environment.
 -/
