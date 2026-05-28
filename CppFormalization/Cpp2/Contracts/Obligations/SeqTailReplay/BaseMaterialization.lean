@@ -38,11 +38,6 @@ inductive SeqTailControlOnlyConstructorAtRouteCI
 /--
 Materialize tail readiness for the control-only fragment.
 
-This is the first theorem-backed replacement fragment for the coarse
-`seq_tail_ready_of_runtime_replay_components_at_route_ci` obligation.
-The runtime components are kept in the statement so callers can use this theorem
-as a drop-in fragment of the component-based materialization route, but these
-control-only constructors do not need them.
 -/
 theorem seq_tail_ready_of_runtime_replay_components_control_only_at_route_ci
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
@@ -149,10 +144,6 @@ theorem seq_tail_declare_obj_none_ready_of_typed0_at_route_ci
 /--
 Materialize tail readiness for the static-only fragment.
 
-This is the second theorem-backed replacement fragment for the coarse
-`seq_tail_ready_of_runtime_replay_components_at_route_ci` obligation.
-The runtime components are kept in the statement for drop-in compatibility, but
-`declareObj none` does not need them.
 -/
 theorem seq_tail_ready_of_runtime_replay_components_static_only_at_route_ci
     {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}

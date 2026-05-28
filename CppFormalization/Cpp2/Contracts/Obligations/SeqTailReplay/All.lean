@@ -9,7 +9,6 @@ import CppFormalization.Cpp2.Contracts.Obligations.SeqTailReplay.ValueExpr
 import CppFormalization.Cpp2.Contracts.Obligations.SeqTailReplay.Stmt
 import CppFormalization.Cpp2.Contracts.Obligations.SeqTailReplay.Structured
 import CppFormalization.Cpp2.Contracts.Obligations.SeqTailReplay.Full
-import CppFormalization.Cpp2.Contracts.Obligations.SeqTailReplay.Stability
 
 /-!
 # SeqTailReplay aggregate

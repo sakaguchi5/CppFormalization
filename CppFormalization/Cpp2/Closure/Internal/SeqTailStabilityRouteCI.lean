@@ -89,39 +89,6 @@ def seq_tail_runtime_replay_components_at_route_ci_of_entry
       seq_tail_load_readability_preservation_at_route_ci_of_entry hentry route }
 
 /--
-Current runtime replay component obligation.
-
-Compatibility name.  The direct coarse axiom has been replaced by named
-component obligations plus a materialization obligation.
--/
-def seq_tail_runtime_replay_at_route_ci_of_entry
-    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
-    {P : BodyControlProfile Γ s}
-    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
-    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
-    SeqTailRuntimeReplayAtRouteCI route :=
-  seq_tail_runtime_replay_at_route_ci_of_components
-    hentry
-    route
-    (seq_tail_runtime_replay_components_at_route_ci_of_entry hentry route)
-
-/--
-Current coarse route-local tail stability obligation.
-
-Compatibility name assembled from the newly split obligations.
--/
-def seq_tail_stability_at_route_ci_of_entry
-    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
-    {P : BodyControlProfile Γ s}
-    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
-    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
-    SeqTailStabilityAtRouteCI route :=
-  seq_tail_stability_at_route_ci_of_parts
-    route
-    (seq_tail_post_state_at_route_ci_of_entry hentry route)
-    (seq_tail_runtime_replay_at_route_ci_of_entry hentry route)
-
-/--
 Legacy compatibility constructor for the post-state component from the old
 exact-tail route.
 -/
