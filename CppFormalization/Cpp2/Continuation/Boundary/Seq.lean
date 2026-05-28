@@ -1,5 +1,4 @@
 import CppFormalization.Cpp2.Contracts.Obligations.ReadinessTransportNormalExactTail
-import CppFormalization.Cpp2.Contracts.Obligations.SeqTailReplay
 import CppFormalization.Cpp2.Contracts.Obligations.CompoundContinuation.Seq.Tail.Continuation
 import CppFormalization.Cpp2.Continuation.Boundary.Body
 import CppFormalization.Cpp2.Boundary.Static.SeqStaticBoundaryProjectionCI
@@ -151,111 +150,6 @@ def seq_normal_continuation_boundary_of_tail_closure_boundary
     hstepLeft := hstepLeft
     tail := StmtContinuationBoundaryCI.ofBodyClosureBoundaryCI tail }
 
-/- =========================================================
-   Selected-route continuation boundary assembly
-   ========================================================= -/
-
-/--
-Compared with the previous coarse version, this now has three visible layers:
-
-* `postStatePart`: preservation-shaped post-state/environment agreement;
-* `nameScopePart`: static/name/scope side of the selected tail;
-* `runtimePart`: runtime replay/readiness side, with future C++ split points.
-
-The important change is that the public subject is still the selected route,
-not a global exact-tail readiness transport theorem.
--/
-structure SeqTailStabilityAtRouteCI
-    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
-    {P : BodyControlProfile Γ s}
-    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) : Type where
-  postStatePart : SeqTailPostStateAtRouteCI route
-  nameScopePart : SeqTailNameScopeStabilityAtRouteCI route
-  runtimePart : SeqTailRuntimeReplayAtRouteCI route
-
-namespace SeqTailStabilityAtRouteCI
-
-/-- Post-state projection preserved for old callers. -/
-def postState
-    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
-    {P : BodyControlProfile Γ s}
-    {route : SeqHeadNormalRouteCI Γ σ s t σ1 P}
-    (h : SeqTailStabilityAtRouteCI route) :
-    ScopedTypedStateConcrete route.Θ σ1 :=
-  h.postStatePart.postState
-
-/-- Runtime tail-readiness projection preserved for old callers. -/
-def tailReady
-    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
-    {P : BodyControlProfile Γ s}
-    {route : SeqHeadNormalRouteCI Γ σ s t σ1 P}
-    (h : SeqTailStabilityAtRouteCI route) :
-    StmtReadyConcrete route.Θ σ1 t :=
-  h.runtimePart.tailReady
-
-/-- The dynamic continuation boundary induced by a route-local stability proof. -/
-def toStmtContinuationDynamicBoundary
-    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
-    {P : BodyControlProfile Γ s}
-    {route : SeqHeadNormalRouteCI Γ σ s t σ1 P}
-    (h : SeqTailStabilityAtRouteCI route) :
-    StmtContinuationDynamicBoundary route.Θ σ1 t :=
-  { state := h.postState
-    safe := h.tailReady }
-
-/-- Compatibility view as the old body dynamic boundary. -/
-def toBodyDynamicBoundary
-    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
-    {P : BodyControlProfile Γ s}
-    {route : SeqHeadNormalRouteCI Γ σ s t σ1 P}
-    (h : SeqTailStabilityAtRouteCI route) :
-    BodyDynamicBoundary route.Θ σ1 t :=
-  h.toStmtContinuationDynamicBoundary.toBodyDynamicBoundary
-
-end SeqTailStabilityAtRouteCI
-
-namespace SeqTailNameScopeStabilityAtRouteCI
-
-/-- The current selected route already carries the coarse tail typing witness. -/
-def ofRoute
-    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
-    {P : BodyControlProfile Γ s}
-    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P) :
-    SeqTailNameScopeStabilityAtRouteCI route :=
-  { typed0 := route.tail.static.typed0 }
-
-end SeqTailNameScopeStabilityAtRouteCI
-
-def seq_tail_stability_at_route_ci_of_parts
-    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
-    {P : BodyControlProfile Γ s}
-    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
-    (postState : SeqTailPostStateAtRouteCI route)
-    (runtime : SeqTailRuntimeReplayAtRouteCI route) :
-    SeqTailStabilityAtRouteCI route :=
-  { postStatePart := postState
-    nameScopePart := SeqTailNameScopeStabilityAtRouteCI.ofRoute route
-    runtimePart := runtime }
-
-
-/--
-Build the full post-state tail continuation from the selected route plus the
-route-local stability contract.
-
-Static and adequacy come from the selected route.
-Dynamic readiness comes from the explicit route-local stability/replay contract.
--/
-noncomputable def seq_tail_continuation_boundary_ci_of_head_normal_route
-    {Γ : TypeEnv} {σ σ1 : State} {s t : CppStmt}
-    {P : BodyControlProfile Γ s}
-    (hentry : BodyClosureBoundaryCI Γ σ (.seq s t))
-    (route : SeqHeadNormalRouteCI Γ σ s t σ1 P)
-    (stability : SeqTailStabilityAtRouteCI route) :
-    StmtContinuationBoundaryCI route.Θ σ1 t :=
-  { structural := seq_tail_structural_boundary_of_structural hentry.structural
-    static := route.tail.static
-    dynamic := stability.toStmtContinuationDynamicBoundary
-    adequacy := route.tail.support.toBodyAdequacyCI }
 
 
 /- =========================================================
