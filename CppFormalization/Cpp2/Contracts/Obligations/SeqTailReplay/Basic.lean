@@ -11,9 +11,7 @@ namespace Cpp
 /-!
 # Seq tail replay / stability obligations
 
-Extracted aggressively from `Closure.Internal.SeqTailStabilityRouteCI`.
-This module contains route-local tail replay and stability contracts.  These are
-not closure shells: they are the conditions saying why the selected route can
+These are not closure shells: they are the conditions saying why the selected route can
 enter the tail in the post-state.
 
 Several components are still coarse placeholders.  The point of this move is to

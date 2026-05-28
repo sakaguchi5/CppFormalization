@@ -23,7 +23,6 @@ namespace Cpp
 The seq scaffold/route/stability/closure shell previously accumulated
 in this file now lives in:
 * `SeqScaffoldRouteCI`
-* `SeqTailStabilityRouteCI`
 * `SeqClosureRouteCI`
 -/
 

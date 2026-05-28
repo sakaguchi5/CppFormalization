@@ -1,7 +1,7 @@
-import CppFormalization.Cpp2.Closure.Internal.SeqTailStabilityRouteCI
-import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureResultCI
-import CppFormalization.Cpp2.Continuation.Boundary.Body
-import CppFormalization.Cpp2.Static.Pure.SeqStructuralProjectionCI
+import CppFormalization.Cpp2.Continuation.Route.Seq
+import CppFormalization.Cpp2.Closure.Internal.SeqBoundaryStaticDecompositionCI
+import CppFormalization.Cpp2.Closure.Internal.SequentialNormalPreservation
+import CppFormalization.Cpp2.Closure.Internal.SeqScaffoldRouteCI
 
 namespace Cpp
 
