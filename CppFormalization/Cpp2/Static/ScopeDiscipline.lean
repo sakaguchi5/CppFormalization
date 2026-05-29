@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Core.Syntax
+import CppFormalization.Cpp2.Language.Syntax
 
 /-!
 `break` / `continue` scope discipline.

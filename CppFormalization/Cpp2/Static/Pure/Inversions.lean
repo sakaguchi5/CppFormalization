@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Static.WellFormed
-import CppFormalization.Cpp2.Typing.Stmt
+import CppFormalization.Cpp2.Static.Typing.Stmt
 
 namespace Cpp
 

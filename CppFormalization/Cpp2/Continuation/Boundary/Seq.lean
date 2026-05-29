@@ -1,8 +1,8 @@
-import CppFormalization.Cpp2.Contracts.Obligations.ReadinessTransportNormalExactTail
-import CppFormalization.Cpp2.Contracts.Obligations.CompoundContinuation.Seq.Tail.Continuation
+import CppFormalization.Cpp2.Legacy.ReadinessTransport.ReadinessTransportNormalExactTail
+import CppFormalization.Cpp2.Continuation.Compound.Seq.Tail.Continuation
 import CppFormalization.Cpp2.Continuation.Boundary.Body
-import CppFormalization.Cpp2.Boundary.Static.SeqStaticBoundaryProjectionCI
-import CppFormalization.Cpp2.Static.Pure.SeqStructuralProjectionCI
+import CppFormalization.Cpp2.Static.Boundary.SeqStaticBoundaryProjectionCI
+import CppFormalization.Cpp2.Static.SeqStatic.SeqStructuralProjectionCI
 
 namespace Cpp
 

@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Semantics.Stmt
+import CppFormalization.Cpp2.Operational.Stmt
 
 namespace Cpp
 

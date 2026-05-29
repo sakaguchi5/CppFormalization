@@ -1,5 +1,5 @@
-import CppFormalization.Cpp2.Boundary.FunctionBody
-import CppFormalization.Cpp2.Semantics.Divergence
+import CppFormalization.Cpp2.Closure.Function.FunctionBody
+import CppFormalization.Cpp2.Operational.Divergence
 
 namespace Cpp
 

@@ -1,7 +1,7 @@
-import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapConcrete
-import CppFormalization.Cpp2.Boundary.FunctionBody
-import CppFormalization.Cpp2.Semantics.Divergence
-import CppFormalization.Cpp2.Core.Fragment
+import CppFormalization.Cpp2.Audit.Closure.Internal.InternalClosureRoadmapConcrete
+import CppFormalization.Cpp2.Closure.Function.FunctionBody
+import CppFormalization.Cpp2.Operational.Divergence
+import CppFormalization.Cpp2.Language.Fragment
 
 namespace Cpp
 

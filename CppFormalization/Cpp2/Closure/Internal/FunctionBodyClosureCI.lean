@@ -1,11 +1,11 @@
-import CppFormalization.Cpp2.Boundary.Body.BodyReadyCI
-import CppFormalization.Cpp2.Boundary.Facts.BodyReadyControlExclusionCI
-import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
-import CppFormalization.Cpp2.Closure.Internal.InternalClosureRoadmapConcrete
-import CppFormalization.Cpp2.Closure.Internal.CurrentShellCI
-import CppFormalization.Cpp2.Closure.Internal.FunctionBodyCaseDriverContinuationIHCI
-import CppFormalization.Cpp2.Closure.Internal.FunctionBodyReplayStablePrimitiveWhileFacts
-import CppFormalization.Cpp2.Boundary.FunctionBody
+import CppFormalization.Cpp2.Entry.Body.BodyReadyCI
+import CppFormalization.Cpp2.Static.Facts.Control.BodyReadyControlExclusionCI
+import CppFormalization.Cpp2.Legacy.Foundation.BodyBoundaryCompatibility
+import CppFormalization.Cpp2.Audit.Closure.Internal.InternalClosureRoadmapConcrete
+import CppFormalization.Cpp2.Metatheory.Closure.CurrentShellCI
+import CppFormalization.Cpp2.Metatheory.Closure.FunctionBodyCaseDriverContinuationIHCI
+import CppFormalization.Cpp2.Stability.Closure.FunctionBodyReplayStablePrimitiveWhileFacts
+import CppFormalization.Cpp2.Closure.Function.FunctionBody
 
 namespace Cpp
 

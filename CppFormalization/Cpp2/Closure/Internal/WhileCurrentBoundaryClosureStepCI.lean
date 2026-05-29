@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Closure.Internal.WhileCurrentBoundaryBackedgeInvariantCI
+import CppFormalization.Cpp2.Stability.Closure.WhileCurrentBoundaryBackedgeInvariantCI
 
 namespace Cpp
 

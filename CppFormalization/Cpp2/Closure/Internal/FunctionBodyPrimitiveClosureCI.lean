@@ -1,8 +1,8 @@
-import CppFormalization.Cpp2.Boundary.Body.BodyReadyCI
-import CppFormalization.Cpp2.Boundary.Facts.BodyReadyControlExclusionCI
-import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
-import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureConcreteRefined
-import CppFormalization.Cpp2.Boundary.FunctionBody
+import CppFormalization.Cpp2.Entry.Body.BodyReadyCI
+import CppFormalization.Cpp2.Static.Facts.Control.BodyReadyControlExclusionCI
+import CppFormalization.Cpp2.Legacy.Foundation.BodyBoundaryCompatibility
+import CppFormalization.Cpp2.Legacy.ClosureInternal.FunctionBodyClosureConcreteRefined
+import CppFormalization.Cpp2.Closure.Function.FunctionBody
 
 namespace Cpp
 

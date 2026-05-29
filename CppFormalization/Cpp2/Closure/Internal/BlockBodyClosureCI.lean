@@ -1,16 +1,16 @@
-import CppFormalization.Cpp2.Boundary.FunctionBody
-import CppFormalization.Cpp2.Boundary.Body.BodyReadyCI
-import CppFormalization.Cpp2.Boundary.Facts.BodyReadyControlExclusionCI
-import CppFormalization.Cpp2.Closure.Foundation.BodyBoundaryCompatibility
-import CppFormalization.Cpp2.Boundary.Body.BodyClosureBoundaryCI
-import CppFormalization.Cpp2.Static.Pure.BodyStructuralBoundary
-import CppFormalization.Cpp2.Typing.ControlProfile
-import CppFormalization.Cpp2.Static.Safety.BodyDynamicBoundary
-import CppFormalization.Cpp2.Boundary.Adequacy.BodyAdequacyCI
+import CppFormalization.Cpp2.Closure.Function.FunctionBody
+import CppFormalization.Cpp2.Entry.Body.BodyReadyCI
+import CppFormalization.Cpp2.Static.Facts.Control.BodyReadyControlExclusionCI
+import CppFormalization.Cpp2.Legacy.Foundation.BodyBoundaryCompatibility
+import CppFormalization.Cpp2.Closure.Package.BodyClosureBoundaryCI
+import CppFormalization.Cpp2.Static.StructuralAdmission.BodyStructuralBoundary
+import CppFormalization.Cpp2.Profile.ControlProfile
+import CppFormalization.Cpp2.Entry.StaticSafety.BodyDynamicBoundary
+import CppFormalization.Cpp2.Adequacy.Body.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureConcrete
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI
-import CppFormalization.Cpp2.Proof.Preservation.Scope.OpenPreservation
-import CppFormalization.Cpp2.Semantics.Divergence
+import CppFormalization.Cpp2.Preservation.Scope.OpenPreservation
+import CppFormalization.Cpp2.Operational.Divergence
 
 namespace Cpp
 

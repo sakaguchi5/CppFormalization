@@ -1,8 +1,8 @@
-import CppFormalization.Cpp2.Boundary.FunctionBody
-import CppFormalization.Cpp2.Boundary.LoopBody.All
+import CppFormalization.Cpp2.Closure.Function.FunctionBody
+-- removed ideal relayout: import CppFormalization.Cpp2.Boundary.LoopBody.All  -- All.lean excluded
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI
-import CppFormalization.Cpp2.Closure.Internal.ReadinessReplayPrimitive
-import CppFormalization.Cpp2.Semantics.Divergence
+import CppFormalization.Cpp2.Stability.Closure.ReadinessReplayPrimitive
+import CppFormalization.Cpp2.Operational.Divergence
 
 namespace Cpp
 

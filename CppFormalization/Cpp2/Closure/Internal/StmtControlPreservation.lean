@@ -1,1 +1,0 @@
-import CppFormalization.Cpp2.Proof.Control.BigStepControlCompatibility

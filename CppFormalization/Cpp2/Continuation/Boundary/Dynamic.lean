@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Static.Safety.BodyDynamicBoundary
+import CppFormalization.Cpp2.Entry.StaticSafety.BodyDynamicBoundary
 
 namespace Cpp
 

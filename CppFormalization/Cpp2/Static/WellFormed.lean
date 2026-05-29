@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Core.Syntax
+import CppFormalization.Cpp2.Language.Syntax
 
 /-!
 Pure syntactic well-formedness.

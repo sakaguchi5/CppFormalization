@@ -1,0 +1,27 @@
+import CppFormalization.Cpp2.Route.Closure.HeadTailReturnAwareRoutesCI
+import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureCI
+import CppFormalization.Cpp2.Metatheory.Closure.FunctionBodyCaseSplitCI
+
+namespace Cpp
+
+/-!
+# Closure.Internal.HeadTailReturnAwareCallbacksCI
+
+Callback-shaped CI surfaces for the low-level return-aware head/tail assembly.
+-/
+
+/-- Callback-shaped CI route for block-body cons. -/
+theorem block_cons_function_body_closure_boundary_ci_return_aware_from_callbacks
+    {σ : State} {s : CppStmt} {ss : StmtBlock}
+    (headClosure :
+      (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨
+        BigStepStmtDiv σ s)
+    (tailAfterHeadNormal :
+      ∀ {σ' : State},
+        BigStepStmt σ s .normal σ' →
+        FunctionBlockBodyClosureResult σ' ss) :
+    FunctionBlockBodyClosureResult σ (.cons s ss) := by
+  exact block_cons_function_body_result_return_aware
+    headClosure tailAfterHeadNormal
+
+end Cpp

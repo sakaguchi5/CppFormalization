@@ -1,11 +1,11 @@
 /- CppFormalization/Cpp2/Closure/Internal/WhileFunctionClosureKernelCI.lean -/
-import CppFormalization.Cpp2.Boundary.FunctionBody
-import CppFormalization.Cpp2.Boundary.Body.BodyClosureBoundaryCI
-import CppFormalization.Cpp2.Closure.Foundation.WhileEntryBoundaryCompatibilityCI
-import CppFormalization.Cpp2.Boundary.LoopBody.All
+import CppFormalization.Cpp2.Closure.Function.FunctionBody
+import CppFormalization.Cpp2.Closure.Package.BodyClosureBoundaryCI
+import CppFormalization.Cpp2.Legacy.Foundation.WhileEntryBoundaryCompatibilityCI
+-- removed ideal relayout: import CppFormalization.Cpp2.Boundary.LoopBody.All  -- All.lean excluded
 import CppFormalization.Cpp2.Closure.Internal.LoopBodyFunctionClosureCI
-import CppFormalization.Cpp2.Closure.Internal.LoopReentryKernelCI
-import CppFormalization.Cpp2.Semantics.Divergence
+import CppFormalization.Cpp2.Stability.Closure.LoopReentryKernelCI
+import CppFormalization.Cpp2.Operational.Divergence
 
 namespace Cpp
 

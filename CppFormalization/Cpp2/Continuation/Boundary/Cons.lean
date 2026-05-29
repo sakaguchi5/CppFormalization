@@ -1,6 +1,6 @@
 import CppFormalization.Cpp2.Continuation.Boundary.Dynamic
-import CppFormalization.Cpp2.Contracts.Obligations.ReadinessTransportNormalExactTail
-import CppFormalization.Cpp2.Contracts.Obligations.CompoundContinuation.Cons.Tail.Continuation
+import CppFormalization.Cpp2.Legacy.ReadinessTransport.ReadinessTransportNormalExactTail
+import CppFormalization.Cpp2.Continuation.Compound.Cons.Tail.Continuation
 
 namespace Cpp
 
