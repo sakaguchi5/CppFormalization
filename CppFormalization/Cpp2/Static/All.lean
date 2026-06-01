@@ -1,7 +1,6 @@
 import CppFormalization.Cpp2.Static.Env.All
 import CppFormalization.Cpp2.Static.Facts.All
 import CppFormalization.Cpp2.Static.Pure.All
-import CppFormalization.Cpp2.Static.SafetyPolicy.All
 import CppFormalization.Cpp2.Static.SeqStatic.All
 import CppFormalization.Cpp2.Static.StructuralAdmission.All
 import CppFormalization.Cpp2.Static.Typing.All

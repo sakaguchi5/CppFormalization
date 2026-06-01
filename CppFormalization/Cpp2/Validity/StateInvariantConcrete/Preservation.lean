@@ -1,4 +1,3 @@
-import CppFormalization.Cpp2.Static.SafetyPolicy.Assumptions
 import CppFormalization.Cpp2.Validity.StateInvariantConcrete.StateInvariantConcrete
 
 namespace Cpp

@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Operational.Facts.Control.ControlExclusion
-import CppFormalization.Cpp2.Static.Facts.Inversions
+import CppFormalization.Cpp2.SafetyPolicy.Facts.Inversions
 
 /-!
 # CppFormalization.Cpp2.Boundary.FunctionBody

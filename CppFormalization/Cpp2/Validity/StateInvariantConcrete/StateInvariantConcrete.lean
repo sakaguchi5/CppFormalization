@@ -1,5 +1,5 @@
-import CppFormalization.Cpp2.Static.SafetyPolicy.Assumptions
 import CppFormalization.Cpp2.Static.Env.TypeEnvQuery
+import CppFormalization.Cpp2.Validity.RuntimeAgreement.DeclRuntimeMatch
 import CppFormalization.Cpp2.RuntimeModel.RuntimeQuery
 import CppFormalization.Cpp2.RuntimeModel.RuntimeCell
 import CppFormalization.Cpp2.RuntimeModel.RuntimeFreshness

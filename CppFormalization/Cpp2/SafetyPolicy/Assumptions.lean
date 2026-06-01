@@ -5,12 +5,12 @@ import CppFormalization.Cpp2.Static.ScopeDiscipline
 import CppFormalization.Cpp2.Validity.RuntimeAgreement.DeclRuntimeMatch
 
 /-!
-# CppFormalization.Cpp2.Static.Safety.Assumptions
+# CppFormalization.Cpp2.SafetyPolicy.Assumptions
 
 Safety predicates and ideal boundary assumptions.
 
-This file sits above Core, Typing, Semantics.Expr, and pure Static facts.
-It does not depend on Closure, adequacy, or preservation layers.
+This file sits above Language, RuntimeModel, Static, Operational, and Validity facts.
+It is a surface safety-policy layer, not a pure Static layer, and does not depend on Closure, adequacy, or preservation layers.
 -/
 
 namespace Cpp

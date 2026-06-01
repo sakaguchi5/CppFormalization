@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Static.SafetyPolicy.Assumptions
+import CppFormalization.Cpp2.SafetyPolicy.Assumptions
 import CppFormalization.Cpp2.RuntimeModel.RuntimeQuery
 import CppFormalization.Cpp2.RuntimeModel.Facts.RuntimeState
 import CppFormalization.Cpp2.RuntimeModel.Facts.RuntimeDeclUpdate

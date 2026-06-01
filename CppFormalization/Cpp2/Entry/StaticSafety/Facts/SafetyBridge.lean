@@ -1,6 +1,6 @@
 import CppFormalization.Cpp2.Operational.Stmt
 import CppFormalization.Cpp2.Static.ScopeDiscipline
-import CppFormalization.Cpp2.Static.SafetyPolicy.Assumptions
+import CppFormalization.Cpp2.SafetyPolicy.Assumptions
 /-!
 Bridge lemmas from concrete semantics into safety predicates.
 -/

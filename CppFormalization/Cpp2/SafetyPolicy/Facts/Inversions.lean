@@ -1,12 +1,12 @@
 import CppFormalization.Cpp2.Static.Pure.Inversions
-import CppFormalization.Cpp2.Static.SafetyPolicy.Assumptions
+import CppFormalization.Cpp2.SafetyPolicy.Assumptions
 
 namespace Cpp
 
 /-!
-# CppFormalization.Cpp2.Static.Safety.Inversions
+# CppFormalization.Cpp2.SafetyPolicy.Facts.Inversions
 
-Safety-level inversion facts.
+Safety-policy-level inversion facts.
 
 This file contains inversion facts for `NoUninit*`, `NoInvalidRef*`, and
 `IdealAssumptions`.  Pure well-formedness and typing inversions live in
