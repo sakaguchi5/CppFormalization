@@ -27,10 +27,6 @@ def bodyReadyCI (c : CoreBigStepCert) :
     BodyReadyCI c.Γ c.σ c.st :=
   c.closure.toBodyReadyCI
 
-def bodyReady (c : CoreBigStepCert) :
-    BodyReady c.Γ c.σ c.st :=
-  c.closure.toBodyReady
-
 @[simp] theorem bodyReadyCI_safe
     (c : CoreBigStepCert) :
     c.bodyReadyCI.dynamic.safe = c.dynamic.safe := by

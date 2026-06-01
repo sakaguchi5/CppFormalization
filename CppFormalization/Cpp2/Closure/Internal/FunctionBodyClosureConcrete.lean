@@ -40,17 +40,4 @@ def PrimitiveCoreStmtConcrete : CppStmt → Prop
   intro h
   cases st <;> simp [PrimitiveCoreStmtConcrete, CoreBigStepFragment, InBigStepFragment] at h ⊢
 
-/-- At function-body top level, `break` and `continue` are excluded by the existing
-scope-discipline theorems packaged inside `BodyReady`. -/
-theorem top_level_abrupt_excluded_from_bodyReady_concrete
-    {Γ : TypeEnv} {σ σ' : State} {st : CppStmt} :
-    BodyReady Γ σ st →
-    ¬ BigStepStmt σ st .breakResult σ' ∧ ¬ BigStepStmt σ st .continueResult σ' := by
-  intro hready
-  constructor
-  · intro hbreak
-    exact stmt_break_not_scoped hbreak hready.breakScoped
-  · intro hcont
-    exact stmt_continue_not_scoped hcont hready.continueScoped
-
 end Cpp

@@ -264,24 +264,4 @@ def refBindingsLiveTyped (Γ : TypeEnv) (σ : State) : Prop :=
     σ.scopes[k]? = some σfr →
     refDeclBindingLiveTypedAt Γfr σfr σ.heap
 
-/-- `TypedState` より強い runtime invariant. -/
-structure ScopedTypedState (Γ : TypeEnv) (σ : State) : Prop where
-  stackAligned : scopesCompatible Γ σ
-  frameDeclBinding : framewiseDeclBindingCompatible Γ σ
-  objectBindingsSound : objectBindingsLiveTypedOwned Γ σ
-  refBindingsSound : refBindingsLiveTyped Γ σ
-  localsExact : frameLocalsExact Γ σ
-  ownedDisjoint : ownedAddressesDisjoint σ
-  initializedValuesTyped : heapInitializedValuesTyped σ
-  nextFresh : nextIsFreshForOwnedHeap σ
-
-/-- coarse compatibility façade retained for old-to-new bridges. -/
-structure BodyReady (Γ : TypeEnv) (σ : State) (st : CppStmt) : Prop where
-  wf : WellFormedStmt st
-  typed : WellTypedFrom Γ st
-  breakScoped : BreakWellScoped st
-  continueScoped : ContinueWellScoped st
-  state : ScopedTypedState Γ σ
-  safe : StmtReady Γ σ st
-
 end Cpp

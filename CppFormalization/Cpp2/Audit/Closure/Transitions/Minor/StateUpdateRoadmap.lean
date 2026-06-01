@@ -76,60 +76,6 @@ theorem close_scope_preserves_concrete_state
    2. concrete から abstract theorem への橋
    ========================================= -/
 
-theorem bodyReady_of_concrete
-    {Γ : TypeEnv} {σ : State} {st : CppStmt} :
-    WellFormedStmt st →
-    WellTypedFrom Γ st →
-    BreakWellScoped st →
-    ContinueWellScoped st →
-    ScopedTypedStateConcrete Γ σ →
-    StmtReadyConcrete Γ σ st →
-    BodyReady Γ σ st := by
-  intro hwf htyped hbreak hcont hstate hsafe
-  refine
-    { wf := hwf
-      typed := htyped
-      breakScoped := hbreak
-      continueScoped := hcont
-      state := scopedTypedState_of_concrete hstate
-      safe := ?_ }
-  exact
-    ⟨ htyped
-    , noUninit_of_stmtReadyConcrete hsafe
-    , noInvalidRef_of_stmtReadyConcrete hsafe ⟩
-
-theorem assigns_preserves_scoped_typed_state_via_concrete
-    {Γ : TypeEnv} {σ σ' : State} {p : PlaceExpr} {v : Value} {τ : CppType} :
-    ScopedTypedStateConcrete Γ σ →
-    HasPlaceType Γ p τ →
-    PlaceReadyConcrete Γ σ p τ →
-    ValueCompat v τ →
-    Assigns σ p v σ' →
-    ScopedTypedState Γ σ' := by
-  intro hσ hp hready hv hass
-  exact scopedTypedState_of_concrete
-    (assigns_preserves_concrete_state hσ hp hready hv hass)
-
-theorem declares_object_preserves_scoped_typed_state_via_concrete
-    {Γ : TypeEnv} {σ σ' : State} {τ : CppType} {x : Ident} {ov : Option Value} :
-    ScopedTypedStateConcrete Γ σ →
-    currentTypeScopeFresh Γ x →
-    DeclaresObject σ τ x ov σ' →
-    ScopedTypedState (declareTypeObject Γ x τ) σ' := by
-  intro hσ hfresh hdecl
-  exact scopedTypedState_of_concrete
-    (declares_object_preserves_concrete_state hσ hfresh hdecl)
-
-theorem declares_ref_preserves_scoped_typed_state_via_concrete
-    {Γ : TypeEnv} {σ σ' : State} {τ : CppType} {x : Ident} {a : Nat} :
-    ScopedTypedStateConcrete Γ σ →
-    currentTypeScopeFresh Γ x →
-    DeclaresRef σ τ x a σ' →
-    ScopedTypedState (declareTypeRef Γ x τ) σ' := by
-  intro hσ hfresh hdecl
-  exact scopedTypedState_of_concrete
-    (declares_ref_preserves_concrete_state hσ hfresh hdecl)
-
 /-
 LEGACY SHELL COMMENTED OUT
 
