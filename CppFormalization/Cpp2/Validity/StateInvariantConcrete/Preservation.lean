@@ -1,3 +1,4 @@
+import CppFormalization.Cpp2.RuntimeModel.Facts.RuntimeDeclUpdate
 import CppFormalization.Cpp2.Validity.StateInvariantConcrete.StateInvariantConcrete
 
 namespace Cpp

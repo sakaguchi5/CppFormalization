@@ -1,4 +1,5 @@
 import CppFormalization.Cpp2.SafetyPolicy.Assumptions
+import CppFormalization.Cpp2.Validity.StateInvariantConcrete.HeapTyping
 import CppFormalization.Cpp2.RuntimeModel.RuntimeQuery
 import CppFormalization.Cpp2.RuntimeModel.Facts.RuntimeState
 import CppFormalization.Cpp2.RuntimeModel.Facts.RuntimeDeclUpdate
@@ -131,12 +132,6 @@ theorem ownedAddressesDisjoint_bindTopBinding
   unfold declareRefState
   exact ownedAddressesDisjoint_bindTopBinding (σ := σ) (x := x) (b := .ref τ a) hdisj
 
-/-- heap に入っている initialized value は cell の型に整合する。 -/
-def heapInitializedValuesTyped (σ : State) : Prop :=
-  ∀ a c v,
-    σ.heap a = some c →
-    c.value = some v →
-    ValueCompat v c.ty
 
 /-- `next` は未使用で、どの frame の `locals` にも現れない。 -/
 def nextIsFreshForOwnedHeap (σ : State) : Prop :=

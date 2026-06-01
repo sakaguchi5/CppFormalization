@@ -3,7 +3,7 @@ import CppFormalization.Cpp2.Validity.RuntimeAgreement.DeclRuntimeMatch
 import CppFormalization.Cpp2.RuntimeModel.RuntimeQuery
 import CppFormalization.Cpp2.RuntimeModel.RuntimeCell
 import CppFormalization.Cpp2.RuntimeModel.RuntimeFreshness
-import CppFormalization.Cpp2.Entry.StaticSafety.StateBoundary
+import CppFormalization.Cpp2.Validity.StateInvariantConcrete.HeapTyping
 
 /-!
 # CppFormalization.Cpp2.Static.Safety.StateInvariantConcrete
