@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Static.StructuralAdmission.BodyStructuralBoundary
-import CppFormalization.Cpp2.Static.Boundary.BodyStaticBoundaryCI
+import CppFormalization.Cpp2.Profile.StaticBoundary.BodyStaticBoundaryCI
 import CppFormalization.Cpp2.Entry.StaticSafety.BodyDynamicBoundary
 import CppFormalization.Cpp2.Adequacy.Body.BodyAdequacyCI
 

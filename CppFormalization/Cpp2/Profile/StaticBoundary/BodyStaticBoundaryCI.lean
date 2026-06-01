@@ -5,7 +5,7 @@ import CppFormalization.Cpp2.Static.Typing.Stmt
 namespace Cpp
 
 /-!
-# CppFormalization.Cpp2.Boundary.Static.BodyStaticBoundaryCI
+# CppFormalization.Cpp2.Profile.StaticBoundary.BodyStaticBoundaryCI
 
 Canonical static boundary CI layer.
 

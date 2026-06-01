@@ -1,4 +1,3 @@
-import CppFormalization.Cpp2.Static.Boundary.All
 import CppFormalization.Cpp2.Static.Env.All
 import CppFormalization.Cpp2.Static.Facts.All
 import CppFormalization.Cpp2.Static.Pure.All

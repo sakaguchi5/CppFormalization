@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.RuntimeModel.RuntimeState
+import CppFormalization.Cpp2.Language.Types
 
 namespace Cpp
 
@@ -6,10 +6,5 @@ inductive ProgSuccess where
   | normal
   | returned : Option Value → ProgSuccess
   deriving DecidableEq, Repr
-
-inductive ProgOutcome where
-  | success  : ProgSuccess → State → ProgOutcome
-  | diverges : ProgOutcome
-  deriving Repr
 
 end Cpp

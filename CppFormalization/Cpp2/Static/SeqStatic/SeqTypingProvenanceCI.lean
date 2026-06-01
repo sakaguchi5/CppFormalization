@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Profile.ControlProfile
+import CppFormalization.Cpp2.Static.Typing.ControlIndexed
 
 namespace Cpp
 

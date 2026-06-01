@@ -1,6 +1,6 @@
 import CppFormalization.Cpp2.Operational.Divergence
 import CppFormalization.Cpp2.Continuation.Boundary.Dynamic
-import CppFormalization.Cpp2.Static.Boundary.BodyStaticBoundaryCI
+import CppFormalization.Cpp2.Profile.StaticBoundary.BodyStaticBoundaryCI
 import CppFormalization.Cpp2.Adequacy.Body.BodyAdequacyCI
 
 namespace Cpp

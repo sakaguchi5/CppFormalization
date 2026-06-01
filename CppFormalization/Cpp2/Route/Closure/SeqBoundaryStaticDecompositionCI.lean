@@ -1,4 +1,4 @@
-import CppFormalization.Cpp2.Static.Boundary.SeqStaticBoundaryProjectionCI
+import CppFormalization.Cpp2.Profile.StaticBoundary.SeqStaticBoundaryProjectionCI
 import CppFormalization.Cpp2.Static.SeqStatic.SeqTypingProvenanceCI
 import CppFormalization.Cpp2.Closure.Package.BodyClosureBoundaryCI
 import CppFormalization.Cpp2.Static.SeqStatic.SeqStructuralProjectionCI
