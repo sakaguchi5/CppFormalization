@@ -3,7 +3,7 @@ import CppFormalization.Cpp2.Entry.StaticSafety.BodyDynamicBoundary
 import CppFormalization.Cpp2.Entry.StaticSafety.BlockBodyDynamicBoundaryLite
 import CppFormalization.Cpp2.Profile.ControlProfileLite
 import CppFormalization.Cpp2.Adequacy.LegacyFoundation.BodyAdequacyLite
-import CppFormalization.Cpp2.Static.Facts.Facts.ControlExclusion
+import CppFormalization.Cpp2.Operational.Facts.Control.ControlExclusion
 
 namespace Cpp
 

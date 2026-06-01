@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Closure.Package.BodyClosureBoundaryCI
-import CppFormalization.Cpp2.Static.Facts.Facts.ControlExclusion
+import CppFormalization.Cpp2.Operational.Facts.Control.ControlExclusion
 
 namespace Cpp
 

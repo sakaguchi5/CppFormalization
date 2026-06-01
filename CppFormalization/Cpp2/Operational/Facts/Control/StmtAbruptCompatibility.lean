@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Static.Facts.Control.TypingCISeparation
-import CppFormalization.Cpp2.Static.Facts.Control.TypingCINormalExclusion
+import CppFormalization.Cpp2.Operational.Facts.Control.TypingCINormalExclusion
 import CppFormalization.Cpp2.Operational.Facts.Control.StmtControlCompatibility
 
 namespace Cpp

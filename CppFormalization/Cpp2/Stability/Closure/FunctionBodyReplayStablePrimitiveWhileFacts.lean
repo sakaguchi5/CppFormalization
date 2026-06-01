@@ -1,5 +1,5 @@
 import CppFormalization.Cpp2.Entry.Body.BodyReadyCI
-import CppFormalization.Cpp2.Static.Facts.Control.BodyReadyControlExclusionCI
+import CppFormalization.Cpp2.Entry.Facts.Control.BodyReadyControlExclusionCI
 import CppFormalization.Cpp2.Legacy.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Adequacy.Body.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI

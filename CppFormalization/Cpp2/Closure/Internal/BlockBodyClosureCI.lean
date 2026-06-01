@@ -1,6 +1,6 @@
 import CppFormalization.Cpp2.Closure.Function.FunctionBody
 import CppFormalization.Cpp2.Entry.Body.BodyReadyCI
-import CppFormalization.Cpp2.Static.Facts.Control.BodyReadyControlExclusionCI
+import CppFormalization.Cpp2.Entry.Facts.Control.BodyReadyControlExclusionCI
 import CppFormalization.Cpp2.Legacy.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Package.BodyClosureBoundaryCI
 import CppFormalization.Cpp2.Static.StructuralAdmission.BodyStructuralBoundary

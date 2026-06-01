@@ -2,7 +2,7 @@ import CppFormalization.Cpp2.Closure.Function.FunctionBody
 import CppFormalization.Cpp2.Legacy.ClosureInternal.FunctionBodyClosureConcreteRefined
 import CppFormalization.Cpp2.Preservation.BlockNormalPreservation
 import CppFormalization.Cpp2.Preservation.Scope.OpenPreservation
-import CppFormalization.Cpp2.Static.Facts.Facts.ControlExclusion
+import CppFormalization.Cpp2.Operational.Facts.Control.ControlExclusion
 import CppFormalization.Cpp2.Operational.Divergence
 import CppFormalization.Cpp2.Operational.Facts.ScopeDepth
 
