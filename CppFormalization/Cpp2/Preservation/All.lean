@@ -2,6 +2,7 @@ import CppFormalization.Cpp2.Preservation.Assign.All
 import CppFormalization.Cpp2.Preservation.Closure.All
 import CppFormalization.Cpp2.Preservation.DeclareObject.All
 import CppFormalization.Cpp2.Preservation.DeclareRef.All
+import CppFormalization.Cpp2.Preservation.Facts.Control.BigStepControlCompatibility
 import CppFormalization.Cpp2.Preservation.Scope.All
 import CppFormalization.Cpp2.Preservation.BlockNormalPreservation
 import CppFormalization.Cpp2.Preservation.ConditionalNormalPreservation

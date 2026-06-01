@@ -3,14 +3,14 @@ import CppFormalization.Cpp2.Preservation.StmtControlPreservation
 namespace Cpp
 
 /-!
-# Proof.Control.BigStepControlCompatibility
+# Preservation.Facts.Control.BigStepControlCompatibility
 
 Correctly named public surface for synthesizing control compatibility from
 big-step executions and CI typing derivations.
 
 This is intentionally a first-stage relocation facade:
 - the existing proof body still lives in
-  `Proof.Preservation.StmtControlPreservation`;
+  `Preservation.StmtControlPreservation`;
 - new code should import this file and use the names below;
 - a later cleanup can move or shorten the underlying recursor proof without
   changing downstream theorem names.

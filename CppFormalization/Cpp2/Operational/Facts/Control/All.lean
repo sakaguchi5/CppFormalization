@@ -1,6 +1,4 @@
-import CppFormalization.Cpp2.Operational.Facts.Control.BigStepControlCompatibility
 import CppFormalization.Cpp2.Operational.Facts.Control.ControlExclusion
 import CppFormalization.Cpp2.Operational.Facts.Control.StmtAbruptCompatibility
 import CppFormalization.Cpp2.Operational.Facts.Control.StmtControlCompatibility
-import CppFormalization.Cpp2.Operational.Facts.Control.StmtNormalCompatCases
 import CppFormalization.Cpp2.Operational.Facts.Control.TypingCINormalExclusion
