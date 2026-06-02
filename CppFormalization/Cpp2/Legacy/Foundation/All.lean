@@ -1,4 +1,3 @@
-import CppFormalization.Cpp2.Legacy.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Legacy.Foundation.BodyClosureBoundaryLite
 import CppFormalization.Cpp2.Legacy.Foundation.LoopBodyBoundaryCompatibility
 import CppFormalization.Cpp2.Legacy.Foundation.WhileEntryBoundaryCompatibilityCI

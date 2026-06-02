@@ -25,7 +25,7 @@ def toyGlueV3 : VerifiedExternalGlueV3 toyStdFragmentV3 toyReflectionFragmentV3 
     intro n m Γ σ st _ _ hgen hsuppRefl hcompat
     rcases hcompat with ⟨rfl, rfl, rfl, rfl⟩
     rcases hsuppRefl with ⟨_, _⟩
-    simpa [toyReflectionFragmentV3] using n.ready.toAdequacy
+    simpa [toyReflectionFragmentV3] using n.ready.adequacy
 
 theorem toyGlue_compatible (c : ToyReadyCertificate) :
     toyGlueV3.compatible c c c.Γ c.σ c.st := by
@@ -53,7 +53,7 @@ theorem toyGlueExternalPiecesV3_static
 
 theorem toyGlueExternalPiecesV3_structural
     (c : ToyReadyCertificate) :
-    (toyGlueExternalPiecesV3 c).structural = c.ready.toStructural := by
+    (toyGlueExternalPiecesV3 c).structural = c.ready.structural := by
   have h :=
     assembleExternalPiecesV3_structural
       (G := toyGlueV3)

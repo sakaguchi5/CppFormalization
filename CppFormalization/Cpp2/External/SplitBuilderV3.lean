@@ -72,7 +72,7 @@ structure SplitArtifactFamilyV3 where
       (hgen : generates m st)
       (hsuppRefl : supportsReflection m Γ st)
       (hcompat : compatible n m Γ σ st),
-      (mkReady huse hsuppRun hgen hsuppRefl hcompat).toDynamic =
+      (mkReady huse hsuppRun hgen hsuppRefl hcompat).dynamic =
         (mkRuntime huse hsuppRun).dynamic
 
   structural_eq :
@@ -82,7 +82,7 @@ structure SplitArtifactFamilyV3 where
       (hgen : generates m st)
       (hsuppRefl : supportsReflection m Γ st)
       (hcompat : compatible n m Γ σ st),
-      (mkReady huse hsuppRun hgen hsuppRefl hcompat).toStructural =
+      (mkReady huse hsuppRun hgen hsuppRefl hcompat).structural =
         (mkReflection hgen hsuppRefl).structural
 
   static_eq :
@@ -131,7 +131,7 @@ def mkAdequacy_from_compatible
   castBodyAdequacy
     (congrArg BodyStaticBoundaryCI.profile
       (A.static_eq huse hsuppRun hgen hsuppRefl hcompat))
-    hready.toAdequacy
+    hready.adequacy
 
 def toGlue (A : SplitArtifactFamilyV3) :
     VerifiedExternalGlueV3 A.toStdFragment A.toReflectionFragment where
@@ -278,7 +278,7 @@ theorem glueExternalPieces_toBodyBoundary_cast
         (castBodyAdequacy
           (congrArg BodyStaticBoundaryCI.profile
             (A.routeReady_static_eq huse hsuppRun hgen hsuppRefl hcompat))
-          (A.routeReady huse hsuppRun hgen hsuppRefl hcompat).toAdequacy) := by
+          (A.routeReady huse hsuppRun hgen hsuppRefl hcompat).adequacy) := by
   simp [SplitArtifactFamilyV3.glueExternalPieces,
     assembleExternalPiecesV3,
     ExternalPiecesV3.toBodyBoundary,

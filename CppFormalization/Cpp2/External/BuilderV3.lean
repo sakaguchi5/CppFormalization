@@ -45,7 +45,7 @@ def toStdFragment (B : ReadyCertificateFamilyV3) : VerifiedStdFragmentV3 where
   mkRuntime := by
     intro c Γ σ st _ hsupp
     rcases hsupp with ⟨rfl, rfl, rfl⟩
-    exact { dynamic := (B.readyOf c).toDynamic }
+    exact { dynamic := (B.readyOf c).dynamic }
 
 /-- Reflection-side V3 fragment generated from a ready-certificate family. -/
 def toReflectionFragment (B : ReadyCertificateFamilyV3) : VerifiedReflectionFragmentV3 where
@@ -80,7 +80,7 @@ theorem compat_dynamic_eq
     (hgen : B.toReflectionFragment.generates m st)
     (hsuppRefl : B.toReflectionFragment.supportsReflection m Γ st)
     (hcompat : n = m ∧ Γ = B.targetΓ n ∧ σ = B.targetσ n ∧ st = B.targetSt n) :
-    (mkReady_from_compatible B hcompat).toDynamic =
+    (mkReady_from_compatible B hcompat).dynamic =
       (B.toStdFragment.mkRuntime huse hsuppRun).dynamic := by
   rcases hcompat with ⟨rfl, rfl, rfl, rfl⟩
   rcases hsuppRun with ⟨_, _, _⟩
@@ -93,7 +93,7 @@ theorem compat_structural_eq
     (hgen : B.toReflectionFragment.generates m st)
     (hsuppRefl : B.toReflectionFragment.supportsReflection m Γ st)
     (hcompat : n = m ∧ Γ = B.targetΓ n ∧ σ = B.targetσ n ∧ st = B.targetSt n) :
-    (mkReady_from_compatible B hcompat).toStructural =
+    (mkReady_from_compatible B hcompat).structural =
       (B.toReflectionFragment.mkReflection hgen hsuppRefl).structural := by
   rcases hcompat with ⟨rfl, rfl, rfl, rfl⟩
   rcases hsuppRefl with ⟨_, _⟩
@@ -145,7 +145,7 @@ def mkAdequacy_from_compatible
   castBodyAdequacy
     (congrArg BodyStaticBoundaryCI.profile
       (A.static_eq huse hsuppRun hgen hsuppRefl hcompat))
-    hready.toAdequacy
+    hready.adequacy
 
 /-- The canonical low-level glue generated from the family. -/
 def toGlue
@@ -331,7 +331,7 @@ theorem mkAdequacy_from_compatible_self
       (B.supportsReflection_self c)
       (B.compatible_self c)
       =
-      (readyAssembly_profile_self B c) ▸ (B.readyOf c).toAdequacy := by
+      (readyAssembly_profile_self B c) ▸ (B.readyOf c).adequacy := by
   apply bodyAdequacy_eq
 
 
@@ -347,7 +347,7 @@ theorem mkAdequacy_from_compatible_self2
       =
       castBodyAdequacy
         (readyAssembly_profile_self B c)
-        ((B.readyOf c).toAdequacy) := by
+        ((B.readyOf c).adequacy) := by
   rw [castBodyAdequacy_eq_transport]
   -- 2. ターゲットの型を整え、両辺が「依存型における輸送」の形であることを示す
   -- これにより bodyAdequacy_eq が適用可能な状態になります
@@ -370,12 +370,12 @@ theorem readySelf_eq
 
 theorem readySelf_profile_eq_readyOf
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
-    (B.readyOf c).toProfile = (readySelf B c).toProfile := by
+    (B.readyOf c).static.profile = (readySelf B c).static.profile := by
   rw [readySelf_eq]
 
 theorem readySelf_toAdequacy_heq_readyOf
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
-    HEq (readySelf B c).toAdequacy (B.readyOf c).toAdequacy := by
+    HEq (readySelf B c).adequacy (B.readyOf c).adequacy := by
   rw [readySelf_eq]
 
 theorem readyAssembly_compatible_self
@@ -414,7 +414,7 @@ theorem mkAdequacy_from_compatible_eq_cast
     castBodyAdequacy
       (congrArg BodyStaticBoundaryCI.profile
         (A.static_eq huse hsuppRun hgen hsuppRefl hcompat))
-      ((A.mkReady huse hsuppRun hgen hsuppRefl hcompat).toAdequacy) := by
+      ((A.mkReady huse hsuppRun hgen hsuppRefl hcompat).adequacy) := by
   unfold mkAdequacy_from_compatible
   simp
 
@@ -429,12 +429,12 @@ theorem mkAdequacy_from_compatible_cast
     (hsuppRefl : R.supportsReflection m Γ st)
     (hcompat : A.compatible n m Γ σ st)
     (hready : A.mkReady huse hsuppRun hgen hsuppRefl hcompat = ready)
-    (hstatic : ready.toStatic = (R.mkReflection hgen hsuppRefl).static) :
+    (hstatic : ready.static = (R.mkReflection hgen hsuppRefl).static) :
     castBodyAdequacy
       (Eq.symm (congrArg BodyStaticBoundaryCI.profile hstatic))
       (mkAdequacy_from_compatible A huse hsuppRun hgen hsuppRefl hcompat)
       =
-      ready.toAdequacy := by
+      ready.adequacy := by
   subst ready
   rw [mkAdequacy_from_compatible_eq_cast]
   have hprof :
@@ -446,7 +446,7 @@ theorem mkAdequacy_from_compatible_cast
   rw [hprof]
   simpa using
     (castBodyAdequacy_symm
-      ((A.mkReady huse hsuppRun hgen hsuppRefl hcompat).toAdequacy)
+      ((A.mkReady huse hsuppRun hgen hsuppRefl hcompat).adequacy)
       (congrArg BodyStaticBoundaryCI.profile hstatic))
 
 
@@ -464,7 +464,7 @@ theorem glue_mkAdequacy_self
         (B.supportsReflection_self c)
         (B.glue_compatible_self c))
       =
-      (B.readyOf c).toAdequacy := by
+      (B.readyOf c).adequacy := by
   have hcompat := readyAssembly_compatible_self B c
   have hready := readyAssembly_mkReady_self B c
   have hstatic := readyAssembly_static_self B c
@@ -482,7 +482,7 @@ theorem glue_mkAdequacy_self
 
 theorem readyAssembly_dynamic_self
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
-    (B.readySelf c).toDynamic =
+    (B.readySelf c).dynamic =
       (B.toStdFragment.mkRuntime
         (B.uses_self c)
         (B.supportsRuntime_self c)).dynamic := by
@@ -496,7 +496,7 @@ theorem readyAssembly_dynamic_self
 
 theorem readyAssembly_structural_self
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
-    (B.readySelf c).toStructural =
+    (B.readySelf c).structural =
       (B.toReflectionFragment.mkReflection
         (B.generates_self c)
         (B.supportsReflection_self c)).structural := by
@@ -510,7 +510,7 @@ theorem readyAssembly_structural_self
 
 theorem readySelf_profile_self
     (B : ReadyCertificateFamilyV3) (c : B.Cert) :
-    (B.readySelf c).toProfile =
+    (B.readySelf c).static.profile =
       (B.toReflectionFragment.mkReflection
         (B.generates_self c)
         (B.supportsReflection_self c)).profile := by

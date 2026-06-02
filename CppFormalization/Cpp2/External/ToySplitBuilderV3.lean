@@ -41,7 +41,7 @@ def ToyReadyCertificate.toSplitReflectionArtifact
     (c : ToyReadyCertificate) : ToySplitReflectionArtifactV3 :=
   { Γ := c.Γ
     st := c.st
-    structural := c.ready.toStructural
+    structural := c.ready.structural
     static := c.ready.static
     core := c.core }
 
@@ -106,7 +106,7 @@ def toySplitFamilyV3 : SplitArtifactFamilyV3 where
   mkRuntime := by
     intro n Γ σ st _ hsupp
     rcases hsupp with ⟨rfl, rfl, rfl⟩
-    exact { dynamic := n.ready.toDynamic }
+    exact { dynamic := n.ready.dynamic }
 
   mkReflection := by
     intro m Γ st hgen hsupp
@@ -115,7 +115,7 @@ def toySplitFamilyV3 : SplitArtifactFamilyV3 where
   compatible := fun n m Γ σ st =>
     n.Γ = Γ ∧ n.σ = σ ∧ n.st = st ∧
     m.Γ = Γ ∧ m.st = st ∧
-    HEq n.ready.toStructural m.structural ∧
+    HEq n.ready.structural m.structural ∧
     HEq n.ready.static m.static
 
   mkReady := by

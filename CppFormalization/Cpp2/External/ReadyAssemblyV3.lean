@@ -1,7 +1,6 @@
 import CppFormalization.Cpp2.External.TransportV3
 import CppFormalization.Cpp2.Audit.Closure.Internal.InternalClosureRoadmap
-import CppFormalization.Cpp2.Legacy.Foundation.BodyBoundaryCompatibility
-
+--import CppFormalization.Cpp2.Entry.Body.BodyReadyCI
 namespace Cpp
 
 /-!
@@ -36,7 +35,7 @@ structure VerifiedExternalReadyAssemblyV3
       (hgen : R.generates m st)
       (hsuppRefl : R.supportsReflection m Γ st)
       (hcompat : compatible n m Γ σ st),
-      (mkReady huse hsuppRun hgen hsuppRefl hcompat).toDynamic =
+      (mkReady huse hsuppRun hgen hsuppRefl hcompat).dynamic =
         (F.mkRuntime huse hsuppRun).dynamic
 
   structural_eq :
@@ -46,7 +45,7 @@ structure VerifiedExternalReadyAssemblyV3
       (hgen : R.generates m st)
       (hsuppRefl : R.supportsReflection m Γ st)
       (hcompat : compatible n m Γ σ st),
-      (mkReady huse hsuppRun hgen hsuppRefl hcompat).toStructural =
+      (mkReady huse hsuppRun hgen hsuppRefl hcompat).structural =
         (R.mkReflection hgen hsuppRefl).structural
 
   static_eq :
@@ -56,7 +55,7 @@ structure VerifiedExternalReadyAssemblyV3
       (hgen : R.generates m st)
       (hsuppRefl : R.supportsReflection m Γ st)
       (hcompat : compatible n m Γ σ st),
-      (mkReady huse hsuppRun hgen hsuppRefl hcompat).toStatic =
+      (mkReady huse hsuppRun hgen hsuppRefl hcompat).static =
         (R.mkReflection hgen hsuppRefl).static
 
 namespace VerifiedExternalReadyAssemblyV3
@@ -71,7 +70,7 @@ theorem static_profile_eq
     (hgen : R.generates m st)
     (hsuppRefl : R.supportsReflection m Γ st)
     (hcompat : A.compatible n m Γ σ st) :
-    (A.mkReady huse hsuppRun hgen hsuppRefl hcompat).toProfile =
+    (A.mkReady huse hsuppRun hgen hsuppRefl hcompat).static.profile =
       (R.mkReflection hgen hsuppRefl).static.profile := by
   exact congrArg BodyStaticBoundaryCI.profile
     (A.static_eq huse hsuppRun hgen hsuppRefl hcompat)
@@ -86,7 +85,7 @@ theorem profile_eq
     (hgen : R.generates m st)
     (hsuppRefl : R.supportsReflection m Γ st)
     (hcompat : A.compatible n m Γ σ st) :
-    (A.mkReady huse hsuppRun hgen hsuppRefl hcompat).toProfile =
+    (A.mkReady huse hsuppRun hgen hsuppRefl hcompat).static.profile =
       (R.mkReflection hgen hsuppRefl).static.profile :=
   A.static_profile_eq huse hsuppRun hgen hsuppRefl hcompat
 
@@ -114,7 +113,7 @@ def externalPieces_of_ready_v3
       adequacy :=
         transportAdequacy
           (A.static_profile_eq huse hsuppRun hgen hsuppRefl hcompat)
-          hr.toAdequacy }
+          hr.adequacy }
 
 theorem externalPieces_of_ready_v3_boundary
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}

@@ -29,7 +29,7 @@ def toyStdFragmentV3 : VerifiedStdFragmentV3 where
   mkRuntime := by
     intro n Γ σ st _ hsupp
     rcases hsupp with ⟨rfl, rfl, rfl⟩
-    exact { dynamic := n.ready.toDynamic }
+    exact { dynamic := n.ready.dynamic }
 
 /-- Toy reflection-side fragment: one certificate carries one reflection target. -/
 def toyReflectionFragmentV3 : VerifiedReflectionFragmentV3 where
@@ -89,13 +89,6 @@ theorem toy_supportsReflection (c : ToyReadyCertificate) :
 theorem toy_compatible (c : ToyReadyCertificate) :
     toyReadyAssemblyV3.compatible c c c.Γ c.σ c.st := by
   exact ⟨rfl, rfl, rfl, rfl⟩
-
-
-@[simp] theorem BodyReadyCI.toProfile_eq_static_profile
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (h : BodyReadyCI Γ σ st) :
-    h.toProfile = h.static.profile := by
-  rfl
 
 /-- The canonical explicit V3 pieces assembled from a toy certificate. -/
 def toyExternalPiecesV3 (c : ToyReadyCertificate) :
