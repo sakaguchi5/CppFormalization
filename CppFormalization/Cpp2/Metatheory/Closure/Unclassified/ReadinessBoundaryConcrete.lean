@@ -27,25 +27,6 @@ full generic な residual readiness にはまだ full generic condition replay k
 という二段構成にする。
 -/
 
-theorem seq_left_normal_preserves_body_ready_concrete
-    {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
-    HasTypeStmtCI .normalK Γ s Δ →
-    StmtReadyConcrete Γ σ (.seq s t) →
-    BigStepStmt σ s .normal σ' →
-    ScopedTypedStateConcrete Γ σ →
-    ScopedTypedStateConcrete Δ σ' ∧ StmtReadyConcrete Δ σ' t := by
-  intro htyLeft hreadySeq hstepLeft hσ
-  exact
-    seq_left_normal_preserves_ready_of_left_preservation
-      (Γ := Γ) (Δ := Δ) (σ := σ) (σ' := σ') (s := s) (t := t)
-      (hpres := by
-        intro htyLeft' hσ0 hreadyLeft0 hstepLeft0
-        exact
-          stmt_normal_preserves_scoped_typed_state_concrete
-            htyLeft' hσ0 hreadyLeft0 hstepLeft0)
-      sorry
-      htyLeft hreadySeq hstepLeft hσ
-
 theorem block_head_normal_preserves_block_ready_concrete
     {Γ Δ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock} :
     HasTypeStmtCI .normalK Γ s Δ →

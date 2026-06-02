@@ -54,22 +54,27 @@ theorem seq_normal_preserves_scoped_typed_state_from_subproofs
       StmtReadyConcrete Θ σ1 t →
       BigStepStmt σ1 t .normal σ' →
       ScopedTypedStateConcrete Δ σ') →
+    (∀ {Θ : TypeEnv} {σ1 : State},
+      HasTypeStmtCI .normalK Γ s Θ →
+      ScopedTypedStateConcrete Θ σ1 →
+      StmtReadyConcrete Γ σ (.seq s t) →
+      BigStepStmt σ s .normal σ1 →
+      StmtContinuationDynamicBoundary Θ σ1 t) →
     ScopedTypedStateConcrete Δ σ' := by
-  intro htySeq hσ hreadySeq hstepSeq hleft hright
+  intro htySeq hσ hreadySeq hstepSeq hleft hright htail
   rcases seq_typing_data htySeq with ⟨Θ, htyLeft, htyRight⟩
   rcases seq_normal_data hstepSeq with ⟨σ1, hleftStep, hrightStep⟩
-  have hpost :
-      ScopedTypedStateConcrete Θ σ1 ∧ StmtReadyConcrete Θ σ1 t := by
-    exact
-      seq_left_normal_preserves_ready_of_left_preservation
-        (Γ := Γ) (Δ := Θ) (σ := σ) (σ' := σ1) (s := s) (t := t)
-        (hpres := by
-          intro htyLeft' _hσ0 hreadyLeft0 hstepLeft0
-          exact hleft htyLeft' hreadyLeft0 hstepLeft0)
-        sorry
-        htyLeft hreadySeq hleftStep hσ
-  rcases hpost with ⟨hσ1, hreadyRight⟩
-  exact hright htyRight hσ1 hreadyRight hrightStep
+
+  have hreadyLeft : StmtReadyConcrete Γ σ s :=
+    seq_ready_left hreadySeq
+
+  have hσ1 : ScopedTypedStateConcrete Θ σ1 :=
+    hleft htyLeft hreadyLeft hleftStep
+
+  have htailDyn : StmtContinuationDynamicBoundary Θ σ1 t :=
+    htail htyLeft hσ1 hreadySeq hleftStep
+
+  exact hright htyRight htailDyn.state htailDyn.safe hrightStep
 
 /- =========================================================
    3. statement 全体の normal preservation を仮定した簡約版
@@ -89,13 +94,25 @@ theorem seq_normal_preserves_scoped_typed_state_concrete
       StmtReadyConcrete Γ' σ0 u →
       BigStepStmt σ0 u .normal σ1 →
       ScopedTypedStateConcrete Δ' σ1) →
+    (∀ {Θ : TypeEnv} {σ1 : State},
+      HasTypeStmtCI .normalK Γ s Θ →
+      ScopedTypedStateConcrete Θ σ1 →
+      StmtReadyConcrete Γ σ (.seq s t) →
+      BigStepStmt σ s .normal σ1 →
+      StmtContinuationDynamicBoundary Θ σ1 t) →
     ScopedTypedStateConcrete Δ σ' := by
-  intro htySeq hσ hreadySeq hstepSeq hstmt
-  refine seq_normal_preserves_scoped_typed_state_from_subproofs
-    htySeq hσ hreadySeq hstepSeq ?_ ?_
+  intro htySeq hσ hreadySeq hstepSeq hstmt htail
+  refine
+    seq_normal_preserves_scoped_typed_state_from_subproofs
+      htySeq hσ hreadySeq hstepSeq ?_ ?_ ?_
+
   · intro Θ σ1 htyLeft hreadyLeft hleftStep
     exact hstmt htyLeft hσ hreadyLeft hleftStep
+
   · intro Θ σ1 htyRight hσ1 hreadyRight hrightStep
     exact hstmt htyRight hσ1 hreadyRight hrightStep
+
+  · intro Θ σ1 htyLeft hσ1 hreadySeq' hleftStep
+    exact htail htyLeft hσ1 hreadySeq' hleftStep
 
 end Cpp
