@@ -18,18 +18,6 @@ concrete `BlockBodyReadyConcreteAt` path.  It makes three debts explicit:
 -/
 
 /--
-Statement closure provider for `BodyReadyAtCI`.
-
-This is the old-free replacement surface for the temporary
-`body_ready_at_ci_function_body_progress_or_diverges` shell.
--/
-abbrev BodyReadyAtCIClosureProvider : Prop :=
-  ∀ {Γ : TypeEnv} {σ : State} {st : CppStmt},
-    CoreBigStepFragment st →
-    BodyReadyAtCI Γ σ st →
-    (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st
-
-/--
 Provider that upgrades a `BodyReadyAtCI` entry into the assembled statement
 closure boundary expected by the existing CI closure roots.
 -/

@@ -43,8 +43,8 @@ inductive BigStepFunctionBlockBody : State → StmtBlock → FunctionExit → St
       BigStepBlock σ ss .normal σ' →
       BigStepFunctionBlockBody σ ss .fellThrough σ'
   | returning {σ σ' : State} {ss : StmtBlock} {rv : Option Value} :
-    BigStepBlock σ ss (.returnResult rv) σ' →
-    BigStepFunctionBlockBody σ ss (.returned rv) σ'
+      BigStepBlock σ ss (.returnResult rv) σ' →
+      BigStepFunctionBlockBody σ ss (.returned rv) σ'
 
 /-- Honest boundary contract for an opened block body.
 
@@ -285,19 +285,15 @@ is structurally recursive over syntax and every constructor currently belongs to
 axiom coreBigStepFragment_all
     (st : CppStmt) : CoreBigStepFragment st
 
-
 /--
-Temporary CI-native statement progress shell.
+Statement closure provider for `BodyReadyAtCI`.
 
-This is intentionally old-typing-free.  It is the direct replacement target for
-the old `BodyReadyConcrete` progress surface while block-body closure is being
-moved off `BlockBodyReadyConcreteAt`.
-
-It is still a shell, but it no longer mentions `HasTypeStmt`, `HasTypeBlock`, or
-`WellTypedFrom`.
+This provider is the old-free replacement surface for the former temporary
+`body_ready_at_ci_function_body_progress_or_diverges` axiom.  Callers can build
+it from `BodyClosureBoundaryCI` or from the explicit mainline continuation root.
 -/
-axiom body_ready_at_ci_function_body_progress_or_diverges
-    {Γ : TypeEnv} {σ : State} {st : CppStmt} :
+abbrev BodyReadyAtCIClosureProvider : Prop :=
+  ∀ {Γ : TypeEnv} {σ : State} {st : CppStmt},
     CoreBigStepFragment st →
     BodyReadyAtCI Γ σ st →
     (∃ ex σ', BigStepFunctionBody σ st ex σ') ∨ BigStepStmtDiv σ st
@@ -306,12 +302,12 @@ axiom body_ready_at_ci_function_body_progress_or_diverges
 Head/tail assembly for a `cons` opened block body in the CI-native current-env
 layer.
 
-The closure theorem no longer rebuilds an old `BlockBodyReadyConcreteAt`.
-The tail entry is reconstructed through the CI-native `tailReadyOfCons` field,
-fed by an explicit dynamic tail provider.
+The closure theorem no longer depends on a statement-progress axiom.  Statement
+closure is supplied explicitly by `bodyClosure`.
 -/
 theorem cons_block_body_function_closure_ci_at
     {Γ : TypeEnv} {σ : State} {head : CppStmt} {tail : StmtBlock}
+    (bodyClosure : BodyReadyAtCIClosureProvider)
     (tailAfterHead : BlockBodyReadyAtCITailAfterHeadProvider)
     (h : BlockBodyReadyAtCI Γ σ (.cons head tail))
     (htail :
@@ -321,47 +317,46 @@ theorem cons_block_body_function_closure_ci_at
           BigStepBlockDiv σ' tail) :
     (∃ ex σ', BigStepFunctionBlockBody σ (.cons head tail) ex σ') ∨
       BigStepBlockDiv σ (.cons head tail) := by
-  have hheadReady : BodyReadyAtCI Γ σ head := h.headReadyOfCons rfl
+  have hheadReady : BodyReadyAtCI Γ σ head :=
+    h.headReadyOfCons rfl
 
-  rcases body_ready_at_ci_function_body_progress_or_diverges
-      (coreBigStepFragment_all head) hheadReady with hheadTerm | hheadDiv
-  · -- headが終了する場合
-    rcases hheadTerm with ⟨ex, σ1, hheadExec⟩
+  rcases bodyClosure (coreBigStepFragment_all head) hheadReady with
+    hheadTerm | hheadDiv
+  · rcases hheadTerm with ⟨ex, σ1, hheadExec⟩
     cases ex with
     | returned rv =>
-      left
-      refine ⟨.returned rv, σ1, .returning (.consReturn (by simpa using hheadExec.to_stmt))⟩
-        | fellThrough =>
-      have hstepHead : BigStepStmt σ head .normal σ1 := by
-        simpa using hheadExec.to_stmt
+        left
+        refine ⟨.returned rv, σ1, ?_⟩
+        exact .returning (.consReturn (by simpa using hheadExec.to_stmt))
+    | fellThrough =>
+        have hstepHead : BigStepStmt σ head .normal σ1 := by
+          simpa using hheadExec.to_stmt
 
-      rcases hheadReady.normalTypingOfStep hstepHead with ⟨Θ, hheadCI⟩
+        rcases hheadReady.normalTypingOfStep hstepHead with ⟨Θ, hheadCI⟩
 
-      have htailReady : BlockBodyReadyAtCI Θ σ1 tail :=
-        tailAfterHead h hheadCI hstepHead
+        have htailReady : BlockBodyReadyAtCI Θ σ1 tail :=
+          tailAfterHead h hheadCI hstepHead
 
-      rcases htail htailReady with htailTerm | htailDiv
-      · rcases htailTerm with ⟨exTail, σ2, htailExec⟩
-        cases exTail with
-        | fellThrough =>
-          left
-          refine ⟨.fellThrough, σ2, ?_⟩
-          exact
-            .fallthrough
-              (.consNormal hstepHead
-                (by simpa using htailExec.to_block))
-        | returned rv =>
-          left
-          refine ⟨.returned rv, σ2, ?_⟩
-          exact
-            .returning
-              (.consNormal hstepHead
-                (by simpa using htailExec.to_block))
-      · right
-        exact .consTail hstepHead htailDiv
-
-  · -- headが発散する場合
-    right
+        rcases htail htailReady with htailTerm | htailDiv
+        · rcases htailTerm with ⟨exTail, σ2, htailExec⟩
+          cases exTail with
+          | fellThrough =>
+              left
+              refine ⟨.fellThrough, σ2, ?_⟩
+              exact
+                .fallthrough
+                  (.consNormal hstepHead
+                    (by simpa using htailExec.to_block))
+          | returned rv =>
+              left
+              refine ⟨.returned rv, σ2, ?_⟩
+              exact
+                .returning
+                  (.consNormal hstepHead
+                    (by simpa using htailExec.to_block))
+        · right
+          exact .consTail hstepHead htailDiv
+  · right
     exact .consHere hheadDiv
 
 /-- `nil` opened block body closes immediately with fallthrough. -/
@@ -380,6 +375,7 @@ current-env closure, but its subject is `BlockBodyReadyAtCI`, not
 `BlockBodyReadyConcreteAt`.
 -/
 theorem block_body_function_closure_ci_at
+    (bodyClosure : BodyReadyAtCIClosureProvider)
     (tailAfterHead : BlockBodyReadyAtCITailAfterHeadProvider) :
     ∀ {Γ : TypeEnv} {σ : State} {ss : StmtBlock},
       BlockBodyReadyAtCI Γ σ ss →
@@ -388,11 +384,11 @@ theorem block_body_function_closure_ci_at
       nil_block_body_function_closure_concrete_refined_at
   | _, _, .cons _ _, h =>
       cons_block_body_function_closure_ci_at
+        bodyClosure
         tailAfterHead
         h
         (fun htail =>
-          block_body_function_closure_ci_at tailAfterHead htail)
-
+          block_body_function_closure_ci_at bodyClosure tailAfterHead htail)
 
 
 /-- Head/tail assembly for a `cons` opened block body in the concrete current-env layer.
