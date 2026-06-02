@@ -56,11 +56,7 @@ def toAdequacy
     BodyAdequacyCI Γ σ st h.static.profile :=
   h.adequacy
 
-def toClosureBoundary
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (h : BodyReadyCI Γ σ st) :
-    BodyClosureBoundaryCI Γ σ st :=
-  mkBodyClosureBoundaryCI h.structural h.static h.dynamic h.adequacy
+
 
 end BodyReadyCI
 

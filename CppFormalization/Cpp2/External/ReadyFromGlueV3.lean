@@ -1,5 +1,4 @@
 import CppFormalization.Cpp2.External.ReadyAssemblyV3
-import CppFormalization.Cpp2.Legacy.Foundation.BodyBoundaryCoherence
 
 namespace Cpp
 
@@ -15,6 +14,14 @@ Stage 2B clarification:
 - package-level comparison is recorded as `PackageCoherentV3`,
 - official closure theorems only need `BoundaryCoherentV3`.
 -/
+
+--これだけをLegacyから一時移動
+theorem bodyClosureBoundaryCI_roundtrip
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (h : BodyClosureBoundaryCI Γ σ st) :
+    h.toBodyReadyCI.toClosureBoundary = h := by
+  cases h
+  rfl
 
 noncomputable def readyAssembly_of_glue_v3
     {F : VerifiedStdFragmentV3} {R : VerifiedReflectionFragmentV3}

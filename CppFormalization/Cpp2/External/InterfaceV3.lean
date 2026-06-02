@@ -8,7 +8,6 @@ import CppFormalization.Cpp2.External.TransportPropsV3
 import CppFormalization.Cpp2.External.AssembleLemmasV3
 import CppFormalization.Cpp2.External.CanonicityV3
 import CppFormalization.Cpp2.External.ReadyAssemblyV3
-import CppFormalization.Cpp2.External.ReadyFromGlueV3
 import CppFormalization.Cpp2.External.BuilderV3
 import CppFormalization.Cpp2.External.SplitBuilderV3
 import CppFormalization.Cpp2.External.ToyBuilderV3

@@ -43,4 +43,10 @@ def BodyClosureBoundaryCI.toBodyReadyCI
     dynamic := h.dynamic
     adequacy := h.adequacy }
 
+def BodyReadyCI.toClosureBoundary
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (h : BodyReadyCI Γ σ st) :
+    BodyClosureBoundaryCI Γ σ st :=
+  mkBodyClosureBoundaryCI h.structural h.static h.dynamic h.adequacy
+
 end Cpp
