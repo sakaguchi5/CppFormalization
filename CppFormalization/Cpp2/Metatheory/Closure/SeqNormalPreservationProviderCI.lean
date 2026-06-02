@@ -8,22 +8,20 @@ namespace Cpp
 
 Provider surface for statement-normal preservation.
 
-The point of this layer is to keep `seq` from depending on
-`WhileReentryReadyProvider` as vocabulary.  Sequencing only needs the generic
-normal-preservation fact for its left statement.  The current implementation of
-that generic preservation fact is still built from while reentry, so this file
-keeps a compatibility bridge.  The public seq-facing theorems should mention the
-normal-preservation provider, not the while reentry provider directly.
+Sequencing needs two facts after the left side finishes normally:
+
+* generic normal preservation for the left statement;
+* an explicit post-route tail continuation boundary for the right statement.
+
+The second fact replaces the old `ReadinessTransportNormalExactTail` route.
 -/
 
 /--
 Provider for generic statement normal preservation.
 
 `preserve` is the abstraction needed by `seq` after the left statement finishes
-normally.  The `reentry` field is retained as implementation evidence for the
-current global preservation theorem and for compatibility wrappers that still
-bottom out in older while-reentry surfaces.  New seq-facing code should use
-`preserve` conceptually.
+normally.  New seq-facing code should pair this provider with an explicit tail
+continuation provider rather than asking this provider to transport readiness.
 -/
 structure StmtNormalPreservationProviderCI : Type where
   preserve :
@@ -54,9 +52,9 @@ end StmtNormalPreservationProviderCI
 /--
 Build the normal-preservation provider from the current while-reentry provider.
 
-This bridge is intentionally one-way: old code can still supply
-`WhileReentryReadyProvider`, but seq-facing code can talk only about generic
-normal preservation.
+This bridge is intentionally one-way: old code can still supply global statement
+normal preservation, but seq-facing code must separately supply post-route tail
+continuation evidence.
 -/
 def stmtNormalPreservationProviderCI_of_whileReentry :
     StmtNormalPreservationProviderCI :=
@@ -68,11 +66,19 @@ def stmtNormalPreservationProviderCI_of_whileReentry :
 
 /--
 Sequence residual-boundary reconstruction from the generic normal-preservation
-provider.
+provider plus explicit tail continuation evidence.
 -/
 theorem seq_left_normal_preserves_residual_boundary_of_normal_preservation_provider
     (P : StmtNormalPreservationProviderCI)
-    {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
+    {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt}
+    (htail :
+      ∀ {Θ : TypeEnv},
+        HasTypeStmtCI .normalK Γ s Θ →
+        HasTypeStmtCI .normalK Θ t Δ →
+        ScopedTypedStateConcrete Θ σ' →
+        StmtReadyConcrete Γ σ (.seq s t) →
+        BigStepStmt σ s .normal σ' →
+        StmtContinuationDynamicBoundary Θ σ' t) :
     HasTypeStmtCI .normalK Γ (.seq s t) Δ →
     ScopedTypedStateConcrete Γ σ →
     StmtReadyConcrete Γ σ (.seq s t) →
@@ -83,15 +89,22 @@ theorem seq_left_normal_preserves_residual_boundary_of_normal_preservation_provi
     seq_left_normal_preserves_residual_boundary_of_left_preservation
       (s := s) (t := t) (Γ := Γ) (Δ := Δ) (σ := σ) (σ' := σ')
       (hpres := P.leftPreservation)
+      (htail := htail)
       htySeq hσ hreadySeq hstepLeft
 
 /--
 Fixed-post-environment ready/state reconstruction from the generic
-normal-preservation provider.
+normal-preservation provider plus explicit tail continuation evidence.
 -/
 theorem seq_left_normal_preserves_ready_of_normal_preservation_provider
     (P : StmtNormalPreservationProviderCI)
-    {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
+    {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt}
+    (htail :
+      HasTypeStmtCI .normalK Γ s Δ →
+      ScopedTypedStateConcrete Δ σ' →
+      StmtReadyConcrete Γ σ (.seq s t) →
+      BigStepStmt σ s .normal σ' →
+      StmtContinuationDynamicBoundary Δ σ' t) :
     HasTypeStmtCI .normalK Γ s Δ →
     StmtReadyConcrete Γ σ (.seq s t) →
     BigStepStmt σ s .normal σ' →
@@ -104,28 +117,43 @@ theorem seq_left_normal_preserves_ready_of_normal_preservation_provider
       (hpres := by
         intro htyLeft' hσ0 hreadyLeft hstepLeft0
         exact P.preserve htyLeft' hσ0 hreadyLeft hstepLeft0)
+      (htail := htail)
       htyLeft hreadySeq hstepLeft hσ
 
-/-- Compatibility corollary for older callers. -/
+/-- Compatibility corollary for older callers, with tail continuation explicit. -/
 theorem seq_left_normal_preserves_residual_boundary_of_whileReentry
-    {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
+    {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt}
+    (htail :
+      ∀ {Θ : TypeEnv},
+        HasTypeStmtCI .normalK Γ s Θ →
+        HasTypeStmtCI .normalK Θ t Δ →
+        ScopedTypedStateConcrete Θ σ' →
+        StmtReadyConcrete Γ σ (.seq s t) →
+        BigStepStmt σ s .normal σ' →
+        StmtContinuationDynamicBoundary Θ σ' t) :
     HasTypeStmtCI .normalK Γ (.seq s t) Δ →
     ScopedTypedStateConcrete Γ σ →
     StmtReadyConcrete Γ σ (.seq s t) →
     BigStepStmt σ s .normal σ' →
     SeqResidualBoundary Δ σ' t :=
   seq_left_normal_preserves_residual_boundary_of_normal_preservation_provider
-    (stmtNormalPreservationProviderCI_of_whileReentry)
+    (stmtNormalPreservationProviderCI_of_whileReentry) htail
 
 /-- Compatibility corollary for the fixed-post-environment ready/state surface. -/
 theorem seq_left_normal_preserves_ready_of_whileReentry
-    {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
+    {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt}
+    (htail :
+      HasTypeStmtCI .normalK Γ s Δ →
+      ScopedTypedStateConcrete Δ σ' →
+      StmtReadyConcrete Γ σ (.seq s t) →
+      BigStepStmt σ s .normal σ' →
+      StmtContinuationDynamicBoundary Δ σ' t) :
     HasTypeStmtCI .normalK Γ s Δ →
     StmtReadyConcrete Γ σ (.seq s t) →
     BigStepStmt σ s .normal σ' →
     ScopedTypedStateConcrete Γ σ →
     ScopedTypedStateConcrete Δ σ' ∧ StmtReadyConcrete Δ σ' t :=
   seq_left_normal_preserves_ready_of_normal_preservation_provider
-    (stmtNormalPreservationProviderCI_of_whileReentry )
+    (stmtNormalPreservationProviderCI_of_whileReentry) htail
 
 end Cpp

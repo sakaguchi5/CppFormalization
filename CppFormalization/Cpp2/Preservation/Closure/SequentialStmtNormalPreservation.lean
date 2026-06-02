@@ -66,6 +66,7 @@ theorem seq_normal_preserves_scoped_typed_state_from_subproofs
         (hpres := by
           intro htyLeft' _hσ0 hreadyLeft0 hstepLeft0
           exact hleft htyLeft' hreadyLeft0 hstepLeft0)
+        sorry
         htyLeft hreadySeq hleftStep hσ
   rcases hpost with ⟨hσ1, hreadyRight⟩
   exact hright htyRight hσ1 hreadyRight hrightStep

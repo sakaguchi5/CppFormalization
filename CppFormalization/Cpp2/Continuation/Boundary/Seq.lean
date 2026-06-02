@@ -1,4 +1,3 @@
-import CppFormalization.Cpp2.Legacy.ReadinessTransport.ReadinessTransportNormalExactTail
 import CppFormalization.Cpp2.Continuation.Compound.Seq.Tail.Continuation
 import CppFormalization.Cpp2.Continuation.Boundary.Body
 import CppFormalization.Cpp2.Profile.StaticBoundary.SeqStaticBoundaryProjectionCI
@@ -11,30 +10,23 @@ namespace Cpp
 
 Seq continuation boundary assembly.
 
-This file has two roles during the transition:
-
-1. Keep the legacy exact-tail compatibility surface:
-   `SeqNormalContinuationDynamicCI`
-   `seq_normal_continuation_dynamic_of_exact_tail`
-   `SeqNormalContinuationBoundaryCI`
-
-2. Provide the newer selected-route continuation assembly:
-   `seq_tail_continuation_boundary_ci_of_head_normal_route`
-
-The public subject should be continuation boundary, not readiness transport.
-The exact-tail constructor is retained only for old callers.
+The public subject is continuation boundary, not readiness transport.  The old
+exact-tail readiness transport path is no longer imported here: callers that
+want to cross from the left normal step to the tail must provide an explicit
+post-route tail continuation, preferably through `CompoundContinuation`.
 -/
 
 /- =========================================================
-   Legacy seq normal-continuation compatibility surface
+   Seq normal-continuation compatibility surface
    ========================================================= -/
 
 /--
 Dynamic continuation boundary after the left side of a sequence finishes
 normally.
 
-This is the old public compatibility surface used by sequential normal
-preservation and while compatibility handlers.
+This compatibility surface is still useful for older downstream code, but it is
+now fed by explicit tail continuation evidence rather than by the legacy
+exact-tail readiness transport axiom.
 -/
 structure SeqNormalContinuationDynamicCI
     (Γ Θ : TypeEnv) (σ σ₁ : State) (s t : CppStmt) : Prop where
@@ -61,30 +53,25 @@ def SeqNormalContinuationDynamicCI.toBodyDynamicBoundary
   h.tail.toBodyDynamicBoundary
 
 /--
-Legacy constructor for the current transition period.
+Build the dynamic seq-continuation compatibility surface from an explicit tail
+dynamic boundary.
 
-This is intentionally the exact-tail compatibility constructor needed by old
-sequential-preservation surfaces.  New route-aware code should prefer selected
-route + stability/replay + continuation boundary assembly.
+This is the small replacement for the old exact-tail constructor: the proof of
+post-route tail readiness is no longer hidden inside a transport axiom, but is
+carried by `tail`.
 -/
-theorem seq_normal_continuation_dynamic_of_exact_tail
+def seq_normal_continuation_dynamic_of_tail_dynamic_boundary
     {Γ Θ : TypeEnv} {σ σ₁ : State} {s t : CppStmt}
     (hleft : HasTypeStmtCI .normalK Γ s Θ)
-    (hpost : ScopedTypedStateConcrete Θ σ₁)
-    (hreadySeq : StmtReadyConcrete Γ σ (.seq s t))
-    (hstepLeft : BigStepStmt σ s .normal σ₁) :
-    SeqNormalContinuationDynamicCI Γ Θ σ σ₁ s t := by
-  exact
-    { hleft := hleft
-      hstepLeft := hstepLeft
-      tail :=
-        { state := hpost
-          safe :=
-            seq_ready_right_after_left_normal_of_exact_tail
-              hleft hpost hreadySeq hstepLeft } }
+    (hstepLeft : BigStepStmt σ s .normal σ₁)
+    (tail : StmtContinuationDynamicBoundary Θ σ₁ t) :
+    SeqNormalContinuationDynamicCI Γ Θ σ σ₁ s t :=
+  { hleft := hleft
+    hstepLeft := hstepLeft
+    tail := tail }
 
 /- =========================================================
-   Legacy full continuation boundary surface
+   Full continuation boundary surface
    ========================================================= -/
 
 /--
@@ -137,8 +124,8 @@ end SeqNormalContinuationBoundaryCI
 /--
 Build the full seq continuation boundary from an existing tail closure boundary.
 
-Compatibility constructor for callers that already have an ordinary tail
-closure boundary.
+Compatibility constructor for callers that already have an ordinary tail closure
+boundary.
 -/
 def seq_normal_continuation_boundary_of_tail_closure_boundary
     {Γ Θ : TypeEnv} {σ σ₁ : State} {s t : CppStmt}
@@ -157,14 +144,13 @@ def seq_normal_continuation_boundary_of_tail_closure_boundary
    ========================================================= -/
 
 /--
-Build the legacy dynamic seq-continuation compatibility surface from the
-new `CompoundContinuation` route-local continuation input.
+Build the dynamic seq-continuation compatibility surface from the new
+`CompoundContinuation` route-local continuation input.
 
-This does not prove or use `ReadinessTransportNormalExactTail`.  The dynamic
-tail readiness is materialized from
+The dynamic tail readiness is materialized from
 
 * post-state preservation, and
-* `StmtReplayAt route.Θ σ1 t`
+* componentized route-local tail replay
 
 inside `CompoundContinuation.Seq.Tail.ContinuationInput`.
 -/

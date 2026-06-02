@@ -8,25 +8,20 @@ namespace Cpp
 Pure normal-preservation core extracted from the current provider-shaped seq
 surface.
 
-`StmtNormalPreservationProviderCI` currently still carries a compatibility field
-for older theorem surfaces that bottom out in `WhileReentryReadyProvider`.
-That field is an implementation bridge, not the mathematical dependency of
-`seq`.
-
 This file names the genuinely seq-facing dependency:
 
 * if the left statement of a sequence finishes normally, the post-state remains
-  scoped/typed at the left post-environment.
+  scoped/typed at the left post-environment;
+* independently, the selected post-route tail continuation exists.
 
-The lower residual-boundary reconstruction for `seq` is then proved from this
-pure core, with no mention of while reentry.
+The second dependency replaces the old exact-tail readiness transport path.
 -/
 
 /--
 Pure provider for generic statement normal preservation.
 
-This is the dependency that sequencing actually needs.  It says nothing about
-while reentry or next-loop readiness.
+This is the preservation dependency that sequencing actually needs.  It says
+nothing about while reentry or next-loop readiness.
 -/
 structure StmtNormalPreservationCoreCI : Type where
   preserve :
@@ -77,12 +72,20 @@ def stmtNormalPreservationCoreCI_of_whileReentry :
 /--
 Sequence residual-boundary reconstruction from the pure normal-preservation core.
 
-This is the theorem that captures the real mathematical dependency of `seq`:
-left-normal preservation.  It does not mention while reentry.
+This captures the real mathematical dependency of `seq`: left-normal
+preservation plus an explicit post-route tail continuation.
 -/
 theorem seq_left_normal_preserves_residual_boundary_of_normal_preservation_core
     (P : StmtNormalPreservationCoreCI)
-    {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
+    {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt}
+    (htail :
+      ∀ {Θ : TypeEnv},
+        HasTypeStmtCI .normalK Γ s Θ →
+        HasTypeStmtCI .normalK Θ t Δ →
+        ScopedTypedStateConcrete Θ σ' →
+        StmtReadyConcrete Γ σ (.seq s t) →
+        BigStepStmt σ s .normal σ' →
+        StmtContinuationDynamicBoundary Θ σ' t) :
     HasTypeStmtCI .normalK Γ (.seq s t) Δ →
     ScopedTypedStateConcrete Γ σ →
     StmtReadyConcrete Γ σ (.seq s t) →
@@ -93,6 +96,7 @@ theorem seq_left_normal_preserves_residual_boundary_of_normal_preservation_core
     seq_left_normal_preserves_residual_boundary_of_left_preservation
       (s := s) (t := t) (Γ := Γ) (Δ := Δ) (σ := σ) (σ' := σ')
       (hpres := P.leftPreservation)
+      (htail := htail)
       htySeq hσ hreadySeq hstepLeft
 
 /--
@@ -101,7 +105,13 @@ normal-preservation core.
 -/
 theorem seq_left_normal_preserves_ready_of_normal_preservation_core
     (P : StmtNormalPreservationCoreCI)
-    {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
+    {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt}
+    (htail :
+      HasTypeStmtCI .normalK Γ s Δ →
+      ScopedTypedStateConcrete Δ σ' →
+      StmtReadyConcrete Γ σ (.seq s t) →
+      BigStepStmt σ s .normal σ' →
+      StmtContinuationDynamicBoundary Δ σ' t) :
     HasTypeStmtCI .normalK Γ s Δ →
     StmtReadyConcrete Γ σ (.seq s t) →
     BigStepStmt σ s .normal σ' →
@@ -114,33 +124,48 @@ theorem seq_left_normal_preserves_ready_of_normal_preservation_core
       (hpres := by
         intro htyLeft' hσ0 hreadyLeft hstepLeft0
         exact P.preserve htyLeft' hσ0 hreadyLeft hstepLeft0)
+      (htail := htail)
       htyLeft hreadySeq hstepLeft hσ
 
 /--
 Compatibility corollary: the previous provider-shaped theorem factors through
-the pure core.
+the pure core, while tail readiness is supplied by explicit continuation input.
 -/
 theorem seq_left_normal_preserves_residual_boundary_of_provider_core
     (P : StmtNormalPreservationProviderCI)
-    {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
+    {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt}
+    (htail :
+      ∀ {Θ : TypeEnv},
+        HasTypeStmtCI .normalK Γ s Θ →
+        HasTypeStmtCI .normalK Θ t Δ →
+        ScopedTypedStateConcrete Θ σ' →
+        StmtReadyConcrete Γ σ (.seq s t) →
+        BigStepStmt σ s .normal σ' →
+        StmtContinuationDynamicBoundary Θ σ' t) :
     HasTypeStmtCI .normalK Γ (.seq s t) Δ →
     ScopedTypedStateConcrete Γ σ →
     StmtReadyConcrete Γ σ (.seq s t) →
     BigStepStmt σ s .normal σ' →
     SeqResidualBoundary Δ σ' t :=
-  seq_left_normal_preserves_residual_boundary_of_normal_preservation_core P.toCore
+  seq_left_normal_preserves_residual_boundary_of_normal_preservation_core P.toCore htail
 
 /--
 Compatibility corollary for the fixed-post-environment ready/state surface.
 -/
 theorem seq_left_normal_preserves_ready_of_provider_core
     (P : StmtNormalPreservationProviderCI)
-    {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt} :
+    {Γ Δ : TypeEnv} {σ σ' : State} {s t : CppStmt}
+    (htail :
+      HasTypeStmtCI .normalK Γ s Δ →
+      ScopedTypedStateConcrete Δ σ' →
+      StmtReadyConcrete Γ σ (.seq s t) →
+      BigStepStmt σ s .normal σ' →
+      StmtContinuationDynamicBoundary Δ σ' t) :
     HasTypeStmtCI .normalK Γ s Δ →
     StmtReadyConcrete Γ σ (.seq s t) →
     BigStepStmt σ s .normal σ' →
     ScopedTypedStateConcrete Γ σ →
     ScopedTypedStateConcrete Δ σ' ∧ StmtReadyConcrete Δ σ' t :=
-  seq_left_normal_preserves_ready_of_normal_preservation_core P.toCore
+  seq_left_normal_preserves_ready_of_normal_preservation_core P.toCore htail
 
 end Cpp

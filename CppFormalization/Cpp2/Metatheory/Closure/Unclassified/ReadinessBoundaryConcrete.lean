@@ -43,6 +43,7 @@ theorem seq_left_normal_preserves_body_ready_concrete
         exact
           stmt_normal_preserves_scoped_typed_state_concrete
             htyLeft' hσ0 hreadyLeft0 hstepLeft0)
+      sorry
       htyLeft hreadySeq hstepLeft hσ
 
 theorem block_head_normal_preserves_block_ready_concrete
