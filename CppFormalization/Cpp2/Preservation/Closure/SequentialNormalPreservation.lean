@@ -22,7 +22,7 @@ namespace Cpp
 を整理する。
 
 重要:
-- low-level exact tail-ready kernel / `ReadinessTransportNormalExactTail` には
+- low-level exact tail-ready kernel / `削除済みaxiom` には
   もう給電しない。
 - current mainline が public に使うべき主語は `StmtReadyConcrete Θ σ' t`
   単体ではなく、post-route の `StmtContinuationDynamicBoundary Θ σ' t`、

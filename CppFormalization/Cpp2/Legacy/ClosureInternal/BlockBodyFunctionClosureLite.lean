@@ -80,35 +80,6 @@ def cons_head_dynamic_of_parent
     { state := hd.state
       safe := blockReadyConcrete_cons_head hd.safe }
 
-/-- Head normal 実行で cons tail の dynamic boundary を再構成する。 -/
-def cons_tail_dynamic_of_head_normal
-    {Γ Δ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock}
-    (hd : BlockBodyDynamicBoundaryLite Γ σ (.cons s ss))
-    (hN : HasTypeStmtCI .normalK Γ s Δ)
-    (hstepS : BigStepStmt σ s .normal σ')
-    (hpresS :
-      ScopedTypedStateConcrete Γ σ →
-      StmtReadyConcrete Γ σ s →
-      BigStepStmt σ s .normal σ' →
-      ScopedTypedStateConcrete Δ σ') :
-    BlockBodyDynamicBoundaryLite Δ σ' ss := by
-  have hreadyS : StmtReadyConcrete Γ σ s :=
-    blockReadyConcrete_cons_head hd.safe
-
-  have hstate' : ScopedTypedStateConcrete Δ σ' :=
-    hpresS hd.state hreadyS hstepS
-
-  have hreadyTail : BlockReadyConcrete Δ σ' ss :=
-    cons_block_ready_tail_after_head_normal
-      hN
-      hstate'
-      hd.safe
-      hstepS
-
-  exact
-    { state := hstate'
-      safe := hreadyTail }
-
 /-- Canonical cons node から head adequacy を取り出す。 -/
 def cons_head_adequacy_of_cons
     {Γ Δ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
@@ -151,29 +122,6 @@ def cons_head_boundary_of_cons_mk
       (cons_head_dynamic_of_parent hd)
       (cons_head_adequacy_of_cons ha)
 
-/-- Canonical cons node から head normal 後の tail block-body boundary を直接構成する。 -/
-def cons_tail_boundary_of_head_normal_mk
-    {Γ Δ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock}
-    {P₁ : StmtBodyProfileLite Γ s}
-    {P₂ : BlockBodyProfileLite Δ ss}
-    {hN : HasTypeStmtCI .normalK Γ s Δ}
-    (hs : BlockBodyStructuralBoundaryLite (.cons s ss))
-    (hd : BlockBodyDynamicBoundaryLite Γ σ (.cons s ss))
-    (ha : BlockBodyAdequacyLite Γ σ (.cons hN P₁ P₂))
-    (hstepS : BigStepStmt σ s .normal σ')
-    (hpresS :
-      ScopedTypedStateConcrete Γ σ →
-      StmtReadyConcrete Γ σ s →
-      BigStepStmt σ s .normal σ' →
-      ScopedTypedStateConcrete Δ σ') :
-    BlockBodyClosureBoundaryLite Δ σ' ss := by
-  exact
-    mkBlockBodyClosureBoundaryLite
-      (cons_tail_structural_of_parent hs hN)
-      P₂
-      (cons_tail_dynamic_of_head_normal hd hN hstepS hpresS)
-      (cons_tail_adequacy_of_head_normal ha hstepS)
-
 /-- Assembled boundary 版の head projection theorem. -/
 def cons_head_boundary_of_cons
     {Γ Δ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
@@ -189,28 +137,6 @@ def cons_head_boundary_of_cons
       exact cons_head_boundary_of_cons_mk
         (hs := hs) (hd := hd) (ha := ha)
 
-/-- Assembled boundary 版の tail transport theorem. -/
-def cons_tail_boundary_of_head_normal
-    {Γ Δ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock}
-    {P₁ : StmtBodyProfileLite Γ s}
-    {P₂ : BlockBodyProfileLite Δ ss}
-    {hN : HasTypeStmtCI .normalK Γ s Δ}
-    (h : BlockBodyClosureBoundaryLite Γ σ (.cons s ss))
-    (hprof : h.profile = .cons hN P₁ P₂)
-    (hstepS : BigStepStmt σ s .normal σ')
-    (hpresS :
-      ScopedTypedStateConcrete Γ σ →
-      StmtReadyConcrete Γ σ s →
-      BigStepStmt σ s .normal σ' →
-      ScopedTypedStateConcrete Δ σ') :
-    BlockBodyClosureBoundaryLite Δ σ' ss := by
-  cases h with
-  | mk hs hp hd ha =>
-      cases hprof
-      exact cons_tail_boundary_of_head_normal_mk
-        (hs := hs) (hd := hd) (ha := ha) hstepS hpresS
-
-
 /-! ## whole opened block-body closure -/
 
 /-- `nil` block body closes immediately with fallthrough. -/
@@ -220,64 +146,6 @@ theorem nil_block_body_function_closure_lite
   left
   refine ⟨.fellThrough, σ, ?_⟩
   exact BigStepFunctionBlockBody.fallthrough BigStepBlock.nil
-
-/-- Opened `cons` block body closure theorem on a lite boundary. -/
-theorem cons_block_body_function_closure_lite
-    {Γ Δ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
-    {P₁ : StmtBodyProfileLite Γ s}
-    {P₂ : BlockBodyProfileLite Δ ss}
-    {hN : HasTypeStmtCI .normalK Γ s Δ}
-    (h : BlockBodyClosureBoundaryLite Γ σ (.cons s ss))
-    (hprof : h.profile = .cons hN P₁ P₂)
-    (hhead :
-      BodyClosureBoundaryLite Γ σ s →
-      (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨ BigStepStmtDiv σ s)
-    (hpresS :
-      ∀ {σ'},
-        ScopedTypedStateConcrete Γ σ →
-        StmtReadyConcrete Γ σ s →
-        BigStepStmt σ s .normal σ' →
-        ScopedTypedStateConcrete Δ σ')
-    (htail :
-      ∀ {σ'}, BigStepStmt σ s .normal σ' →
-      BlockBodyClosureBoundaryLite Δ σ' ss →
-      (∃ ex σ'', BigStepFunctionBlockBody σ' ss ex σ'') ∨ BigStepBlockDiv σ' ss) :
-    (∃ ex σ', BigStepFunctionBlockBody σ (.cons s ss) ex σ') ∨ BigStepBlockDiv σ (.cons s ss) := by
-  have hheadBoundary : BodyClosureBoundaryLite Γ σ s :=
-    cons_head_boundary_of_cons h hprof
-  rcases hhead hheadBoundary with hheadTerm | hheadDiv
-  · rcases hheadTerm with ⟨ex, σ₁, hfb⟩
-    cases ex with
-    | fellThrough =>
-        have hstepS : BigStepStmt σ s .normal σ₁ := by
-          simpa using (BigStepFunctionBody.to_stmt hfb)
-        have htailBoundary : BlockBodyClosureBoundaryLite Δ σ₁ ss :=
-          cons_tail_boundary_of_head_normal h hprof hstepS
-            (fun hstate hready hstep => hpresS hstate hready hstep)
-        rcases htail hstepS htailBoundary with htailTerm | htailDiv
-        · rcases htailTerm with ⟨ex₂, σ₂, hfb₂⟩
-          cases ex₂ with
-          | fellThrough =>
-              left
-              refine ⟨.fellThrough, σ₂, ?_⟩
-              apply BigStepFunctionBlockBody.fallthrough
-              apply BigStepBlock.consNormal hstepS
-              simpa using (BigStepFunctionBlockBody.to_block hfb₂)
-          | returned rv =>
-              left
-              refine ⟨.returned rv, σ₂, ?_⟩
-              apply BigStepFunctionBlockBody.returning
-              apply BigStepBlock.consNormal hstepS
-              simpa using (BigStepFunctionBlockBody.to_block hfb₂)
-        · right
-          exact BigStepBlockDiv.consTail hstepS htailDiv
-    | returned rv =>
-        left
-        refine ⟨.returned rv, σ₁, ?_⟩
-        apply BigStepFunctionBlockBody.returning
-        exact BigStepBlock.consReturn (by simpa using (BigStepFunctionBody.to_stmt hfb))
-  · right
-    exact BigStepBlockDiv.consHere hheadDiv
 
 /-! ## local helpers about scope depth -/
 

@@ -13,7 +13,7 @@ Sequencing needs two facts after the left side finishes normally:
 * generic normal preservation for the left statement;
 * an explicit post-route tail continuation boundary for the right statement.
 
-The second fact replaces the old `ReadinessTransportNormalExactTail` route.
+The second fact replaces the old `削除済みaxiom` route.
 -/
 
 /--

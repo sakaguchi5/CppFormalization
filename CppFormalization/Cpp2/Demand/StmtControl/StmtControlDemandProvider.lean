@@ -9,7 +9,7 @@ Provider-shaped interface for the exact-tail-free demand preservation route.
 
 The older normal-preservation provider surfaces are readiness-based: they consume
 `StmtReadyConcrete` / `BlockReadyConcrete` and therefore tend to return to the
-ordinary-readiness residual route, where `ReadinessTransportNormalExactTail`
+ordinary-readiness residual route, where `削除済みaxiom`
 still lives.
 
 This file gives the demand-facing replacement surface.  Its providers consume

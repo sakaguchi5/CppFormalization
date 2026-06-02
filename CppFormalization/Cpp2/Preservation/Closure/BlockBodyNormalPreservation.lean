@@ -1,4 +1,3 @@
-
 import CppFormalization.Cpp2.Validity.StateInvariantConcrete.StateInvariantConcrete
 import CppFormalization.Cpp2.Entry.StaticSafety.Readiness
 import CppFormalization.Cpp2.Static.Typing.ControlIndexed
@@ -19,6 +18,13 @@ namespace Cpp
 head が `.normal` で終わったあとに
 tail へ渡す境界を再構成できること。
 そのために block-level の typing / readiness / operational 分解を置く。
+
+重要:
+- low-level exact block-tail ready kernel / `削除済みaxiom`
+  にはもう給電しない。
+- current mainline が public に使うべき主語は `BlockReadyConcrete Ξ σ' ss`
+  単体ではなく、post-route の `BlockContinuationDynamicBoundary Ξ σ' ss`、
+  あるいはそれを詰めた `ConsResidualBoundary Θ σ' ss` である。
 -/
 
 
@@ -68,23 +74,17 @@ theorem cons_block_ready_head
       exact hs
 
 /--
-Low-level block-tail ready kernel.
+Low-level block-tail ready projection from an explicit tail continuation
+boundary.
 
-This file no longer owns an axiom for this exact kernel. Instead it is fed from
-`ReadinessTransportNormalExactTail`, the isolated choke point for the
-remaining exact block-tail readiness debt.
+This is no longer a transport theorem.  Tail readiness is obtained by projecting
+from the post-route continuation boundary.
 -/
-theorem cons_block_ready_tail_after_head_normal
-    {Γ Ξ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock} :
-    HasTypeStmtCI .normalK Γ s Ξ ->
-    ScopedTypedStateConcrete Ξ σ' ->
-    BlockReadyConcrete Γ σ (.cons s ss) ->
-    BigStepStmt σ s .normal σ' ->
-    BlockReadyConcrete Ξ σ' ss := by
-  intro hhead hpost hreadyCons hstepHead
-  exact
-    (cons_normal_continuation_dynamic_of_exact_tail
-      hhead hpost hreadyCons hstepHead).tailReady
+theorem cons_block_ready_tail_after_head_normal_of_tail_continuation
+    {Ξ : TypeEnv} {σ' : State} {ss : StmtBlock}
+    (tail : BlockContinuationDynamicBoundary Ξ σ' ss) :
+    BlockReadyConcrete Ξ σ' ss :=
+  tail.safe
 
 theorem cons_block_normal_data
     {σ σ' : State} {s : CppStmt} {ss : StmtBlock} :
@@ -105,6 +105,9 @@ theorem cons_block_normal_data
 When the post-environment of the head statement is already fixed as `Ξ`,
 we can reconstruct the concrete state/ready pair for the remaining block tail
 without mentioning the final codomain of the whole block body.
+
+The block-tail readiness is projected from an explicit post-route block-tail
+continuation boundary.
 -/
 theorem cons_head_normal_preserves_ready_of_head_preservation
     {Γ Ξ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock}
@@ -113,7 +116,13 @@ theorem cons_head_normal_preserves_ready_of_head_preservation
       ScopedTypedStateConcrete Γ σ ->
       StmtReadyConcrete Γ σ s ->
       BigStepStmt σ s .normal σ' ->
-      ScopedTypedStateConcrete Ξ σ') :
+      ScopedTypedStateConcrete Ξ σ')
+    (htail :
+      HasTypeStmtCI .normalK Γ s Ξ ->
+      ScopedTypedStateConcrete Ξ σ' ->
+      BlockReadyConcrete Γ σ (.cons s ss) ->
+      BigStepStmt σ s .normal σ' ->
+      BlockContinuationDynamicBoundary Ξ σ' ss) :
     HasTypeStmtCI .normalK Γ s Ξ ->
     BlockReadyConcrete Γ σ (.cons s ss) ->
     BigStepStmt σ s .normal σ' ->
@@ -124,35 +133,50 @@ theorem cons_head_normal_preserves_ready_of_head_preservation
     cons_block_ready_head hready
   have hσ' : ScopedTypedStateConcrete Ξ σ' :=
     hpres htyHead hσ hreadyHead hstep
-  have hreadyTail : BlockReadyConcrete Ξ σ' ss :=
-    cons_block_ready_tail_after_head_normal htyHead hσ' hready hstep
-  exact ⟨hσ', hreadyTail⟩
+  have htailDyn : BlockContinuationDynamicBoundary Ξ σ' ss :=
+    htail htyHead hσ' hready hstep
+  exact ⟨htailDyn.state, htailDyn.safe⟩
 
+/--
+Generic cons residual-boundary reconstruction after a head normal step.
+
+The two abstract inputs are separated:
+
+* `hhead` proves the post-state invariant for the intermediate environment `Ξ`;
+* `htail` proves that the selected post-route block-tail continuation exists.
+
+Thus the theorem no longer manufactures tail readiness by exact-tail transport.
+-/
 theorem cons_head_normal_preserves_residual_boundary
-    {Γ Θ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock} :
-    HasTypeBlockCI .normalK Γ (.cons s ss) Θ ->
-    ScopedTypedStateConcrete Γ σ ->
-    BlockReadyConcrete Γ σ (.cons s ss) ->
-    BigStepStmt σ s .normal σ' ->
-    (∀ {Ξ : TypeEnv} {σ1 : State},
-      HasTypeStmtCI .normalK Γ s Ξ ->
-      ScopedTypedStateConcrete Γ σ ->
-      StmtReadyConcrete Γ σ s ->
-      BigStepStmt σ s .normal σ1 ->
-      ScopedTypedStateConcrete Ξ σ1) ->
+    {Γ Θ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock}
+    (hty : HasTypeBlockCI .normalK Γ (.cons s ss) Θ)
+    (hσ : ScopedTypedStateConcrete Γ σ)
+    (hready : BlockReadyConcrete Γ σ (.cons s ss))
+    (hstep : BigStepStmt σ s .normal σ')
+    (hhead :
+      ∀ {Ξ : TypeEnv} {σ1 : State},
+        HasTypeStmtCI .normalK Γ s Ξ ->
+        ScopedTypedStateConcrete Γ σ ->
+        StmtReadyConcrete Γ σ s ->
+        BigStepStmt σ s .normal σ1 ->
+        ScopedTypedStateConcrete Ξ σ1)
+    (htail :
+      ∀ {Ξ : TypeEnv},
+        HasTypeStmtCI .normalK Γ s Ξ ->
+        HasTypeBlockCI .normalK Ξ ss Θ ->
+        ScopedTypedStateConcrete Ξ σ' ->
+        BlockReadyConcrete Γ σ (.cons s ss) ->
+        BigStepStmt σ s .normal σ' ->
+        BlockContinuationDynamicBoundary Ξ σ' ss) :
     ConsResidualBoundary Θ σ' ss := by
-  intro hty hσ hready hstep hhead
   rcases cons_block_typing_data hty with ⟨Ξ, htyHead, htyTail⟩
-  have hpost : ScopedTypedStateConcrete Ξ σ' ∧ BlockReadyConcrete Ξ σ' ss := by
-    exact
-      cons_head_normal_preserves_ready_of_head_preservation
-        (Γ := Γ) (Ξ := Ξ) (σ := σ) (σ' := σ') (s := s) (ss := ss)
-        (hpres := by
-          intro htyHead' hσ0 hreadyHead0 hstep0
-          exact hhead htyHead' hσ0 hreadyHead0 hstep0)
-        htyHead hready hstep hσ
-  rcases hpost with ⟨hσ', hreadyTail⟩
-  exact ⟨Ξ, htyTail, hσ', hreadyTail⟩
+  have hreadyHead : StmtReadyConcrete Γ σ s :=
+    cons_block_ready_head hready
+  have hσ' : ScopedTypedStateConcrete Ξ σ' :=
+    hhead htyHead hσ hreadyHead hstep
+  have htailDyn : BlockContinuationDynamicBoundary Ξ σ' ss :=
+    htail htyHead htyTail hσ' hready hstep
+  exact ⟨Ξ, htyTail, htailDyn.state, htailDyn.safe⟩
 
 
 /- =========================================================
@@ -185,6 +209,13 @@ theorem cons_block_normal_preserves_scoped_typed_state_from_head_and_tail
       StmtReadyConcrete Γ σ s ->
       BigStepStmt σ s .normal σ1 ->
       ScopedTypedStateConcrete Ξ σ1) ->
+    (∀ {Ξ : TypeEnv} {σ1 : State},
+      HasTypeStmtCI .normalK Γ s Ξ ->
+      HasTypeBlockCI .normalK Ξ ss Θ ->
+      ScopedTypedStateConcrete Ξ σ1 ->
+      BlockReadyConcrete Γ σ (.cons s ss) ->
+      BigStepStmt σ s .normal σ1 ->
+      BlockContinuationDynamicBoundary Ξ σ1 ss) ->
     (∀ {Ξ : TypeEnv} {σ1 σ2 : State},
       HasTypeBlockCI .normalK Ξ ss Θ ->
       ScopedTypedStateConcrete Ξ σ1 ->
@@ -192,10 +223,10 @@ theorem cons_block_normal_preserves_scoped_typed_state_from_head_and_tail
       BigStepBlock σ1 ss .normal σ2 ->
       ScopedTypedStateConcrete Θ σ2) ->
     ScopedTypedStateConcrete Θ σ' := by
-  intro hty hσ hready hstep hhead htail
+  intro hty hσ hready hstep hhead htailCont htail
   rcases cons_block_normal_data hstep with ⟨σ1, hheadStep, htailStep⟩
   rcases cons_head_normal_preserves_residual_boundary
-      hty hσ hready hheadStep hhead with
+      hty hσ hready hheadStep hhead htailCont with
     ⟨Ξ, htyTail, hσ1, hreadyTail⟩
   exact htail htyTail hσ1 hreadyTail htailStep
 
