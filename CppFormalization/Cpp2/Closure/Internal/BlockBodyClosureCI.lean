@@ -294,6 +294,20 @@ noncomputable def blockBodyClosureBoundaryCI_of_bodyClosureBoundaryCI_opened
           (blockBodyAdequacyScaffoldCI_of_bodyClosureBoundaryCI_opened
             hentry hopen).adequacy }
 
+
+/--
+Temporary bridge from assembled opened block-body CI boundary to the new
+current-env CI-native block-body entry.
+
+This is intentionally old-free at its target.  The source still contains the old
+`typed0` field through `BlockBodyStaticBoundaryCI`; eliminating that field is the
+next large step.
+-/
+axiom blockBodyReadyAtCI_of_blockBodyClosureBoundaryCI
+    {Γ : TypeEnv} {σ : State} {ss : StmtBlock} :
+    BlockBodyClosureBoundaryCI Γ σ ss →
+    BlockBodyReadyAtCI (pushTypeScope Γ) σ ss
+
 /--
 Opened block-body closure target.
 
@@ -301,15 +315,15 @@ Opened block-body closure target.
 CI 層では theorem-backed だが、実質的な仕事は concrete refined theorem に委譲する。
 -/
 theorem block_body_function_closure_boundary_ci
-    (tailAfterHead : BlockBodyReadyConcreteAtTailAfterHeadProvider)
+    (tailAfterHead : BlockBodyReadyAtCITailAfterHeadProvider)
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock} :
     BlockBodyClosureBoundaryCI Γ σ ss →
     FunctionBlockBodyClosureResult σ ss := by
   intro hentry
   exact
-    block_body_function_closure_concrete_refined
+    block_body_function_closure_ci_at
       tailAfterHead
-      (blockBodyReadyConcrete_of_blockBodyClosureBoundaryCI hentry)
+      (blockBodyReadyAtCI_of_blockBodyClosureBoundaryCI hentry)
 
 /--
 Block-statement closure assembled from an opened block-body closure callback.
