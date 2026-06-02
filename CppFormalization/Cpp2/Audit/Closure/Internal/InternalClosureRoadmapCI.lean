@@ -1,4 +1,3 @@
-import CppFormalization.Cpp2.Legacy.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Audit.Closure.Internal.InternalClosureRoadmapConcrete
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyClosureCI
 

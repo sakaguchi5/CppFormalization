@@ -1,3 +1,4 @@
+import CppFormalization.Cpp2.Entry.Body.BodyReadyCI
 import CppFormalization.Cpp2.External.CoherenceV3
 
 namespace Cpp
@@ -18,29 +19,6 @@ that support that same target should not yield different observable packages.
 This file therefore records family-level uniqueness / canonicity assumptions and
 extracts the observable consequences needed by later builder layers.
 -/
-
-
-
-/-- For a fixed `(Γ, σ, st)`, the runtime-facing dynamic boundary read off from
-two ready witnesses is intrinsic to the target, not to the witness. -/
-theorem bodyReadyCI_toDynamic_unique
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (r₁ r₂ : BodyReadyCI Γ σ st) :
-    r₁.toDynamic = r₂.toDynamic := by
-  cases r₁
-  cases r₂
-  dsimp [BodyReadyCI.toDynamic]
-
-/-- For a fixed `(Γ, st)`, the structural boundary read off from a ready
-witness does not depend on which state-indexed ready proof was chosen. -/
-theorem bodyReadyCI_toStructural_unique
-    {Γ : TypeEnv} {σ₁ σ₂ : State} {st : CppStmt}
-    (r₁ : BodyReadyCI Γ σ₁ st)
-    (r₂ : BodyReadyCI Γ σ₂ st) :
-    r₁.toStructural = r₂.toStructural := by
-  cases r₁
-  cases r₂
-  dsimp [BodyReadyCI.toStructural]
 
 /-- On a fixed statement target, the core fragment carried by the external V3
 route is judgmental rather than choice-dependent. -/

@@ -25,4 +25,22 @@ structure BlockBodyReadyCI (Γ : TypeEnv) (σ : State) (ss : StmtBlock) : Type w
   dynamic : BlockBodyDynamicBoundary Γ σ ss
   adequacy : BlockBodyAdequacyCI Γ σ ss static.profile
 
+def BlockBodyClosureBoundaryCI.toBlockBodyReadyCI
+    {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
+    (h : BlockBodyClosureBoundaryCI Γ σ ss) :
+    BlockBodyReadyCI Γ σ ss :=
+  { structural := h.structural
+    static := h.static
+    dynamic := h.dynamic
+    adequacy := h.adequacy }
+
+def BodyClosureBoundaryCI.toBodyReadyCI
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (h : BodyClosureBoundaryCI Γ σ st) :
+    BodyReadyCI Γ σ st :=
+  { structural := h.structural
+    static := h.static
+    dynamic := h.dynamic
+    adequacy := h.adequacy }
+
 end Cpp

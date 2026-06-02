@@ -1,5 +1,4 @@
 import CppFormalization.Cpp2.Closure.Function.FunctionBody
-import CppFormalization.Cpp2.Legacy.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureCI
 import CppFormalization.Cpp2.Metatheory.Closure.FunctionBodyCaseSplitCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI

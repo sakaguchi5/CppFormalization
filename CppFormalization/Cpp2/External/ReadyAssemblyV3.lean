@@ -1,5 +1,4 @@
 import CppFormalization.Cpp2.External.TransportV3
-import CppFormalization.Cpp2.Legacy.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Audit.Closure.Internal.InternalClosureRoadmap
 
 namespace Cpp

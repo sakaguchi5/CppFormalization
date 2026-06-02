@@ -1,6 +1,5 @@
 import CppFormalization.Cpp2.Entry.Body.BodyReadyCI
 import CppFormalization.Cpp2.Entry.Facts.Control.BodyReadyControlExclusionCI
-import CppFormalization.Cpp2.Legacy.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Adequacy.Body.BodyAdequacyCI
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI
 import CppFormalization.Cpp2.Route.Closure.WhileBodyClassCI
@@ -475,46 +474,6 @@ def bodyReadyCI_while_after_body_normal_of_replay_stable_primitive
           safe := hreadyWhile' }
       adequacy := hadeq }
 
-/-- wrapper for theorem-backed replay-stable primitive while tail boundary. -/
-def bodyClosureBoundaryCI_while_after_body_normal_of_replay_stable_primitive
-    {Γ : TypeEnv} {σ σ' : State} {c : ValExpr} {body : CppStmt} :
-    ReplayStablePrimitiveStmt body →
-    ReplayStableCondExpr c →
-    HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ →
-    BodyClosureBoundaryCI Γ σ (.whileStmt c body) →
-    BigStepValue σ c (.bool true) →
-    BigStepStmt σ body .normal σ' →
-    BodyClosureBoundaryCI Γ σ' (.whileStmt c body) := by
-  intro hstable hcstable htyWhile hready hcond hbodyStep
-  exact
-    (bodyReadyCI_while_after_body_normal_of_replay_stable_primitive
-      hstable hcstable htyWhile hready.toBodyReadyCI hcond hbodyStep).toClosureBoundary
-
-/--
-Replay-stable primitive body / cond から構成される tail-boundary reconstruction kit。
-
-Compatibility wrapper with the historical signature.  New proofs should prefer
-`whileTailBoundaryKitCI_of_replay_stable_primitive_reentrySupport`, which factors
-the same reconstruction through `LoopReentryKernelCI` plus
-`WhileTailAdequacyProviderCI`.
--/
-def whileTailBoundaryKitCI_of_replay_stable_primitive
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt}
-    (hstable : ReplayStablePrimitiveStmt body)
-    (hcstable : ReplayStableCondExpr c)
-    (htyWhile : HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ)
-    (hentry : BodyClosureBoundaryCI Γ σ (.whileStmt c body)) :
-    WhileTailBoundaryKitCI Γ σ c body := by
-  refine
-    { afterNormal := ?_
-      afterContinue := ?_ }
-  · intro σ1 hcond hstep
-    exact
-      bodyClosureBoundaryCI_while_after_body_normal_of_replay_stable_primitive
-        hstable hcstable htyWhile hentry hcond hstep
-  · intro σ1 _hcond hstep
-    exfalso
-    exact replay_stable_primitive_stmt_no_continue hstable hstep
 
 /--
 Replay-stable primitive tail-boundary reconstruction through the preferred
@@ -609,29 +568,5 @@ theorem while_function_body_closure_boundary_ci_of_replay_stable_primitive
   exact
     while_function_body_closure_boundary_ci_of_replay_stable_primitive_class
       hstable hcstable htyWhile hentry hloop htailClosure
-
-/--
-BodyReadyCI entry surface から honest while kernel へ降ろす互換 wrapper。
--/
-theorem while_function_body_closure_ci_of_replay_stable_primitive_honest
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {body : CppStmt} :
-    ReplayStablePrimitiveStmt body →
-    ReplayStableCondExpr c →
-    HasTypeStmtCI .normalK Γ (.whileStmt c body) Γ →
-    BodyReadyCI Γ σ (.whileStmt c body) →
-    LoopBodyBoundaryCI Γ σ body →
-    ((∃ ctrl σ1, BigStepStmt σ body ctrl σ1) ∨ BigStepStmtDiv σ body) →
-    (∀ {σ1 : State},
-      BodyReadyCI Γ σ1 (.whileStmt c body) →
-      (∃ ex σ2, BigStepFunctionBody σ1 (.whileStmt c body) ex σ2) ∨
-        BigStepStmtDiv σ1 (.whileStmt c body)) →
-    (∃ ex σ', BigStepFunctionBody σ (.whileStmt c body) ex σ') ∨
-      BigStepStmtDiv σ (.whileStmt c body) := by
-  intro hstable hcstable htyWhile hentry hloop hbodyClosure htailClosure
-  exact
-    while_function_body_closure_boundary_ci_of_replay_stable_primitive
-      hstable hcstable htyWhile hentry.toClosureBoundary hloop hbodyClosure
-      (fun {σ1} htailBoundary =>
-        htailClosure (σ1 := σ1) htailBoundary.toBodyReadyCI)
 
 end Cpp

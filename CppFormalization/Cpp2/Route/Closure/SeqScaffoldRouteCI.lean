@@ -1,5 +1,4 @@
 import CppFormalization.Cpp2.Closure.Function.FunctionBody
-import CppFormalization.Cpp2.Legacy.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Package.BodyClosureBoundaryCI
 import CppFormalization.Cpp2.Static.StructuralAdmission.BodyStructuralBoundary
 import CppFormalization.Cpp2.Profile.ControlProfile

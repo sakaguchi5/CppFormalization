@@ -1,5 +1,4 @@
 import CppFormalization.Cpp2.Closure.Function.FunctionBody
-import CppFormalization.Cpp2.Legacy.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Package.BodyClosureBoundaryCI
 import CppFormalization.Cpp2.Static.StructuralAdmission.BodyStructuralBoundary
 import CppFormalization.Cpp2.Profile.ControlProfile
@@ -1143,21 +1142,5 @@ theorem ite_function_body_closure_boundary_ci_honest
       | true =>
           exact ite_function_body_result_true hcondEval
             (thenClosure hb.thenBoundary)
-
-theorem ite_function_body_closure_ci_honest
-    {Γ : TypeEnv} {σ : State} {c : ValExpr} {s t : CppStmt}
-    (hentry : BodyReadyCI Γ σ (.ite c s t))
-    (thenClosure :
-      BodyReadyCI Γ σ s →
-      FunctionBodyClosureResult σ s)
-    (elseClosure :
-      BodyReadyCI Γ σ t →
-      FunctionBodyClosureResult σ t) :
-    FunctionBodyClosureResult σ (.ite c s t) := by
-  exact
-    ite_function_body_closure_boundary_ci_honest
-      hentry.toClosureBoundary
-      (fun hthenBoundary => thenClosure hthenBoundary.toBodyReadyCI)
-      (fun helseBoundary => elseClosure helseBoundary.toBodyReadyCI)
 
 end Cpp

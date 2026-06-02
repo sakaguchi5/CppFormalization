@@ -1,7 +1,6 @@
 import CppFormalization.Cpp2.Closure.Function.FunctionBody
 import CppFormalization.Cpp2.Entry.Body.BodyReadyCI
 import CppFormalization.Cpp2.Entry.Facts.Control.BodyReadyControlExclusionCI
-import CppFormalization.Cpp2.Legacy.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Package.BodyClosureBoundaryCI
 import CppFormalization.Cpp2.Static.StructuralAdmission.BodyStructuralBoundary
 import CppFormalization.Cpp2.Profile.ControlProfile
@@ -350,41 +349,5 @@ theorem block_function_body_closure_boundary_ci_from_opened_body
   have hres : FunctionBlockBodyClosureResult σ0 ss :=
     openedClosure hopen hopenedBoundary
   exact block_function_body_result_of_opened_block_body_result hopen hres
-
-/-- `BodyReadyCI` 互換 wrapper for the opened-scope bridge. -/
-noncomputable def blockBodyReadyCI_of_bodyReadyCI_opened
-    {Γ : TypeEnv} {σ σ' : State} {ss : StmtBlock} :
-    BodyReadyCI Γ σ (.block ss) →
-    OpenScope σ σ' →
-    BlockBodyReadyCI Γ σ' ss := by
-  intro hentry hopen
-  exact
-    (blockBodyClosureBoundaryCI_of_bodyClosureBoundaryCI_opened
-      hentry.toClosureBoundary hopen).toBlockBodyReadyCI
-
-/-- `BodyReadyCI` 互換 wrapper for opened block-body closure. -/
-theorem block_body_function_closure_ci
-    {Γ : TypeEnv} {σ : State} {ss : StmtBlock} :
-    BlockBodyReadyCI Γ σ ss →
-    FunctionBlockBodyClosureResult σ ss := by
-  intro hentry
-  exact block_body_function_closure_boundary_ci hentry.toClosureBoundary
-
-/-- `BodyReadyCI` 互換 wrapper for honest block-statement closure. -/
-theorem block_function_body_closure_ci_honest
-    {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
-    (hentry : BodyReadyCI Γ σ (.block ss))
-    (openedClosure :
-      ∀ {σ0 : State},
-        OpenScope σ σ0 →
-        BlockBodyReadyCI Γ σ0 ss →
-        FunctionBlockBodyClosureResult σ0 ss) :
-    (∃ ex σ', BigStepFunctionBody σ (.block ss) ex σ') ∨
-      BigStepStmtDiv σ (.block ss) := by
-  exact
-    block_function_body_closure_boundary_ci_from_opened_body
-      hentry.toClosureBoundary
-      (fun hopen hopenedBoundary =>
-        openedClosure hopen hopenedBoundary.toBlockBodyReadyCI)
 
 end Cpp

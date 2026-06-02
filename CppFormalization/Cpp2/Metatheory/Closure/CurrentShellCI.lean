@@ -1,4 +1,3 @@
-import CppFormalization.Cpp2.Legacy.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Closure.Function.FunctionBody
 import CppFormalization.Cpp2.Language.Syntax
 import CppFormalization.Cpp2.Operational.Divergence

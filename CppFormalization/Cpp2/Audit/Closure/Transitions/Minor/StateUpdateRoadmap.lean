@@ -2,7 +2,6 @@ import CppFormalization.Cpp2.Entry.StaticSafety.StateBoundary
 import CppFormalization.Cpp2.Entry.StaticSafety.Readiness
 import CppFormalization.Cpp2.Validity.StateInvariantConcrete.StateInvariantConcrete
 import CppFormalization.Cpp2.Static.Typing.ControlIndexed
-import CppFormalization.Cpp2.Legacy.Foundation.BodyBoundaryCompatibility
 import CppFormalization.Cpp2.Preservation.Assign.Preservation
 import CppFormalization.Cpp2.Preservation.Scope.OpenPreservation
 import CppFormalization.Cpp2.Preservation.DeclareRef.Preservation

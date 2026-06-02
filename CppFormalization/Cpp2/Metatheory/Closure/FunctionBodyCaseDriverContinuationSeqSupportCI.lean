@@ -2,6 +2,7 @@ import CppFormalization.Cpp2.Continuation.Closure.SeqFunctionBodyClosureContinua
 import CppFormalization.Cpp2.Metatheory.Closure.FunctionBodyCaseDriverCI
 import CppFormalization.Cpp2.Metatheory.Closure.WhileCurrentBoundaryClosureCoreSupportCI
 import CppFormalization.Cpp2.Metatheory.Closure.FunctionBodyCaseDriverCoreSupportCI
+import CppFormalization.Cpp2.Legacy.Foundation.BodyBoundaryCompatibility
 
 namespace Cpp
 

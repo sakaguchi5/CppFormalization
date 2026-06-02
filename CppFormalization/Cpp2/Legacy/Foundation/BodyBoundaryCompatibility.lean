@@ -110,32 +110,6 @@ def toClosureBoundary
 
 end BlockBodyReadyCI
 
-namespace BodyClosureBoundaryCI
-
-def toBodyReadyCI
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (h : BodyClosureBoundaryCI Γ σ st) :
-    BodyReadyCI Γ σ st :=
-  { structural := h.structural
-    static := h.static
-    dynamic := h.dynamic
-    adequacy := h.adequacy }
-
-end BodyClosureBoundaryCI
-
-namespace BlockBodyClosureBoundaryCI
-
-def toBlockBodyReadyCI
-    {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
-    (h : BlockBodyClosureBoundaryCI Γ σ ss) :
-    BlockBodyReadyCI Γ σ ss :=
-  { structural := h.structural
-    static := h.static
-    dynamic := h.dynamic
-    adequacy := h.adequacy }
-
-end BlockBodyClosureBoundaryCI
-
 def legacyStmtReady_of_static_dynamic
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (hs : BodyStaticBoundaryCI Γ st)

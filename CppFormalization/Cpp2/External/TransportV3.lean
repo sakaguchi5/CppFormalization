@@ -1,5 +1,5 @@
+import CppFormalization.Cpp2.Entry.Body.BodyReadyCI
 import CppFormalization.Cpp2.External.CoherenceV3
-import CppFormalization.Cpp2.Legacy.Foundation.BodyBoundaryCompatibility
 
 namespace Cpp
 
@@ -93,22 +93,6 @@ theorem castBodyAdequacy_symm
     castBodyAdequacy (Eq.symm h) (castBodyAdequacy h ha) = ha := by
   cases h
   rfl
-
-theorem match_toStatic_eq_castBodyAdequacy
-    {Γ : TypeEnv} {σ : State} {st : CppStmt}
-    (ready : BodyReadyCI Γ σ st)
-    {s : BodyStaticBoundaryCI Γ st}
-    (h : ready.toStatic = s) :
-    (match s, h with
-     | .(ready.toStatic), rfl => ready.toAdequacy)
-    =
-    castBodyAdequacy
-      (congrArg BodyStaticBoundaryCI.profile h)
-      ready.toAdequacy := by
-  cases h
-  rfl
-
-
 
 theorem mkBodyClosureBoundaryCI_static_transport
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
