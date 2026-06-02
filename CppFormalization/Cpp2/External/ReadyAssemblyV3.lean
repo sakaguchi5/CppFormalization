@@ -1,6 +1,6 @@
 import CppFormalization.Cpp2.External.TransportV3
 import CppFormalization.Cpp2.Audit.Closure.Internal.InternalClosureRoadmap
---import CppFormalization.Cpp2.Entry.Body.BodyReadyCI
+
 namespace Cpp
 
 /-!
