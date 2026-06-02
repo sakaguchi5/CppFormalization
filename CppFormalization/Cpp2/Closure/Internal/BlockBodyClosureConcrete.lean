@@ -199,62 +199,56 @@ def blockBodyReadyConcreteAt_cons_head
       state := h.state
       safe := hreadyHead }
 
-/--
-Old-typing normal preservation kernel needed by concrete current-env block-body
-decomposition.
+/-- Reconstruct the current-env tail boundary after a normal head execution.
 
-This is intentionally lower than the old monolithic block-body closure axiom:
-it says only that a normal head statement transports the concrete scoped state
-to the residual environment named by the head typing.
+This version no longer uses the old normal-preservation/readiness axioms.
+
+The remaining old-typing dependency is only used to keep the current
+`BlockBodyReadyConcreteAt.typed` field populated.  The actual post-state
+validity comes from CI control preservation, and tail readiness comes from an
+explicit continuation dynamic boundary.
 -/
-axiom stmt_normal_preserves_scoped_typed_state_concrete_of_old
-    {Γ Δ : TypeEnv} {σ σ' : State} {s : CppStmt} :
-    HasTypeStmt Γ s Δ →
-    ScopedTypedStateConcrete Γ σ →
-    StmtReadyConcrete Γ σ s →
-    BigStepStmt σ s .normal σ' →
-    ScopedTypedStateConcrete Δ σ'
-
-/--
-Old-typing residual readiness kernel for a cons block body.
-
-The CI version already exists upstream; this concrete wrapper is the precise
-remaining bridge needed while `BlockBodyReadyConcreteAt` still stores old
-`HasTypeBlock` payloads.
--/
-axiom cons_block_ready_tail_after_head_normal_old
-    {Γ Δ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock} :
-    HasTypeStmt Γ s Δ →
-    ScopedTypedStateConcrete Δ σ' →
-    BlockReadyConcrete Γ σ (.cons s ss) →
-    BigStepStmt σ s .normal σ' →
-    BlockReadyConcrete Δ σ' ss
-
-/-- Reconstruct the current-env tail boundary after a normal head execution. -/
 theorem blockBodyReadyConcreteAt_cons_tail_after_head_normal
     {Γ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock}
     (h : BlockBodyReadyConcreteAt Γ σ (.cons s ss))
+    (headCI :
+      ∀ {Δ : TypeEnv},
+        HasTypeStmt Γ s Δ →
+        HasTypeStmtCI .normalK Γ s Δ)
+    (tailDynamic :
+      ∀ {Δ : TypeEnv},
+        HasTypeStmtCI .normalK Γ s Δ →
+        ScopedTypedStateConcrete Δ σ' →
+        BlockReadyConcrete Γ σ (.cons s ss) →
+        BigStepStmt σ s .normal σ' →
+        BlockContinuationDynamicBoundary Δ σ' ss)
     (hstep : BigStepStmt σ s .normal σ') :
     ∃ Δ, BlockBodyReadyConcreteAt Δ σ' ss := by
   have hwf : WellFormedStmt s ∧ WellFormedBlock ss := by
     simpa [WellFormedBlock] using h.wf
+
   have hbreak : BreakWellScoped s ∧ BreakWellScopedBlockAt 0 ss := by
     simpa [BreakWellScopedBlockAt] using h.breakScoped
+
   have hcont : ContinueWellScoped s ∧ ContinueWellScopedBlockAt 0 ss := by
     simpa [ContinueWellScopedBlockAt] using h.continueScoped
-  have hreadyHead : StmtReadyConcrete Γ σ s := by
-    cases h.safe with
-    | cons hs _ =>
-        exact hs
+
   rcases h.typed with ⟨Ω, htyBlock⟩
   cases htyBlock with
   | cons htyHead htyTail =>
+      have htyHeadCI : HasTypeStmtCI .normalK Γ s _ :=
+        headCI htyHead
+
+      have hcomp : StmtControlCompatible htyHeadCI hstep :=
+        stmtControlCompatible_normal_of_bigStep hstep htyHeadCI
+
       have hstate' : ScopedTypedStateConcrete _ σ' :=
-        stmt_normal_preserves_scoped_typed_state_concrete_of_old
-          htyHead h.state hreadyHead hstep
-      have hreadyTail : BlockReadyConcrete _ σ' ss :=
-        cons_block_ready_tail_after_head_normal_old
-          htyHead hstate' h.safe hstep
+        stmt_normal_preserves_scoped_typed_state_concrete_noReady
+          hcomp h.state
+
+      have htailDyn : BlockContinuationDynamicBoundary _ σ' ss :=
+        tailDynamic htyHeadCI hstate' h.safe hstep
+
       exact
         ⟨_,
           { wf := hwf.2
@@ -262,7 +256,23 @@ theorem blockBodyReadyConcreteAt_cons_tail_after_head_normal
             breakScoped := hbreak.2
             continueScoped := hcont.2
             state := hstate'
-            safe := hreadyTail }⟩
+            safe := htailDyn.safe }⟩
+
+/--
+Provider for reconstructing the current-env tail boundary after a normal head
+statement in an opened block body.
+
+This is the new boundary between block-body closure and route-local continuation
+construction.  The closure theorem should not know whether the tail boundary was
+obtained from legacy transport, CompoundContinuation, or a future CI-native
+block-body boundary.
+-/
+abbrev BlockBodyReadyConcreteAtTailAfterHeadProvider : Prop :=
+  ∀ {Γ : TypeEnv} {σ σ' : State} {s : CppStmt} {ss : StmtBlock},
+    BlockBodyReadyConcreteAt Γ σ (.cons s ss) →
+    BigStepStmt σ s .normal σ' →
+    ∃ Δ, BlockBodyReadyConcreteAt Δ σ' ss
+
 
 /--
 All current syntax is inside the idealized big-step fragment.
@@ -281,9 +291,14 @@ theorem nil_block_body_function_closure_concrete_refined_at
   refine ⟨.fellThrough, σ, ?_⟩
   exact BigStepFunctionBlockBody.fallthrough BigStepBlock.nil
 
-/-- Head/tail assembly for a `cons` opened block body in the concrete current-env layer. -/
+/-- Head/tail assembly for a `cons` opened block body in the concrete current-env layer.
+
+This version does not directly depend on old typing transport axioms.  The only
+tail reconstruction input is the explicit provider `tailAfterHead`.
+-/
 theorem cons_block_body_function_closure_concrete_refined_at
     {Γ : TypeEnv} {σ : State} {s : CppStmt} {ss : StmtBlock}
+    (tailAfterHead : BlockBodyReadyConcreteAtTailAfterHeadProvider)
     (h : BlockBodyReadyConcreteAt Γ σ (.cons s ss))
     (htail :
       ∀ {Δ : TypeEnv} {σ' : State},
@@ -293,17 +308,21 @@ theorem cons_block_body_function_closure_concrete_refined_at
       BigStepBlockDiv σ (.cons s ss) := by
   have hheadReady : BodyReadyConcrete Γ σ s :=
     blockBodyReadyConcreteAt_cons_head h
+
   rcases
       concrete_body_ready_function_body_progress_or_diverges_by_cases_concrete_refined
         (coreBigStepFragment_all s)
         hheadReady with hheadTerm | hheadDiv
+
   · rcases hheadTerm with ⟨ex, σ1, hheadExec⟩
     cases ex with
     | fellThrough =>
         have hstepHead : BigStepStmt σ s .normal σ1 := by
           simpa using (BigStepFunctionBody.to_stmt hheadExec)
-        rcases blockBodyReadyConcreteAt_cons_tail_after_head_normal h hstepHead with
+
+        rcases tailAfterHead h hstepHead with
           ⟨Δ, htailReady⟩
+
         rcases htail htailReady with htailTerm | htailDiv
         · rcases htailTerm with ⟨exTail, σ2, htailExec⟩
           cases exTail with
@@ -321,39 +340,45 @@ theorem cons_block_body_function_closure_concrete_refined_at
                 (by simpa using (BigStepFunctionBlockBody.to_block htailExec))
         · right
           exact BigStepBlockDiv.consTail hstepHead htailDiv
+
     | returned rv =>
         left
         refine ⟨.returned rv, σ1, ?_⟩
         apply BigStepFunctionBlockBody.returning
         exact BigStepBlock.consReturn
           (by simpa using (BigStepFunctionBody.to_stmt hheadExec))
+
   · right
     exact BigStepBlockDiv.consHere hheadDiv
 
 /--
 Opened block-body closure in the current-env concrete layer.
 
-The proof is structurally recursive over the block body.  The `cons` case is no
-longer a black-box block-body axiom; it is the same head/tail assembly pattern
-that the Lite layer used.
+The proof is structurally recursive over the block body.  Tail reconstruction is
+not hard-coded here; it is supplied by `tailAfterHead`.
 -/
-theorem block_body_function_closure_concrete_refined_at :
+theorem block_body_function_closure_concrete_refined_at
+    (tailAfterHead : BlockBodyReadyConcreteAtTailAfterHeadProvider) :
     ∀ {Γ : TypeEnv} {σ : State} {ss : StmtBlock},
       BlockBodyReadyConcreteAt Γ σ ss →
       (∃ ex σ', BigStepFunctionBlockBody σ ss ex σ') ∨ BigStepBlockDiv σ ss
   | _, _, .nil, _ =>
       nil_block_body_function_closure_concrete_refined_at
   | _, _, .cons _ _, h =>
-      cons_block_body_function_closure_concrete_refined_at h
-        (fun htail => block_body_function_closure_concrete_refined_at htail)
+      cons_block_body_function_closure_concrete_refined_at
+        tailAfterHead
+        h
+        (fun htail =>
+          block_body_function_closure_concrete_refined_at tailAfterHead htail)
 
 /-- Opened block-body closure itself, as seen from a statement-level block entry. -/
 theorem block_body_function_closure_concrete_refined
+    (tailAfterHead : BlockBodyReadyConcreteAtTailAfterHeadProvider)
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock} :
     BlockBodyReadyConcrete Γ σ ss →
     (∃ ex σ', BigStepFunctionBlockBody σ ss ex σ') ∨ BigStepBlockDiv σ ss := by
   intro h
-  exact block_body_function_closure_concrete_refined_at h.toAt
+  exact block_body_function_closure_concrete_refined_at tailAfterHead h.toAt
 
 /-- Opening a block statement yields the honest block-body boundary contract. -/
 theorem blockBodyReadyConcrete_of_bodyReadyConcrete_opened
@@ -426,24 +451,5 @@ theorem block_function_body_result_of_opened_block_body_result
     rcases bigStepFunctionBody_block_of_opened_functionBlockBody hopen hbody with ⟨σ2, hstmt⟩
     exact Or.inl ⟨ex, σ2, hstmt⟩
   · exact Or.inr (bigStepStmtDiv_block_of_opened_blockDiv hopen hdiv)
-
-/--
-Once block-body closure is available, block-statement closure is derived by
-open/body/close assembly rather than by re-running `(.block ss)` under an opened state.
--/
-theorem block_function_body_closure_concrete_refined_honest
-    {Γ : TypeEnv} {σ : State} {ss : StmtBlock} :
-    BodyReadyConcrete Γ σ (.block ss) →
-    (∃ ex σ', BigStepFunctionBody σ (.block ss) ex σ') ∨ BigStepStmtDiv σ (.block ss) := by
-  intro hready
-  let σ0 : State := pushScope σ
-  have hopen : OpenScope σ σ0 := by
-    rfl
-  have hopenedReady : BlockBodyReadyConcrete Γ σ0 ss :=
-    blockBodyReadyConcrete_of_bodyReadyConcrete_opened hready hopen
-  have hres :
-      (∃ ex σ', BigStepFunctionBlockBody σ0 ss ex σ') ∨ BigStepBlockDiv σ0 ss :=
-    block_body_function_closure_concrete_refined hopenedReady
-  exact block_function_body_result_of_opened_block_body_result hopen hres
 
 end Cpp

@@ -301,29 +301,15 @@ Opened block-body closure target.
 CI 層では theorem-backed だが、実質的な仕事は concrete refined theorem に委譲する。
 -/
 theorem block_body_function_closure_boundary_ci
+    (tailAfterHead : BlockBodyReadyConcreteAtTailAfterHeadProvider)
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock} :
     BlockBodyClosureBoundaryCI Γ σ ss →
     FunctionBlockBodyClosureResult σ ss := by
   intro hentry
   exact
     block_body_function_closure_concrete_refined
+      tailAfterHead
       (blockBodyReadyConcrete_of_blockBodyClosureBoundaryCI hentry)
-
-/--
-Direct block-statement closure from the top-level block entry.
-
-block statement と opened block body を理論上は分けたままにするが、
-CI 層の closure theorem 自体は concrete refined の honest theorem へ落とす。
--/
-theorem block_function_body_closure_boundary_ci_direct
-    {Γ : TypeEnv} {σ : State} {ss : StmtBlock} :
-    BodyClosureBoundaryCI Γ σ (.block ss) →
-    (∃ ex σ', BigStepFunctionBody σ (.block ss) ex σ') ∨
-      BigStepStmtDiv σ (.block ss) := by
-  intro hentry
-  exact
-    block_function_body_closure_concrete_refined_honest
-      (bodyReadyConcrete_of_bodyClosureBoundaryCI hentry)
 
 /--
 Block-statement closure assembled from an opened block-body closure callback.
