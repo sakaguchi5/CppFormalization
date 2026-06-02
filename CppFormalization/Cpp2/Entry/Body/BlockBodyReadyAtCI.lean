@@ -5,6 +5,7 @@ import CppFormalization.Cpp2.Entry.StaticSafety.Readiness
 import CppFormalization.Cpp2.Validity.StateInvariantConcrete.StateInvariantConcrete
 import CppFormalization.Cpp2.Operational.Stmt
 import CppFormalization.Cpp2.Continuation.Boundary.Dynamic
+import CppFormalization.Cpp2.Closure.Package.BodyClosureBoundaryCI
 
 namespace Cpp
 
@@ -42,17 +43,36 @@ structure BodyReadyAtCI (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
       BigStepStmt σ st .normal σ' →
       ∃ Δ : TypeEnv, HasTypeStmtCI .normalK Γ st Δ
 
+namespace BodyReadyAtCI
+
+/--
+Build the CI-native statement entry from an assembled statement closure boundary.
+
+This is theorem-backed by `BodyAdequacyCI.normalWitness`: a normal statement
+execution selects a concrete normal CI typing payload from the profile.
+-/
+def ofClosureBoundary
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (h : BodyClosureBoundaryCI Γ σ st) :
+    BodyReadyAtCI Γ σ st :=
+  { wf := h.structural.wf
+    breakScoped := h.structural.breakScoped
+    continueScoped := h.structural.continueScoped
+    state := h.dynamic.state
+    safe := h.dynamic.safe
+    normalTypingOfStep := by
+      intro σ' hstep
+      let w := h.adequacy.normalWitness hstep
+      exact ⟨w.val.val, w.val.property⟩ }
+
+end BodyReadyAtCI
+
 /--
 CI-native opened/current block-body entry.
 
-The two cons fields are intentionally continuation-shaped:
-
-* `headReadyOfCons` extracts the head statement entry.
-* `tailReadyOfCons` rebuilds the tail entry from a selected normal head typing,
-  the actual normal head step, and the route-local dynamic continuation boundary.
-
-This avoids storing old `HasTypeBlock` payloads in the current-env block-body
-closure route.
+`BlockBodyReadyAtCI` intentionally stores no old coarse block typing payload.
+Tail rebuilding is externalized into providers below, so the structure itself is
+not recursively defined and passes Lean's positivity checker.
 -/
 structure BlockBodyReadyAtCI (Γ : TypeEnv) (σ : State) (ss : StmtBlock) : Type where
   wf : WellFormedBlock ss
@@ -96,18 +116,78 @@ abbrev BlockBodyReadyAtCITailRebuildProvider : Type :=
 /--
 Combined tail-after-head provider consumed by block-body closure.
 -/
-abbrev BlockBodyReadyAtCITailAfterHeadProvider : Type  :=
+abbrev BlockBodyReadyAtCITailAfterHeadProvider : Type :=
   ∀ {Γ Θ : TypeEnv} {σ σ' : State} {head : CppStmt} {tail : StmtBlock},
     BlockBodyReadyAtCI Γ σ (.cons head tail) →
     HasTypeStmtCI .normalK Γ head Θ →
     BigStepStmt σ head .normal σ' →
     BlockBodyReadyAtCI Θ σ' tail
 
-def BlockBodyReadyAtCITailAfterHeadProvider.ofDynamicAndRebuild
+namespace BlockBodyReadyAtCITailAfterHeadProvider
+
+/-- Compose a dynamic tail provider and a tail-entry rebuild provider. -/
+def ofDynamicAndRebuild
     (tailDynamic : BlockBodyReadyAtCITailDynamicProvider)
     (tailRebuild : BlockBodyReadyAtCITailRebuildProvider) :
     BlockBodyReadyAtCITailAfterHeadProvider := by
   intro Γ Θ σ σ' head tail h hty hstep
   exact tailRebuild h hty hstep (tailDynamic h hty hstep)
+
+end BlockBodyReadyAtCITailAfterHeadProvider
+
+/--
+Head extraction provider for converting an assembled opened block-body boundary
+into the CI-native current-env block-body entry.
+
+This is the intentionally small replacement for the previous monolithic
+`blockBodyReadyAtCI_of_blockBodyClosureBoundaryCI` axiom.
+-/
+abbrev BlockBodyReadyAtCIHeadProvider : Type :=
+  ∀ {Γ : TypeEnv} {σ : State} {head : CppStmt} {tail : StmtBlock},
+    BlockBodyClosureBoundaryCI Γ σ (.cons head tail) →
+    BodyReadyAtCI (pushTypeScope Γ) σ head
+
+/--
+A lower provider that supplies an ordinary statement closure boundary for the
+head of an opened block body.
+-/
+abbrev BlockBodyReadyAtCIHeadBoundaryProvider : Type :=
+  ∀ {Γ : TypeEnv} {σ : State} {head : CppStmt} {tail : StmtBlock},
+    BlockBodyClosureBoundaryCI Γ σ (.cons head tail) →
+    BodyClosureBoundaryCI (pushTypeScope Γ) σ head
+
+namespace BlockBodyReadyAtCIHeadProvider
+
+/-- Build the head-ready provider from a statement closure-boundary provider. -/
+def ofBodyClosureBoundaryProvider
+    (mkHeadBoundary : BlockBodyReadyAtCIHeadBoundaryProvider) :
+    BlockBodyReadyAtCIHeadProvider := by
+  intro Γ σ head tail h
+  exact BodyReadyAtCI.ofClosureBoundary (mkHeadBoundary h)
+
+end BlockBodyReadyAtCIHeadProvider
+
+/--
+Decomposed conversion from assembled opened block-body boundary to the CI-native
+current-env entry.
+
+The old monolithic axiom is replaced by one explicit missing ingredient:
+`headProvider`, which explains how to obtain the CI-native head statement entry
+for the `cons` case.
+-/
+def blockBodyReadyAtCI_of_blockBodyClosureBoundaryCI_withHeadProvider
+    (headProvider : BlockBodyReadyAtCIHeadProvider)
+    {Γ : TypeEnv} {σ : State} {ss : StmtBlock}
+    (h : BlockBodyClosureBoundaryCI Γ σ ss) :
+    BlockBodyReadyAtCI (pushTypeScope Γ) σ ss :=
+  { wf := h.structural.wf
+    breakScoped := h.structural.breakScoped
+    continueScoped := h.structural.continueScoped
+    state := h.dynamic.state
+    safe := h.dynamic.safe
+    headReadyOfCons := by
+      intro head tail hEq
+      cases hEq
+      exact headProvider h }
 
 end Cpp

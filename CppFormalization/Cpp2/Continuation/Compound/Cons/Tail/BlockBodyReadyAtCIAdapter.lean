@@ -42,6 +42,18 @@ def tailDynamicProvider_of_continuationInputProvider
     { hhead := hstep }
   exact (mkInput hready hhead route).toDynamicBoundary
 
+/--
+Build the full tail-after-head provider from route-local compound continuation
+input and an explicit CI-native tail-entry rebuild provider.
+-/
+def tailAfterHeadProvider_of_continuationInputAndRebuild
+    (mkInput : ContinuationInputProviderForBlockBodyReadyAtCI)
+    (tailRebuild : BlockBodyReadyAtCITailRebuildProvider) :
+    BlockBodyReadyAtCITailAfterHeadProvider :=
+  BlockBodyReadyAtCITailAfterHeadProvider.ofDynamicAndRebuild
+    (tailDynamicProvider_of_continuationInputProvider mkInput)
+    tailRebuild
+
 end Tail
 end Cons
 end CompoundContinuation
