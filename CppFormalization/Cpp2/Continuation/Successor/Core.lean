@@ -1,5 +1,3 @@
---import CppFormalization.Cpp2.Language.Syntax
-
 namespace Cpp
 namespace ControlSuccessor
 
@@ -20,6 +18,26 @@ Examples:
 
 This layer intentionally avoids a fully generic dependent target type.  Concrete
 successor shapes are introduced in dedicated files.
+-/
+
+
+/-!
+## Provider classification used by closure proofs
+
+A closure proof usually separates three roles.
+
+* Source closure provider:
+  closes or executes the source sub-execution and obtains a control exit or
+  divergence.
+
+* Successor provider:
+  given a specific source exit route, reconstructs the next target boundary.
+
+* Closure shell:
+  once the target boundary is available, recursively closes that target.
+
+Successor providers are semantic C++ control-flow facts.  Closure shells are
+proof architecture.
 -/
 
 /-- Lightweight classification of common C++ successor situations. -/

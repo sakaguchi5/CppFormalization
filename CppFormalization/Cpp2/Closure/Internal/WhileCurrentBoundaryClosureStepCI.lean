@@ -41,7 +41,7 @@ structure WhileTailClosureShellCI
         (∃ ex σ2, BigStepFunctionBody σ1 (.whileStmt c body) ex σ2) ∨
           BigStepStmtDiv σ1 (.whileStmt c body)
 
-/--
+/-
 A named support package for one current-boundary `while` closure step.
 
 It intentionally separates the program-facing backedge invariant from the
@@ -50,6 +50,26 @@ recursion shell:
 - `invariant` is the C++/semantic backedge condition;
 - `tail` is the proof-architecture recursion hook.
 -/
+
+/-!
+## Successor-edge reading
+
+The while closure step has the same high-level shape as the block-cons
+successor route.
+
+* `invariant` is the C++ successor/backedge fact:
+  after a body `normal` or `continue` exit, the next iteration boundary can be
+  replayed.
+* `tail` is not a C++ invariant.  It is the proof-recursion shell used after the
+  successor boundary has been reconstructed.
+
+This mirrors the block-cons split:
+
+* source closure provider;
+* successor provider;
+* recursive closure shell.
+-/
+
 structure WhileCurrentBoundaryClosureStepCI
     (Γ : TypeEnv) (c : ValExpr) (body : CppStmt) : Type where
   invariant : WhileBackedgeInvariantCI Γ c body

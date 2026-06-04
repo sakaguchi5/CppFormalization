@@ -295,13 +295,29 @@ noncomputable def blockBodyClosureBoundaryCI_of_bodyClosureBoundaryCI_opened
           (blockBodyAdequacyScaffoldCI_of_bodyClosureBoundaryCI_opened
             hentry hopen).adequacy }
 
-/--
+/-
 Opened block-body closure target.
 
 The former monolithic `blockBodyReadyAtCI_of_blockBodyClosureBoundaryCI` axiom is
 not used here.  The missing head extraction is made explicit as
 `headProvider`, while statement closure is supplied as `bodyClosure`.
 -/
+
+/-!
+## Source closure / successor / recursion-shell split
+
+For the CI-native opened block-body closure, the cons case is read as follows.
+
+* `bodyClosure` closes the source head statement.
+* `successor` is the C++ block-cons normal successor edge:
+  if the head falls through normally, reconstruct the tail boundary under the
+  post-head environment and state.
+* `htail` is the recursive closure shell for the reconstructed tail boundary.
+
+The successor is the semantic C++ control-flow fact.  The recursive tail closure
+is proof architecture.
+-/
+
 theorem block_body_function_closure_boundary_ci
     (bodyClosure : BodyReadyAtCIClosureProvider)
     (successor : ControlSuccessor.BlockConsNormalSuccessorProvider)

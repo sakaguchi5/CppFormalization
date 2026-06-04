@@ -74,10 +74,26 @@ def ofMainlineContinuation
 
 end BodyReadyAtCIClosureProvider
 
-/--
+/-
 Head/tail assembly for a `cons` opened block body in the CI-native current-env
 layer, with statement closure supplied explicitly.
 -/
+
+/-!
+## Source closure / successor / recursion-shell split
+
+For the CI-native opened block-body closure, the cons case is read as follows.
+
+* `bodyClosure` closes the source head statement.
+* `successor` is the C++ block-cons normal successor edge:
+  if the head falls through normally, reconstruct the tail boundary under the
+  post-head environment and state.
+* `htail` is the recursive closure shell for the reconstructed tail boundary.
+
+The successor is the semantic C++ control-flow fact.  The recursive tail closure
+is proof architecture.
+-/
+
 theorem cons_block_body_function_closure_ci_at_with_statement_provider
     {Γ : TypeEnv} {σ : State} {head : CppStmt} {tail : StmtBlock}
     (bodyClosure : BodyReadyAtCIClosureProvider)
