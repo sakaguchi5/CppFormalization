@@ -10,6 +10,7 @@ import CppFormalization.Cpp2.Closure.Internal.BlockBodyClosureConcrete
 import CppFormalization.Cpp2.Closure.Internal.FunctionBodyPrimitiveClosureCI
 import CppFormalization.Cpp2.Preservation.Scope.OpenPreservation
 import CppFormalization.Cpp2.Operational.Divergence
+import CppFormalization.Cpp2.Continuation.Successor.BlockCons
 
 namespace Cpp
 
@@ -303,7 +304,7 @@ not used here.  The missing head extraction is made explicit as
 -/
 theorem block_body_function_closure_boundary_ci
     (bodyClosure : BodyReadyAtCIClosureProvider)
-    (tailAfterHead : BlockBodyReadyAtCITailAfterHeadProvider)
+    (successor : ControlSuccessor.BlockConsNormalSuccessorProvider)
     (headProvider : BlockBodyReadyAtCIHeadProvider)
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock} :
     BlockBodyClosureBoundaryCI Γ σ ss →
@@ -312,7 +313,7 @@ theorem block_body_function_closure_boundary_ci
   exact
     block_body_function_closure_ci_at
       bodyClosure
-      tailAfterHead
+      successor
       (blockBodyReadyAtCI_of_blockBodyClosureBoundaryCI_withHeadProvider
         headProvider
         hentry)

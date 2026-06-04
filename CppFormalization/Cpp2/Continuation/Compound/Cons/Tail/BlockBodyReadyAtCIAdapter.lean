@@ -1,5 +1,6 @@
 import CppFormalization.Cpp2.Entry.Body.BlockBodyReadyAtCI
 import CppFormalization.Cpp2.Continuation.Compound.Cons.Tail.Continuation
+import CppFormalization.Cpp2.Continuation.Successor.BlockCons
 
 namespace Cpp
 namespace CompoundContinuation
@@ -46,11 +47,11 @@ def tailDynamicProvider_of_continuationInputProvider
 Build the full tail-after-head provider from route-local compound continuation
 input and an explicit CI-native tail-entry rebuild provider.
 -/
-def tailAfterHeadProvider_of_continuationInputAndRebuild
+def blockConsNormalSuccessorProvider_of_continuationInputAndRebuildProvider
     (mkInput : ContinuationInputProviderForBlockBodyReadyAtCI)
     (tailRebuild : BlockBodyReadyAtCITailRebuildProvider) :
-    BlockBodyReadyAtCITailAfterHeadProvider :=
-  BlockBodyReadyAtCITailAfterHeadProvider.ofDynamicAndRebuild
+    ControlSuccessor.BlockConsNormalSuccessorProvider :=
+  ControlSuccessor.BlockConsNormalSuccessorProvider.ofDynamicAndRebuild
     (tailDynamicProvider_of_continuationInputProvider mkInput)
     tailRebuild
 

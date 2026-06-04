@@ -81,7 +81,7 @@ layer, with statement closure supplied explicitly.
 theorem cons_block_body_function_closure_ci_at_with_statement_provider
     {Γ : TypeEnv} {σ : State} {head : CppStmt} {tail : StmtBlock}
     (bodyClosure : BodyReadyAtCIClosureProvider)
-    (tailAfterHead : BlockBodyReadyAtCITailAfterHeadProvider)
+    (successor : ControlSuccessor.BlockConsNormalSuccessorProvider)
     (h : BlockBodyReadyAtCI Γ σ (.cons head tail))
     (htail :
       ∀ {Θ : TypeEnv} {σ' : State},
@@ -108,7 +108,7 @@ theorem cons_block_body_function_closure_ci_at_with_statement_provider
         rcases hheadReady.normalTypingOfStep hstepHead with ⟨Θ, hheadCI⟩
 
         have htailReady : BlockBodyReadyAtCI Θ σ1 tail :=
-          tailAfterHead h hheadCI hstepHead
+          successor h hheadCI hstepHead
 
         rcases htail htailReady with htailTerm | htailDiv
         · rcases htailTerm with ⟨exTail, σ2, htailExec⟩
@@ -137,7 +137,7 @@ CI-native opened block-body closure with statement closure supplied explicitly.
 -/
 theorem block_body_function_closure_ci_at_with_statement_provider
     (bodyClosure : BodyReadyAtCIClosureProvider)
-    (tailAfterHead : BlockBodyReadyAtCITailAfterHeadProvider) :
+    (successor : ControlSuccessor.BlockConsNormalSuccessorProvider) :
     ∀ {Γ : TypeEnv} {σ : State} {ss : StmtBlock},
       BlockBodyReadyAtCI Γ σ ss →
       (∃ ex σ', BigStepFunctionBlockBody σ ss ex σ') ∨ BigStepBlockDiv σ ss
@@ -146,12 +146,12 @@ theorem block_body_function_closure_ci_at_with_statement_provider
   | _, _, .cons _ _, h =>
       cons_block_body_function_closure_ci_at_with_statement_provider
         bodyClosure
-        tailAfterHead
+        successor
         h
         (fun htail =>
           block_body_function_closure_ci_at_with_statement_provider
             bodyClosure
-            tailAfterHead
+            successor
             htail)
 
 /--
@@ -163,7 +163,7 @@ This is the replacement surface for the earlier monolithic
 -/
 theorem block_body_function_closure_boundary_ci_with_providers
     (bodyClosure : BodyReadyAtCIClosureProvider)
-    (tailAfterHead : BlockBodyReadyAtCITailAfterHeadProvider)
+    (successor : ControlSuccessor.BlockConsNormalSuccessorProvider)
     (headProvider : BlockBodyReadyAtCIHeadProvider)
     {Γ : TypeEnv} {σ : State} {ss : StmtBlock} :
     BlockBodyClosureBoundaryCI Γ σ ss →
@@ -172,7 +172,7 @@ theorem block_body_function_closure_boundary_ci_with_providers
   exact
     block_body_function_closure_ci_at_with_statement_provider
       bodyClosure
-      tailAfterHead
+      successor
       (blockBodyReadyAtCI_of_blockBodyClosureBoundaryCI_withHeadProvider
         headProvider
         hentry)

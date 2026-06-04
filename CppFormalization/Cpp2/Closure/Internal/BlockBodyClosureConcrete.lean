@@ -7,6 +7,7 @@ import CppFormalization.Cpp2.Operational.Divergence
 import CppFormalization.Cpp2.Operational.Facts.ScopeDepth
 import CppFormalization.Cpp2.Entry.Body.BlockBodyReadyAtCI
 import CppFormalization.Cpp2.Continuation.Compound.Cons.Tail.Continuation
+import CppFormalization.Cpp2.Continuation.Successor.BlockCons
 
 namespace Cpp
 
@@ -308,7 +309,7 @@ closure is supplied explicitly by `bodyClosure`.
 theorem cons_block_body_function_closure_ci_at
     {Γ : TypeEnv} {σ : State} {head : CppStmt} {tail : StmtBlock}
     (bodyClosure : BodyReadyAtCIClosureProvider)
-    (tailAfterHead : BlockBodyReadyAtCITailAfterHeadProvider)
+    (successor : ControlSuccessor.BlockConsNormalSuccessorProvider)
     (h : BlockBodyReadyAtCI Γ σ (.cons head tail))
     (htail :
       ∀ {Θ : TypeEnv} {σ' : State},
@@ -335,7 +336,7 @@ theorem cons_block_body_function_closure_ci_at
         rcases hheadReady.normalTypingOfStep hstepHead with ⟨Θ, hheadCI⟩
 
         have htailReady : BlockBodyReadyAtCI Θ σ1 tail :=
-          tailAfterHead h hheadCI hstepHead
+          successor h hheadCI hstepHead
 
         rcases htail htailReady with htailTerm | htailDiv
         · rcases htailTerm with ⟨exTail, σ2, htailExec⟩
@@ -376,7 +377,7 @@ current-env closure, but its subject is `BlockBodyReadyAtCI`, not
 -/
 theorem block_body_function_closure_ci_at
     (bodyClosure : BodyReadyAtCIClosureProvider)
-    (tailAfterHead : BlockBodyReadyAtCITailAfterHeadProvider) :
+    (successor : ControlSuccessor.BlockConsNormalSuccessorProvider) :
     ∀ {Γ : TypeEnv} {σ : State} {ss : StmtBlock},
       BlockBodyReadyAtCI Γ σ ss →
       (∃ ex σ', BigStepFunctionBlockBody σ ss ex σ') ∨ BigStepBlockDiv σ ss
@@ -385,10 +386,10 @@ theorem block_body_function_closure_ci_at
   | _, _, .cons _ _, h =>
       cons_block_body_function_closure_ci_at
         bodyClosure
-        tailAfterHead
+        successor
         h
         (fun htail =>
-          block_body_function_closure_ci_at bodyClosure tailAfterHead htail)
+          block_body_function_closure_ci_at bodyClosure successor htail)
 
 
 /-- Head/tail assembly for a `cons` opened block body in the concrete current-env layer.
