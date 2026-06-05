@@ -21,17 +21,15 @@ type environment and post-head runtime state.
 def blockConsNormalSuccessorKind : SuccessorKind :=
   .blockConsNormal
 
-/-
-Successor provider for opened block-body cons normal execution.
-
-This is currently an alias of the existing provider.  The alias makes the C++
-successor-edge meaning visible without changing the underlying type yet.
--/
-
 /--
+Public successor vocabulary for opened block-body cons normal execution.
+
 C++ reading:
 for `head; tail`, if `head` exits normally, resume `tail`
 under the post-head environment and state.
+
+The underlying physical definition currently lives in
+`Entry.Body.BlockBodyReadyAtCI` as `BlockBodyReadyAtCITailAfterHeadProvider`.
 -/
 abbrev BlockConsNormalSuccessorProvider : Type :=
   BlockBodyReadyAtCITailAfterHeadProvider

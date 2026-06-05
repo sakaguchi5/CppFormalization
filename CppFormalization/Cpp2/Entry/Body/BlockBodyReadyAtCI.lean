@@ -116,6 +116,18 @@ abbrev BlockBodyReadyAtCITailRebuildProvider : Type :=
 /--
 Combined tail-after-head provider consumed by block-body closure.
 -/
+/-
+Legacy physical definition for the block-cons normal successor provider.
+
+New public code should prefer
+
+  `ControlSuccessor.BlockConsNormalSuccessorProvider`
+
+from `Continuation.Successor.BlockCons`.
+
+This definition remains here to keep `Entry.Body` independent from the
+`Continuation.Successor` vocabulary layer and avoid import reversal.
+-/
 abbrev BlockBodyReadyAtCITailAfterHeadProvider : Type :=
   ∀ {Γ Θ : TypeEnv} {σ σ' : State} {head : CppStmt} {tail : StmtBlock},
     BlockBodyReadyAtCI Γ σ (.cons head tail) →

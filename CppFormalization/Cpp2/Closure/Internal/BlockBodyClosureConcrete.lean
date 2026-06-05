@@ -363,7 +363,7 @@ theorem cons_block_body_function_closure_ci_at
     exact .consHere hheadDiv
 
 /-- `nil` opened block body closes immediately with fallthrough. -/
-theorem nil_block_body_function_closure_concrete_refined_at
+theorem nil_block_body_function_closure_at
     {σ : State} :
     (∃ ex σ', BigStepFunctionBlockBody σ .nil ex σ') ∨ BigStepBlockDiv σ .nil := by
   left
@@ -384,7 +384,7 @@ theorem block_body_function_closure_ci_at
       BlockBodyReadyAtCI Γ σ ss →
       (∃ ex σ', BigStepFunctionBlockBody σ ss ex σ') ∨ BigStepBlockDiv σ ss
   | _, _, .nil, _ =>
-      nil_block_body_function_closure_concrete_refined_at
+      nil_block_body_function_closure_at
   | _, _, .cons _ _, h =>
       cons_block_body_function_closure_ci_at
         bodyClosure
