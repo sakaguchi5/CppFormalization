@@ -38,6 +38,20 @@ structure WhileBackedgeInvariantCI
   ready : WhileBackedgeReadyReplayCI Γ c body
   returnAdequacy : WhileBackedgeReturnAdequacyReplayCI Γ c body
 
+/--
+Successor-edge reading of `WhileBackedgeInvariantCI`.
+
+C++ reading:
+after the loop body exits by `normal` or `continue`, control returns to the next
+iteration.  The condition/body boundary must be replayable at that backedge.
+
+Unlike a plain dynamic successor, this invariant also carries return-channel
+adequacy replay for the loop body.
+-/
+abbrev WhileBackedgeSuccessorInvariantCI
+    (Γ : TypeEnv) (c : ValExpr) (body : CppStmt) : Type :=
+  WhileBackedgeInvariantCI Γ c body
+
 /-- Forget the named backedge invariant to the previous headerless replay surface. -/
 def whileCurrentBoundaryReplayHeaderlessSurfaceCI_of_backedgeInvariant
     {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}

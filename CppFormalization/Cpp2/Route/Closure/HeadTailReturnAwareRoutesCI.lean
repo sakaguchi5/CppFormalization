@@ -14,12 +14,18 @@ execution wrapper and divergence semantics, so it can be used by
 -/
 
 /-- Return-aware assembly for statement sequencing. -/
+/-
+C++ route reading:
+the head execution is closed first.  If it returns, the whole route returns.
+If it falls through normally, `normalSuccessor` follows the successor edge
+to the tail target.  If it diverges, the whole route diverges.
+-/
 theorem seq_function_body_result_return_aware
     {σ : State} {s t : CppStmt}
     (hhead :
       (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨
         BigStepStmtDiv σ s)
-    (tailAfterHeadNormal :
+    (normalSuccessor :
       ∀ {σ' : State},
         BigStepStmt σ s .normal σ' →
         (∃ ex σ'', BigStepFunctionBody σ' t ex σ'') ∨
@@ -30,7 +36,7 @@ theorem seq_function_body_result_return_aware
   · rcases hheadTerm with ⟨exHead, σ1, hheadExec⟩
     cases hheadExec with
     | fallthrough hstepHead =>
-        rcases tailAfterHeadNormal hstepHead with htailTerm | htailDiv
+        rcases normalSuccessor hstepHead with htailTerm | htailDiv
         · rcases htailTerm with ⟨exTail, σ2, htailExec⟩
           cases htailExec with
           | fallthrough hstepTail =>
@@ -58,12 +64,18 @@ theorem seq_function_body_result_return_aware
     exact BigStepStmtDiv.seqLeft hheadDiv
 
 /-- Return-aware assembly for block-body cons. -/
+/-
+C++ route reading:
+the head execution is closed first.  If it returns, the whole route returns.
+If it falls through normally, `normalSuccessor` follows the successor edge
+to the tail target.  If it diverges, the whole route diverges.
+-/
 theorem block_cons_function_body_result_return_aware
     {σ : State} {s : CppStmt} {ss : StmtBlock}
     (hhead :
       (∃ ex σ', BigStepFunctionBody σ s ex σ') ∨
         BigStepStmtDiv σ s)
-    (tailAfterHeadNormal :
+    (normalSuccessor :
       ∀ {σ' : State},
         BigStepStmt σ s .normal σ' →
         (∃ ex σ'', BigStepFunctionBlockBody σ' ss ex σ'') ∨
@@ -74,7 +86,7 @@ theorem block_cons_function_body_result_return_aware
   · rcases hheadTerm with ⟨exHead, σ1, hheadExec⟩
     cases hheadExec with
     | fallthrough hstepHead =>
-        rcases tailAfterHeadNormal hstepHead with htailTerm | htailDiv
+        rcases normalSuccessor hstepHead with htailTerm | htailDiv
         · rcases htailTerm with ⟨exTail, σ2, htailExec⟩
           cases htailExec with
           | fallthrough hstepTail =>

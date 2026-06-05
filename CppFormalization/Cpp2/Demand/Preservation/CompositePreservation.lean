@@ -53,12 +53,12 @@ theorem seq_preserves_from_demand
   | seqReturn hHead =>
       exact hheadAbrupt hHead hσ
 
-/--
-Demand-preservation combinator for block-body `s :: ss`.
+/-
+The old reading was a readiness-transport component.
 
-This is the block analogue of `seq_preserves_from_demand`.  It replaces the old
-`consTailAfterHeadNormal` readiness-transport component by using the
-post-state tail demand stored in `BlockExecutionDemand.consNormal`.
+In the successor vocabulary, this is the block-cons normal successor:
+after the head statement exits normally, the tail boundary is reconstructed
+under the post-head environment and state.
 -/
 theorem cons_preserves_from_demand
     {Γ Δ : TypeEnv} {σ σ₂ : State} {s : CppStmt} {ss : StmtBlock}
