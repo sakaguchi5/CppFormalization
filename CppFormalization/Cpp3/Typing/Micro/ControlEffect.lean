@@ -37,14 +37,21 @@ inductive AssignControlEffect : CppAssign → ControlKind → Prop where
       {p : PlaceExpr} {e : ValExpr} :
       AssignControlEffect (.simple p e) .normalK
 
+/-- Control effect of an expression-statement payload. -/
+inductive ExprStmtControlEffect : CppExprStmt → ControlKind → Prop where
+  | discard
+      {e : ValExpr} :
+      ExprStmtControlEffect (.discard e) .normalK
+
 /-- Primitive control effect of a primitive statement. -/
 inductive PrimitiveControlEffect : CppStmt → ControlKind → Prop where
   | skip :
       PrimitiveControlEffect .skip .normalK
 
   | exprStmt
-      {e : ValExpr} :
-      PrimitiveControlEffect (.exprStmt e) .normalK
+      {es : CppExprStmt} {k : ControlKind} :
+      ExprStmtControlEffect es k →
+      PrimitiveControlEffect (.exprStmt es) k
 
   | assign
       {a : CppAssign} {k : ControlKind} :

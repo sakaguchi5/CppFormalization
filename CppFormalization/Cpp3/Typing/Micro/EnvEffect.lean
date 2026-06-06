@@ -41,6 +41,14 @@ inductive AssignEnvEffect : TypeEnv → CppAssign → TypeEnv → Prop where
       {Γ : TypeEnv} {p : PlaceExpr} {e : ValExpr} :
       AssignEnvEffect Γ (.simple p e) Γ
 
+/-- Type-environment effect of an expression statement.
+
+Discarded expression statements do not extend the static environment. -/
+inductive ExprStmtEnvEffect : TypeEnv → CppExprStmt → TypeEnv → Prop where
+  | discard
+      {Γ : TypeEnv} {e : ValExpr} :
+      ExprStmtEnvEffect Γ (.discard e) Γ
+
 /-- Primitive type-environment effect of a primitive statement. -/
 inductive PrimitiveEnvEffect : TypeEnv → CppStmt → TypeEnv → Prop where
   | skip
@@ -48,8 +56,9 @@ inductive PrimitiveEnvEffect : TypeEnv → CppStmt → TypeEnv → Prop where
       PrimitiveEnvEffect Γ .skip Γ
 
   | exprStmt
-      {Γ : TypeEnv} {e : ValExpr} :
-      PrimitiveEnvEffect Γ (.exprStmt e) Γ
+      {Γ Δ : TypeEnv} {es : CppExprStmt} :
+      ExprStmtEnvEffect Γ es Δ →
+      PrimitiveEnvEffect Γ (.exprStmt es) Δ
 
   | assign
       {Γ Δ : TypeEnv} {a : CppAssign} :

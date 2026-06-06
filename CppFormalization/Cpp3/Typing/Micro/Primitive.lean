@@ -51,12 +51,25 @@ def skip {Γ : TypeEnv} : PrimitiveTyping Γ .skip .normalK Γ where
 
 /-- Primitive expression-statement typing. -/
 def exprStmt
+    {Γ : TypeEnv} {es : CppExprStmt}
+    (hform : ExprStmtFormation Γ es) :
+    PrimitiveTyping Γ (.exprStmt es) .normalK Γ := by
+  cases hform with
+  | discard h =>
+      exact {
+        formation := PrimitiveFormation.exprStmt (ExprStmtFormation.discard h)
+        control := PrimitiveControlEffect.exprStmt ExprStmtControlEffect.discard
+        env := PrimitiveEnvEffect.exprStmt ExprStmtEnvEffect.discard
+      }
+
+/-- Primitive discarded-expression statement typing. -/
+def discardExprStmt
     {Γ : TypeEnv} {e : ValExpr} {τ : CppType}
     (h : HasValueType Γ e τ) :
-    PrimitiveTyping Γ (.exprStmt e) .normalK Γ where
-  formation := PrimitiveFormation.exprStmt h
-  control := PrimitiveControlEffect.exprStmt
-  env := PrimitiveEnvEffect.exprStmt
+    PrimitiveTyping Γ (.exprStmt (.discard e)) .normalK Γ where
+  formation := PrimitiveFormation.exprStmt (ExprStmtFormation.discard h)
+  control := PrimitiveControlEffect.exprStmt ExprStmtControlEffect.discard
+  env := PrimitiveEnvEffect.exprStmt ExprStmtEnvEffect.discard
 
 /-- Primitive assignment typing. -/
 def assign

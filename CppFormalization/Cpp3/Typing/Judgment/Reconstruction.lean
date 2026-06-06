@@ -161,10 +161,17 @@ def skip {Γ : TypeEnv} : StmtTyping .normalK Γ .skip Γ :=
 
 /-- Primitive expression statement. -/
 def exprStmt
+    {Γ : TypeEnv} {es : CppExprStmt}
+    (hform : Micro.ExprStmtFormation Γ es) :
+    StmtTyping .normalK Γ (.exprStmt es) Γ :=
+  ofPrimitive (Micro.PrimitiveTyping.exprStmt hform)
+
+/-- Primitive discarded-expression statement. -/
+def discardExprStmt
     {Γ : TypeEnv} {e : ValExpr} {τ : CppType}
     (h : Micro.HasValueType Γ e τ) :
-    StmtTyping .normalK Γ (.exprStmt e) Γ :=
-  ofPrimitive (Micro.PrimitiveTyping.exprStmt h)
+    StmtTyping .normalK Γ (.exprStmt (.discard e)) Γ :=
+  ofPrimitive (Micro.PrimitiveTyping.discardExprStmt h)
 
 /-- Primitive assignment. -/
 def assign

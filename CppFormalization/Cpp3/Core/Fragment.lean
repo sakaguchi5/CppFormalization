@@ -39,11 +39,15 @@ def InBigStepJumpFragment : CppJump → Prop
 def InBigStepAssignFragment : CppAssign → Prop
   | .simple _ _ => True
 
+/-- Expression-statement fragment for the current discarded-expression core. -/
+def InBigStepExprStmtFragment : CppExprStmt → Prop
+  | .discard _ => True
+
 mutual
 
 def InBigStepFragment : CppStmt → Prop
   | .skip => True
-  | .exprStmt _ => True
+  | .exprStmt es => InBigStepExprStmtFragment es
   | .assign a => InBigStepAssignFragment a
   | .decl d => InBigStepDeclFragment d
   | .seq s t => InBigStepFragment s ∧ InBigStepFragment t

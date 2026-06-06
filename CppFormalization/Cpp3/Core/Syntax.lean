@@ -1,8 +1,8 @@
 import CppFormalization.Cpp3.Core.Types
 
 /-!
-Expression, condition, declaration, initializer, jump, assignment, and statement
-syntax.
+Expression, condition, declaration, initializer, jump, assignment, expression
+statement, and statement syntax.
 
 `CppCond` is a separate syntactic category for C++ control conditions.  The
 current core only supports expression conditions, but `if` and `while` consume
@@ -21,6 +21,11 @@ channel visible before embedding them as statements through `CppStmt.jump`.
 `CppAssign` is a separate syntactic category for simple assignment.  The syntax
 constructor is deliberately named `simple`; semantic store/write effects are kept
 for later Effects/Stability layers instead of being baked into the syntax name.
+
+`CppExprStmt` is a separate syntactic category for expression statements.  The
+current core only has discarded value expressions, but the category is separated
+so expression-statement formation/effects can grow independently from ordinary
+value expressions.
 -/
 
 namespace Cpp3
@@ -114,10 +119,20 @@ inductive CppAssign where
   | simple : PlaceExpr → ValExpr → CppAssign
   deriving DecidableEq, Repr
 
+/-- Expression-statement syntax.
+
+The current core only has discarded value expressions.  Separating this category
+keeps `CppStmt` from directly carrying raw expression payloads and gives later
+side-effecting expression statements, calls, and discarded-value effects a
+dedicated surface. -/
+inductive CppExprStmt where
+  | discard : ValExpr → CppExprStmt
+  deriving DecidableEq, Repr
+
 mutual
 inductive CppStmt where
   | skip
-  | exprStmt   : ValExpr → CppStmt
+  | exprStmt   : CppExprStmt → CppStmt
   | assign     : CppAssign → CppStmt
   | decl       : CppDecl → CppStmt
   | seq        : CppStmt → CppStmt → CppStmt
@@ -154,3 +169,5 @@ end StmtBlock
 
 def CppStmt.blockOfList (xs : List CppStmt) : CppStmt :=
   .block (StmtBlock.ofList xs)
+
+end Cpp3

@@ -11,9 +11,9 @@ The first micro layer: local syntactic/static formation.
 
 This file deliberately stops before composition.  It says when primitive
 expressions, control conditions, declaration initializers, declarations, returns,
-jumps, assignments, and primitive statements are locally well-formed in a type
-environment, but it does not say how `seq`, `cons`, `block`, `ite`, or `while`
-compose.
+jumps, assignments, expression statements, and primitive statements are locally
+well-formed in a type environment, but it does not say how `seq`, `cons`,
+`block`, `ite`, or `while` compose.
 -/
 
 mutual
@@ -176,6 +176,13 @@ inductive AssignFormation : TypeEnv → CppAssign → Prop where
       HasValueType Γ e τ →
       AssignFormation Γ (.simple p e)
 
+/-- Static formation of a C++ expression statement. -/
+inductive ExprStmtFormation : TypeEnv → CppExprStmt → Prop where
+  | discard
+      {Γ : TypeEnv} {e : ValExpr} {τ : CppType} :
+      HasValueType Γ e τ →
+      ExprStmtFormation Γ (.discard e)
+
 /-- Primitive statement formation.
 
 This layer has no tail/continuation contract.  For example, simple assignment is
@@ -187,9 +194,9 @@ inductive PrimitiveFormation : TypeEnv → CppStmt → Prop where
       PrimitiveFormation Γ .skip
 
   | exprStmt
-      {Γ : TypeEnv} {e : ValExpr} {τ : CppType} :
-      HasValueType Γ e τ →
-      PrimitiveFormation Γ (.exprStmt e)
+      {Γ : TypeEnv} {es : CppExprStmt} :
+      ExprStmtFormation Γ es →
+      PrimitiveFormation Γ (.exprStmt es)
 
   | assign
       {Γ : TypeEnv} {a : CppAssign} :
