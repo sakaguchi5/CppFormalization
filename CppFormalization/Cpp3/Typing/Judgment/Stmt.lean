@@ -16,6 +16,8 @@ decomposition points visible:
 
 * normal sequencing/block-cons uses a head-normal component and a tail component;
 * abrupt sequencing/block-cons short-circuits through an explicit `AbruptKind`;
+* branch/while/block use Micro static payloads rather than baking their
+  decomposition directly into the public judgment;
 * runtime continuation safety is not asserted here.  It belongs to the
   obligation slots and later programmer-facing contracts.
 -/
@@ -56,47 +58,49 @@ inductive StmtTyping : ControlKind → TypeEnv → CppStmt → TypeEnv → Prop 
 
   /-- Branch merge for `if c then s else t`.
 
-  Both branches must expose the same control kind and the same exit environment
-  for this first Cpp3 judgment.  More refined profile-based branch summaries can
-  be built above this layer. -/
+  The constructor consumes the Micro-level `IteStatic` payload, so the condition
+  typing and same-channel/same-exit branch merge stay available as separate
+  components for later projection/inversion layers. -/
   | ite
-      {k : ControlKind} {Γ Δ : TypeEnv}
-      {c : ValExpr} {s t : CppStmt} :
-      Micro.HasValueType Γ c (.base .bool) →
-      StmtTyping k Γ s Δ →
-      StmtTyping k Γ t Δ →
-      StmtTyping k Γ (.ite c s t) Δ
+    {k : ControlKind} {Γ Δ : TypeEnv}
+    {c : ValExpr} {s t : CppStmt} :
+    Micro.Composition.ConditionBoolStatic Γ c →
+    StmtTyping k Γ s Δ →
+    StmtTyping k Γ t Δ →
+    StmtTyping k Γ (.ite c s t) Δ
 
   /-- Static while-normal route.
 
-  The body channels that reenter or leave the loop are visible here, but the
-  runtime backedge invariant is not asserted in this judgment. -/
+  The constructor consumes the Micro-level static while payload.  Runtime
+  backedge/reentry safety is intentionally not asserted here. -/
   | whileNormal
-      {Γ : TypeEnv} {c : ValExpr} {body : CppStmt} :
-      Micro.HasValueType Γ c (.base .bool) →
-      StmtTyping .normalK Γ body Γ →
-      StmtTyping .breakK Γ body Γ →
-      StmtTyping .continueK Γ body Γ →
-      StmtTyping .normalK Γ (.whileStmt c body) Γ
+    {Γ : TypeEnv} {c : ValExpr} {body : CppStmt} :
+    Micro.Composition.WhileConditionStatic Γ c →
+    StmtTyping .normalK Γ body Γ →
+    StmtTyping .breakK Γ body Γ →
+    StmtTyping .continueK Γ body Γ →
+    StmtTyping .normalK Γ (.whileStmt c body) Γ
 
-  /-- Static while-return route. -/
-  | whileReturn
-      {Γ Δ : TypeEnv} {c : ValExpr} {body : CppStmt} :
-      Micro.HasValueType Γ c (.base .bool) →
-      StmtTyping .normalK Γ body Γ →
-      StmtTyping .breakK Γ body Γ →
-      StmtTyping .continueK Γ body Γ →
-      StmtTyping .returnK Γ body Δ →
-      StmtTyping .returnK Γ (.whileStmt c body) Δ
+| whileReturn
+    {Γ Δ : TypeEnv} {c : ValExpr} {body : CppStmt} :
+    Micro.Composition.WhileConditionStatic Γ c →
+    StmtTyping .normalK Γ body Γ →
+    StmtTyping .breakK Γ body Γ →
+    StmtTyping .continueK Γ body Γ →
+    StmtTyping .returnK Γ body Δ →
+    StmtTyping .returnK Γ (.whileStmt c body) Δ
 
   /-- Block statement.
 
-  The block body is typed under a pushed type scope; the statement exits back at
-  the outer environment `Γ`. -/
+  The public surface is kept C++-natural: a block statement exits back at the
+  outer type environment `Γ`.  The Micro payload still exposes the opened scope
+  `Γopen`, the opened body exit `Θ`, and the explicit scope-exit component. -/
   | block
-      {k : ControlKind} {Γ Θ : TypeEnv} {ss : StmtBlock} :
-      BlockTyping k (pushTypeScope Γ) ss Θ →
-      StmtTyping k Γ (.block ss) Γ
+    {k : ControlKind} {Γ Γopen Θ : TypeEnv} {ss : StmtBlock} :
+    Micro.Composition.BlockScopeEntryStatic Γ Γopen →
+    BlockTyping k Γopen ss Θ →
+    Micro.Composition.BlockScopeExitStatic Γ Γopen Θ Γ →
+    StmtTyping k Γ (.block ss) Γ
 
 /-- Control-indexed block-body typing for Cpp3. -/
 inductive BlockTyping : ControlKind → TypeEnv → StmtBlock → TypeEnv → Prop where

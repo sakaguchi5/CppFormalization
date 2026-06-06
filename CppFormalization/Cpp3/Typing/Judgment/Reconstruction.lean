@@ -59,6 +59,103 @@ def ofAbruptShortCircuit
     StmtTyping k Γ (.seq s t) Δ :=
   StmtTyping.seqAbrupt h.abrupt h.head
 
+/-- Reconstruct `if c then s else t` typing from a static branch payload. -/
+def ofIteStatic
+    {k : ControlKind} {Γ Δ : TypeEnv}
+    {c : ValExpr} {s t : CppStmt}
+    (h : Micro.Composition.IteStatic StmtTyping k Γ Δ c s t) :
+    StmtTyping k Γ (.ite c s t) Δ :=
+  StmtTyping.ite
+    h.condition
+    h.branches.thenTyping
+    h.branches.elseTyping
+
+/-- Specialized reconstruction when the branch payload is already parameterized
+by `StmtTyping`. -/
+def ofIte
+    {k : ControlKind} {Γ Δ : TypeEnv} {c : ValExpr} {s t : CppStmt}
+    (h : Micro.Composition.IteStatic StmtTyping k Γ Δ c s t) :
+    StmtTyping k Γ (.ite c s t) Δ :=
+  StmtTyping.ite
+    h.condition
+    h.branches.thenTyping
+    h.branches.elseTyping
+
+/-- Reconstruct while-normal typing from a static while payload. -/
+def ofWhileNormalStatic
+    {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
+    (h : Micro.Composition.WhileNormalStatic StmtTyping Γ c body) :
+    StmtTyping .normalK Γ (.whileStmt c body) Γ :=
+  StmtTyping.whileNormal
+    h.condition
+    h.channels.normalBody
+    h.channels.breakBody
+    h.channels.continueBody
+
+/-- Specialized reconstruction when the while-normal payload is already
+parameterized by `StmtTyping`. -/
+def ofWhileNormal
+    {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
+    (h : Micro.Composition.WhileNormalStatic StmtTyping Γ c body) :
+    StmtTyping .normalK Γ (.whileStmt c body) Γ :=
+  StmtTyping.whileNormal
+    h.condition
+    h.channels.normalBody
+    h.channels.breakBody
+    h.channels.continueBody
+
+/-- Reconstruct while-return typing from a static while payload. -/
+def ofWhileReturnStatic
+    {Γ Δ : TypeEnv} {c : ValExpr} {body : CppStmt}
+    (h : Micro.Composition.WhileReturnStatic StmtTyping Γ Δ c body) :
+    StmtTyping .returnK Γ (.whileStmt c body) Δ :=
+  StmtTyping.whileReturn
+    h.normalPayload.condition
+    h.normalPayload.channels.normalBody
+    h.normalPayload.channels.breakBody
+    h.normalPayload.channels.continueBody
+    h.returnChannel.returnBody
+
+/-- Specialized reconstruction when the while-return payload is already
+parameterized by `StmtTyping`. -/
+def ofWhileReturn
+    {Γ Δ : TypeEnv} {c : ValExpr} {body : CppStmt}
+    (h : Micro.Composition.WhileReturnStatic StmtTyping Γ Δ c body) :
+    StmtTyping .returnK Γ (.whileStmt c body) Δ :=
+  StmtTyping.whileReturn
+    h.normalPayload.condition
+    h.normalPayload.channels.normalBody
+    h.normalPayload.channels.breakBody
+    h.normalPayload.channels.continueBody
+    h.returnChannel.returnBody
+
+/-- Reconstruct block-statement typing from a static scope-boundary payload.
+
+The public result keeps the old/C++-natural surface: the block statement exits
+back at the outer environment `Γ`.  The payload still exposes the opened scope
+and the opened-body internal exit. -/
+def ofBlockScopeStatic
+    {JBlock : ControlKind → TypeEnv → StmtBlock → TypeEnv → Prop}
+    {k : ControlKind} {Γ Γopen Θ : TypeEnv} {ss : StmtBlock}
+    (embedBlock : ∀ {k Γ ss Δ}, JBlock k Γ ss Δ → BlockTyping k Γ ss Δ)
+    (h : Micro.Composition.BlockScopeStatic JBlock k Γ Γopen Θ Γ ss) :
+    StmtTyping k Γ (.block ss) Γ :=
+  StmtTyping.block
+    h.entry
+    (embedBlock h.openedBody.bodyTyping)
+    h.exit
+
+/-- Specialized reconstruction when the block-scope payload is already
+parameterized by `BlockTyping`. -/
+def ofBlockScope
+    {k : ControlKind} {Γ Γopen Θ : TypeEnv} {ss : StmtBlock}
+    (h : Micro.Composition.BlockScopeStatic BlockTyping k Γ Γopen Θ Γ ss) :
+    StmtTyping k Γ (.block ss) Γ :=
+  StmtTyping.block
+    h.entry
+    h.openedBody.bodyTyping
+    h.exit
+
 /-- Primitive `skip`. -/
 def skip {Γ : TypeEnv} : StmtTyping .normalK Γ .skip Γ :=
   ofPrimitive Micro.PrimitiveTyping.skip
