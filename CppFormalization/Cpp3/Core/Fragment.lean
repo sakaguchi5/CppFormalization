@@ -10,6 +10,10 @@ judgment is used here.
 
 namespace Cpp3
 
+/-- Condition fragment for the current expression-only condition core. -/
+def InBigStepCondFragment : CppCond → Prop
+  | .expr _ => True
+
 mutual
 
 def InBigStepFragment : CppStmt → Prop
@@ -19,8 +23,8 @@ def InBigStepFragment : CppStmt → Prop
   | .declareObj _ _ _ => True
   | .declareRef _ _ _ => True
   | .seq s t => InBigStepFragment s ∧ InBigStepFragment t
-  | .ite _ s t => InBigStepFragment s ∧ InBigStepFragment t
-  | .whileStmt _ body => InBigStepFragment body
+  | .ite c s t => InBigStepCondFragment c ∧ InBigStepFragment s ∧ InBigStepFragment t
+  | .whileStmt c body => InBigStepCondFragment c ∧ InBigStepFragment body
   | .block ss => InBigStepBlockFragment ss
   | .breakStmt => True
   | .continueStmt => True

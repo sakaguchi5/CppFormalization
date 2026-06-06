@@ -12,15 +12,15 @@ namespace ObligationSlot
 Obligation slot for while-loop backedge/reentry.
 
 Typing can expose the condition and body channels of a `while`, but it should
-not pretend that post-body runtime states automatically satisfy the condition
-and body boundary again.  This slot names the later C++ contract/proof needed to
+not pretend that post-body runtime states automatically satisfy the condition and
+body boundary again.  This slot names the later C++ contract/proof needed to
 reenter the loop after a normal or continue body route.
 -/
 
-/-- A slot for the contract needed to reenter `while (c) body` after the body has
-run from `σ` to `σ₁` through a loop-reentering channel. -/
+/-- A slot for the contract needed to reenter `while (cond) body` after the body
+has run from `σ` to `σ₁` through a loop-reentering channel. -/
 structure WhileBackedgeSlot
-    (Γ : TypeEnv) (σ σ₁ : State) (c : ValExpr) (body : CppStmt) : Type where
+    (Γ : TypeEnv) (σ σ₁ : State) (cond : CppCond) (body : CppStmt) : Type where
   kind : Contracts.ContractKind :=
     .obligation .whileBackedgeInvariant
   obligation : Prop
@@ -30,8 +30,8 @@ namespace WhileBackedgeSlot
 
 /-- Extract the supplied program-facing while-backedge obligation evidence. -/
 def get
-    {Γ : TypeEnv} {σ σ₁ : State} {c : ValExpr} {body : CppStmt}
-    (s : WhileBackedgeSlot Γ σ σ₁ c body) : s.obligation :=
+    {Γ : TypeEnv} {σ σ₁ : State} {cond : CppCond} {body : CppStmt}
+    (s : WhileBackedgeSlot Γ σ σ₁ cond body) : s.obligation :=
   s.evidence
 
 end WhileBackedgeSlot

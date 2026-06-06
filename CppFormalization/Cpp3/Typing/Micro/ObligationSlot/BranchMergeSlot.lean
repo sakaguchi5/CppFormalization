@@ -11,20 +11,21 @@ namespace ObligationSlot
 
 Obligation slot for runtime branch selection.
 
-The static branch merge checks both branches.  A runtime proof later needs an
-explicit place to state the C++ fact that evaluating the boolean condition
-selects exactly one branch and that the selected branch boundary is the one that
-continues.  This file names that place without supplying a global axiom.
+The static branch merge checks both branches from the post-condition type
+environment.  A runtime proof later needs an explicit place to state the C++ fact
+that evaluating the condition selects exactly one branch and that the selected
+branch boundary is the one that continues.  This file names that place without
+supplying a global axiom.
 -/
 
 /-- A slot for the contract needed to continue from an `if` condition to the
 selected branch in runtime state `σ`.
 
 The concrete obligation is intentionally abstract here.  Later layers may
-instantiate it with a selected-branch boundary, replay certificate, or adequacy
-payload. -/
+instantiate it with a selected-branch boundary, condition-step certificate,
+replay certificate, or adequacy payload. -/
 structure BranchSelectionSlot
-    (Γ : TypeEnv) (σ : State) (c : ValExpr)
+    (Γ : TypeEnv) (σ : State) (cond : CppCond)
     (thenBranch elseBranch : CppStmt) : Type where
   kind : Contracts.ContractKind :=
     .obligation .branchMergeContinuation
@@ -35,9 +36,9 @@ namespace BranchSelectionSlot
 
 /-- Extract the supplied program-facing branch-selection obligation evidence. -/
 def get
-    {Γ : TypeEnv} {σ : State} {c : ValExpr}
+    {Γ : TypeEnv} {σ : State} {cond : CppCond}
     {thenBranch elseBranch : CppStmt}
-    (s : BranchSelectionSlot Γ σ c thenBranch elseBranch) : s.obligation :=
+    (s : BranchSelectionSlot Γ σ cond thenBranch elseBranch) : s.obligation :=
   s.evidence
 
 end BranchSelectionSlot

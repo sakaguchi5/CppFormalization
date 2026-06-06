@@ -10,9 +10,9 @@ namespace Micro
 The first micro layer: local syntactic/static formation.
 
 This file deliberately stops before composition.  It says when primitive
-expressions and primitive statements are locally well-formed in a type
-environment, but it does not say how `seq`, `cons`, `block`, `ite`, or `while`
-compose.
+expressions, control conditions, and primitive statements are locally
+well-formed in a type environment, but it does not say how `seq`, `cons`,
+`block`, `ite`, or `while` compose.
 -/
 
 mutual
@@ -85,6 +85,32 @@ inductive HasValueType : TypeEnv → ValExpr → CppType → Prop where
       HasValueType Γ (.not e) (.base .bool)
 
 end
+
+/-- Static typing/effect surface of a C++ condition clause.
+
+`ConditionStatic Γ cond Γc` says that condition `cond`, checked from `Γ`,
+produces a boolean control result and exposes the post-condition type
+environment `Γc`.
+
+For the current expression-only condition core, `Γc = Γ`.  The environment index
+is intentional: later C++ condition declarations can extend this judgment
+without redesigning `if` and `while`. -/
+inductive ConditionStatic : TypeEnv → CppCond → TypeEnv → Prop where
+  | expr
+      {Γ : TypeEnv} {e : ValExpr} :
+      HasValueType Γ e (.base .bool) →
+      ConditionStatic Γ (.expr e) Γ
+
+namespace ConditionStatic
+
+/-- Current expression-only conditions do not change the type environment. -/
+def exprSameEnv
+    {Γ : TypeEnv} {e : ValExpr}
+    (h : HasValueType Γ e (.base .bool)) :
+    ConditionStatic Γ (.expr e) Γ :=
+  .expr h
+
+end ConditionStatic
 
 /-- Primitive statement formation.
 

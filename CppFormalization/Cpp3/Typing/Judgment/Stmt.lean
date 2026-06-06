@@ -16,8 +16,10 @@ decomposition points visible:
 
 * normal sequencing/block-cons uses a head-normal component and a tail component;
 * abrupt sequencing/block-cons short-circuits through an explicit `AbruptKind`;
-* branch/while/block use Micro static payloads rather than baking their
-  decomposition directly into the public judgment;
+* branch/while consume the new `CppCond` condition category through
+  `ConditionStatic`;
+* block exposes scope entry/opened body/scope exit while keeping the public
+  C++-natural `Γ → Γ` surface;
 * runtime continuation safety is not asserted here.  It belongs to the
   obligation slots and later programmer-facing contracts.
 -/
@@ -56,39 +58,41 @@ inductive StmtTyping : ControlKind → TypeEnv → CppStmt → TypeEnv → Prop 
       StmtTyping k Γ s Δ →
       StmtTyping k Γ (.seq s t) Δ
 
-  /-- Branch merge for `if c then s else t`.
+  /-- Branch merge for `if cond then s else t`.
 
-  The constructor consumes the Micro-level `IteStatic` payload, so the condition
-  typing and same-channel/same-exit branch merge stay available as separate
-  components for later projection/inversion layers. -/
+  The condition is checked as a `CppCond`, producing a post-condition type
+  environment `Γc`.  Both branches are checked from `Γc` and must expose the same
+  control channel and exit environment. -/
   | ite
-    {k : ControlKind} {Γ Δ : TypeEnv}
-    {c : ValExpr} {s t : CppStmt} :
-    Micro.Composition.ConditionBoolStatic Γ c →
-    StmtTyping k Γ s Δ →
-    StmtTyping k Γ t Δ →
-    StmtTyping k Γ (.ite c s t) Δ
+      {k : ControlKind} {Γ Γc Δ : TypeEnv}
+      {cond : CppCond} {s t : CppStmt} :
+      Micro.ConditionStatic Γ cond Γc →
+      StmtTyping k Γc s Δ →
+      StmtTyping k Γc t Δ →
+      StmtTyping k Γ (.ite cond s t) Δ
 
   /-- Static while-normal route.
 
-  The constructor consumes the Micro-level static while payload.  Runtime
+  The condition exposes the body-checking environment `Γc`; normal/break/continue
+  body channels return to the outer loop environment `Γ`.  Runtime
   backedge/reentry safety is intentionally not asserted here. -/
   | whileNormal
-    {Γ : TypeEnv} {c : ValExpr} {body : CppStmt} :
-    Micro.Composition.WhileConditionStatic Γ c →
-    StmtTyping .normalK Γ body Γ →
-    StmtTyping .breakK Γ body Γ →
-    StmtTyping .continueK Γ body Γ →
-    StmtTyping .normalK Γ (.whileStmt c body) Γ
+      {Γ Γc : TypeEnv} {cond : CppCond} {body : CppStmt} :
+      Micro.ConditionStatic Γ cond Γc →
+      StmtTyping .normalK Γc body Γ →
+      StmtTyping .breakK Γc body Γ →
+      StmtTyping .continueK Γc body Γ →
+      StmtTyping .normalK Γ (.whileStmt cond body) Γ
 
-| whileReturn
-    {Γ Δ : TypeEnv} {c : ValExpr} {body : CppStmt} :
-    Micro.Composition.WhileConditionStatic Γ c →
-    StmtTyping .normalK Γ body Γ →
-    StmtTyping .breakK Γ body Γ →
-    StmtTyping .continueK Γ body Γ →
-    StmtTyping .returnK Γ body Δ →
-    StmtTyping .returnK Γ (.whileStmt c body) Δ
+  /-- Static while-return route. -/
+  | whileReturn
+      {Γ Γc Δ : TypeEnv} {cond : CppCond} {body : CppStmt} :
+      Micro.ConditionStatic Γ cond Γc →
+      StmtTyping .normalK Γc body Γ →
+      StmtTyping .breakK Γc body Γ →
+      StmtTyping .continueK Γc body Γ →
+      StmtTyping .returnK Γc body Δ →
+      StmtTyping .returnK Γ (.whileStmt cond body) Δ
 
   /-- Block statement.
 
@@ -96,11 +100,11 @@ inductive StmtTyping : ControlKind → TypeEnv → CppStmt → TypeEnv → Prop 
   outer type environment `Γ`.  The Micro payload still exposes the opened scope
   `Γopen`, the opened body exit `Θ`, and the explicit scope-exit component. -/
   | block
-    {k : ControlKind} {Γ Γopen Θ : TypeEnv} {ss : StmtBlock} :
-    Micro.Composition.BlockScopeEntryStatic Γ Γopen →
-    BlockTyping k Γopen ss Θ →
-    Micro.Composition.BlockScopeExitStatic Γ Γopen Θ Γ →
-    StmtTyping k Γ (.block ss) Γ
+      {k : ControlKind} {Γ Γopen Θ : TypeEnv} {ss : StmtBlock} :
+      Micro.Composition.BlockScopeEntryStatic Γ Γopen →
+      BlockTyping k Γopen ss Θ →
+      Micro.Composition.BlockScopeExitStatic Γ Γopen Θ Γ →
+      StmtTyping k Γ (.block ss) Γ
 
 /-- Control-indexed block-body typing for Cpp3. -/
 inductive BlockTyping : ControlKind → TypeEnv → StmtBlock → TypeEnv → Prop where

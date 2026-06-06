@@ -59,12 +59,12 @@ def ofAbruptShortCircuit
     StmtTyping k Γ (.seq s t) Δ :=
   StmtTyping.seqAbrupt h.abrupt h.head
 
-/-- Reconstruct `if c then s else t` typing from a static branch payload. -/
+/-- Reconstruct `if cond then s else t` typing from a static branch payload. -/
 def ofIteStatic
-    {k : ControlKind} {Γ Δ : TypeEnv}
-    {c : ValExpr} {s t : CppStmt}
-    (h : Micro.Composition.IteStatic StmtTyping k Γ Δ c s t) :
-    StmtTyping k Γ (.ite c s t) Δ :=
+    {k : ControlKind} {Γ Γc Δ : TypeEnv}
+    {cond : CppCond} {s t : CppStmt}
+    (h : Micro.Composition.IteStatic StmtTyping k Γ Γc Δ cond s t) :
+    StmtTyping k Γ (.ite cond s t) Δ :=
   StmtTyping.ite
     h.condition
     h.branches.thenTyping
@@ -73,9 +73,9 @@ def ofIteStatic
 /-- Specialized reconstruction when the branch payload is already parameterized
 by `StmtTyping`. -/
 def ofIte
-    {k : ControlKind} {Γ Δ : TypeEnv} {c : ValExpr} {s t : CppStmt}
-    (h : Micro.Composition.IteStatic StmtTyping k Γ Δ c s t) :
-    StmtTyping k Γ (.ite c s t) Δ :=
+    {k : ControlKind} {Γ Γc Δ : TypeEnv} {cond : CppCond} {s t : CppStmt}
+    (h : Micro.Composition.IteStatic StmtTyping k Γ Γc Δ cond s t) :
+    StmtTyping k Γ (.ite cond s t) Δ :=
   StmtTyping.ite
     h.condition
     h.branches.thenTyping
@@ -83,9 +83,9 @@ def ofIte
 
 /-- Reconstruct while-normal typing from a static while payload. -/
 def ofWhileNormalStatic
-    {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
-    (h : Micro.Composition.WhileNormalStatic StmtTyping Γ c body) :
-    StmtTyping .normalK Γ (.whileStmt c body) Γ :=
+    {Γ Γc : TypeEnv} {cond : CppCond} {body : CppStmt}
+    (h : Micro.Composition.WhileNormalStatic StmtTyping Γ Γc cond body) :
+    StmtTyping .normalK Γ (.whileStmt cond body) Γ :=
   StmtTyping.whileNormal
     h.condition
     h.channels.normalBody
@@ -95,9 +95,9 @@ def ofWhileNormalStatic
 /-- Specialized reconstruction when the while-normal payload is already
 parameterized by `StmtTyping`. -/
 def ofWhileNormal
-    {Γ : TypeEnv} {c : ValExpr} {body : CppStmt}
-    (h : Micro.Composition.WhileNormalStatic StmtTyping Γ c body) :
-    StmtTyping .normalK Γ (.whileStmt c body) Γ :=
+    {Γ Γc : TypeEnv} {cond : CppCond} {body : CppStmt}
+    (h : Micro.Composition.WhileNormalStatic StmtTyping Γ Γc cond body) :
+    StmtTyping .normalK Γ (.whileStmt cond body) Γ :=
   StmtTyping.whileNormal
     h.condition
     h.channels.normalBody
@@ -106,9 +106,9 @@ def ofWhileNormal
 
 /-- Reconstruct while-return typing from a static while payload. -/
 def ofWhileReturnStatic
-    {Γ Δ : TypeEnv} {c : ValExpr} {body : CppStmt}
-    (h : Micro.Composition.WhileReturnStatic StmtTyping Γ Δ c body) :
-    StmtTyping .returnK Γ (.whileStmt c body) Δ :=
+    {Γ Γc Δ : TypeEnv} {cond : CppCond} {body : CppStmt}
+    (h : Micro.Composition.WhileReturnStatic StmtTyping Γ Γc Δ cond body) :
+    StmtTyping .returnK Γ (.whileStmt cond body) Δ :=
   StmtTyping.whileReturn
     h.normalPayload.condition
     h.normalPayload.channels.normalBody
@@ -119,9 +119,9 @@ def ofWhileReturnStatic
 /-- Specialized reconstruction when the while-return payload is already
 parameterized by `StmtTyping`. -/
 def ofWhileReturn
-    {Γ Δ : TypeEnv} {c : ValExpr} {body : CppStmt}
-    (h : Micro.Composition.WhileReturnStatic StmtTyping Γ Δ c body) :
-    StmtTyping .returnK Γ (.whileStmt c body) Δ :=
+    {Γ Γc Δ : TypeEnv} {cond : CppCond} {body : CppStmt}
+    (h : Micro.Composition.WhileReturnStatic StmtTyping Γ Γc Δ cond body) :
+    StmtTyping .returnK Γ (.whileStmt cond body) Δ :=
   StmtTyping.whileReturn
     h.normalPayload.condition
     h.normalPayload.channels.normalBody
