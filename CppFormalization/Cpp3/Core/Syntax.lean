@@ -1,7 +1,7 @@
 import CppFormalization.Cpp3.Core.Types
 
 /-!
-Expression, condition, declaration, initializer, and statement syntax.
+Expression, condition, declaration, initializer, jump, and statement syntax.
 
 `CppCond` is a separate syntactic category for C++ control conditions.  The
 current core only supports expression conditions, but `if` and `while` consume
@@ -12,6 +12,10 @@ facts can be stated once for both constructs.
 A declaration is not just an ordinary statement shape: it has its own initializer
 payload, type-environment effect, runtime allocation/binding effect, and lifetime
 boundary.  The statement layer embeds declarations through `CppStmt.decl`.
+
+`CppReturn` and `CppJump` are separate syntactic categories for non-local control
+transfer.  This keeps the return payload and the break/continue/return control
+channel visible before embedding them as statements through `CppStmt.jump`.
 -/
 
 namespace Cpp3
@@ -75,6 +79,26 @@ inductive CppDecl where
   | ref    : CppType → Ident → PlaceExpr → CppDecl
   deriving DecidableEq, Repr
 
+/-- Return payload.
+
+`return;` and `return e;` are both return jumps, but their payload formation and
+future runtime result/value obligations are different. -/
+inductive CppReturn where
+  | void : CppReturn
+  | value : ValExpr → CppReturn
+  deriving DecidableEq, Repr
+
+/-- Non-local control-transfer syntax.
+
+Break, continue, and return are grouped as jumps because they share the property
+of short-circuiting surrounding sequencing/block-cons structure while exposing
+different control channels. -/
+inductive CppJump where
+  | breakStmt : CppJump
+  | continueStmt : CppJump
+  | returnStmt : CppReturn → CppJump
+  deriving DecidableEq, Repr
+
 mutual
 inductive CppStmt where
   | skip
@@ -85,9 +109,7 @@ inductive CppStmt where
   | ite        : CppCond → CppStmt → CppStmt → CppStmt
   | whileStmt  : CppCond → CppStmt → CppStmt
   | block      : StmtBlock → CppStmt
-  | breakStmt
-  | continueStmt
-  | returnStmt : Option ValExpr → CppStmt
+  | jump       : CppJump → CppStmt
 
 inductive StmtBlock where
   | nil

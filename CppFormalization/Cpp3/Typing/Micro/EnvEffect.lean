@@ -24,6 +24,15 @@ inductive DeclEnvEffect : TypeEnv → CppDecl → TypeEnv → Prop where
       {Γ : TypeEnv} {τ : CppType} {x : Ident} {p : PlaceExpr} :
       DeclEnvEffect Γ (.ref τ x p) (declareTypeRef Γ x τ)
 
+/-- Type-environment effect of a jump.
+
+Break/continue/return do not extend the static environment; they only change the
+control channel. -/
+inductive JumpEnvEffect : TypeEnv → CppJump → TypeEnv → Prop where
+  | jump
+      {Γ : TypeEnv} {j : CppJump} :
+      JumpEnvEffect Γ j Γ
+
 /-- Primitive type-environment effect of a primitive statement. -/
 inductive PrimitiveEnvEffect : TypeEnv → CppStmt → TypeEnv → Prop where
   | skip
@@ -43,17 +52,10 @@ inductive PrimitiveEnvEffect : TypeEnv → CppStmt → TypeEnv → Prop where
       DeclEnvEffect Γ d Δ →
       PrimitiveEnvEffect Γ (.decl d) Δ
 
-  | breakStmt
-      {Γ : TypeEnv} :
-      PrimitiveEnvEffect Γ .breakStmt Γ
-
-  | continueStmt
-      {Γ : TypeEnv} :
-      PrimitiveEnvEffect Γ .continueStmt Γ
-
-  | returnStmt
-      {Γ : TypeEnv} {oe : Option ValExpr} :
-      PrimitiveEnvEffect Γ (.returnStmt oe) Γ
+  | jump
+      {Γ Δ : TypeEnv} {j : CppJump} :
+      JumpEnvEffect Γ j Δ →
+      PrimitiveEnvEffect Γ (.jump j) Δ
 
 end Micro
 end Typing

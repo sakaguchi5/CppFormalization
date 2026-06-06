@@ -10,9 +10,9 @@ namespace Micro
 The first micro layer: local syntactic/static formation.
 
 This file deliberately stops before composition.  It says when primitive
-expressions, control conditions, declaration initializers, declarations, and
-primitive statements are locally well-formed in a type environment, but it does
-not say how `seq`, `cons`, `block`, `ite`, or `while` compose.
+expressions, control conditions, declaration initializers, declarations, jumps,
+and primitive statements are locally well-formed in a type environment, but it
+does not say how `seq`, `cons`, `block`, `ite`, or `while` compose.
 -/
 
 mutual
@@ -126,7 +126,6 @@ inductive InitStatic : TypeEnv → CppType → CppInit → Prop where
       HasValueType Γ e τ →
       InitStatic Γ τ (.value e)
 
-
 /-- Static formation of a C++ declaration. -/
 inductive DeclFormation : TypeEnv → CppDecl → Prop where
   | object
@@ -141,6 +140,32 @@ inductive DeclFormation : TypeEnv → CppDecl → Prop where
       currentTypeScopeFresh Γ x →
       HasPlaceType Γ p τ →
       DeclFormation Γ (.ref τ x p)
+
+/-- Static formation of a return payload. -/
+inductive ReturnStatic : TypeEnv → CppReturn → Prop where
+  | void
+      {Γ : TypeEnv} :
+      ReturnStatic Γ .void
+
+  | value
+      {Γ : TypeEnv} {e : ValExpr} {τ : CppType} :
+      HasValueType Γ e τ →
+      ReturnStatic Γ (.value e)
+
+/-- Static formation of a C++ jump. -/
+inductive JumpFormation : TypeEnv → CppJump → Prop where
+  | breakStmt
+      {Γ : TypeEnv} :
+      JumpFormation Γ .breakStmt
+
+  | continueStmt
+      {Γ : TypeEnv} :
+      JumpFormation Γ .continueStmt
+
+  | returnStmt
+      {Γ : TypeEnv} {r : CppReturn} :
+      ReturnStatic Γ r →
+      JumpFormation Γ (.returnStmt r)
 
 /-- Primitive statement formation.
 
@@ -168,22 +193,10 @@ inductive PrimitiveFormation : TypeEnv → CppStmt → Prop where
       DeclFormation Γ d →
       PrimitiveFormation Γ (.decl d)
 
-  | breakStmt
-      {Γ : TypeEnv} :
-      PrimitiveFormation Γ .breakStmt
-
-  | continueStmt
-      {Γ : TypeEnv} :
-      PrimitiveFormation Γ .continueStmt
-
-  | returnNone
-      {Γ : TypeEnv} :
-      PrimitiveFormation Γ (.returnStmt none)
-
-  | returnSome
-      {Γ : TypeEnv} {e : ValExpr} {τ : CppType} :
-      HasValueType Γ e τ →
-      PrimitiveFormation Γ (.returnStmt (some e))
+  | jump
+      {Γ : TypeEnv} {j : CppJump} :
+      JumpFormation Γ j →
+      PrimitiveFormation Γ (.jump j)
 
 end Micro
 end Typing

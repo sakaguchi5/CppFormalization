@@ -24,6 +24,17 @@ def InBigStepDeclFragment : CppDecl → Prop
   | .object _ _ init => InBigStepInitFragment init
   | .ref _ _ _ => True
 
+/-- Return-payload fragment for the current expression-only return core. -/
+def InBigStepReturnFragment : CppReturn → Prop
+  | .void => True
+  | .value _ => True
+
+/-- Jump fragment for the current break/continue/return core. -/
+def InBigStepJumpFragment : CppJump → Prop
+  | .breakStmt => True
+  | .continueStmt => True
+  | .returnStmt r => InBigStepReturnFragment r
+
 mutual
 
 def InBigStepFragment : CppStmt → Prop
@@ -35,9 +46,7 @@ def InBigStepFragment : CppStmt → Prop
   | .ite c s t => InBigStepCondFragment c ∧ InBigStepFragment s ∧ InBigStepFragment t
   | .whileStmt c body => InBigStepCondFragment c ∧ InBigStepFragment body
   | .block ss => InBigStepBlockFragment ss
-  | .breakStmt => True
-  | .continueStmt => True
-  | .returnStmt _ => True
+  | .jump j => InBigStepJumpFragment j
 
 def InBigStepBlockFragment : StmtBlock → Prop
   | .nil => True

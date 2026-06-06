@@ -203,24 +203,32 @@ def refDecl
     StmtTyping .normalK Γ (.decl (.ref τ x p)) (declareTypeRef Γ x τ) :=
   ofPrimitive (Micro.PrimitiveTyping.refDecl hfresh hp)
 
+/-- Primitive jump. -/
+def jump
+    {Γ : TypeEnv} {j : CppJump} {k : ControlKind}
+    (hform : Micro.JumpFormation Γ j) (hctrl : Micro.JumpControlEffect j k) :
+    StmtTyping k Γ (.jump j) Γ :=
+  ofPrimitive (Micro.PrimitiveTyping.jump hform hctrl)
+
 /-- Primitive `break;`. -/
-def breakStmt {Γ : TypeEnv} : StmtTyping .breakK Γ .breakStmt Γ :=
+def breakStmt {Γ : TypeEnv} : StmtTyping .breakK Γ (.jump .breakStmt) Γ :=
   ofPrimitive Micro.PrimitiveTyping.breakStmt
 
 /-- Primitive `continue;`. -/
-def continueStmt {Γ : TypeEnv} : StmtTyping .continueK Γ .continueStmt Γ :=
+def continueStmt {Γ : TypeEnv} : StmtTyping .continueK Γ (.jump .continueStmt) Γ :=
   ofPrimitive Micro.PrimitiveTyping.continueStmt
 
 /-- Primitive `return;`. -/
-def returnNone {Γ : TypeEnv} : StmtTyping .returnK Γ (.returnStmt none) Γ :=
-  ofPrimitive Micro.PrimitiveTyping.returnNone
+def returnVoid {Γ : TypeEnv} :
+    StmtTyping .returnK Γ (.jump (.returnStmt .void)) Γ :=
+  ofPrimitive Micro.PrimitiveTyping.returnVoid
 
 /-- Primitive `return e;`. -/
-def returnSome
+def returnValue
     {Γ : TypeEnv} {e : ValExpr} {τ : CppType}
     (he : Micro.HasValueType Γ e τ) :
-    StmtTyping .returnK Γ (.returnStmt (some e)) Γ :=
-  ofPrimitive (Micro.PrimitiveTyping.returnSome he)
+    StmtTyping .returnK Γ (.jump (.returnStmt (.value e))) Γ :=
+  ofPrimitive (Micro.PrimitiveTyping.returnValue he)
 
 end StmtTyping
 

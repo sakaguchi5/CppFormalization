@@ -19,6 +19,18 @@ inductive AbruptKind : ControlKind → Prop where
   | continueK : AbruptKind .continueK
   | returnK : AbruptKind .returnK
 
+/-- Control effect of a jump payload. -/
+inductive JumpControlEffect : CppJump → ControlKind → Prop where
+  | breakStmt :
+      JumpControlEffect .breakStmt .breakK
+
+  | continueStmt :
+      JumpControlEffect .continueStmt .continueK
+
+  | returnStmt
+      {r : CppReturn} :
+      JumpControlEffect (.returnStmt r) .returnK
+
 /-- Primitive control effect of a primitive statement. -/
 inductive PrimitiveControlEffect : CppStmt → ControlKind → Prop where
   | skip :
@@ -36,15 +48,10 @@ inductive PrimitiveControlEffect : CppStmt → ControlKind → Prop where
       {d : CppDecl} :
       PrimitiveControlEffect (.decl d) .normalK
 
-  | breakStmt :
-      PrimitiveControlEffect .breakStmt .breakK
-
-  | continueStmt :
-      PrimitiveControlEffect .continueStmt .continueK
-
-  | returnStmt
-      {oe : Option ValExpr} :
-      PrimitiveControlEffect (.returnStmt oe) .returnK
+  | jump
+      {j : CppJump} {k : ControlKind} :
+      JumpControlEffect j k →
+      PrimitiveControlEffect (.jump j) k
 
 end Micro
 end Typing

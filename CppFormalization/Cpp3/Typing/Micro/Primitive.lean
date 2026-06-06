@@ -110,32 +110,46 @@ def refDecl
   control := PrimitiveControlEffect.decl
   env := PrimitiveEnvEffect.decl DeclEnvEffect.ref
 
-/-- Primitive `break` typing. -/
-def breakStmt {Γ : TypeEnv} : PrimitiveTyping Γ .breakStmt .breakK Γ where
-  formation := PrimitiveFormation.breakStmt
-  control := PrimitiveControlEffect.breakStmt
-  env := PrimitiveEnvEffect.breakStmt
+/-- Primitive jump typing. -/
+def jump
+    {Γ : TypeEnv} {j : CppJump} {k : ControlKind}
+    (hform : JumpFormation Γ j) (hctrl : JumpControlEffect j k) :
+    PrimitiveTyping Γ (.jump j) k Γ where
+  formation := PrimitiveFormation.jump hform
+  control := PrimitiveControlEffect.jump hctrl
+  env := PrimitiveEnvEffect.jump JumpEnvEffect.jump
 
-/-- Primitive `continue` typing. -/
-def continueStmt {Γ : TypeEnv} : PrimitiveTyping Γ .continueStmt .continueK Γ where
-  formation := PrimitiveFormation.continueStmt
-  control := PrimitiveControlEffect.continueStmt
-  env := PrimitiveEnvEffect.continueStmt
+/-- Primitive `break;` typing. -/
+def breakStmt {Γ : TypeEnv} : PrimitiveTyping Γ (.jump .breakStmt) .breakK Γ where
+  formation := PrimitiveFormation.jump JumpFormation.breakStmt
+  control := PrimitiveControlEffect.jump JumpControlEffect.breakStmt
+  env := PrimitiveEnvEffect.jump JumpEnvEffect.jump
+
+/-- Primitive `continue;` typing. -/
+def continueStmt {Γ : TypeEnv} : PrimitiveTyping Γ (.jump .continueStmt) .continueK Γ where
+  formation := PrimitiveFormation.jump JumpFormation.continueStmt
+  control := PrimitiveControlEffect.jump JumpControlEffect.continueStmt
+  env := PrimitiveEnvEffect.jump JumpEnvEffect.jump
 
 /-- Primitive `return;` typing. -/
-def returnNone {Γ : TypeEnv} : PrimitiveTyping Γ (.returnStmt none) .returnK Γ where
-  formation := PrimitiveFormation.returnNone
-  control := PrimitiveControlEffect.returnStmt
-  env := PrimitiveEnvEffect.returnStmt
+def returnVoid {Γ : TypeEnv} :
+    PrimitiveTyping Γ (.jump (.returnStmt .void)) .returnK Γ where
+  formation :=
+    PrimitiveFormation.jump
+      (JumpFormation.returnStmt ReturnStatic.void)
+  control := PrimitiveControlEffect.jump JumpControlEffect.returnStmt
+  env := PrimitiveEnvEffect.jump JumpEnvEffect.jump
 
 /-- Primitive `return e;` typing. -/
-def returnSome
+def returnValue
     {Γ : TypeEnv} {e : ValExpr} {τ : CppType}
     (he : HasValueType Γ e τ) :
-    PrimitiveTyping Γ (.returnStmt (some e)) .returnK Γ where
-  formation := PrimitiveFormation.returnSome he
-  control := PrimitiveControlEffect.returnStmt
-  env := PrimitiveEnvEffect.returnStmt
+    PrimitiveTyping Γ (.jump (.returnStmt (.value e))) .returnK Γ where
+  formation :=
+    PrimitiveFormation.jump
+      (JumpFormation.returnStmt (ReturnStatic.value he))
+  control := PrimitiveControlEffect.jump JumpControlEffect.returnStmt
+  env := PrimitiveEnvEffect.jump JumpEnvEffect.jump
 
 end PrimitiveTyping
 
