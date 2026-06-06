@@ -10,9 +10,9 @@ namespace Micro
 The first micro layer: local syntactic/static formation.
 
 This file deliberately stops before composition.  It says when primitive
-expressions, control conditions, and primitive statements are locally
-well-formed in a type environment, but it does not say how `seq`, `cons`,
-`block`, `ite`, or `while` compose.
+expressions, control conditions, declaration initializers, declarations, and
+primitive statements are locally well-formed in a type environment, but it does
+not say how `seq`, `cons`, `block`, `ite`, or `while` compose.
 -/
 
 mutual
@@ -112,6 +112,36 @@ def exprSameEnv
 
 end ConditionStatic
 
+/-- Static formation of an object initializer.
+
+The initializer is a separate syntax category because it is the point where
+value evaluation, storage compatibility, and declaration lifetime meet. -/
+inductive InitStatic : TypeEnv → CppType → CppInit → Prop where
+  | noInit
+      {Γ : TypeEnv} {τ : CppType} :
+      InitStatic Γ τ .noInit
+
+  | value
+      {Γ : TypeEnv} {τ : CppType} {e : ValExpr} :
+      HasValueType Γ e τ →
+      InitStatic Γ τ (.value e)
+
+
+/-- Static formation of a C++ declaration. -/
+inductive DeclFormation : TypeEnv → CppDecl → Prop where
+  | object
+      {Γ : TypeEnv} {τ : CppType} {x : Ident} {init : CppInit} :
+      currentTypeScopeFresh Γ x →
+      ObjectType τ →
+      InitStatic Γ τ init →
+      DeclFormation Γ (.object τ x init)
+
+  | ref
+      {Γ : TypeEnv} {τ : CppType} {x : Ident} {p : PlaceExpr} :
+      currentTypeScopeFresh Γ x →
+      HasPlaceType Γ p τ →
+      DeclFormation Γ (.ref τ x p)
+
 /-- Primitive statement formation.
 
 This layer has no tail/continuation contract.  For example, `assign p e` is
@@ -133,24 +163,10 @@ inductive PrimitiveFormation : TypeEnv → CppStmt → Prop where
       HasValueType Γ e τ →
       PrimitiveFormation Γ (.assign p e)
 
-  | declareObjNone
-      {Γ : TypeEnv} {τ : CppType} {x : Ident} :
-      currentTypeScopeFresh Γ x →
-      ObjectType τ →
-      PrimitiveFormation Γ (.declareObj τ x none)
-
-  | declareObjSome
-      {Γ : TypeEnv} {τ : CppType} {x : Ident} {e : ValExpr} :
-      currentTypeScopeFresh Γ x →
-      ObjectType τ →
-      HasValueType Γ e τ →
-      PrimitiveFormation Γ (.declareObj τ x (some e))
-
-  | declareRef
-      {Γ : TypeEnv} {τ : CppType} {x : Ident} {p : PlaceExpr} :
-      currentTypeScopeFresh Γ x →
-      HasPlaceType Γ p τ →
-      PrimitiveFormation Γ (.declareRef τ x p)
+  | decl
+      {Γ : TypeEnv} {d : CppDecl} :
+      DeclFormation Γ d →
+      PrimitiveFormation Γ (.decl d)
 
   | breakStmt
       {Γ : TypeEnv} :

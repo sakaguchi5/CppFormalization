@@ -1,12 +1,17 @@
 import CppFormalization.Cpp3.Core.Types
 
 /-!
-Expression, condition, and statement syntax.
+Expression, condition, declaration, initializer, and statement syntax.
 
 `CppCond` is a separate syntactic category for C++ control conditions.  The
 current core only supports expression conditions, but `if` and `while` consume
 conditions rather than raw value expressions so typing/effects/replay/boundary
 facts can be stated once for both constructs.
+
+`CppInit` and `CppDecl` are separate syntactic categories for C++ declarations.
+A declaration is not just an ordinary statement shape: it has its own initializer
+payload, type-environment effect, runtime allocation/binding effect, and lifetime
+boundary.  The statement layer embeds declarations through `CppStmt.decl`.
 -/
 
 namespace Cpp3
@@ -51,13 +56,31 @@ def ofValExpr (e : ValExpr) : CppCond :=
 
 end CppCond
 
+/-- C++ object initializer payload.
+
+The current core distinguishes `noInit` declarations from value-expression
+initializers.  This is kept as a separate category instead of `Option ValExpr`
+so initializer typing/evaluation/storage/lifetime facts can be named directly. -/
+inductive CppInit where
+  | noInit : CppInit
+  | value : ValExpr → CppInit
+  deriving DecidableEq, Repr
+
+/-- C++ declaration syntax.
+
+Declarations are separated from statements because they have their own static
+environment effect and runtime binding/allocation lifecycle. -/
+inductive CppDecl where
+  | object : CppType → Ident → CppInit → CppDecl
+  | ref    : CppType → Ident → PlaceExpr → CppDecl
+  deriving DecidableEq, Repr
+
 mutual
 inductive CppStmt where
   | skip
   | exprStmt   : ValExpr → CppStmt
   | assign     : PlaceExpr → ValExpr → CppStmt
-  | declareObj : CppType → Ident → Option ValExpr → CppStmt
-  | declareRef : CppType → Ident → PlaceExpr → CppStmt
+  | decl       : CppDecl → CppStmt
   | seq        : CppStmt → CppStmt → CppStmt
   | ite        : CppCond → CppStmt → CppStmt → CppStmt
   | whileStmt  : CppCond → CppStmt → CppStmt

@@ -67,33 +67,48 @@ def assign
   control := PrimitiveControlEffect.assign
   env := PrimitiveEnvEffect.assign
 
-/-- Primitive uninitialized object declaration typing. -/
-def declareObjNone
+/-- Primitive declaration typing. -/
+def decl
+    {Γ Δ : TypeEnv} {d : CppDecl}
+    (hform : DeclFormation Γ d) (henv : DeclEnvEffect Γ d Δ) :
+    PrimitiveTyping Γ (.decl d) .normalK Δ where
+  formation := PrimitiveFormation.decl hform
+  control := PrimitiveControlEffect.decl
+  env := PrimitiveEnvEffect.decl henv
+
+/-- Primitive object declaration without an initializer typing. -/
+def objectDeclNoInit
     {Γ : TypeEnv} {τ : CppType} {x : Ident}
     (hfresh : currentTypeScopeFresh Γ x) (hobj : ObjectType τ) :
-    PrimitiveTyping Γ (.declareObj τ x none) .normalK (declareTypeObject Γ x τ) where
-  formation := PrimitiveFormation.declareObjNone hfresh hobj
-  control := PrimitiveControlEffect.declareObj
-  env := PrimitiveEnvEffect.declareObj
+    PrimitiveTyping Γ (.decl (.object τ x .noInit)) .normalK (declareTypeObject Γ x τ) where
+  formation :=
+    PrimitiveFormation.decl
+      (DeclFormation.object hfresh hobj InitStatic.noInit)
+  control := PrimitiveControlEffect.decl
+  env := PrimitiveEnvEffect.decl DeclEnvEffect.object
 
-/-- Primitive initialized object declaration typing. -/
-def declareObjSome
+/-- Primitive value-initialized object declaration typing. -/
+def objectDeclValue
     {Γ : TypeEnv} {τ : CppType} {x : Ident} {e : ValExpr}
     (hfresh : currentTypeScopeFresh Γ x) (hobj : ObjectType τ)
     (he : HasValueType Γ e τ) :
-    PrimitiveTyping Γ (.declareObj τ x (some e)) .normalK (declareTypeObject Γ x τ) where
-  formation := PrimitiveFormation.declareObjSome hfresh hobj he
-  control := PrimitiveControlEffect.declareObj
-  env := PrimitiveEnvEffect.declareObj
+    PrimitiveTyping Γ (.decl (.object τ x (.value e))) .normalK (declareTypeObject Γ x τ) where
+  formation :=
+    PrimitiveFormation.decl
+      (DeclFormation.object hfresh hobj (InitStatic.value he))
+  control := PrimitiveControlEffect.decl
+  env := PrimitiveEnvEffect.decl DeclEnvEffect.object
 
 /-- Primitive reference declaration typing. -/
-def declareRef
+def refDecl
     {Γ : TypeEnv} {τ : CppType} {x : Ident} {p : PlaceExpr}
     (hfresh : currentTypeScopeFresh Γ x) (hp : HasPlaceType Γ p τ) :
-    PrimitiveTyping Γ (.declareRef τ x p) .normalK (declareTypeRef Γ x τ) where
-  formation := PrimitiveFormation.declareRef hfresh hp
-  control := PrimitiveControlEffect.declareRef
-  env := PrimitiveEnvEffect.declareRef
+    PrimitiveTyping Γ (.decl (.ref τ x p)) .normalK (declareTypeRef Γ x τ) where
+  formation :=
+    PrimitiveFormation.decl
+      (DeclFormation.ref hfresh hp)
+  control := PrimitiveControlEffect.decl
+  env := PrimitiveEnvEffect.decl DeclEnvEffect.ref
 
 /-- Primitive `break` typing. -/
 def breakStmt {Γ : TypeEnv} : PrimitiveTyping Γ .breakStmt .breakK Γ where

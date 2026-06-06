@@ -174,27 +174,34 @@ def assign
     StmtTyping .normalK Γ (.assign p e) Γ :=
   ofPrimitive (Micro.PrimitiveTyping.assign hp he)
 
-/-- Primitive uninitialized object declaration. -/
-def declareObjNone
+/-- Primitive declaration. -/
+def decl
+    {Γ Δ : TypeEnv} {d : CppDecl}
+    (hform : Micro.DeclFormation Γ d) (henv : Micro.DeclEnvEffect Γ d Δ) :
+    StmtTyping .normalK Γ (.decl d) Δ :=
+  ofPrimitive (Micro.PrimitiveTyping.decl hform henv)
+
+/-- Primitive object declaration without an initializer. -/
+def objectDeclNoInit
     {Γ : TypeEnv} {τ : CppType} {x : Ident}
     (hfresh : currentTypeScopeFresh Γ x) (hobj : ObjectType τ) :
-    StmtTyping .normalK Γ (.declareObj τ x none) (declareTypeObject Γ x τ) :=
-  ofPrimitive (Micro.PrimitiveTyping.declareObjNone hfresh hobj)
+    StmtTyping .normalK Γ (.decl (.object τ x .noInit)) (declareTypeObject Γ x τ) :=
+  ofPrimitive (Micro.PrimitiveTyping.objectDeclNoInit hfresh hobj)
 
-/-- Primitive initialized object declaration. -/
-def declareObjSome
+/-- Primitive value-initialized object declaration. -/
+def objectDeclValue
     {Γ : TypeEnv} {τ : CppType} {x : Ident} {e : ValExpr}
     (hfresh : currentTypeScopeFresh Γ x) (hobj : ObjectType τ)
     (he : Micro.HasValueType Γ e τ) :
-    StmtTyping .normalK Γ (.declareObj τ x (some e)) (declareTypeObject Γ x τ) :=
-  ofPrimitive (Micro.PrimitiveTyping.declareObjSome hfresh hobj he)
+    StmtTyping .normalK Γ (.decl (.object τ x (.value e))) (declareTypeObject Γ x τ) :=
+  ofPrimitive (Micro.PrimitiveTyping.objectDeclValue hfresh hobj he)
 
 /-- Primitive reference declaration. -/
-def declareRef
+def refDecl
     {Γ : TypeEnv} {τ : CppType} {x : Ident} {p : PlaceExpr}
     (hfresh : currentTypeScopeFresh Γ x) (hp : Micro.HasPlaceType Γ p τ) :
-    StmtTyping .normalK Γ (.declareRef τ x p) (declareTypeRef Γ x τ) :=
-  ofPrimitive (Micro.PrimitiveTyping.declareRef hfresh hp)
+    StmtTyping .normalK Γ (.decl (.ref τ x p)) (declareTypeRef Γ x τ) :=
+  ofPrimitive (Micro.PrimitiveTyping.refDecl hfresh hp)
 
 /-- Primitive `break;`. -/
 def breakStmt {Γ : TypeEnv} : StmtTyping .breakK Γ .breakStmt Γ :=

@@ -32,13 +32,9 @@ inductive PrimitiveControlEffect : CppStmt → ControlKind → Prop where
       {p : PlaceExpr} {e : ValExpr} :
       PrimitiveControlEffect (.assign p e) .normalK
 
-  | declareObj
-      {τ : CppType} {x : Ident} {oe : Option ValExpr} :
-      PrimitiveControlEffect (.declareObj τ x oe) .normalK
-
-  | declareRef
-      {τ : CppType} {x : Ident} {p : PlaceExpr} :
-      PrimitiveControlEffect (.declareRef τ x p) .normalK
+  | decl
+      {d : CppDecl} :
+      PrimitiveControlEffect (.decl d) .normalK
 
   | breakStmt :
       PrimitiveControlEffect .breakStmt .breakK

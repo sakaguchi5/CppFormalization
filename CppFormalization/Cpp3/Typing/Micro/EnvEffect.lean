@@ -14,6 +14,16 @@ statements.  It does not assert semantic preservation and it does not transport
 readiness.
 -/
 
+/-- Type-environment effect of a declaration. -/
+inductive DeclEnvEffect : TypeEnv → CppDecl → TypeEnv → Prop where
+  | object
+      {Γ : TypeEnv} {τ : CppType} {x : Ident} {init : CppInit} :
+      DeclEnvEffect Γ (.object τ x init) (declareTypeObject Γ x τ)
+
+  | ref
+      {Γ : TypeEnv} {τ : CppType} {x : Ident} {p : PlaceExpr} :
+      DeclEnvEffect Γ (.ref τ x p) (declareTypeRef Γ x τ)
+
 /-- Primitive type-environment effect of a primitive statement. -/
 inductive PrimitiveEnvEffect : TypeEnv → CppStmt → TypeEnv → Prop where
   | skip
@@ -28,13 +38,10 @@ inductive PrimitiveEnvEffect : TypeEnv → CppStmt → TypeEnv → Prop where
       {Γ : TypeEnv} {p : PlaceExpr} {e : ValExpr} :
       PrimitiveEnvEffect Γ (.assign p e) Γ
 
-  | declareObj
-      {Γ : TypeEnv} {τ : CppType} {x : Ident} {oe : Option ValExpr} :
-      PrimitiveEnvEffect Γ (.declareObj τ x oe) (declareTypeObject Γ x τ)
-
-  | declareRef
-      {Γ : TypeEnv} {τ : CppType} {x : Ident} {p : PlaceExpr} :
-      PrimitiveEnvEffect Γ (.declareRef τ x p) (declareTypeRef Γ x τ)
+  | decl
+      {Γ Δ : TypeEnv} {d : CppDecl} :
+      DeclEnvEffect Γ d Δ →
+      PrimitiveEnvEffect Γ (.decl d) Δ
 
   | breakStmt
       {Γ : TypeEnv} :

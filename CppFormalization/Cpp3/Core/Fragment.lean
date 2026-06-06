@@ -14,14 +14,23 @@ namespace Cpp3
 def InBigStepCondFragment : CppCond → Prop
   | .expr _ => True
 
+/-- Initializer fragment for the current expression-only declaration core. -/
+def InBigStepInitFragment : CppInit → Prop
+  | .noInit => True
+  | .value _ => True
+
+/-- Declaration fragment for the current object/reference declaration core. -/
+def InBigStepDeclFragment : CppDecl → Prop
+  | .object _ _ init => InBigStepInitFragment init
+  | .ref _ _ _ => True
+
 mutual
 
 def InBigStepFragment : CppStmt → Prop
   | .skip => True
   | .exprStmt _ => True
   | .assign _ _ => True
-  | .declareObj _ _ _ => True
-  | .declareRef _ _ _ => True
+  | .decl d => InBigStepDeclFragment d
   | .seq s t => InBigStepFragment s ∧ InBigStepFragment t
   | .ite c s t => InBigStepCondFragment c ∧ InBigStepFragment s ∧ InBigStepFragment t
   | .whileStmt c body => InBigStepCondFragment c ∧ InBigStepFragment body
