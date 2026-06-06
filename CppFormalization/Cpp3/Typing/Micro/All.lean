@@ -5,5 +5,11 @@ import CppFormalization.Cpp3.Typing.Micro.Primitive
 import CppFormalization.Cpp3.Typing.Micro.Composition.NormalBindStatic
 import CppFormalization.Cpp3.Typing.Micro.Composition.AbruptShortCircuitStatic
 import CppFormalization.Cpp3.Typing.Micro.Composition.BlockConsStatic
+import CppFormalization.Cpp3.Typing.Micro.Composition.BranchMergeStatic
+import CppFormalization.Cpp3.Typing.Micro.Composition.WhileStatic
+import CppFormalization.Cpp3.Typing.Micro.Composition.ScopeBoundaryStatic
 import CppFormalization.Cpp3.Typing.Micro.ObligationSlot.NormalBindSlot
 import CppFormalization.Cpp3.Typing.Micro.ObligationSlot.BlockConsSlot
+import CppFormalization.Cpp3.Typing.Micro.ObligationSlot.BranchMergeSlot
+import CppFormalization.Cpp3.Typing.Micro.ObligationSlot.WhileBackedgeSlot
+import CppFormalization.Cpp3.Typing.Micro.ObligationSlot.ScopeBoundarySlot
