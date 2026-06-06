@@ -60,12 +60,21 @@ def exprStmt
 
 /-- Primitive assignment typing. -/
 def assign
+    {Γ : TypeEnv} {a : CppAssign}
+    (hform : AssignFormation Γ a) :
+    PrimitiveTyping Γ (.assign a) .normalK Γ where
+  formation := PrimitiveFormation.assign hform
+  control := PrimitiveControlEffect.assign AssignControlEffect.simple
+  env := PrimitiveEnvEffect.assign AssignEnvEffect.simple
+
+/-- Primitive simple assignment typing. -/
+def simpleAssign
     {Γ : TypeEnv} {p : PlaceExpr} {e : ValExpr} {τ : CppType}
     (hp : HasPlaceType Γ p τ) (he : HasValueType Γ e τ) :
-    PrimitiveTyping Γ (.assign p e) .normalK Γ where
-  formation := PrimitiveFormation.assign hp he
-  control := PrimitiveControlEffect.assign
-  env := PrimitiveEnvEffect.assign
+    PrimitiveTyping Γ (.assign (.simple p e)) .normalK Γ where
+  formation := PrimitiveFormation.assign (AssignFormation.simple hp he)
+  control := PrimitiveControlEffect.assign AssignControlEffect.simple
+  env := PrimitiveEnvEffect.assign AssignEnvEffect.simple
 
 /-- Primitive declaration typing. -/
 def decl

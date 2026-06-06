@@ -31,6 +31,12 @@ inductive JumpControlEffect : CppJump → ControlKind → Prop where
       {r : CppReturn} :
       JumpControlEffect (.returnStmt r) .returnK
 
+/-- Control effect of an assignment payload. -/
+inductive AssignControlEffect : CppAssign → ControlKind → Prop where
+  | simple
+      {p : PlaceExpr} {e : ValExpr} :
+      AssignControlEffect (.simple p e) .normalK
+
 /-- Primitive control effect of a primitive statement. -/
 inductive PrimitiveControlEffect : CppStmt → ControlKind → Prop where
   | skip :
@@ -41,8 +47,9 @@ inductive PrimitiveControlEffect : CppStmt → ControlKind → Prop where
       PrimitiveControlEffect (.exprStmt e) .normalK
 
   | assign
-      {p : PlaceExpr} {e : ValExpr} :
-      PrimitiveControlEffect (.assign p e) .normalK
+      {a : CppAssign} {k : ControlKind} :
+      AssignControlEffect a k →
+      PrimitiveControlEffect (.assign a) k
 
   | decl
       {d : CppDecl} :

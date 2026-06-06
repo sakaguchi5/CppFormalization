@@ -1,7 +1,8 @@
 import CppFormalization.Cpp3.Core.Types
 
 /-!
-Expression, condition, declaration, initializer, jump, and statement syntax.
+Expression, condition, declaration, initializer, jump, assignment, and statement
+syntax.
 
 `CppCond` is a separate syntactic category for C++ control conditions.  The
 current core only supports expression conditions, but `if` and `while` consume
@@ -16,6 +17,10 @@ boundary.  The statement layer embeds declarations through `CppStmt.decl`.
 `CppReturn` and `CppJump` are separate syntactic categories for non-local control
 transfer.  This keeps the return payload and the break/continue/return control
 channel visible before embedding them as statements through `CppStmt.jump`.
+
+`CppAssign` is a separate syntactic category for simple assignment.  The syntax
+constructor is deliberately named `simple`; semantic store/write effects are kept
+for later Effects/Stability layers instead of being baked into the syntax name.
 -/
 
 namespace Cpp3
@@ -99,11 +104,21 @@ inductive CppJump where
   | returnStmt : CppReturn → CppJump
   deriving DecidableEq, Repr
 
+/-- Assignment syntax.
+
+The current core only has simple assignment `place = value`.  The category is
+separate so later assignment-specific typing, footprint, store/write effects,
+alias separation, and tail/condition stability can be stated for assignments
+before embedding them as statements. -/
+inductive CppAssign where
+  | simple : PlaceExpr → ValExpr → CppAssign
+  deriving DecidableEq, Repr
+
 mutual
 inductive CppStmt where
   | skip
   | exprStmt   : ValExpr → CppStmt
-  | assign     : PlaceExpr → ValExpr → CppStmt
+  | assign     : CppAssign → CppStmt
   | decl       : CppDecl → CppStmt
   | seq        : CppStmt → CppStmt → CppStmt
   | ite        : CppCond → CppStmt → CppStmt → CppStmt
@@ -139,5 +154,3 @@ end StmtBlock
 
 def CppStmt.blockOfList (xs : List CppStmt) : CppStmt :=
   .block (StmtBlock.ofList xs)
-
-end Cpp3

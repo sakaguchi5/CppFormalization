@@ -35,12 +35,16 @@ def InBigStepJumpFragment : CppJump → Prop
   | .continueStmt => True
   | .returnStmt r => InBigStepReturnFragment r
 
+/-- Assignment fragment for the current simple-assignment core. -/
+def InBigStepAssignFragment : CppAssign → Prop
+  | .simple _ _ => True
+
 mutual
 
 def InBigStepFragment : CppStmt → Prop
   | .skip => True
   | .exprStmt _ => True
-  | .assign _ _ => True
+  | .assign a => InBigStepAssignFragment a
   | .decl d => InBigStepDeclFragment d
   | .seq s t => InBigStepFragment s ∧ InBigStepFragment t
   | .ite c s t => InBigStepCondFragment c ∧ InBigStepFragment s ∧ InBigStepFragment t

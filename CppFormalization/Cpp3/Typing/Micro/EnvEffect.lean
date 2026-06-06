@@ -33,6 +33,14 @@ inductive JumpEnvEffect : TypeEnv → CppJump → TypeEnv → Prop where
       {Γ : TypeEnv} {j : CppJump} :
       JumpEnvEffect Γ j Γ
 
+/-- Type-environment effect of an assignment.
+
+Simple assignment does not extend the static environment. -/
+inductive AssignEnvEffect : TypeEnv → CppAssign → TypeEnv → Prop where
+  | simple
+      {Γ : TypeEnv} {p : PlaceExpr} {e : ValExpr} :
+      AssignEnvEffect Γ (.simple p e) Γ
+
 /-- Primitive type-environment effect of a primitive statement. -/
 inductive PrimitiveEnvEffect : TypeEnv → CppStmt → TypeEnv → Prop where
   | skip
@@ -44,8 +52,9 @@ inductive PrimitiveEnvEffect : TypeEnv → CppStmt → TypeEnv → Prop where
       PrimitiveEnvEffect Γ (.exprStmt e) Γ
 
   | assign
-      {Γ : TypeEnv} {p : PlaceExpr} {e : ValExpr} :
-      PrimitiveEnvEffect Γ (.assign p e) Γ
+      {Γ Δ : TypeEnv} {a : CppAssign} :
+      AssignEnvEffect Γ a Δ →
+      PrimitiveEnvEffect Γ (.assign a) Δ
 
   | decl
       {Γ Δ : TypeEnv} {d : CppDecl} :

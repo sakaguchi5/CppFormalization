@@ -8,7 +8,6 @@ namespace Judgment
 # CppFormalization.Cpp3.Typing.Judgment.Reconstruction
 
 Smart constructors from micro components into the public Cpp3 typing judgment.
-
 This file is deliberately one-way: it shows how the visible typing judgment is
 assembled from micro components.  Later inversion/provenance files can provide
 the opposite direction where useful.
@@ -169,10 +168,17 @@ def exprStmt
 
 /-- Primitive assignment. -/
 def assign
+    {Γ : TypeEnv} {a : CppAssign}
+    (hform : Micro.AssignFormation Γ a) :
+    StmtTyping .normalK Γ (.assign a) Γ :=
+  ofPrimitive (Micro.PrimitiveTyping.assign hform)
+
+/-- Primitive simple assignment. -/
+def simpleAssign
     {Γ : TypeEnv} {p : PlaceExpr} {e : ValExpr} {τ : CppType}
     (hp : Micro.HasPlaceType Γ p τ) (he : Micro.HasValueType Γ e τ) :
-    StmtTyping .normalK Γ (.assign p e) Γ :=
-  ofPrimitive (Micro.PrimitiveTyping.assign hp he)
+    StmtTyping .normalK Γ (.assign (.simple p e)) Γ :=
+  ofPrimitive (Micro.PrimitiveTyping.simpleAssign hp he)
 
 /-- Primitive declaration. -/
 def decl

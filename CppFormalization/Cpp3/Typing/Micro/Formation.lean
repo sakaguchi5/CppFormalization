@@ -10,9 +10,10 @@ namespace Micro
 The first micro layer: local syntactic/static formation.
 
 This file deliberately stops before composition.  It says when primitive
-expressions, control conditions, declaration initializers, declarations, jumps,
-and primitive statements are locally well-formed in a type environment, but it
-does not say how `seq`, `cons`, `block`, `ite`, or `while` compose.
+expressions, control conditions, declaration initializers, declarations, returns,
+jumps, assignments, and primitive statements are locally well-formed in a type
+environment, but it does not say how `seq`, `cons`, `block`, `ite`, or `while`
+compose.
 -/
 
 mutual
@@ -167,11 +168,19 @@ inductive JumpFormation : TypeEnv → CppJump → Prop where
       ReturnStatic Γ r →
       JumpFormation Γ (.returnStmt r)
 
+/-- Static formation of a C++ assignment. -/
+inductive AssignFormation : TypeEnv → CppAssign → Prop where
+  | simple
+      {Γ : TypeEnv} {p : PlaceExpr} {e : ValExpr} {τ : CppType} :
+      HasPlaceType Γ p τ →
+      HasValueType Γ e τ →
+      AssignFormation Γ (.simple p e)
+
 /-- Primitive statement formation.
 
-This layer has no tail/continuation contract.  For example, `assign p e` is
-locally formed when `p` and `e` have matching types; whether that assignment
-keeps a later tail safe belongs to a later obligation slot. -/
+This layer has no tail/continuation contract.  For example, simple assignment is
+locally formed when its place and value have matching types; whether that
+assignment keeps a later tail safe belongs to a later obligation slot. -/
 inductive PrimitiveFormation : TypeEnv → CppStmt → Prop where
   | skip
       {Γ : TypeEnv} :
@@ -183,10 +192,9 @@ inductive PrimitiveFormation : TypeEnv → CppStmt → Prop where
       PrimitiveFormation Γ (.exprStmt e)
 
   | assign
-      {Γ : TypeEnv} {p : PlaceExpr} {e : ValExpr} {τ : CppType} :
-      HasPlaceType Γ p τ →
-      HasValueType Γ e τ →
-      PrimitiveFormation Γ (.assign p e)
+      {Γ : TypeEnv} {a : CppAssign} :
+      AssignFormation Γ a →
+      PrimitiveFormation Γ (.assign a)
 
   | decl
       {Γ : TypeEnv} {d : CppDecl} :
