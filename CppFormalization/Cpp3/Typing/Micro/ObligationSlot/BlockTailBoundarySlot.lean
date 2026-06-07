@@ -7,7 +7,7 @@ namespace Micro
 namespace ObligationSlot
 
 /-!
-# CppFormalization.Cpp3.Typing.Micro.ObligationSlot.BlockConsSlot
+# CppFormalization.Cpp3.Typing.Micro.ObligationSlot.BlockTailBoundarySlot
 
 Obligation slot for block-tail boundary preservation.
 

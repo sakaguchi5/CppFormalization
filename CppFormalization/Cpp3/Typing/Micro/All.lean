@@ -8,8 +8,8 @@ import CppFormalization.Cpp3.Typing.Micro.Composition.BlockConsStatic
 import CppFormalization.Cpp3.Typing.Micro.Composition.BranchMergeStatic
 import CppFormalization.Cpp3.Typing.Micro.Composition.WhileStatic
 import CppFormalization.Cpp3.Typing.Micro.Composition.ScopeBoundaryStatic
-import CppFormalization.Cpp3.Typing.Micro.ObligationSlot.NormalBindSlot
-import CppFormalization.Cpp3.Typing.Micro.ObligationSlot.BlockConsSlot
-import CppFormalization.Cpp3.Typing.Micro.ObligationSlot.BranchMergeSlot
+import CppFormalization.Cpp3.Typing.Micro.ObligationSlot.StatementTailBoundarySlot
+import CppFormalization.Cpp3.Typing.Micro.ObligationSlot.BlockTailBoundarySlot
+import CppFormalization.Cpp3.Typing.Micro.ObligationSlot.SelectedBranchBoundarySlot
 import CppFormalization.Cpp3.Typing.Micro.ObligationSlot.LoopBackedgeBoundarySlot
 import CppFormalization.Cpp3.Typing.Micro.ObligationSlot.OpenedBlockBodyBoundarySlot

@@ -7,7 +7,7 @@ namespace Micro
 namespace ObligationSlot
 
 /-!
-# CppFormalization.Cpp3.Typing.Micro.ObligationSlot.BranchMergeSlot
+# CppFormalization.Cpp3.Typing.Micro.ObligationSlot.SelectedBranchBoundarySlot
 
 Obligation slot for selected-branch boundary after condition evaluation.
 

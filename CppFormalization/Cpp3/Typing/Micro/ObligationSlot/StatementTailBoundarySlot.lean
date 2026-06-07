@@ -7,7 +7,7 @@ namespace Micro
 namespace ObligationSlot
 
 /-!
-# CppFormalization.Cpp3.Typing.Micro.ObligationSlot.NormalBindSlot
+# CppFormalization.Cpp3.Typing.Micro.ObligationSlot.StatementTailBoundarySlot
 
 Obligation slot for statement-tail boundary preservation.
 
