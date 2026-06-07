@@ -19,21 +19,24 @@ structure StmtResultStability
     (Γ : TypeEnv) (σ σ₁ : State) (st : CppStmt) (r : CtrlResult) : Type where
   entry : Boundary.StmtBoundary Γ σ st
   step : Semantics.BigStepStmt σ st r σ₁
-  certificate : StabilityCertificate .stabilityDerived
+  stable : Prop
+  certificate : StabilityCertificate .stabilityDerived stable
 
 /-- Stability package for a finite block-body result. -/
 structure BlockResultStability
     (Γ : TypeEnv) (σ σ₁ : State) (body : StmtBlock) (r : CtrlResult) : Type where
   entry : Boundary.BlockBoundary Γ σ body
   step : Semantics.BigStepBlock σ body r σ₁
-  certificate : StabilityCertificate .stabilityDerived
+  stable : Prop
+  certificate : StabilityCertificate .stabilityDerived stable
 
 /-- Stability package for a function-body finite success result. -/
 structure FunctionBodyResultStability
     (Γ : TypeEnv) (σ σ₁ : State) (body : CppStmt) (ok : ProgSuccess) : Type where
   entry : Boundary.FunctionBodyBoundary Γ σ body
   step : Semantics.BigStepFunctionBody σ body ok σ₁
-  certificate : StabilityCertificate .stabilityDerived
+  stable : Prop
+  certificate : StabilityCertificate .stabilityDerived stable
 
 /-- Stability package for statement divergence.
 
@@ -43,14 +46,16 @@ structure StmtDivergenceStability
     (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
   entry : Boundary.StmtBoundary Γ σ st
   div : Semantics.StmtDiv σ st
-  certificate : StabilityCertificate .stabilityDerived
+  stable : Prop
+  certificate : StabilityCertificate .stabilityDerived stable
 
 /-- Stability package for block-body divergence. -/
 structure BlockDivergenceStability
     (Γ : TypeEnv) (σ : State) (body : StmtBlock) : Type where
   entry : Boundary.BlockBoundary Γ σ body
   div : Semantics.BlockDiv σ body
-  certificate : StabilityCertificate .stabilityDerived
+  stable : Prop
+  certificate : StabilityCertificate .stabilityDerived stable
 
 end Stability
 end Cpp3

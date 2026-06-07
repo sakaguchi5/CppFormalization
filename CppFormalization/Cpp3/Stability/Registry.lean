@@ -16,12 +16,14 @@ namespace Stability
 /-- Registry for the main selected-route stability surfaces of a statement. -/
 structure StmtStabilityRegistry (Γ : TypeEnv) (σ : State) (st : CppStmt) : Type where
   entry : Boundary.StmtBoundary Γ σ st
-  certificate : StabilityCertificate .stabilityDerived
+  stable : Prop
+  certificate : StabilityCertificate .stabilityDerived stable
 
 /-- Registry for the main selected-route stability surfaces of a block body. -/
 structure BlockStabilityRegistry (Γ : TypeEnv) (σ : State) (body : StmtBlock) : Type where
   entry : Boundary.BlockBoundary Γ σ body
-  certificate : StabilityCertificate .stabilityDerived
+  stable : Prop
+  certificate : StabilityCertificate .stabilityDerived stable
 
 /-- Registry for function-body stability.
 
@@ -31,14 +33,15 @@ structure FunctionBodyStabilityRegistry
     (Γ : TypeEnv) (σ : State) (body : CppStmt) : Type where
   boundary : Boundary.FunctionBodyBoundary Γ σ body
   stmtRegistry : StmtStabilityRegistry Γ σ body
-  certificate : StabilityCertificate .stabilityDerived
+  stable : Prop
+  certificate : StabilityCertificate .stabilityDerived stable
 
 /-- Classification-facing stability surface for a function body. -/
 structure FunctionBodyClassificationStability
     (Γ : TypeEnv) (σ : State) (body : CppStmt) : Type where
   registry : FunctionBodyStabilityRegistry Γ σ body
   classifiedTarget : Prop
-  evidence : Contracts.Certified classifiedTarget
+  evidence : StabilityCertificate .soundnessDerived classifiedTarget
 
 end Stability
 end Cpp3

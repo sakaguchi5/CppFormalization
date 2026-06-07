@@ -16,25 +16,28 @@ namespace Stability
 
 /-- Stability of the opened block body boundary. -/
 structure BlockScopeOpenStability
-    (Γ Γopen Θ Δ : TypeEnv) (σ σopened : State) (body : StmtBlock) : Type 1 where
+    (Γ Γopen Θ Δ : TypeEnv) (σ σopened : State) (body : StmtBlock) : Type where
   boundary : Boundary.BlockScopeBoundary Γ Γopen Θ Δ σ σopened body
   openedStable : OpenedBlockStability Γ Γopen σ σopened body
-  certificate : StabilityCertificate .stabilityDerived
+  stable : Prop
+  certificate : StabilityCertificate .stabilityDerived stable
 
 /-- Stability of closing a block scope after the opened body has run. -/
 structure BlockCloseStability
     (Γ Γopen Θ Δ : TypeEnv) (σbody σclosed : State) (body : StmtBlock) : Type where
   close : Boundary.BlockCloseBoundary Γ Γopen Θ Δ σbody σclosed body
-  certificate : StabilityCertificate .stabilityDerived
+  stable : Prop
+  certificate : StabilityCertificate .stabilityDerived stable
 
 /-- A complete scope-transition stability package for a block statement. -/
 structure BlockScopeStability
     (Γ Γopen Θ Δ : TypeEnv)
-    (σ σopened σbody σclosed : State) (body : StmtBlock) : Type 1 where
+    (σ σopened σbody σclosed : State) (body : StmtBlock) : Type where
   opened : BlockScopeOpenStability Γ Γopen Θ Δ σ σopened body
   bodyResult : BlockResultStability Γopen σopened σbody body .normal
   closed : BlockCloseStability Γ Γopen Θ Δ σbody σclosed body
-  certificate : StabilityCertificate .stabilityDerived
+  stable : Prop
+  certificate : StabilityCertificate .stabilityDerived stable
 
 end Stability
 end Cpp3

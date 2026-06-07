@@ -18,14 +18,16 @@ structure PlaceBoundaryStability
     (Γ : TypeEnv) (σ : State) (p : PlaceExpr) : Type where
   before : Boundary.PlaceBoundary Γ σ p
   after : Boundary.PlaceBoundary Γ σ p
-  certificate : StabilityCertificate .stabilityDerived
+  stable : Prop
+  certificate : StabilityCertificate .stabilityDerived stable
 
 /-- Stability package for a value-expression boundary in a concrete state. -/
 structure ValBoundaryStability
     (Γ : TypeEnv) (σ : State) (e : ValExpr) : Type where
   before : Boundary.ValBoundary Γ σ e
   after : Boundary.ValBoundary Γ σ e
-  certificate : StabilityCertificate .stabilityDerived
+  stable : Prop
+  certificate : StabilityCertificate .stabilityDerived stable
 
 /-- Stability package for a condition boundary and its post-condition state. -/
 structure CondBoundaryStability
@@ -34,7 +36,8 @@ structure CondBoundaryStability
   post : State
   postEq : before.post = post
   after : Boundary.CondBoundary Γ Γc σ cond
-  certificate : StabilityCertificate .stabilityDerived
+  stable : Prop
+  certificate : StabilityCertificate .stabilityDerived stable
 
 namespace CondBoundaryStability
 

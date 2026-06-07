@@ -16,41 +16,43 @@ namespace Stability
 
 /-- Explicit theorem-backed evidence for a stability fact.
 
-The proposition is intentionally explicit: early files may carry a stability fact
-as evidence, while later proof files can replace particular packages with actual
-theorems. -/
-structure StabilityCertificate (kind : Contracts.CertifiedFamily) : Type where
-  proposition : Prop
-  evidence : Contracts.Certified proposition
+The proposition is an argument of the certificate rather than a hidden field.
+This keeps the meaning of the certificate visible at the type level: a stability
+certificate is always evidence for a particular proposition `P`. -/
+structure StabilityCertificate
+    (kind : Contracts.CertifiedFamily) (P : Prop) : Type where
+  evidence : Contracts.Certified P
 
 namespace StabilityCertificate
 
 /-- Extract the evidence carried by a stability certificate. -/
-def get {kind : Contracts.CertifiedFamily}
-    (h : StabilityCertificate kind) : h.proposition :=
+def get {kind : Contracts.CertifiedFamily} {P : Prop}
+    (h : StabilityCertificate kind P) : P :=
   h.evidence
 
 end StabilityCertificate
 
 universe u
 
-/-- A boundary paired with theorem-backed stability evidence.
+/-- Generic low-level stable-boundary wrapper.
 
-This is the generic shape consumed by later `Continuation` packages: a post-state
-boundary plus the fact explaining why it remained available. -/
-structure StableBoundary (B : Type u) : Type (max 1 u) where
+Most structured Stability files should prefer direct `source` + `target` fields.
+This wrapper remains available only as glue vocabulary for registry-like handoff
+points where a boundary and its visible certificate proposition must be carried
+together. -/
+structure StableBoundary (B : Type u) (P : Prop) : Type (max 1 u) where
   boundary : B
-  certificate : StabilityCertificate .stabilityDerived
+  certificate : StabilityCertificate .stabilityDerived P
 
 namespace StableBoundary
 
 /-- Project the boundary carried by a stable-boundary package. -/
-def getBoundary {B : Type u} (h : StableBoundary B) : B :=
+def getBoundary {B : Type u} {P : Prop} (h : StableBoundary B P) : B :=
   h.boundary
 
 /-- Project the stability certificate carried by a stable-boundary package. -/
-def getCertificate {B : Type u}
-    (h : StableBoundary B) : StabilityCertificate .stabilityDerived :=
+def getCertificate {B : Type u} {P : Prop}
+    (h : StableBoundary B P) : StabilityCertificate .stabilityDerived P :=
   h.certificate
 
 end StableBoundary
@@ -75,7 +77,7 @@ end RuntimeBoundaryPreserved
 
 /-- Marker for the adopted stability-layer policy. -/
 def stabilityLayerPolicy : String :=
-  "Stability explains why post-state runtime boundaries survive selected execution; Continuation and Soundness remain later layers."
+  "Stability exposes source and target runtime boundaries directly; generic certificates keep their proposition visible."
 
 end Stability
 end Cpp3
