@@ -15,3 +15,4 @@ import CppFormalization.Cpp3.Static.All
 import CppFormalization.Cpp3.Effects.All
 import CppFormalization.Cpp3.SafetyFragment.All
 import CppFormalization.Cpp3.Boundary.All
+import CppFormalization.Cpp3.Stability.All
