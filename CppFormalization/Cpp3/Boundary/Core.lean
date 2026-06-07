@@ -69,16 +69,19 @@ structure RuntimeCurrentCursorFresh (σ : State) : Type where
 structure RuntimeCurrentScopeFreshName (σ : State) (x : Ident) : Type where
   fresh : currentScopeFresh σ x
 
-/-- Generic explicit boundary evidence. -/
-structure RuntimeBoundaryEvidence (kind : Contracts.ObligationFamily) : Type where
-  proposition : Prop
-  evidence : Contracts.Requires proposition
+/-- Generic explicit boundary evidence.
+
+The proposition is an argument rather than a hidden field, so a runtime boundary
+evidence package is visibly evidence for a particular boundary obligation `P`. -/
+structure RuntimeBoundaryEvidence
+    (kind : Contracts.ObligationFamily) (P : Prop) : Type where
+  evidence : Contracts.Requires P
 
 namespace RuntimeBoundaryEvidence
 
 /-- Extract the proposition carried by a runtime boundary evidence package. -/
-def get {kind : Contracts.ObligationFamily}
-    (h : RuntimeBoundaryEvidence kind) : h.proposition :=
+def get {kind : Contracts.ObligationFamily} {P : Prop}
+    (h : RuntimeBoundaryEvidence kind P) : P :=
   h.evidence
 
 end RuntimeBoundaryEvidence

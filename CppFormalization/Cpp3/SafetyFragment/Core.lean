@@ -19,30 +19,38 @@ namespace Cpp3
 namespace SafetyFragment
 
 /-- A programmer-facing safety obligation, labeled by the contract family it
-belongs to. -/
-structure SafetyObligation (kind : Contracts.ObligationFamily) : Type where
-  proposition : Prop
-  evidence : Contracts.Requires proposition
+belongs to.
+
+The proposition is an argument rather than a hidden field, so a package of this
+form is visibly evidence for a particular obligation `P`. -/
+structure SafetyObligation
+    (kind : Contracts.ObligationFamily) (P : Prop) : Type where
+  evidence : Contracts.Requires P
 
 namespace SafetyObligation
 
 /-- Extract the evidence carried by a safety obligation. -/
-def get {kind : Contracts.ObligationFamily} (h : SafetyObligation kind) : h.proposition :=
+def get {kind : Contracts.ObligationFamily} {P : Prop}
+    (h : SafetyObligation kind P) : P :=
   h.evidence
 
 end SafetyObligation
 
 /-- A theorem-backed safety certificate.  This is still just explicit evidence;
 the name only records that the evidence should come from lower facts rather than
-from a programmer-facing obligation. -/
-structure SafetyCertificate (kind : Contracts.CertifiedFamily) : Type where
-  proposition : Prop
-  evidence : Contracts.Certified proposition
+from a programmer-facing obligation.
+
+The certified proposition is an argument rather than a hidden field, keeping the
+meaning of the certificate visible at the type level. -/
+structure SafetyCertificate
+    (kind : Contracts.CertifiedFamily) (P : Prop) : Type where
+  evidence : Contracts.Certified P
 
 namespace SafetyCertificate
 
 /-- Extract the evidence carried by a safety certificate. -/
-def get {kind : Contracts.CertifiedFamily} (h : SafetyCertificate kind) : h.proposition :=
+def get {kind : Contracts.CertifiedFamily} {P : Prop}
+    (h : SafetyCertificate kind P) : P :=
   h.evidence
 
 end SafetyCertificate
