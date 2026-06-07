@@ -6,8 +6,9 @@ import CppFormalization.Cpp3.Stability.Expr
 Stability packages for primitive execution boundaries.
 
 A primitive boundary already contains the operational step and its post-state.
-This file records the visible stability proposition associated with that
-post-state; it still does not decide which continuation should consume it.
+This file records the stability certificate associated with that post-state; it
+still does not decide which continuation should consume it.  Primitive boundary
+premises remain visible at the type level.
 -/
 
 namespace Cpp3
@@ -15,24 +16,24 @@ namespace Stability
 
 /-- Assignment execution leaves a certified stable post-state surface. -/
 structure AssignBoundaryStability
-    (Γ : TypeEnv) (σ σ₁ : State) (a : CppAssign) : Type where
-  boundary : Boundary.AssignBoundary Γ σ a
+    (Γ : TypeEnv) (σ σ₁ : State) (a : CppAssign) (Writable : Prop) : Type where
+  boundary : Boundary.AssignBoundary Γ σ a Writable
   postEq : boundary.post = σ₁
   stable : Prop
   certificate : StabilityCertificate .stabilityDerived stable
 
 /-- Declaration execution leaves a certified stable post-state surface. -/
 structure DeclBoundaryStability
-    (Γ Δ : TypeEnv) (σ σ₁ : State) (d : CppDecl) : Type where
-  boundary : Boundary.DeclBoundary Γ Δ σ d
+    (Γ Δ : TypeEnv) (σ σ₁ : State) (d : CppDecl) (DeclarationSafe : Prop) : Type where
+  boundary : Boundary.DeclBoundary Γ Δ σ d DeclarationSafe
   postEq : boundary.post = σ₁
   stable : Prop
   certificate : StabilityCertificate .stabilityDerived stable
 
 /-- Expression-statement execution leaves a certified stable post-state surface. -/
 structure ExprStmtBoundaryStability
-    (Γ : TypeEnv) (σ σ₁ : State) (es : CppExprStmt) : Type where
-  boundary : Boundary.ExprStmtBoundary Γ σ es
+    (Γ : TypeEnv) (σ σ₁ : State) (es : CppExprStmt) (Readable : Prop) : Type where
+  boundary : Boundary.ExprStmtBoundary Γ σ es Readable
   postEq : boundary.post = σ₁
   stable : Prop
   certificate : StabilityCertificate .stabilityDerived stable
@@ -48,8 +49,8 @@ structure JumpBoundaryStability
 
 /-- Return-payload stability, before it is wrapped as a jump. -/
 structure ReturnBoundaryStability
-    (Γ : TypeEnv) (σ : State) (r : CppReturn) : Type where
-  boundary : Boundary.ReturnBoundary Γ σ r
+    (Γ : TypeEnv) (σ : State) (r : CppReturn) (ReturnSafe : Prop) : Type where
+  boundary : Boundary.ReturnBoundary Γ σ r ReturnSafe
   stable : Prop
   certificate : StabilityCertificate .stabilityDerived stable
 

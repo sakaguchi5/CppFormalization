@@ -5,46 +5,99 @@ import CppFormalization.Cpp3.Semantics.Kernel.Primitive
 # CppFormalization.Cpp3.Boundary.Primitive
 
 Runtime boundaries for primitive statement payloads.
+
+The primitive semantic step is concrete, while the corresponding safety premise is
+kept visible at the type level.  This prevents a boundary from hiding which C++
+runtime condition justified the primitive operation.
 -/
 
 namespace Cpp3
 namespace Boundary
 
-/-- Boundary for executing an assignment. -/
-structure AssignBoundary (Γ : TypeEnv) (σ : State) (a : CppAssign) : Type where
+/-- Boundary for executing an assignment.
+
+`Writable` is the visible runtime write-safety proposition used to justify the
+assignment target. -/
+structure AssignBoundary
+    (Γ : TypeEnv) (σ : State) (a : CppAssign) (Writable : Prop) : Type where
   effect : Effects.AssignEffect Γ a
   safety : SafetyFragment.AssignSafetyFragment Γ a
   post : State
   step : Semantics.BigStepAssign σ a post
-  writable : Prop
-  writableEvidence : Contracts.Requires writable
+  writableEvidence : RuntimeBoundaryEvidence .writableTargetAvailable Writable
 
-/-- Boundary for executing a declaration. -/
+namespace AssignBoundary
+
+/-- Extract the visible write-safety evidence carried by an assignment boundary. -/
+def writable
+    {Γ : TypeEnv} {σ : State} {a : CppAssign} {Writable : Prop}
+    (h : AssignBoundary Γ σ a Writable) : Writable :=
+  h.writableEvidence.get
+
+end AssignBoundary
+
+/-- Boundary for executing a declaration.
+
+`DeclarationSafe` is the visible proposition explaining why the declaration is
+safe for the surrounding runtime boundary. -/
 structure DeclBoundary
-    (Γ Δ : TypeEnv) (σ : State) (d : CppDecl) : Type where
+    (Γ Δ : TypeEnv) (σ : State) (d : CppDecl) (DeclarationSafe : Prop) : Type where
   effect : Effects.DeclEffect Γ Δ d
   safety : SafetyFragment.DeclSafetyFragment Γ Δ d
   post : State
   step : Semantics.BigStepDecl σ d post
-  declarationSafe : Prop
-  declarationEvidence : Contracts.Requires declarationSafe
+  declarationEvidence : RuntimeBoundaryEvidence .declarationDoesNotInvalidateLaterUse DeclarationSafe
 
-/-- Boundary for executing an expression statement. -/
+namespace DeclBoundary
+
+/-- Extract the visible declaration-safety evidence carried by a declaration boundary. -/
+def declarationSafe
+    {Γ Δ : TypeEnv} {σ : State} {d : CppDecl} {DeclarationSafe : Prop}
+    (h : DeclBoundary Γ Δ σ d DeclarationSafe) : DeclarationSafe :=
+  h.declarationEvidence.get
+
+end DeclBoundary
+
+/-- Boundary for executing an expression statement.
+
+`Readable` is the visible proposition explaining why the expression-statement
+reads are safe in the current runtime state. -/
 structure ExprStmtBoundary
-    (Γ : TypeEnv) (σ : State) (es : CppExprStmt) : Type where
+    (Γ : TypeEnv) (σ : State) (es : CppExprStmt) (Readable : Prop) : Type where
   effect : Effects.ExprStmtEffect Γ es
   post : State
   step : Semantics.BigStepExprStmt σ es post
-  readable : Prop
-  readableEvidence : Contracts.Requires readable
+  readableEvidence : RuntimeBoundaryEvidence .readableTargetAvailable Readable
 
-/-- Boundary for executing a return payload. -/
+namespace ExprStmtBoundary
+
+/-- Extract the visible read-safety evidence carried by an expression-statement boundary. -/
+def readable
+    {Γ : TypeEnv} {σ : State} {es : CppExprStmt} {Readable : Prop}
+    (h : ExprStmtBoundary Γ σ es Readable) : Readable :=
+  h.readableEvidence.get
+
+end ExprStmtBoundary
+
+/-- Boundary for executing a return payload.
+
+`ReturnSafe` is the visible proposition explaining why the return payload, if any,
+can be read safely. -/
 structure ReturnBoundary
-    (Γ : TypeEnv) (σ : State) (r : CppReturn) : Type where
+    (Γ : TypeEnv) (σ : State) (r : CppReturn) (ReturnSafe : Prop) : Type where
   effect : Effects.ReturnEffect Γ r
   result : Option Value
-  returnSafe : Prop
-  returnEvidence : Contracts.Requires returnSafe
+  returnEvidence : RuntimeBoundaryEvidence .readableTargetAvailable ReturnSafe
+
+namespace ReturnBoundary
+
+/-- Extract the visible return-payload safety evidence carried by a return boundary. -/
+def returnSafe
+    {Γ : TypeEnv} {σ : State} {r : CppReturn} {ReturnSafe : Prop}
+    (h : ReturnBoundary Γ σ r ReturnSafe) : ReturnSafe :=
+  h.returnEvidence.get
+
+end ReturnBoundary
 
 /-- Boundary for executing a jump. -/
 structure JumpBoundary
