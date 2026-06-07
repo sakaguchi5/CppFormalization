@@ -1,7 +1,7 @@
-import CppFormalization.Cpp3.Semantics.Stmt
+import CppFormalization.Cpp3.Semantics.Kernel.Stmt
 
 /-!
-# CppFormalization.Cpp3.Semantics.Divergence
+# CppFormalization.Cpp3.Semantics.Kernel.Divergence
 
 Divergence kernel for statements and blocks.
 

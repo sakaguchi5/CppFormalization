@@ -1,7 +1,7 @@
-import CppFormalization.Cpp3.Semantics.Divergence
+import CppFormalization.Cpp3.Semantics.Kernel.Divergence
 
 /-!
-# CppFormalization.Cpp3.Semantics.Classification
+# CppFormalization.Cpp3.Semantics.Kernel.Classification
 
 Thin semantic classification vocabulary.
 

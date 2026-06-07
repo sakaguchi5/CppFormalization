@@ -1,7 +1,7 @@
 import CppFormalization.Cpp3.Core.All
 
 /-!
-# CppFormalization.Cpp3.Semantics.Value
+# CppFormalization.Cpp3.Semantics.Kernel.Value
 
 Thin value/place/condition evaluation kernel.
 

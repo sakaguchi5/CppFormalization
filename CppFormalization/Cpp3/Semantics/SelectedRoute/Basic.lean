@@ -1,13 +1,13 @@
-import CppFormalization.Cpp3.Semantics.Stmt
+import CppFormalization.Cpp3.Semantics.Kernel.Stmt
 
 /-!
-# CppFormalization.Cpp3.Semantics.Route
+# CppFormalization.Cpp3.Semantics.SelectedRoute.Basic
 
-Selected runtime routes.
+Thin selected-runtime-route vocabulary.
 
-These records are intentionally semantic-only: they remember which operational
-branch was selected and which post-state was produced.  They do not assert that
-a tail, selected branch, loop backedge, or opened block boundary is safe.  Later
+This layer sits above `Semantics.Kernel`: it observes which operational route was
+selected and records the relevant post-state.  It still does not assert that a
+tail, selected branch, loop backedge, or opened block boundary is safe.  Later
 Boundary/Stability/Continuation layers should consume these routes and attach
 those obligations.
 -/

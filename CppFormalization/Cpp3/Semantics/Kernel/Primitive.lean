@@ -1,7 +1,7 @@
-import CppFormalization.Cpp3.Semantics.Value
+import CppFormalization.Cpp3.Semantics.Kernel.Value
 
 /-!
-# CppFormalization.Cpp3.Semantics.Primitive
+# CppFormalization.Cpp3.Semantics.Kernel.Primitive
 
 Primitive statement payload semantics: assignment, declaration, expression
 statement, and jump payloads.

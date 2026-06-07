@@ -1,7 +1,7 @@
-import CppFormalization.Cpp3.Semantics.Primitive
+import CppFormalization.Cpp3.Semantics.Kernel.Primitive
 
 /-!
-# CppFormalization.Cpp3.Semantics.Stmt
+# CppFormalization.Cpp3.Semantics.Kernel.Stmt
 
 Concrete big-step statement and block semantics.
 
