@@ -5,6 +5,7 @@ import CppFormalization.Cpp3.Soundness.Bridge
 import CppFormalization.Cpp3.Soundness.Structural.Primitive
 import CppFormalization.Cpp3.Soundness.Structural.Compound
 import CppFormalization.Cpp3.Soundness.Structural.Driver
+import CppFormalization.Cpp3.Soundness.Structural.Mutual
 
 import CppFormalization.Cpp3.Soundness.Primitive.Leaves
 
@@ -17,3 +18,5 @@ import CppFormalization.Cpp3.Soundness.Instantiate.Providers
 import CppFormalization.Cpp3.Soundness.Instantiate.FirstFive
 import CppFormalization.Cpp3.Soundness.Instantiate.While
 import CppFormalization.Cpp3.Soundness.FunctionBody.Bridge
+
+import CppFormalization.Cpp3.Soundness.Final
