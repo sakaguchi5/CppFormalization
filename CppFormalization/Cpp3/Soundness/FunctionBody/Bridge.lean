@@ -105,7 +105,7 @@ def structuralFunctionBodyClause :
     Structural.FunctionBodyStructuralSoundnessClause where
   sound := by
     intro Γ σ body boundary bodySound
-    exact bodySound boundary.entry
+    exact closedFunctionBodySoundness_of_stmtBoundarySoundness boundary bodySound
 
 
 

@@ -175,7 +175,7 @@ theorem closed_body
     (C : FunctionBodyStructuralSoundnessClauses)
     {Γ : TypeEnv} {σ : State} {body : CppStmt}
     (boundary : Boundary.FunctionBodyBoundary Γ σ body)
-    (bodySound : Boundary.StmtBoundary Γ σ body → ClosedFunctionBodySoundness σ body) :
+    (bodySound : Boundary.StmtBoundary Γ σ body → ClosedStmtSoundness σ body) :
     ClosedFunctionBodySoundness σ body :=
   C.body.sound boundary bodySound
 

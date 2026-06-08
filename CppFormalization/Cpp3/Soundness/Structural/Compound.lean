@@ -106,7 +106,7 @@ structure FunctionBodyStructuralSoundnessClause : Type where
   sound :
     ∀ {Γ : TypeEnv} {σ : State} {body : CppStmt},
       Boundary.FunctionBodyBoundary Γ σ body →
-      (Boundary.StmtBoundary Γ σ body → ClosedFunctionBodySoundness σ body) →
+      (Boundary.StmtBoundary Γ σ body → ClosedStmtSoundness σ body) →
       ClosedFunctionBodySoundness σ body
 
 namespace SeqStructuralSoundnessClause
@@ -219,7 +219,7 @@ theorem closed
     (C : FunctionBodyStructuralSoundnessClause)
     {Γ : TypeEnv} {σ : State} {body : CppStmt}
     (boundary : Boundary.FunctionBodyBoundary Γ σ body)
-    (bodySound : Boundary.StmtBoundary Γ σ body → ClosedFunctionBodySoundness σ body) :
+    (bodySound : Boundary.StmtBoundary Γ σ body → ClosedStmtSoundness σ body) :
     ClosedFunctionBodySoundness σ body :=
   C.sound boundary bodySound
 
