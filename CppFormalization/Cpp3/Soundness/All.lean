@@ -11,6 +11,8 @@ import CppFormalization.Cpp3.Soundness.Primitive.Leaves
 import CppFormalization.Cpp3.Soundness.Semantic.Seq
 import CppFormalization.Cpp3.Soundness.Semantic.Block
 import CppFormalization.Cpp3.Soundness.Semantic.Branch
+import CppFormalization.Cpp3.Soundness.Semantic.While
 
 import CppFormalization.Cpp3.Soundness.Instantiate.Providers
 import CppFormalization.Cpp3.Soundness.Instantiate.FirstFive
+import CppFormalization.Cpp3.Soundness.Instantiate.While
