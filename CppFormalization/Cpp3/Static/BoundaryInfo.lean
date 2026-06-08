@@ -1,4 +1,5 @@
 import CppFormalization.Cpp3.Static.Entry
+import CppFormalization.Cpp3.Static.FunctionBodyControl
 
 /-!
 # CppFormalization.Cpp3.Static.BoundaryInfo
@@ -37,10 +38,11 @@ structure StaticBlockBoundaryInfo (Γ : TypeEnv) (ss : StmtBlock) : Type where
 /-- Static function-body boundary information.
 
 A function body may finish normally or return; uncaught break/continue are not
-function-body successes.  This file only records the static surface for those
-success channels. -/
+function-body successes.  The `control` field makes that exclusion part of the
+static boundary, rather than a later ad-hoc runtime provider. -/
 structure StaticFunctionBodyBoundaryInfo (Γ : TypeEnv) (body : CppStmt) : Type where
   entry : StmtEntryWitness Γ body
+  control : FunctionBodyControlSurface body
   normalSurface : entry.profile.canControl .normalK → StaticStmtControl body .normalK :=
     entry.profile.sound
   returnSurface : entry.profile.canControl .returnK → StaticStmtControl body .returnK :=
