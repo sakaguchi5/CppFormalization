@@ -14,6 +14,8 @@ import CppFormalization.Cpp3.Soundness.Semantic.Block
 import CppFormalization.Cpp3.Soundness.Semantic.Branch
 import CppFormalization.Cpp3.Soundness.Semantic.While
 
+import CppFormalization.Cpp3.Soundness.Derive.LocalCorridors
+
 import CppFormalization.Cpp3.Soundness.Instantiate.LoopClassification
 import CppFormalization.Cpp3.Soundness.Instantiate.LoopEngine
 import CppFormalization.Cpp3.Soundness.Instantiate.Providers
@@ -28,3 +30,4 @@ import CppFormalization.Cpp3.Soundness.ReducedFinal
 import CppFormalization.Cpp3.Soundness.ScopeReducedFinal
 import CppFormalization.Cpp3.Soundness.LoopFinal
 import CppFormalization.Cpp3.Soundness.StepLoopFinal
+import CppFormalization.Cpp3.Soundness.DerivedLocalFinal
