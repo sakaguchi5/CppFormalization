@@ -4,24 +4,24 @@ import CppFormalization.Cpp3.Soundness.Derive.LoopEngine.Split
 /-!
 # CppFormalization.Cpp3.Soundness.DerivedLoopFinal
 
-Final theorem surface after splitting `loopEngine` into finite and infinite cases.
+Final theorem surface after splitting `loopEngine` into finite and divergent cases.
 
 `DerivedScopeFinal` still accepted `loopEngine` as the monolithic
 `LoopSafetyStepCoinductionTheorem`.  This file replaces that field with the split
-finite/infinite loop-engine case theorem from `Soundness.Derive.LoopEngine`.
+finite/divergent loop-engine case theorem from `Soundness.Derive.LoopEngine`.
 
 The remaining final inputs are therefore all lower-layer construction surfaces:
 
 * local-control construction facts;
 * scope-exit construction facts;
-* finite/infinite loop-engine case split.
+* finite/divergent loop-engine case split.
 -/
 
 namespace Cpp3
 namespace Soundness
 namespace Final
 
-/-- Final bundle after splitting the loop engine into finite and infinite sides. -/
+/-- Final bundle after splitting the loop engine into finite and divergent sides. -/
 structure DerivedLoopClosedSoundnessProviders : Type where
   localControl : Derive.LocalCorridors.LocalControlConstructionTheorems
   scopeExit : Derive.ScopeExit.ScopeExitConstructionTheorems

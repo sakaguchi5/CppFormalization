@@ -12,17 +12,20 @@ The previous layer named the final while obligation as a
 classification theorem is obtained from a C++-facing loop-safety fragment plus an
 explicit classification witness.
 
-The witness has two honest cases:
+The witness has two honest top-level cases:
 
 * a finite big-step loop derivation, recorded with a derivation-height/step index;
-* an infinite loop divergence witness, recorded coinductively through arbitrary
-  finite prefixes (`WhilePrefix`) and consumed by `StmtDiv.whileForever`.
+* a divergent loop classification.
+
+The divergent side is intentionally broader than the old `whileForever` case.  A
+C++ while-statement may diverge because the body diverges during a true-guard
+iteration, or because the loop keeps completing normal/continue prefixes forever.
+Both are real while divergence.
 
 This file still does not prove that every safe loop has one of these witnesses.
-That is the next lower-layer proof obligation.  What it does prove is the exact
-bridge requested here:
+That is the next lower-layer proof obligation.  What it does prove is the bridge:
 
-`LoopSafetyFragment + step / derivation-height / coinduction -> LoopClassificationTheorem`.
+`LoopSafetyFragment + finite/divergent classification -> LoopClassificationTheorem`.
 -/
 
 namespace Cpp3
@@ -55,11 +58,11 @@ def closedSoundness
 
 end FiniteLoopStepClassification
 
-/-- Infinite loop classification by the coinductive/divergence side.
+/-- Forever-reentry loop divergence by the coinductive/divergence side.
 
 The kernel's `whileForever` constructor classifies a loop as divergent when every
-finite prefix length can be executed.  This is the C++-natural non-termination
-case: the loop keeps re-entering without producing unclassified stuckness.
+finite prefix length can be executed.  This is only one kind of loop divergence:
+the loop keeps re-entering without producing a finite exit.
 -/
 structure CoinductiveLoopDivergence
     (σ : State) (cond : CppCond) (body : CppStmt) : Type where
@@ -67,7 +70,7 @@ structure CoinductiveLoopDivergence
 
 namespace CoinductiveLoopDivergence
 
-/-- Project coinductive loop divergence as closed statement soundness. -/
+/-- Project coinductive forever-reentry divergence as closed statement soundness. -/
 def closedSoundness
     {σ : State} {cond : CppCond} {body : CppStmt}
     (h : CoinductiveLoopDivergence σ cond body) :
@@ -76,22 +79,60 @@ def closedSoundness
 
 end CoinductiveLoopDivergence
 
+/-- Divergent loop classification.
+
+C++ reading: a while-statement can diverge either because a true-guard iteration
+enters a body that diverges, or because the loop completes arbitrarily long
+normal/continue prefixes and therefore never reaches a finite exit.
+-/
+inductive DivergentLoopClassification
+    (σ : State) (cond : CppCond) (body : CppStmt) : Type where
+  | bodyDiverges :
+      {σc : State} →
+      Semantics.BigStepCond σ cond true σc →
+      Semantics.StmtDiv σc body →
+        DivergentLoopClassification σ cond body
+  | forever :
+      CoinductiveLoopDivergence σ cond body →
+        DivergentLoopClassification σ cond body
+
+namespace DivergentLoopClassification
+
+/-- Project divergent loop classification as closed statement soundness. -/
+def closedSoundness
+    {σ : State} {cond : CppCond} {body : CppStmt}
+    (h : DivergentLoopClassification σ cond body) :
+    ClosedStmtSoundness σ (.whileStmt cond body) :=
+  match h with
+  | .bodyDiverges condTrue bodyDiv =>
+      Or.inr (Semantics.StmtDiv.whileBody condTrue bodyDiv)
+  | .forever h_forever =>
+      h_forever.closedSoundness
+
+end DivergentLoopClassification
+
 /-- The two semantic ways a safe while-loop can be classified.
 
 The finite case is intended to be built by induction on a step/derivation-height
-measure.  The infinite case is intended to be built by guarded/coinductive
-prefix production.
+measure.  The divergent case covers both body divergence and forever reentry.
 -/
 inductive LoopClassificationEvidence
     (σ : State) (cond : CppCond) (body : CppStmt) : Type where
   | finite :
       FiniteLoopStepClassification σ cond body →
         LoopClassificationEvidence σ cond body
-  | infinite :
-      CoinductiveLoopDivergence σ cond body →
+  | divergent :
+      DivergentLoopClassification σ cond body →
         LoopClassificationEvidence σ cond body
 
 namespace LoopClassificationEvidence
+
+/-- Compatibility constructor for the old forever-only infinite case. -/
+def infinite
+    {σ : State} {cond : CppCond} {body : CppStmt}
+    (h : CoinductiveLoopDivergence σ cond body) :
+    LoopClassificationEvidence σ cond body :=
+  .divergent (.forever h)
 
 /-- Consume either finite or divergent loop evidence as closed statement soundness. -/
 def closedSoundness
@@ -100,7 +141,7 @@ def closedSoundness
     ClosedStmtSoundness σ (.whileStmt cond body) :=
   match h with
   | .finite h_finite => h_finite.closedSoundness
-  | .infinite h_infinite => h_infinite.closedSoundness
+  | .divergent h_divergent => h_divergent.closedSoundness
 
 end LoopClassificationEvidence
 
@@ -109,7 +150,7 @@ end LoopClassificationEvidence
 This package keeps the C++ safety side visible instead of hiding it inside a raw
 closed-soundness proof.  The `condition` field exposes the guard-entry boundary;
 `loopSafety` records the guard-preservation/backedge/replay obligations; and
-`evidence` records the finite-step or coinductive classification witness.
+`evidence` records the finite-step or divergent classification witness.
 -/
 structure LoopSafetyStepCoinductionClassification
     (Γ Γc : TypeEnv) (σ : State) (cond : CppCond) (body : CppStmt) : Type where
@@ -141,7 +182,7 @@ structure LoopSafetyStepCoinductionTheorem : Type where
         Σ Γc : TypeEnv,
           LoopSafetyStepCoinductionClassification Γ Γc σ cond body
 
-/-- Build the existing loop-classification theorem from safety + step/coinduction.
+/-- Build the existing loop-classification theorem from safety + finite/divergent cases.
 
 This is the bridge from the C++-facing loop engine to the previous
 `LoopClassificationTheorem` interface.
@@ -157,7 +198,7 @@ def loopClassificationTheorem_of_stepCoinduction
       sound := classified.closedSoundness
     }
 
-/-- Direct closed-while theorem from loop safety plus step/coinduction. -/
+/-- Direct closed-while theorem from loop safety plus finite/divergent classification. -/
 theorem closedWhileSoundness_of_stepCoinduction
     (C : LoopSafetyStepCoinductionTheorem)
     {Γ : TypeEnv} {σ : State} {cond : CppCond} {body : CppStmt}

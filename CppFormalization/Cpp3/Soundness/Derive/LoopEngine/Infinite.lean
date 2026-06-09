@@ -1,14 +1,13 @@
-import CppFormalization.Cpp3.Soundness.Derive.LoopEngine.Finitary
+import CppFormalization.Cpp3.Soundness.Derive.LoopEngine.Divergent
 
 /-!
 # CppFormalization.Cpp3.Soundness.Derive.LoopEngine.Infinite
 
-Infinite-side construction package for the loop engine.
+Compatibility wrapper for the old forever-only infinite loop-engine case.
 
-The infinite case is not a failed finite proof.  It is the C++-natural divergent
-case: the while statement keeps completing true-condition normal/continue prefixes
-for every finite length.  The semantics kernel consumes exactly this witness via
-`StmtDiv.whileForever`.
+The main divergent side now lives in `LoopEngine.Divergent`.  This file keeps the
+old `InfiniteLoopEngineCase` name available as a thin wrapper for the
+`whileForever` subcase, so existing imports do not immediately break.
 -/
 
 namespace Cpp3
@@ -16,11 +15,10 @@ namespace Soundness
 namespace Derive
 namespace LoopEngine
 
-/-- Infinite loop-engine case.
+/-- Legacy forever-only infinite loop-engine case.
 
-C++ reading: the loop is safe to re-enter for arbitrarily many completed
-iterations, so the whole while statement is classified by divergence rather than
-by a finite big-step result. -/
+Prefer `DivergentLoopEngineCase` for new code: it also covers divergence inside a
+true-guard body evaluation. -/
 structure InfiniteLoopEngineCase
     (Γ Γc : TypeEnv) (σ : State) (cond : CppCond) (body : CppStmt) : Type where
   condition : Boundary.CondBoundary Γ Γc σ cond
@@ -29,30 +27,36 @@ structure InfiniteLoopEngineCase
 
 namespace InfiniteLoopEngineCase
 
-/-- Convert the infinite case into loop-classification evidence. -/
+/-- Convert the legacy forever-only case into the general divergent case. -/
+def toDivergent
+    {Γ Γc : TypeEnv} {σ : State} {cond : CppCond} {body : CppStmt}
+    (h : InfiniteLoopEngineCase Γ Γc σ cond body) :
+    DivergentLoopEngineCase Γ Γc σ cond body where
+  condition := h.condition
+  loopSafety := h.loopSafety
+  divergence := Instantiate.LoopClassification.DivergentLoopClassification.forever h.divergence
+
+/-- Convert the legacy infinite case into loop-classification evidence. -/
 def evidence
     {Γ Γc : TypeEnv} {σ : State} {cond : CppCond} {body : CppStmt}
     (h : InfiniteLoopEngineCase Γ Γc σ cond body) :
     Instantiate.LoopClassification.LoopClassificationEvidence σ cond body :=
-  Instantiate.LoopClassification.LoopClassificationEvidence.infinite h.divergence
+  h.toDivergent.evidence
 
-/-- Convert the infinite case into the loop-engine classification package consumed
-by `Instantiate.LoopClassification`. -/
+/-- Convert the legacy infinite case into the loop-engine classification package. -/
 def classification
     {Γ Γc : TypeEnv} {σ : State} {cond : CppCond} {body : CppStmt}
     (h : InfiniteLoopEngineCase Γ Γc σ cond body) :
     Instantiate.LoopClassification.LoopSafetyStepCoinductionClassification
-      Γ Γc σ cond body where
-  condition := h.condition
-  loopSafety := h.loopSafety
-  evidence := h.evidence
+      Γ Γc σ cond body :=
+  h.toDivergent.classification
 
-/-- Direct closed while soundness from the infinite loop-engine case. -/
+/-- Direct closed while soundness from the legacy infinite case. -/
 def closedSoundness
     {Γ Γc : TypeEnv} {σ : State} {cond : CppCond} {body : CppStmt}
     (h : InfiniteLoopEngineCase Γ Γc σ cond body) :
     ClosedStmtSoundness σ (.whileStmt cond body) :=
-  h.divergence.closedSoundness
+  h.toDivergent.closedSoundness
 
 end InfiniteLoopEngineCase
 

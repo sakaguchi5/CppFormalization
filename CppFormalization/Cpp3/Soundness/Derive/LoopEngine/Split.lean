@@ -1,18 +1,18 @@
-import CppFormalization.Cpp3.Soundness.Derive.LoopEngine.Infinite
+import CppFormalization.Cpp3.Soundness.Derive.LoopEngine.Divergent
 
 /-!
 # CppFormalization.Cpp3.Soundness.Derive.LoopEngine.Split
 
-Split construction of the loop engine from finite and infinite cases.
+Split construction of the loop engine from finite and divergent cases.
 
 The final loop-engine theorem should not pretend that every safe loop is finite,
-and it should not pretend that every safe loop diverges.  A lower classification
-proof must choose one of the two semantic cases:
+and it should not restrict divergence to the forever-reentry case.  A lower
+classification proof must choose one of the semantic cases:
 
 * finite: a derivation-height indexed big-step while derivation;
-* infinite: an arbitrary-prefix witness consumed by `StmtDiv.whileForever`.
+* divergent: body divergence during a true-guard iteration, or forever reentry.
 
-This file combines those two separately-packaged cases into the existing
+This file combines those separately-packaged cases into the existing
 `LoopSafetyStepCoinductionTheorem` interface.
 -/
 
@@ -27,22 +27,22 @@ inductive LoopEngineCase
   | finite :
       FiniteLoopEngineCase Γ Γc σ cond body →
         LoopEngineCase Γ Γc σ cond body
-  | infinite :
-      InfiniteLoopEngineCase Γ Γc σ cond body →
+  | divergent :
+      DivergentLoopEngineCase Γ Γc σ cond body →
         LoopEngineCase Γ Γc σ cond body
 
 namespace LoopEngineCase
 
-/-- Convert the selected finite/infinite case into loop-classification evidence. -/
+/-- Convert the selected finite/divergent case into loop-classification evidence. -/
 def evidence
     {Γ Γc : TypeEnv} {σ : State} {cond : CppCond} {body : CppStmt}
     (h : LoopEngineCase Γ Γc σ cond body) :
     Instantiate.LoopClassification.LoopClassificationEvidence σ cond body :=
   match h with
   | .finite hfinite => hfinite.evidence
-  | .infinite hinfinite => hinfinite.evidence
+  | .divergent hdivergent => hdivergent.evidence
 
-/-- Convert the selected finite/infinite case into the loop-engine classification
+/-- Convert the selected finite/divergent case into the loop-engine classification
 package consumed by `Instantiate.LoopClassification`. -/
 def classification
     {Γ Γc : TypeEnv} {σ : State} {cond : CppCond} {body : CppStmt}
@@ -51,22 +51,22 @@ def classification
       Γ Γc σ cond body :=
   match h with
   | .finite hfinite => hfinite.classification
-  | .infinite hinfinite => hinfinite.classification
+  | .divergent hdivergent => hdivergent.classification
 
-/-- Direct closed while soundness from the selected finite/infinite loop-engine case. -/
+/-- Direct closed while soundness from the selected finite/divergent loop-engine case. -/
 def closedSoundness
     {Γ Γc : TypeEnv} {σ : State} {cond : CppCond} {body : CppStmt}
     (h : LoopEngineCase Γ Γc σ cond body) :
     ClosedStmtSoundness σ (.whileStmt cond body) :=
   match h with
   | .finite hfinite => hfinite.closedSoundness
-  | .infinite hinfinite => hinfinite.closedSoundness
+  | .divergent hdivergent => hdivergent.closedSoundness
 
 end LoopEngineCase
 
 /-- Lower-layer split theorem for loop-engine construction.
 
-A proof of this theorem is where the real finite/infinite classification work
+A proof of this theorem is where the real finite/divergent classification work
 belongs.  It consumes a concrete while-entry boundary and returns the guard/body
 loop-safety environment together with exactly one semantic classification case. -/
 structure LoopEngineCaseSplitTheorem : Type where
@@ -76,7 +76,7 @@ structure LoopEngineCaseSplitTheorem : Type where
         Σ Γc : TypeEnv,
           LoopEngineCase Γ Γc σ cond body
 
-/-- Build the existing loop-engine theorem from a finite/infinite case split. -/
+/-- Build the existing loop-engine theorem from a finite/divergent case split. -/
 def loopSafetyStepCoinductionTheorem_of_caseSplit
     (C : LoopEngineCaseSplitTheorem) :
     Instantiate.LoopClassification.LoopSafetyStepCoinductionTheorem where
