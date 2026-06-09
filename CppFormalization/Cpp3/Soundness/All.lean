@@ -15,6 +15,7 @@ import CppFormalization.Cpp3.Soundness.Semantic.Branch
 import CppFormalization.Cpp3.Soundness.Semantic.While
 
 import CppFormalization.Cpp3.Soundness.Instantiate.Providers
+import CppFormalization.Cpp3.Soundness.Instantiate.ScopeExit
 import CppFormalization.Cpp3.Soundness.Instantiate.FirstFive
 import CppFormalization.Cpp3.Soundness.Instantiate.While
 import CppFormalization.Cpp3.Soundness.Instantiate.Easy
@@ -22,3 +23,4 @@ import CppFormalization.Cpp3.Soundness.FunctionBody.Bridge
 
 import CppFormalization.Cpp3.Soundness.Final
 import CppFormalization.Cpp3.Soundness.ReducedFinal
+import CppFormalization.Cpp3.Soundness.ScopeReducedFinal
