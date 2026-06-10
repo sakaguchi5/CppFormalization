@@ -1,41 +1,46 @@
 import CppFormalization.Cpp3.Soundness.DerivedScopeFinal
-import CppFormalization.Cpp3.Soundness.Derive.LoopEngine.Split
+import CppFormalization.Cpp3.Soundness.Derive.LoopEngine.Certificate
 
 /-!
 # CppFormalization.Cpp3.Soundness.DerivedLoopFinal
 
-Final theorem surface after splitting `loopEngine` into finite and divergent cases.
+Final theorem surface after replacing the boundary-only loop split with a
+certificate-driven loop-progress theorem.
 
 `DerivedScopeFinal` still accepted `loopEngine` as the monolithic
-`LoopSafetyStepCoinductionTheorem`.  This file replaces that field with the split
-finite/divergent loop-engine case theorem from `Soundness.Derive.LoopEngine`.
+`LoopSafetyStepCoinductionTheorem`.  The previous derived-loop layer replaced
+that field with a finite/divergent case split.  This file refines the target one
+step further: the loop side now asks for an explicit progress certificate theorem,
+so the finite-vs-divergent explanation is not hidden inside a boundary-only
+classifier.
 
 The remaining final inputs are therefore all lower-layer construction surfaces:
 
 * local-control construction facts;
 * scope-exit construction facts;
-* finite/divergent loop-engine case split.
+* certificate-driven finite/divergent loop-progress classification.
 -/
 
 namespace Cpp3
 namespace Soundness
 namespace Final
 
-/-- Final bundle after splitting the loop engine into finite and divergent sides. -/
+/-- Final bundle after making the loop engine certificate-driven. -/
 structure DerivedLoopClosedSoundnessProviders : Type where
   localControl : Derive.LocalCorridors.LocalControlConstructionTheorems
   scopeExit : Derive.ScopeExit.ScopeExitConstructionTheorems
-  loopCases : Derive.LoopEngine.LoopEngineCaseSplitTheorem
+  loopProgress : Derive.LoopEngine.LoopProgressCertificateTheorem
 
-/-- Reconstruct `DerivedScopeFinal`'s provider bundle from the split loop engine. -/
+/-- Reconstruct `DerivedScopeFinal`'s provider bundle from the certificate-driven
+loop-progress theorem. -/
 def derivedScopeClosedSoundnessProviders_of_derivedLoop
     (P : DerivedLoopClosedSoundnessProviders) :
     DerivedScopeClosedSoundnessProviders where
   localControl := P.localControl
   scopeExit := P.scopeExit
   loopEngine :=
-    Derive.LoopEngine.loopSafetyStepCoinductionTheorem_of_caseSplit
-      P.loopCases
+    Derive.LoopEngine.loopSafetyStepCoinductionTheorem_of_progressCertificate
+      P.loopProgress
 
 /-- Derived-loop final closed statement soundness theorem. -/
 theorem closedStmtSoundness_derivedLoop
