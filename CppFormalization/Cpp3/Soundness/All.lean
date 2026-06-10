@@ -22,6 +22,8 @@ import CppFormalization.Cpp3.Soundness.Derive.LoopEngine.Trace
 import CppFormalization.Cpp3.Soundness.Derive.LoopEngine.TraceToClassification
 import CppFormalization.Cpp3.Soundness.Derive.LoopEngine.Certificate
 import CppFormalization.Cpp3.Soundness.Derive.LoopEngine.Constructors
+import CppFormalization.Cpp3.Soundness.Derive.LoopEngine.BehaviorSource
+
 import CppFormalization.Cpp3.Soundness.Derive.LoopEngine.Divergent
 import CppFormalization.Cpp3.Soundness.Derive.LoopEngine.Infinite
 import CppFormalization.Cpp3.Soundness.Derive.LoopEngine.Split
