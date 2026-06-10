@@ -238,7 +238,6 @@ structure LoopBehaviorComponentSource
   condition : Boundary.CondBoundary Γ Γc σ cond
   loopSafety : SafetyFragment.LoopSafetyFragment Γ Γc cond body
   behavior : Source.LoopBehaviorSource σ cond body
-  classification : Semantics.StmtClassified σ (.whileStmt cond body)
 
 namespace LoopBehaviorComponentSource
 
@@ -250,7 +249,6 @@ def toCertificate
   condition := h.condition
   loopSafety := h.loopSafety
   behavior := h.behavior
-  classification := h.classification
 
 end LoopBehaviorComponentSource
 
@@ -267,7 +265,7 @@ def loopBehaviorCertificateTheorem_of_componentTheorem
     rcases certify boundary with ⟨Γc, source⟩
     exact ⟨Γc, source.toCertificate⟩
 
-/-- Lower classification realizer bundle consumed by closed-internal providers. -/
+/-- Lower classification realizer bundle. -/
 structure ClassificationRealizationTheorems : Type where
   stmtClassify :
     ∀ {Γ : TypeEnv} {σ : State} {st : CppStmt},
@@ -281,6 +279,20 @@ structure ClassificationRealizationTheorems : Type where
     ∀ {Γ : TypeEnv} {σ : State} {body : CppStmt},
       Source.FunctionBodyBoundarySource Γ σ body →
         Source.ClosedFunctionBodySoundness σ body
+
+/-- Assemble the named classification source theorem bundle. -/
+def classificationSourceTheorems_of_realization
+    (localControl : LocalControlRealizationTheorems)
+    (scopeExit : ScopeExitRealizationTheorems)
+    (loopBehavior : Source.LoopBehaviorCertificateTheorem)
+    (classification : ClassificationRealizationTheorems) :
+    Source.ClassificationSourceTheorems where
+  localControl := localControl.toSourceTheorems
+  scopeExit := scopeExit.toSourceTheorems
+  loopBehavior := loopBehavior
+  stmtClassify := classification.stmtClassify
+  blockClassify := classification.blockClassify
+  functionBodyClassify := classification.functionBodyClassify
 
 end Realize
 end Soundness2

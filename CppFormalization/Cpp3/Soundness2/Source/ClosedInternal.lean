@@ -1,49 +1,39 @@
-import CppFormalization.Cpp3.Soundness2.Source.LoopBehavior
+import CppFormalization.Cpp3.Soundness2.Source.Classification
 
 /-!
 # CppFormalization.Cpp3.Soundness2.Source.ClosedInternal
 
-Closed-internal source vocabulary and final target names for Soundness2.
+Closed-internal source vocabulary for Soundness2.
 -/
 
 namespace Cpp3
 namespace Soundness2
 namespace Source
 
-/-- Soundness target for a closed internal statement. -/
-abbrev ClosedStmtSoundness (σ : State) (st : CppStmt) : Prop :=
-  Semantics.StmtClassified σ st
-
-/-- Soundness target for a closed internal block body. -/
-abbrev ClosedBlockSoundness (σ : State) (body : StmtBlock) : Prop :=
-  Semantics.BlockClassified σ body
-
-/-- Soundness target for a closed internal function body. -/
-abbrev ClosedFunctionBodySoundness (σ : State) (body : CppStmt) : Prop :=
-  Semantics.FunctionBodyClassified σ body
-
 /-- Closed-internal provider sources.
 
-The local-control, scope-exit, and loop-behavior sources remain visible.  The
-three classification fields are the final lower theorems consumed by Soundness2;
-this avoids importing the old Soundness proof while keeping the final theorem
-honest and conditional on explicit source theorems. -/
+The provider no longer contains raw `stmtClassify` / `blockClassify` /
+`functionBodyClassify` fields.  Those belong to the named classification source
+bundle, which itself records the local-control, scope-exit, and loop-behavior
+surfaces used by the classifier. -/
 structure ClosedInternalProviderSources : Type where
-  localControl : LocalControlSourceTheorems
-  scopeExit : ScopeExitSourceTheorems
-  loopBehavior : LoopBehaviorCertificateTheorem
-  stmtClassify :
-    ∀ {Γ : TypeEnv} {σ : State} {st : CppStmt},
-      StmtBoundarySource Γ σ st →
-        ClosedStmtSoundness σ st
-  blockClassify :
-    ∀ {Γ : TypeEnv} {σ : State} {body : StmtBlock},
-      BlockBoundarySource Γ σ body →
-        ClosedBlockSoundness σ body
-  functionBodyClassify :
-    ∀ {Γ : TypeEnv} {σ : State} {body : CppStmt},
-      FunctionBodyBoundarySource Γ σ body →
-        ClosedFunctionBodySoundness σ body
+  classification : ClassificationSourceTheorems
+
+namespace ClosedInternalProviderSources
+
+/-- Project local-control sources from the classification bundle. -/
+def localControl (P : ClosedInternalProviderSources) : LocalControlSourceTheorems :=
+  P.classification.localControl
+
+/-- Project scope-exit sources from the classification bundle. -/
+def scopeExit (P : ClosedInternalProviderSources) : ScopeExitSourceTheorems :=
+  P.classification.scopeExit
+
+/-- Project loop-behavior sources from the classification bundle. -/
+def loopBehavior (P : ClosedInternalProviderSources) : LoopBehaviorCertificateTheorem :=
+  P.classification.loopBehavior
+
+end ClosedInternalProviderSources
 
 /-- Closed-internal statement source. -/
 structure ClosedInternalStmtSource

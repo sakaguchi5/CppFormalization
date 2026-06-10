@@ -16,7 +16,7 @@ theorem closedStmtSoundness
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (source : Source.ClosedInternalStmtSource Γ σ st) :
     Source.ClosedStmtSoundness σ st :=
-  P.stmtClassify source.boundarySource
+  Source.ClassificationSourceTheorems.classifyStmt P.classification source.boundarySource
 
 /-- Block soundness from closed-internal provider and source. -/
 theorem closedBlockSoundness
@@ -24,7 +24,7 @@ theorem closedBlockSoundness
     {Γ : TypeEnv} {σ : State} {body : StmtBlock}
     (source : Source.ClosedInternalBlockSource Γ σ body) :
     Source.ClosedBlockSoundness σ body :=
-  P.blockClassify source.boundarySource
+  Source.ClassificationSourceTheorems.classifyBlock P.classification source.boundarySource
 
 /-- Function-body soundness from closed-internal provider and source. -/
 theorem closedFunctionBodySoundness
@@ -32,7 +32,7 @@ theorem closedFunctionBodySoundness
     {Γ : TypeEnv} {σ : State} {body : CppStmt}
     (source : Source.ClosedInternalFunctionBodySource Γ σ body) :
     Source.ClosedFunctionBodySoundness σ body :=
-  P.functionBodyClassify source.boundarySource
+  Source.ClassificationSourceTheorems.classifyFunctionBody P.classification source.boundarySource
 
 /-- No unclassified statement stuckness from statement soundness. -/
 theorem noStmtUnclassifiedStuck

@@ -10,20 +10,24 @@ namespace Cpp3
 namespace Soundness2
 namespace Realize
 
+/-- Assemble closed-internal provider sources from a named classification theorem
+bundle. -/
+def providerSources_of_classification
+    (classification : Source.ClassificationSourceTheorems) :
+    Source.ClosedInternalProviderSources where
+  classification := classification
+
 /-- Assemble closed-internal provider sources from realized local-control,
-scope-exit, loop-behavior, and classification theorem bundles. -/
+scope-exit, loop-behavior, and lower classification theorem bundles. -/
 def providerSources_of_realization
     (localControl : LocalControlRealizationTheorems)
     (scopeExit : ScopeExitRealizationTheorems)
     (loopBehavior : Source.LoopBehaviorCertificateTheorem)
     (classification : ClassificationRealizationTheorems) :
-    Source.ClosedInternalProviderSources where
-  localControl := localControl.toSourceTheorems
-  scopeExit := scopeExit.toSourceTheorems
-  loopBehavior := loopBehavior
-  stmtClassify := classification.stmtClassify
-  blockClassify := classification.blockClassify
-  functionBodyClassify := classification.functionBodyClassify
+    Source.ClosedInternalProviderSources :=
+  providerSources_of_classification
+    (classificationSourceTheorems_of_realization
+      localControl scopeExit loopBehavior classification)
 
 /-- Assemble closed-internal provider sources directly from a loop-behavior component
 certifier. -/
