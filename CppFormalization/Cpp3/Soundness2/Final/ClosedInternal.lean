@@ -1,4 +1,3 @@
-import CppFormalization.Cpp3.Soundness2.Derive.ClosedInternal
 import CppFormalization.Cpp3.Soundness2.Realize.ClosedInternal
 
 /-!
@@ -6,7 +5,9 @@ import CppFormalization.Cpp3.Soundness2.Realize.ClosedInternal
 
 Final closed-internal theorem surface for Soundness2.
 
-This file imports no old `Cpp3.Soundness` and no old top-level `Cpp3.Realization`.
+This file imports no old `Cpp3.Soundness`, no old top-level `Cpp3.Realization`,
+and no `Soundness2.Derive` layer.  The final theorem surface delegates to the
+realized closed-internal route.
 -/
 
 namespace Cpp3
@@ -19,7 +20,7 @@ theorem closedStmtSoundness
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (source : Source.ClosedInternalStmtSource Γ σ st) :
     Source.ClosedStmtSoundness σ st :=
-  Derive.closedStmtSoundness P source
+  Realize.closedStmtSoundness P source
 
 /-- Final Soundness2 block soundness theorem. -/
 theorem closedBlockSoundness
@@ -27,7 +28,7 @@ theorem closedBlockSoundness
     {Γ : TypeEnv} {σ : State} {body : StmtBlock}
     (source : Source.ClosedInternalBlockSource Γ σ body) :
     Source.ClosedBlockSoundness σ body :=
-  Derive.closedBlockSoundness P source
+  Realize.closedBlockSoundness P source
 
 /-- Final Soundness2 function-body soundness theorem. -/
 theorem closedFunctionBodySoundness
@@ -35,7 +36,7 @@ theorem closedFunctionBodySoundness
     {Γ : TypeEnv} {σ : State} {body : CppStmt}
     (source : Source.ClosedInternalFunctionBodySource Γ σ body) :
     Source.ClosedFunctionBodySoundness σ body :=
-  Derive.closedFunctionBodySoundness P source
+  Realize.closedFunctionBodySoundness P source
 
 /-- Final Soundness2 statement no-unclassified-stuck theorem. -/
 theorem noStmtUnclassifiedStuck
@@ -43,7 +44,7 @@ theorem noStmtUnclassifiedStuck
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (source : Source.ClosedInternalStmtSource Γ σ st) :
     ¬ Semantics.StmtUnclassifiedStuck σ st :=
-  Derive.noStmtUnclassifiedStuck P source
+  Realize.noStmtUnclassifiedStuck P source
 
 /-- Final Soundness2 block no-unclassified-stuck theorem. -/
 theorem noBlockUnclassifiedStuck
@@ -51,7 +52,7 @@ theorem noBlockUnclassifiedStuck
     {Γ : TypeEnv} {σ : State} {body : StmtBlock}
     (source : Source.ClosedInternalBlockSource Γ σ body) :
     ¬ Semantics.BlockUnclassifiedStuck σ body :=
-  Derive.noBlockUnclassifiedStuck P source
+  Realize.noBlockUnclassifiedStuck P source
 
 /-- Final Soundness2 function-body no-unclassified-stuck theorem. -/
 theorem noFunctionBodyUnclassifiedStuck
@@ -59,7 +60,7 @@ theorem noFunctionBodyUnclassifiedStuck
     {Γ : TypeEnv} {σ : State} {body : CppStmt}
     (source : Source.ClosedInternalFunctionBodySource Γ σ body) :
     ¬ Semantics.FunctionBodyUnclassifiedStuck σ body :=
-  Derive.noFunctionBodyUnclassifiedStuck P source
+  Realize.noFunctionBodyUnclassifiedStuck P source
 
 /-- Convenience final theorem from realized provider/source components. -/
 theorem closedFunctionBodySoundness_of_realization
@@ -70,9 +71,8 @@ theorem closedFunctionBodySoundness_of_realization
     {Γ : TypeEnv} {σ : State} {body : CppStmt}
     (source : Source.FunctionBodyBoundarySource Γ σ body) :
     Source.ClosedFunctionBodySoundness σ body :=
-  closedFunctionBodySoundness
-    (Realize.providerSources_of_realization localControl scopeExit loopBehavior classification)
-    (Realize.functionBodySource_of_boundarySource source)
+  Realize.closedFunctionBodySoundness_of_realization
+    localControl scopeExit loopBehavior classification source
 
 /-- Convenience final no-stuck theorem from realized provider/source components. -/
 theorem noFunctionBodyUnclassifiedStuck_of_realization
@@ -83,9 +83,8 @@ theorem noFunctionBodyUnclassifiedStuck_of_realization
     {Γ : TypeEnv} {σ : State} {body : CppStmt}
     (source : Source.FunctionBodyBoundarySource Γ σ body) :
     ¬ Semantics.FunctionBodyUnclassifiedStuck σ body :=
-  noFunctionBodyUnclassifiedStuck
-    (Realize.providerSources_of_realization localControl scopeExit loopBehavior classification)
-    (Realize.functionBodySource_of_boundarySource source)
+  Realize.noFunctionBodyUnclassifiedStuck_of_realization
+    localControl scopeExit loopBehavior classification source
 
 end Final
 end Soundness2

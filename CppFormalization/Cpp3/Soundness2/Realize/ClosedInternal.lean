@@ -1,9 +1,21 @@
 import CppFormalization.Cpp3.Soundness2.Realize.Provider
+import CppFormalization.Cpp3.Semantics.Kernel.ClassificationLemmas
 
 /-!
 # CppFormalization.Cpp3.Soundness2.Realize.ClosedInternal
 
-Realization-to-source assembly for the closed internal fragment.
+Closed-internal realization and final application layer for Soundness2.
+
+The flow in this file is intentionally linear:
+
+* realized local-control / scope-exit / loop-behavior / classification pieces are
+  assembled into a closed-internal provider;
+* boundary sources are wrapped as closed-internal sources;
+* the provider is applied to those sources to derive closed soundness;
+* semantic classification lemmas turn closed soundness into no-unclassified-stuck.
+
+This absorbs the old `Derive.ClosedInternal` role into `Realize`, so `Final` can
+remain a thin public theorem surface over the realized route.
 -/
 
 namespace Cpp3
@@ -29,8 +41,8 @@ def providerSources_of_realization
     (classificationSourceTheorems_of_realization
       localControl scopeExit loopBehavior classification)
 
-/-- Assemble closed-internal provider sources directly from a loop-behavior component
-certifier. -/
+/-- Assemble closed-internal provider sources directly from a loop-behavior
+component certifier. -/
 def providerSources_of_componentRealization
     (localControl : LocalControlRealizationTheorems)
     (scopeExit : ScopeExitRealizationTheorems)
@@ -61,46 +73,92 @@ def blockSource_of_boundarySource
     Source.ClosedInternalBlockSource Γ σ body where
   boundarySource := boundarySource
 
-/-- Realize a closed-internal function-body source from a function-body boundary source. -/
+/-- Realize a closed-internal function-body source from a function-body boundary
+source. -/
 def functionBodySource_of_boundarySource
     {Γ : TypeEnv} {σ : State} {body : CppStmt}
     (boundarySource : Source.FunctionBodyBoundarySource Γ σ body) :
     Source.ClosedInternalFunctionBodySource Γ σ body where
   boundarySource := boundarySource
 
-/-- Realize a closed-internal statement source directly from lower statement
-components. -/
-def stmtSource_of_components
-    {Γ : TypeEnv} {σ : State} {st : CppStmt} {k : ControlKind} {Δ : TypeEnv}
-    (typed : Typing.Judgment.HasTypeStmtCI k Γ st Δ)
-    (formed : Static.StaticStmtFormed st)
-    (safety : SafetyFragment.StmtSafetyFragment Γ st)
-    (entry : Boundary.StmtEntryEvidence Γ σ st) :
-    Source.ClosedInternalStmtSource Γ σ st :=
-  stmtSource_of_boundarySource
-    (stmtBoundarySource_of_formed typed formed safety entry)
+/-- Statement soundness from closed-internal provider and source. -/
+theorem closedStmtSoundness
+    (P : Source.ClosedInternalProviderSources)
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (source : Source.ClosedInternalStmtSource Γ σ st) :
+    Source.ClosedStmtSoundness σ st :=
+  Source.ClassificationSourceTheorems.classifyStmt P.classification source.boundarySource
 
-/-- Realize a closed-internal block source directly from lower block components. -/
-def blockSource_of_components
-    {Γ : TypeEnv} {σ : State} {body : StmtBlock} {k : ControlKind} {Δ : TypeEnv}
-    (typed : Typing.Judgment.HasTypeBlockCI k Γ body Δ)
-    (formed : Static.StaticBlockFormed body)
-    (safety : SafetyFragment.BlockSafetyFragment Γ body)
-    (entry : Boundary.BlockEntryEvidence Γ σ body) :
-    Source.ClosedInternalBlockSource Γ σ body :=
-  blockSource_of_boundarySource
-    (blockBoundarySource_of_formed typed formed safety entry)
+/-- Block soundness from closed-internal provider and source. -/
+theorem closedBlockSoundness
+    (P : Source.ClosedInternalProviderSources)
+    {Γ : TypeEnv} {σ : State} {body : StmtBlock}
+    (source : Source.ClosedInternalBlockSource Γ σ body) :
+    Source.ClosedBlockSoundness σ body :=
+  Source.ClassificationSourceTheorems.classifyBlock P.classification source.boundarySource
 
-/-- Realize a closed-internal function-body source from a statement boundary source
-and the function-body static control surface. -/
-def functionBodySource_of_stmtSource
-    {Γ : TypeEnv} {σ : State} {body : CppStmt} {k : ControlKind} {Δ : TypeEnv}
-    (typed : Typing.Judgment.HasTypeStmtCI k Γ body Δ)
-    (static : Static.StaticFunctionBodyBoundaryInfo Γ body)
-    (stmtSource : Source.StmtBoundarySource Γ σ body) :
-    Source.ClosedInternalFunctionBodySource Γ σ body :=
-  functionBodySource_of_boundarySource
-    (functionBodyBoundarySource_of_stmtSource typed static stmtSource)
+/-- Function-body soundness from closed-internal provider and source. -/
+theorem closedFunctionBodySoundness
+    (P : Source.ClosedInternalProviderSources)
+    {Γ : TypeEnv} {σ : State} {body : CppStmt}
+    (source : Source.ClosedInternalFunctionBodySource Γ σ body) :
+    Source.ClosedFunctionBodySoundness σ body :=
+  Source.ClassificationSourceTheorems.classifyFunctionBody P.classification source.boundarySource
+
+/-- No unclassified statement stuckness from statement soundness. -/
+theorem noStmtUnclassifiedStuck
+    (P : Source.ClosedInternalProviderSources)
+    {Γ : TypeEnv} {σ : State} {st : CppStmt}
+    (source : Source.ClosedInternalStmtSource Γ σ st) :
+    ¬ Semantics.StmtUnclassifiedStuck σ st :=
+  Semantics.not_stmtUnclassifiedStuck_of_classified
+    (closedStmtSoundness P source)
+
+/-- No unclassified block stuckness from block soundness. -/
+theorem noBlockUnclassifiedStuck
+    (P : Source.ClosedInternalProviderSources)
+    {Γ : TypeEnv} {σ : State} {body : StmtBlock}
+    (source : Source.ClosedInternalBlockSource Γ σ body) :
+    ¬ Semantics.BlockUnclassifiedStuck σ body :=
+  Semantics.not_blockUnclassifiedStuck_of_classified
+    (closedBlockSoundness P source)
+
+/-- No unclassified function-body stuckness from function-body soundness. -/
+theorem noFunctionBodyUnclassifiedStuck
+    (P : Source.ClosedInternalProviderSources)
+    {Γ : TypeEnv} {σ : State} {body : CppStmt}
+    (source : Source.ClosedInternalFunctionBodySource Γ σ body) :
+    ¬ Semantics.FunctionBodyUnclassifiedStuck σ body :=
+  Semantics.not_functionBodyUnclassifiedStuck_of_classified
+    (closedFunctionBodySoundness P source)
+
+/-- Realized function-body soundness from realized provider pieces and a
+function-body boundary source. -/
+theorem closedFunctionBodySoundness_of_realization
+    (localControl : LocalControlRealizationTheorems)
+    (scopeExit : ScopeExitRealizationTheorems)
+    (loopBehavior : Source.LoopBehaviorCertificateTheorem)
+    (classification : ClassificationRealizationTheorems)
+    {Γ : TypeEnv} {σ : State} {body : CppStmt}
+    (source : Source.FunctionBodyBoundarySource Γ σ body) :
+    Source.ClosedFunctionBodySoundness σ body :=
+  closedFunctionBodySoundness
+    (providerSources_of_realization localControl scopeExit loopBehavior classification)
+    (functionBodySource_of_boundarySource source)
+
+/-- Realized function-body no-unclassified-stuck theorem from realized provider
+pieces and a function-body boundary source. -/
+theorem noFunctionBodyUnclassifiedStuck_of_realization
+    (localControl : LocalControlRealizationTheorems)
+    (scopeExit : ScopeExitRealizationTheorems)
+    (loopBehavior : Source.LoopBehaviorCertificateTheorem)
+    (classification : ClassificationRealizationTheorems)
+    {Γ : TypeEnv} {σ : State} {body : CppStmt}
+    (source : Source.FunctionBodyBoundarySource Γ σ body) :
+    ¬ Semantics.FunctionBodyUnclassifiedStuck σ body :=
+  noFunctionBodyUnclassifiedStuck
+    (providerSources_of_realization localControl scopeExit loopBehavior classification)
+    (functionBodySource_of_boundarySource source)
 
 end Realize
 end Soundness2
