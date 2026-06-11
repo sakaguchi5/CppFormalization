@@ -53,6 +53,17 @@ def classificationRealizationTheorems_of_boundaryClassifiers
     block.toSourceRealization
     (functionBodyRealization_of_boundaryStmtClassifier stmt)
 
+/-- Assemble classification theorems directly from lower control/scope/loop bundles
+by first constructing the boundary-level statement and block classifiers. -/
+def classificationRealizationTheorems_of_boundaryRealization
+    (localControl : LocalControlRealizationTheorems)
+    (scopeExit : ScopeExitRealizationTheorems)
+    (loopBehavior : Source.LoopBehaviorCertificateTheorem) :
+    ClassificationRealizationTheorems :=
+  classificationRealizationTheorems_of_boundaryClassifiers
+    (boundaryStmtClassifierRealization localControl scopeExit loopBehavior)
+    (boundaryBlockClassifierRealization localControl scopeExit loopBehavior)
+
 /-- Complete realization source for the named classification source theorem bundle. -/
 structure ClassificationRealizationSources : Type where
   localControl : LocalControlRealizationTheorems
@@ -133,6 +144,20 @@ def classificationSourceTheorems_of_boundaryClassifiers
     scopeExit
     loopBehavior
     (classificationRealizationTheorems_of_boundaryClassifiers stmt block)).toSourceTheorems
+
+/-- Assemble a classification source theorem bundle directly from lower
+control/scope/loop bundles. -/
+def classificationSourceTheorems_of_boundaryRealization
+    (localControl : LocalControlRealizationTheorems)
+    (scopeExit : ScopeExitRealizationTheorems)
+    (loopBehavior : Source.LoopBehaviorCertificateTheorem) :
+    Source.ClassificationSourceTheorems :=
+  classificationSourceTheorems_of_boundaryClassifiers
+    localControl
+    scopeExit
+    loopBehavior
+    (boundaryStmtClassifierRealization localControl scopeExit loopBehavior)
+    (boundaryBlockClassifierRealization localControl scopeExit loopBehavior)
 
 /-- Assemble the named classification source theorem bundle from realized pieces. -/
 def classificationSourceTheorems_of_realization

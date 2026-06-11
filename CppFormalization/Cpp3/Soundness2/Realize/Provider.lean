@@ -33,6 +33,17 @@ def providerSources_of_realization
     (classificationSourceTheorems_of_realization
       localControl scopeExit loopBehavior classification)
 
+/-- Assemble closed-internal provider sources directly from lower
+control/scope/loop bundles by constructing the boundary-level classifiers first. -/
+def providerSources_of_boundaryRealization
+    (localControl : LocalControlRealizationTheorems)
+    (scopeExit : ScopeExitRealizationTheorems)
+    (loopBehavior : Source.LoopBehaviorCertificateTheorem) :
+    Source.ClosedInternalProviderSources :=
+  providerSources_of_classification
+    (classificationSourceTheorems_of_boundaryRealization
+      localControl scopeExit loopBehavior)
+
 /-- Assemble closed-internal provider sources from boundary-level statement/block
 classifiers.  The function-body classifier is derived after the boundary
 statement classifier. -/

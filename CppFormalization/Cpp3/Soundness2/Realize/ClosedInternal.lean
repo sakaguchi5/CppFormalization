@@ -134,6 +134,34 @@ theorem closedFunctionBodySoundness_of_boundaryClassifiers
     (providerSources_of_boundaryClassifiers localControl scopeExit loopBehavior stmt block)
     (functionBodySource_of_boundarySource source)
 
+
+/-- Realized function-body soundness from lower control/scope/loop bundles.  This
+uses the boundary-level classifier constructed in `ClassificationBoundary`, not a
+pre-supplied classifier assumption. -/
+theorem closedFunctionBodySoundness_of_boundaryRealization
+    (localControl : LocalControlRealizationTheorems)
+    (scopeExit : ScopeExitRealizationTheorems)
+    (loopBehavior : Source.LoopBehaviorCertificateTheorem)
+    {Γ : TypeEnv} {σ : State} {body : CppStmt}
+    (source : Source.FunctionBodyBoundarySource Γ σ body) :
+    Source.ClosedFunctionBodySoundness σ body :=
+  closedFunctionBodySoundness
+    (providerSources_of_boundaryRealization localControl scopeExit loopBehavior)
+    (functionBodySource_of_boundarySource source)
+
+/-- Realized function-body no-unclassified-stuck theorem from lower
+control/scope/loop bundles. -/
+theorem noFunctionBodyUnclassifiedStuck_of_boundaryRealization
+    (localControl : LocalControlRealizationTheorems)
+    (scopeExit : ScopeExitRealizationTheorems)
+    (loopBehavior : Source.LoopBehaviorCertificateTheorem)
+    {Γ : TypeEnv} {σ : State} {body : CppStmt}
+    (source : Source.FunctionBodyBoundarySource Γ σ body) :
+    ¬ Semantics.FunctionBodyUnclassifiedStuck σ body :=
+  noFunctionBodyUnclassifiedStuck
+    (providerSources_of_boundaryRealization localControl scopeExit loopBehavior)
+    (functionBodySource_of_boundarySource source)
+
 end Realize
 end Soundness2
 end Cpp3
