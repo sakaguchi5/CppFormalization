@@ -4,60 +4,19 @@ import CppFormalization.Cpp3.Semantics.Kernel.ClassificationLemmas
 /-!
 # CppFormalization.Cpp3.Soundness2.Realize.ClosedInternal
 
-Closed-internal realization and final application layer for Soundness2.
+Closed-internal final application layer for Soundness2.
 
-The flow in this file is intentionally linear:
+The route into `Final` is linear:
 
-* realized local-control / scope-exit / loop-behavior / classification pieces are
-  assembled into a closed-internal provider;
-* boundary sources are wrapped as closed-internal sources;
-* the provider is applied to those sources to derive closed soundness;
-* semantic classification lemmas turn closed soundness into no-unclassified-stuck.
-
-This absorbs the old `Derive.ClosedInternal` role into `Realize`, so `Final` can
-remain a thin public theorem surface over the realized route.
+1. realized control/loop/classification pieces are assembled into a provider;
+2. boundary sources are wrapped as closed-internal sources;
+3. the provider is applied to derive closed soundness;
+4. semantic classification lemmas derive no-unclassified-stuck.
 -/
 
 namespace Cpp3
 namespace Soundness2
 namespace Realize
-
-/-- Assemble closed-internal provider sources from a named classification theorem
-bundle. -/
-def providerSources_of_classification
-    (classification : Source.ClassificationSourceTheorems) :
-    Source.ClosedInternalProviderSources where
-  classification := classification
-
-/-- Assemble closed-internal provider sources from realized local-control,
-scope-exit, loop-behavior, and lower classification theorem bundles. -/
-def providerSources_of_realization
-    (localControl : LocalControlRealizationTheorems)
-    (scopeExit : ScopeExitRealizationTheorems)
-    (loopBehavior : Source.LoopBehaviorCertificateTheorem)
-    (classification : ClassificationRealizationTheorems) :
-    Source.ClosedInternalProviderSources :=
-  providerSources_of_classification
-    (classificationSourceTheorems_of_realization
-      localControl scopeExit loopBehavior classification)
-
-/-- Assemble closed-internal provider sources directly from a loop-behavior
-component certifier. -/
-def providerSources_of_componentRealization
-    (localControl : LocalControlRealizationTheorems)
-    (scopeExit : ScopeExitRealizationTheorems)
-    (loopBehavior :
-      ∀ {Γ : TypeEnv} {σ : State} {cond : CppCond} {body : CppStmt},
-        Boundary.StmtBoundary Γ σ (.whileStmt cond body) →
-          Σ Γc : TypeEnv,
-            LoopBehaviorComponentSource Γ Γc σ cond body)
-    (classification : ClassificationRealizationTheorems) :
-    Source.ClosedInternalProviderSources :=
-  providerSources_of_realization
-    localControl
-    scopeExit
-    (loopBehaviorCertificateTheorem_of_componentTheorem loopBehavior)
-    classification
 
 /-- Realize a closed-internal statement source from a boundary source. -/
 def stmtSource_of_boundarySource
@@ -158,6 +117,21 @@ theorem noFunctionBodyUnclassifiedStuck_of_realization
     ¬ Semantics.FunctionBodyUnclassifiedStuck σ body :=
   noFunctionBodyUnclassifiedStuck
     (providerSources_of_realization localControl scopeExit loopBehavior classification)
+    (functionBodySource_of_boundarySource source)
+
+/-- Realized function-body soundness from boundary-level statement/block
+classifiers. -/
+theorem closedFunctionBodySoundness_of_boundaryClassifiers
+    (localControl : LocalControlRealizationTheorems)
+    (scopeExit : ScopeExitRealizationTheorems)
+    (loopBehavior : Source.LoopBehaviorCertificateTheorem)
+    (stmt : BoundaryStmtClassifierRealization)
+    (block : BoundaryBlockClassifierRealization)
+    {Γ : TypeEnv} {σ : State} {body : CppStmt}
+    (source : Source.FunctionBodyBoundarySource Γ σ body) :
+    Source.ClosedFunctionBodySoundness σ body :=
+  closedFunctionBodySoundness
+    (providerSources_of_boundaryClassifiers localControl scopeExit loopBehavior stmt block)
     (functionBodySource_of_boundarySource source)
 
 end Realize

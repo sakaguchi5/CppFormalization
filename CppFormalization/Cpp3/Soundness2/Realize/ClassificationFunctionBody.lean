@@ -4,16 +4,23 @@ import CppFormalization.Cpp3.Static.ControlAdequacy
 /-!
 # CppFormalization.Cpp3.Soundness2.Realize.ClassificationFunctionBody
 
-Function-body classification from the boundary-level statement classifier.
+Function-body classifier layer.
 
-C++ function bodies do not accept uncaught top-level `break`/`continue`.  The
-semantic lift itself is now lower-level (`Semantics.functionBodyClassified_of_stmtClassified`);
-this file only supplies the function-body static-control impossibility premises.
+After the boundary-level statement classifier is available, function-body
+classification is a C++-specific lift: top-level `break` and `continue` are ruled
+out by function-body static control adequacy.
 -/
 
 namespace Cpp3
 namespace Soundness2
 namespace Realize
+
+/-- Source-level realized classifier for closed-internal function bodies. -/
+structure FunctionBodyClassifierRealization : Type where
+  classify :
+    ∀ {Γ : TypeEnv} {σ : State} {body : CppStmt},
+      Source.FunctionBodyBoundarySource Γ σ body →
+        Source.ClosedFunctionBodySoundness σ body
 
 /-- Boundary-level function-body classifier. -/
 structure BoundaryFunctionBodyClassifierRealization : Type where
@@ -24,11 +31,7 @@ structure BoundaryFunctionBodyClassifierRealization : Type where
 
 namespace BoundaryFunctionBodyClassification
 
-/-- Lift boundary-level statement classification to function-body classification.
-
-The lower semantic lift handles normal/return/divergence.  The only Soundness2
-specific work here is supplying the static-control facts that rule out escaping
-finite `break` and `continue`. -/
+/-- Lift boundary-level statement classification to function-body classification. -/
 theorem classify
     (stmt : BoundaryStmtClassifierRealization)
     {Γ : TypeEnv} {σ : State} {body : CppStmt}
@@ -56,8 +59,7 @@ end BoundaryFunctionBodyClassification
 
 namespace BoundaryFunctionBodyClassifierRealization
 
-/-- Build a boundary-level function-body classifier from the boundary-level
-statement classifier. -/
+/-- Build a boundary-level function-body classifier from the boundary statement core. -/
 def ofStmtClassifier
     (stmt : BoundaryStmtClassifierRealization) :
     BoundaryFunctionBodyClassifierRealization where
@@ -65,46 +67,13 @@ def ofStmtClassifier
     intro Γ σ body boundary
     exact BoundaryFunctionBodyClassification.classify stmt boundary
 
-/-- Recover the existing source-level function-body classifier from the
-boundary-level theorem. -/
+/-- Recover the source-level function-body classifier from the boundary-level core. -/
 def toSourceRealization
     (K : BoundaryFunctionBodyClassifierRealization) :
     FunctionBodyClassifierRealization where
   classify := by
     intro Γ σ body source
-    exact K.classify (Source.FunctionBodyBoundarySource.toBoundary source)
-
-/-- Recover source-level function-body cases from a boundary-level classifier. -/
-def toSourceCases
-    (K : BoundaryFunctionBodyClassifierRealization) :
-    FunctionBodyClassificationCases where
-  skip := by
-    intro Γ σ source
-    exact K.classify (Source.FunctionBodyBoundarySource.toBoundary source)
-  exprStmt := by
-    intro Γ σ e source
-    exact K.classify (Source.FunctionBodyBoundarySource.toBoundary source)
-  assign := by
-    intro Γ σ a source
-    exact K.classify (Source.FunctionBodyBoundarySource.toBoundary source)
-  decl := by
-    intro Γ σ d source
-    exact K.classify (Source.FunctionBodyBoundarySource.toBoundary source)
-  seq := by
-    intro Γ σ head tail source
-    exact K.classify (Source.FunctionBodyBoundarySource.toBoundary source)
-  ite := by
-    intro Γ σ cond thenBranch elseBranch source
-    exact K.classify (Source.FunctionBodyBoundarySource.toBoundary source)
-  whileStmt := by
-    intro Γ σ cond body source
-    exact K.classify (Source.FunctionBodyBoundarySource.toBoundary source)
-  block := by
-    intro Γ σ body source
-    exact K.classify (Source.FunctionBodyBoundarySource.toBoundary source)
-  jump := by
-    intro Γ σ j source
-    exact K.classify (Source.FunctionBodyBoundarySource.toBoundary source)
+    exact K.classify source.toBoundary
 
 end BoundaryFunctionBodyClassifierRealization
 
@@ -114,13 +83,6 @@ def functionBodyRealization_of_boundaryStmtClassifier
     (stmt : BoundaryStmtClassifierRealization) :
     FunctionBodyClassifierRealization :=
   (BoundaryFunctionBodyClassifierRealization.ofStmtClassifier stmt).toSourceRealization
-
-/-- Source-level function-body case family obtained from boundary-level statement
-classification and C++ function-body control adequacy. -/
-def functionBodyCases_of_boundaryStmtClassifier
-    (stmt : BoundaryStmtClassifierRealization) :
-    FunctionBodyClassificationCases :=
-  (BoundaryFunctionBodyClassifierRealization.ofStmtClassifier stmt).toSourceCases
 
 end Realize
 end Soundness2

@@ -1,53 +1,39 @@
-import CppFormalization.Cpp3.Soundness2.Realize.Provider
+import CppFormalization.Cpp3.Soundness2.Realize.ClassificationFunctionBody
 
 /-!
 # CppFormalization.Cpp3.Soundness2.Realize.Classification
 
-Realization helpers for the Soundness2 classification layer.
+Classification bundle layer for the linear Soundness2 route.
 
-`Source.ClassificationSourceTheorems` is the remaining theorem surface that turns
-closed-internal boundary sources into statement/block/function-body
-classification.  This file does not pretend to solve that classification problem
-magically; instead it gives a clean realization layer for assembling the
-classification source bundle from smaller realized pieces.
+The intended order is:
 
-The intended direction is:
-
-* local-control realization theorems;
-* scope-exit realization theorems;
-* loop-behavior certificate theorem, or a lower behavior-component certifier;
-* concrete statement/block/function-body classifiers;
-
-assemble into the provider source consumed by `Soundness2.Final`.
+1. local-control / scope-exit / loop-behavior theorem bundles are available;
+2. boundary-level statement and block classifiers are available;
+3. the function-body classifier is obtained from the statement classifier;
+4. all classifiers are assembled into `ClassificationRealizationTheorems`;
+5. the named `Source.ClassificationSourceTheorems` bundle is produced.
 -/
 
 namespace Cpp3
 namespace Soundness2
 namespace Realize
 
-/-- Realized classifier for closed-internal statements. -/
-structure StmtClassifierRealization : Type where
-  classify :
+/-- Lower classification realizer bundle consumed by provider construction. -/
+structure ClassificationRealizationTheorems : Type where
+  stmtClassify :
     ∀ {Γ : TypeEnv} {σ : State} {st : CppStmt},
       Source.StmtBoundarySource Γ σ st →
         Source.ClosedStmtSoundness σ st
-
-/-- Realized classifier for closed-internal block bodies. -/
-structure BlockClassifierRealization : Type where
-  classify :
+  blockClassify :
     ∀ {Γ : TypeEnv} {σ : State} {body : StmtBlock},
       Source.BlockBoundarySource Γ σ body →
         Source.ClosedBlockSoundness σ body
-
-/-- Realized classifier for closed-internal function bodies. -/
-structure FunctionBodyClassifierRealization : Type where
-  classify :
+  functionBodyClassify :
     ∀ {Γ : TypeEnv} {σ : State} {body : CppStmt},
       Source.FunctionBodyBoundarySource Γ σ body →
         Source.ClosedFunctionBodySoundness σ body
 
-/-- Bundle the three concrete classifiers into the realization object already
-expected by `Realize.Provider`. -/
+/-- Bundle the three concrete source-level classifiers. -/
 def classificationRealizationTheorems_of_classifiers
     (stmt : StmtClassifierRealization)
     (block : BlockClassifierRealization)
@@ -57,8 +43,17 @@ def classificationRealizationTheorems_of_classifiers
   blockClassify := block.classify
   functionBodyClassify := functionBody.classify
 
-/-- Complete realization source for the named classification source theorem
-bundle. -/
+/-- Assemble classification theorems from boundary-level statement/block classifiers. -/
+def classificationRealizationTheorems_of_boundaryClassifiers
+    (stmt : BoundaryStmtClassifierRealization)
+    (block : BoundaryBlockClassifierRealization) :
+    ClassificationRealizationTheorems :=
+  classificationRealizationTheorems_of_classifiers
+    stmt.toSourceRealization
+    block.toSourceRealization
+    (functionBodyRealization_of_boundaryStmtClassifier stmt)
+
+/-- Complete realization source for the named classification source theorem bundle. -/
 structure ClassificationRealizationSources : Type where
   localControl : LocalControlRealizationTheorems
   scopeExit : ScopeExitRealizationTheorems
@@ -70,24 +65,17 @@ namespace ClassificationRealizationSources
 /-- Assemble the named classification source theorem bundle. -/
 def toSourceTheorems
     (R : ClassificationRealizationSources) :
-    Source.ClassificationSourceTheorems :=
-  classificationSourceTheorems_of_realization
-    R.localControl
-    R.scopeExit
-    R.loopBehavior
-    R.classification
-
-/-- Assemble the closed-internal provider sources directly from realized
-classification sources. -/
-def toProviderSources
-    (R : ClassificationRealizationSources) :
-    Source.ClosedInternalProviderSources where
-  classification := R.toSourceTheorems
+    Source.ClassificationSourceTheorems where
+  localControl := R.localControl.toSourceTheorems
+  scopeExit := R.scopeExit.toSourceTheorems
+  loopBehavior := R.loopBehavior
+  stmtClassify := R.classification.stmtClassify
+  blockClassify := R.classification.blockClassify
+  functionBodyClassify := R.classification.functionBodyClassify
 
 end ClassificationRealizationSources
 
-/-- Variant where loop behavior is supplied at the lower component level rather
-than already as a `LoopBehaviorCertificateTheorem`. -/
+/-- Variant where loop behavior is supplied at the lower component level. -/
 structure ClassificationComponentRealizationSources : Type where
   localControl : LocalControlRealizationTheorems
   scopeExit : ScopeExitRealizationTheorems
@@ -100,8 +88,7 @@ structure ClassificationComponentRealizationSources : Type where
 
 namespace ClassificationComponentRealizationSources
 
-/-- Convert the component-level loop behavior certifier into the ordinary
-classification realization source. -/
+/-- Convert the component-level loop behavior certifier into the ordinary bundle. -/
 def toRealizationSources
     (R : ClassificationComponentRealizationSources) :
     ClassificationRealizationSources where
@@ -116,17 +103,9 @@ def toSourceTheorems
     Source.ClassificationSourceTheorems :=
   R.toRealizationSources.toSourceTheorems
 
-/-- Assemble the closed-internal provider sources directly from component-level
-realization sources. -/
-def toProviderSources
-    (R : ClassificationComponentRealizationSources) :
-    Source.ClosedInternalProviderSources :=
-  R.toRealizationSources.toProviderSources
-
 end ClassificationComponentRealizationSources
 
-/-- Assemble a classification source theorem bundle from the split classifier
-objects. -/
+/-- Assemble a classification source theorem bundle from source-level classifiers. -/
 def classificationSourceTheorems_of_classifiers
     (localControl : LocalControlRealizationTheorems)
     (scopeExit : ScopeExitRealizationTheorems)
@@ -141,38 +120,29 @@ def classificationSourceTheorems_of_classifiers
     loopBehavior
     (classificationRealizationTheorems_of_classifiers stmt block functionBody)).toSourceTheorems
 
-/-- Assemble closed-internal provider sources from split classifier objects. -/
-def providerSources_of_classifiers
+/-- Assemble a classification source theorem bundle from boundary-level classifiers. -/
+def classificationSourceTheorems_of_boundaryClassifiers
     (localControl : LocalControlRealizationTheorems)
     (scopeExit : ScopeExitRealizationTheorems)
     (loopBehavior : Source.LoopBehaviorCertificateTheorem)
-    (stmt : StmtClassifierRealization)
-    (block : BlockClassifierRealization)
-    (functionBody : FunctionBodyClassifierRealization) :
-    Source.ClosedInternalProviderSources where
-  classification :=
-    classificationSourceTheorems_of_classifiers
-      localControl scopeExit loopBehavior stmt block functionBody
-
-/-- Assemble closed-internal provider sources from split classifier objects and a
-component-level loop behavior certifier. -/
-def providerSources_of_componentClassifiers
-    (localControl : LocalControlRealizationTheorems)
-    (scopeExit : ScopeExitRealizationTheorems)
-    (loopBehavior :
-      ∀ {Γ : TypeEnv} {σ : State} {cond : CppCond} {body : CppStmt},
-        Boundary.StmtBoundary Γ σ (.whileStmt cond body) →
-          Σ Γc : TypeEnv,
-            LoopBehaviorComponentSource Γ Γc σ cond body)
-    (stmt : StmtClassifierRealization)
-    (block : BlockClassifierRealization)
-    (functionBody : FunctionBodyClassifierRealization) :
-    Source.ClosedInternalProviderSources :=
-  (ClassificationComponentRealizationSources.mk
+    (stmt : BoundaryStmtClassifierRealization)
+    (block : BoundaryBlockClassifierRealization) :
+    Source.ClassificationSourceTheorems :=
+  (ClassificationRealizationSources.mk
     localControl
     scopeExit
     loopBehavior
-    (classificationRealizationTheorems_of_classifiers stmt block functionBody)).toProviderSources
+    (classificationRealizationTheorems_of_boundaryClassifiers stmt block)).toSourceTheorems
+
+/-- Assemble the named classification source theorem bundle from realized pieces. -/
+def classificationSourceTheorems_of_realization
+    (localControl : LocalControlRealizationTheorems)
+    (scopeExit : ScopeExitRealizationTheorems)
+    (loopBehavior : Source.LoopBehaviorCertificateTheorem)
+    (classification : ClassificationRealizationTheorems) :
+    Source.ClassificationSourceTheorems :=
+  (ClassificationRealizationSources.mk
+    localControl scopeExit loopBehavior classification).toSourceTheorems
 
 end Realize
 end Soundness2

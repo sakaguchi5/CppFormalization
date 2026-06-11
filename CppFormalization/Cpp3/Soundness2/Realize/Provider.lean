@@ -1,117 +1,93 @@
-import CppFormalization.Cpp3.Soundness2.Source.ClosedInternal
+import CppFormalization.Cpp3.Soundness2.Realize.Classification
 
 /-!
 # CppFormalization.Cpp3.Soundness2.Realize.Provider
 
-Provider construction layer for Soundness2.
+Provider construction layer for the closed-internal Soundness2 route.
 
-This file keeps the objects that are still abstract inputs to the final
-closed-internal soundness theorem.  A provider is not a C++ runtime object; it is
-an explicitly named bundle of proof components needed to classify closed
-statements, blocks, and function bodies.
+At this point the classification bundle has already been assembled.  This file
+only packs it into the provider shape consumed by `Realize.ClosedInternal` and
+`Final`.
 -/
 
 namespace Cpp3
 namespace Soundness2
 namespace Realize
 
-/-- Realizer bundle for all local-control source theorems. -/
-structure LocalControlRealizationTheorems : Type where
-  seq : Source.SeqTailControlSourceTheorem
-  blockTail : Source.BlockTailControlSourceTheorem
-  branch : Source.SelectedBranchControlSourceTheorem
-  whileBody : Source.LoopBodyEntryControlSourceTheorem
-  whileBackedge : Source.LoopBackedgeControlSourceTheorem
+/-- Assemble closed-internal provider sources from a named classification theorem
+bundle. -/
+def providerSources_of_classification
+    (classification : Source.ClassificationSourceTheorems) :
+    Source.ClosedInternalProviderSources where
+  classification := classification
 
-namespace LocalControlRealizationTheorems
-
-/-- Convert realized local-control theorem pieces into the source bundle. -/
-def toSourceTheorems
-    (R : LocalControlRealizationTheorems) :
-    Source.LocalControlSourceTheorems where
-  seq := R.seq
-  blockTail := R.blockTail
-  branch := R.branch
-  whileBody := R.whileBody
-  whileBackedge := R.whileBackedge
-
-end LocalControlRealizationTheorems
-
-/-- Realizer bundle for scope-exit source theorems. -/
-structure ScopeExitRealizationTheorems : Type where
-  blockClose : Source.BlockCloseSourceTheorem
-
-namespace ScopeExitRealizationTheorems
-
-/-- Convert realized scope-exit theorem pieces into the source bundle. -/
-def toSourceTheorems
-    (R : ScopeExitRealizationTheorems) :
-    Source.ScopeExitSourceTheorems where
-  blockClose := R.blockClose
-
-end ScopeExitRealizationTheorems
-
-/-- Lower realization source for a while behavior certificate. -/
-structure LoopBehaviorComponentSource
-    (Γ Γc : TypeEnv) (σ : State) (cond : CppCond) (body : CppStmt) : Type where
-  condition : Boundary.CondBoundary Γ Γc σ cond
-  loopSafety : SafetyFragment.LoopSafetyFragment Γ Γc cond body
-  behavior : Source.LoopBehaviorSource σ cond body
-
-namespace LoopBehaviorComponentSource
-
-/-- Convert lower loop-behavior components into the behavior certificate. -/
-def toCertificate
-    {Γ Γc : TypeEnv} {σ : State} {cond : CppCond} {body : CppStmt}
-    (h : LoopBehaviorComponentSource Γ Γc σ cond body) :
-    Source.LoopBehaviorCertificate Γ Γc σ cond body where
-  condition := h.condition
-  loopSafety := h.loopSafety
-  behavior := h.behavior
-
-end LoopBehaviorComponentSource
-
-/-- Build the loop-behavior theorem from a lower behavior-component certifier. -/
-def loopBehaviorCertificateTheorem_of_componentTheorem
-    (certify :
-      ∀ {Γ : TypeEnv} {σ : State} {cond : CppCond} {body : CppStmt},
-        Boundary.StmtBoundary Γ σ (.whileStmt cond body) →
-          Σ Γc : TypeEnv,
-            LoopBehaviorComponentSource Γ Γc σ cond body) :
-    Source.LoopBehaviorCertificateTheorem where
-  certify := by
-    intro Γ σ cond body boundary
-    rcases certify boundary with ⟨Γc, source⟩
-    exact ⟨Γc, source.toCertificate⟩
-
-/-- Lower classification realizer bundle. -/
-structure ClassificationRealizationTheorems : Type where
-  stmtClassify :
-    ∀ {Γ : TypeEnv} {σ : State} {st : CppStmt},
-      Source.StmtBoundarySource Γ σ st →
-        Source.ClosedStmtSoundness σ st
-  blockClassify :
-    ∀ {Γ : TypeEnv} {σ : State} {body : StmtBlock},
-      Source.BlockBoundarySource Γ σ body →
-        Source.ClosedBlockSoundness σ body
-  functionBodyClassify :
-    ∀ {Γ : TypeEnv} {σ : State} {body : CppStmt},
-      Source.FunctionBodyBoundarySource Γ σ body →
-        Source.ClosedFunctionBodySoundness σ body
-
-/-- Assemble the named classification source theorem bundle. -/
-def classificationSourceTheorems_of_realization
+/-- Assemble closed-internal provider sources from realized local-control,
+scope-exit, loop-behavior, and lower classification theorem bundles. -/
+def providerSources_of_realization
     (localControl : LocalControlRealizationTheorems)
     (scopeExit : ScopeExitRealizationTheorems)
     (loopBehavior : Source.LoopBehaviorCertificateTheorem)
     (classification : ClassificationRealizationTheorems) :
-    Source.ClassificationSourceTheorems where
-  localControl := localControl.toSourceTheorems
-  scopeExit := scopeExit.toSourceTheorems
-  loopBehavior := loopBehavior
-  stmtClassify := classification.stmtClassify
-  blockClassify := classification.blockClassify
-  functionBodyClassify := classification.functionBodyClassify
+    Source.ClosedInternalProviderSources :=
+  providerSources_of_classification
+    (classificationSourceTheorems_of_realization
+      localControl scopeExit loopBehavior classification)
+
+/-- Assemble closed-internal provider sources from boundary-level statement/block
+classifiers.  The function-body classifier is derived after the boundary
+statement classifier. -/
+def providerSources_of_boundaryClassifiers
+    (localControl : LocalControlRealizationTheorems)
+    (scopeExit : ScopeExitRealizationTheorems)
+    (loopBehavior : Source.LoopBehaviorCertificateTheorem)
+    (stmt : BoundaryStmtClassifierRealization)
+    (block : BoundaryBlockClassifierRealization) :
+    Source.ClosedInternalProviderSources :=
+  providerSources_of_realization
+    localControl
+    scopeExit
+    loopBehavior
+    (classificationRealizationTheorems_of_boundaryClassifiers stmt block)
+
+/-- Assemble closed-internal provider sources directly from a loop-behavior
+component certifier. -/
+def providerSources_of_componentRealization
+    (localControl : LocalControlRealizationTheorems)
+    (scopeExit : ScopeExitRealizationTheorems)
+    (loopBehavior :
+      ∀ {Γ : TypeEnv} {σ : State} {cond : CppCond} {body : CppStmt},
+        Boundary.StmtBoundary Γ σ (.whileStmt cond body) →
+          Σ Γc : TypeEnv,
+            LoopBehaviorComponentSource Γ Γc σ cond body)
+    (classification : ClassificationRealizationTheorems) :
+    Source.ClosedInternalProviderSources :=
+  providerSources_of_realization
+    localControl
+    scopeExit
+    (loopBehaviorCertificateTheorem_of_componentTheorem loopBehavior)
+    classification
+
+namespace ClassificationRealizationSources
+
+/-- Assemble the closed-internal provider sources directly from classification
+realization sources. -/
+def toProviderSources
+    (R : ClassificationRealizationSources) :
+    Source.ClosedInternalProviderSources :=
+  providerSources_of_classification R.toSourceTheorems
+
+end ClassificationRealizationSources
+
+namespace ClassificationComponentRealizationSources
+
+/-- Assemble the closed-internal provider sources directly from component-level
+classification realization sources. -/
+def toProviderSources
+    (R : ClassificationComponentRealizationSources) :
+    Source.ClosedInternalProviderSources :=
+  R.toRealizationSources.toProviderSources
+
+end ClassificationComponentRealizationSources
 
 end Realize
 end Soundness2
