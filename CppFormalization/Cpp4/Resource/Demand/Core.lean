@@ -2,10 +2,9 @@ import CppFormalization.Cpp4.Core.Control
 import CppFormalization.Cpp4.Resource.Capability
 
 /-!
-# CppFormalization.Cpp4.Resource.Demand
+# CppFormalization.Cpp4.Resource.Demand.Core
 
-Resource demands: what the next expression/statement/block/call needs from the
-current runtime state to avoid unclassified stuckness.
+Primitive resource demands and their satisfaction relation.
 -/
 
 namespace Cpp4
@@ -52,21 +51,60 @@ abbrev DemandSet := List ResourceDemand
 def DemandSetSatisfied (χ : DemandContext) (σ : State) (D : DemandSet) : Prop :=
   ∀ d, d ∈ D → DemandSatisfied χ σ d
 
-/-- Placeholder surface for expression demands.  Later files should compute a real
-set from syntax and typing; the Resource layer only fixes the target shape. -/
-structure ExprDemand where
-  demands : DemandSet
-
-/-- Placeholder surface for statement demands. -/
+/-- Resource demand required to enter a statement.  Detailed syntax computation
+lives above primitive demand and can refine this surface later. -/
 structure StmtDemand where
   demands : DemandSet
 
-/-- Placeholder surface for block demands. -/
+/-- Resource demand required to enter a block. -/
 structure BlockDemand where
   demands : DemandSet
 
-/-- Placeholder surface for call demands. -/
-structure CallDemand where
-  demands : DemandSet
+namespace DemandSetSatisfied
+
+theorem nil (χ : DemandContext) (σ : State) :
+    DemandSetSatisfied χ σ [] := by
+  intro d h
+  cases h
+
+theorem cons {χ : DemandContext} {σ : State} {d : ResourceDemand} {D : DemandSet}
+    (hd : DemandSatisfied χ σ d)
+    (hD : DemandSetSatisfied χ σ D) :
+    DemandSetSatisfied χ σ (d :: D) := by
+  intro q hq
+  cases hq with
+  | head => exact hd
+  | tail _ htail => exact hD q htail
+
+theorem of_cons {χ : DemandContext} {σ : State} {d : ResourceDemand} {D : DemandSet}
+    (h : DemandSetSatisfied χ σ (d :: D)) :
+    DemandSatisfied χ σ d ∧ DemandSetSatisfied χ σ D := by
+  constructor
+  · exact h d (by simp)
+  · intro q hq
+    exact h q (by simp [hq])
+
+theorem append {χ : DemandContext} {σ : State} {D₁ D₂ : DemandSet}
+    (h₁ : DemandSetSatisfied χ σ D₁)
+    (h₂ : DemandSetSatisfied χ σ D₂) :
+    DemandSetSatisfied χ σ (D₁ ++ D₂) := by
+  intro d hd
+  cases List.mem_append.mp hd with
+  | inl hleft => exact h₁ d hleft
+  | inr hright => exact h₂ d hright
+
+theorem left_of_append {χ : DemandContext} {σ : State} {D₁ D₂ : DemandSet}
+    (h : DemandSetSatisfied χ σ (D₁ ++ D₂)) :
+    DemandSetSatisfied χ σ D₁ := by
+  intro d hd
+  exact h d (List.mem_append.mpr (.inl hd))
+
+theorem right_of_append {χ : DemandContext} {σ : State} {D₁ D₂ : DemandSet}
+    (h : DemandSetSatisfied χ σ (D₁ ++ D₂)) :
+    DemandSetSatisfied χ σ D₂ := by
+  intro d hd
+  exact h d (List.mem_append.mpr (.inr hd))
+
+end DemandSetSatisfied
 
 end Cpp4

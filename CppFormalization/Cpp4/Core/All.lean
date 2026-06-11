@@ -1,6 +1,8 @@
 import CppFormalization.Cpp4.Core.Keyword
 import CppFormalization.Cpp4.Core.Ident
 import CppFormalization.Cpp4.Core.Type
+import CppFormalization.Cpp4.Core.TypeEnv
+import CppFormalization.Cpp4.Core.Program
 import CppFormalization.Cpp4.Core.Address
 import CppFormalization.Cpp4.Core.Value
 import CppFormalization.Cpp4.Core.Control
