@@ -1,174 +1,46 @@
 import CppFormalization.Cpp3.Soundness2.Source.ScopeExit
-import CppFormalization.Cpp3.Semantics.Kernel.ClassificationLemmas
+import CppFormalization.Cpp3.Semantics.Kernel.WhileTrace
 
 /-!
 # CppFormalization.Cpp3.Soundness2.Source.LoopBehavior
 
 Source vocabulary for while-loop behavior.
 
-This file keeps the behavior explanation separate from boundary entry.  Finite and
-divergent behavior sources are still Soundness2 source vocabulary, but the final
-wrapping into semantic classification is delegated to lower `Semantics` lemmas.
+The finite/divergent while trace vocabulary is now lower-level semantics in
+`Semantics.Kernel.WhileTrace`.  Soundness2 only keeps the boundary-facing loop
+behavior certificate: a while boundary must expose a condition boundary, loop
+safety surface, and one semantic behavior explanation.
 -/
 
 namespace Cpp3
 namespace Soundness2
 namespace Source
 
-/-- One reentry step of a while loop, through body normal or continue. -/
-inductive LoopReentryStep (σ : State) (cond : CppCond) (body : CppStmt) : State → Type where
-  | bodyNormal
-      {σc σb : State}
-      (condTrue : Semantics.BigStepCond σ cond true σc)
-      (bodyStep : Semantics.BigStepStmt σc body .normal σb) :
-      LoopReentryStep σ cond body σb
-  | bodyContinue
-      {σc σb : State}
-      (condTrue : Semantics.BigStepCond σ cond true σc)
-      (bodyStep : Semantics.BigStepStmt σc body .continueResult σb) :
-      LoopReentryStep σ cond body σb
+/-- Compatibility alias for the lower semantic while reentry-step trace. -/
+abbrev LoopReentryStep (σ : State) (cond : CppCond) (body : CppStmt) : State → Type :=
+  Semantics.LoopReentryStep σ cond body
 
-/-- Finite loop trace explanation.  This is an explanatory source, not a hidden
-proof that all loops terminate. -/
-inductive FiniteLoopTrace (cond : CppCond) (body : CppStmt) :
-    State → CtrlResult → State → Type where
-  | falseExit
-      {σ σc : State}
-      (condFalse : Semantics.BigStepCond σ cond false σc) :
-      FiniteLoopTrace cond body σ .normal σc
+/-- Compatibility alias for lower finite while traces. -/
+abbrev FiniteLoopTrace (cond : CppCond) (body : CppStmt) :
+    State → CtrlResult → State → Type :=
+  Semantics.FiniteLoopTrace cond body
 
-  | breakExit
-      {σ σc σb : State}
-      (condTrue : Semantics.BigStepCond σ cond true σc)
-      (bodyBreak : Semantics.BigStepStmt σc body .breakResult σb) :
-      FiniteLoopTrace cond body σ .normal σb
+/-- Compatibility alias for lower divergent while traces. -/
+abbrev DivergentLoopTrace (σ : State) (cond : CppCond) (body : CppStmt) : Type :=
+  Semantics.DivergentLoopTrace σ cond body
 
-  | returnExit
-      {σ σc σb : State} {ov : Option Value}
-      (condTrue : Semantics.BigStepCond σ cond true σc)
-      (bodyReturn : Semantics.BigStepStmt σc body (.returnResult ov) σb) :
-      FiniteLoopTrace cond body σ (.returnResult ov) σb
-
-  | reenter
-      {σ σb σout : State} {r : CtrlResult}
-      (step : LoopReentryStep σ cond body σb)
-      (tail : FiniteLoopTrace cond body σb r σout) :
-      FiniteLoopTrace cond body σ r σout
-
-namespace FiniteLoopTrace
-
-/-- A finite loop trace is exactly a finite big-step execution of the while
-statement. -/
-def bigStep
-    {cond : CppCond} {body : CppStmt} {σ σout : State} {r : CtrlResult}
-    (trace : FiniteLoopTrace cond body σ r σout) :
-    Semantics.BigStepStmt σ (.whileStmt cond body) r σout := by
-  induction trace with
-  | falseExit condFalse =>
-      exact Semantics.BigStepStmt.whileFalse condFalse
-  | breakExit condTrue bodyBreak =>
-      exact Semantics.BigStepStmt.whileBodyBreak condTrue bodyBreak
-  | returnExit condTrue bodyReturn =>
-      exact Semantics.BigStepStmt.whileBodyReturn condTrue bodyReturn
-  | reenter step tail ih =>
-      cases step with
-      | bodyNormal condTrue bodyStep =>
-          exact Semantics.BigStepStmt.whileBodyNormal condTrue bodyStep ih
-      | bodyContinue condTrue bodyStep =>
-          exact Semantics.BigStepStmt.whileBodyContinue condTrue bodyStep ih
-
-/-- A finite loop trace classifies the while statement by termination. -/
-def classification
-    {cond : CppCond} {body : CppStmt} {σ σout : State} {r : CtrlResult}
-    (trace : FiniteLoopTrace cond body σ r σout) :
-    Semantics.StmtClassified σ (.whileStmt cond body) :=
-  Semantics.stmtClassified_of_terminates ⟨r, σout, trace.bigStep⟩
-
-end FiniteLoopTrace
-
-/-- Divergent loop explanation. -/
-inductive DivergentLoopTrace (σ : State) (cond : CppCond) (body : CppStmt) : Type where
-  | bodyDiverges
-      {σc : State}
-      (condTrue : Semantics.BigStepCond σ cond true σc)
-      (bodyDiv : Semantics.StmtDiv σc body) :
-      DivergentLoopTrace σ cond body
-  | forever
-      (prefixes : ∀ n : Nat, ∃ σn : State,
-        Semantics.WhilePrefix n σ cond body σn) :
-      DivergentLoopTrace σ cond body
-
-namespace DivergentLoopTrace
-
-/-- A divergent loop trace is exactly a statement-divergence proof for the while
-statement. -/
-def stmtDiv
-    {σ : State} {cond : CppCond} {body : CppStmt}
-    (trace : DivergentLoopTrace σ cond body) :
-    Semantics.StmtDiv σ (.whileStmt cond body) := by
-  cases trace with
-  | bodyDiverges condTrue bodyDiv =>
-      exact Semantics.StmtDiv.whileBody condTrue bodyDiv
-  | forever prefixes =>
-      exact Semantics.StmtDiv.whileForever prefixes
-
-/-- A divergent loop trace classifies the while statement by divergence. -/
-def classification
-    {σ : State} {cond : CppCond} {body : CppStmt}
-    (trace : DivergentLoopTrace σ cond body) :
-    Semantics.StmtClassified σ (.whileStmt cond body) :=
-  Semantics.stmtClassified_of_div trace.stmtDiv
-
-end DivergentLoopTrace
-
-/-- Behavior explanation for one concrete while entry. -/
-inductive LoopBehaviorSource
-    (σ : State) (cond : CppCond) (body : CppStmt) : Type where
-  | finite
-      {σout : State} {r : CtrlResult}
-      (trace : FiniteLoopTrace cond body σ r σout) :
-      LoopBehaviorSource σ cond body
-  | divergent
-      (trace : DivergentLoopTrace σ cond body) :
-      LoopBehaviorSource σ cond body
-
-namespace LoopBehaviorSource
-
-/-- Build a behavior source for body divergence. -/
-def bodyDiverges
-    {σ σc : State} {cond : CppCond} {body : CppStmt}
-    (condTrue : Semantics.BigStepCond σ cond true σc)
-    (bodyDiv : Semantics.StmtDiv σc body) :
-    LoopBehaviorSource σ cond body :=
-  .divergent (.bodyDiverges condTrue bodyDiv)
-
-/-- Build a behavior source for productive forever reentry. -/
-def forever
-    {σ : State} {cond : CppCond} {body : CppStmt}
-    (prefixes : ∀ n : Nat, ∃ σn : State,
-      Semantics.WhilePrefix n σ cond body σn) :
-    LoopBehaviorSource σ cond body :=
-  .divergent (.forever prefixes)
-
-/-- A behavior source classifies the while statement as finite or divergent. -/
-def classification
-    {σ : State} {cond : CppCond} {body : CppStmt}
-    (h : LoopBehaviorSource σ cond body) :
-    Semantics.StmtClassified σ (.whileStmt cond body) :=
-  match h with
-  | .finite trace => trace.classification
-  | .divergent trace => trace.classification
-
-end LoopBehaviorSource
+/-- Compatibility alias for lower while behavior explanations. -/
+abbrev LoopBehaviorSource (σ : State) (cond : CppCond) (body : CppStmt) : Type :=
+  Semantics.LoopBehaviorSource σ cond body
 
 /-- Loop behavior certificate with visible safety surfaces.
 
-Classification is derived from `behavior`. -/
+Classification is derived from the lower semantic `behavior`. -/
 structure LoopBehaviorCertificate
     (Γ Γc : TypeEnv) (σ : State) (cond : CppCond) (body : CppStmt) : Type where
   condition : Boundary.CondBoundary Γ Γc σ cond
   loopSafety : SafetyFragment.LoopSafetyFragment Γ Γc cond body
-  behavior : LoopBehaviorSource σ cond body
+  behavior : Semantics.LoopBehaviorSource σ cond body
 
 namespace LoopBehaviorCertificate
 
