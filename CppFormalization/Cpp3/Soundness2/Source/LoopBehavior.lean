@@ -1,14 +1,14 @@
 import CppFormalization.Cpp3.Soundness2.Source.ScopeExit
+import CppFormalization.Cpp3.Semantics.Kernel.ClassificationLemmas
 
 /-!
 # CppFormalization.Cpp3.Soundness2.Source.LoopBehavior
 
 Source vocabulary for while-loop behavior.
 
-This file keeps the behavior explanation separate from boundary entry.  Unlike the
-first Soundness2 skeleton, classification is no longer a raw field of the loop
-certificate: finite/divergent behavior sources are translated to
-`Semantics.StmtClassified` here.
+This file keeps the behavior explanation separate from boundary entry.  Finite and
+divergent behavior sources are still Soundness2 source vocabulary, but the final
+wrapping into semantic classification is delegated to lower `Semantics` lemmas.
 -/
 
 namespace Cpp3
@@ -82,7 +82,7 @@ def classification
     {cond : CppCond} {body : CppStmt} {σ σout : State} {r : CtrlResult}
     (trace : FiniteLoopTrace cond body σ r σout) :
     Semantics.StmtClassified σ (.whileStmt cond body) :=
-  Or.inl ⟨r, σout, trace.bigStep⟩
+  Semantics.stmtClassified_of_terminates ⟨r, σout, trace.bigStep⟩
 
 end FiniteLoopTrace
 
@@ -117,7 +117,7 @@ def classification
     {σ : State} {cond : CppCond} {body : CppStmt}
     (trace : DivergentLoopTrace σ cond body) :
     Semantics.StmtClassified σ (.whileStmt cond body) :=
-  Or.inr trace.stmtDiv
+  Semantics.stmtClassified_of_div trace.stmtDiv
 
 end DivergentLoopTrace
 
@@ -163,7 +163,7 @@ end LoopBehaviorSource
 
 /-- Loop behavior certificate with visible safety surfaces.
 
-Classification is no longer a raw field: it is derived from `behavior`. -/
+Classification is derived from `behavior`. -/
 structure LoopBehaviorCertificate
     (Γ Γc : TypeEnv) (σ : State) (cond : CppCond) (body : CppStmt) : Type where
   condition : Boundary.CondBoundary Γ Γc σ cond

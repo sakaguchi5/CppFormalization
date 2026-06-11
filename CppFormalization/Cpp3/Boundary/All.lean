@@ -5,3 +5,4 @@ import CppFormalization.Cpp3.Boundary.Stmt
 import CppFormalization.Cpp3.Boundary.Scope
 import CppFormalization.Cpp3.Boundary.Flow
 import CppFormalization.Cpp3.Boundary.Registry
+import CppFormalization.Cpp3.Boundary.EntryClassification

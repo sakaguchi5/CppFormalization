@@ -1,4 +1,5 @@
 import CppFormalization.Cpp3.Soundness2.Realize.ClassificationCompound
+import CppFormalization.Cpp3.Boundary.EntryClassification
 
 /-!
 # CppFormalization.Cpp3.Soundness2.Realize.ClassificationBoundary
@@ -10,17 +11,13 @@ public input surfaces.  That is correct at the final entry point, but too heavy
 for recursive classification: seq/branch/block-tail stability gives post-state
 `Boundary.*Boundary`, not a reconstructed source package with typing evidence.
 
-This file therefore introduces boundary-level classifiers and proves the concrete
-cases that are already justified by the current lower layers:
+This file therefore keeps only the Soundness2-specific handoff work:
 
-* primitive statement cases from `StmtEntryEvidence` and primitive boundaries;
-* sequence normal/abrupt/divergent routing from a boundary classifier and local control;
-* selected `if` branch routing from a boundary classifier and local control;
-* block opening/closing from a block boundary classifier and scope-exit;
-* block nil/cons routing from boundary classifiers and local control.
-
-Source-level classifiers can then be recovered by applying `toBoundary` once at
-the outer surface.
+* source-level classifiers are recovered from boundary-level classifiers;
+* compound boundary classification obtains continuation boundaries from
+  local-control/scope-exit sources;
+* the purely semantic classification composition and primitive entry
+  classification are delegated to lower `Semantics` and `Boundary` lemmas.
 -/
 
 namespace Cpp3
@@ -117,68 +114,47 @@ end BoundaryBlockClassifierRealization
 
 namespace BoundaryClassification
 
-/-- `skip` is classified by the primitive statement semantic rule. -/
+/-- `skip` is classified by the lower primitive boundary-entry theorem. -/
 theorem skip
     {Γ : TypeEnv} {σ : State}
-    (_boundary : Boundary.StmtBoundary Γ σ .skip) :
-    Source.ClosedStmtSoundness σ .skip := by
-  exact Or.inl ⟨.normal, σ, Semantics.BigStepStmt.skip⟩
+    (boundary : Boundary.StmtBoundary Γ σ .skip) :
+    Source.ClosedStmtSoundness σ .skip :=
+  Boundary.EntryClassification.stmtSkip boundary
 
-/-- Expression statements are classified directly from their runtime entry
-boundary, which carries the primitive big-step. -/
+/-- Expression statements are classified by the lower primitive boundary-entry theorem. -/
 theorem exprStmt
     {Γ : TypeEnv} {σ : State} {e : CppExprStmt}
     (boundary : Boundary.StmtBoundary Γ σ (.exprStmt e)) :
-    Source.ClosedStmtSoundness σ (.exprStmt e) := by
-  cases boundary with
-  | mk static effect safety entry =>
-      cases entry with
-      | exprStmt payload =>
-          exact Or.inl ⟨.normal, payload.post,
-            Semantics.BigStepStmt.exprStmt payload.step⟩
+    Source.ClosedStmtSoundness σ (.exprStmt e) :=
+  Boundary.EntryClassification.stmtExpr boundary
 
-/-- Assignments are classified directly from their runtime entry boundary. -/
+/-- Assignments are classified by the lower primitive boundary-entry theorem. -/
 theorem assign
     {Γ : TypeEnv} {σ : State} {a : CppAssign}
     (boundary : Boundary.StmtBoundary Γ σ (.assign a)) :
-    Source.ClosedStmtSoundness σ (.assign a) := by
-  cases boundary with
-  | mk static effect safety entry =>
-      cases entry with
-      | assign payload =>
-          exact Or.inl ⟨.normal, payload.post,
-            Semantics.BigStepStmt.assign payload.step⟩
+    Source.ClosedStmtSoundness σ (.assign a) :=
+  Boundary.EntryClassification.stmtAssign boundary
 
-/-- Declarations are classified directly from their runtime entry boundary. -/
+/-- Declarations are classified by the lower primitive boundary-entry theorem. -/
 theorem decl
     {Γ : TypeEnv} {σ : State} {d : CppDecl}
     (boundary : Boundary.StmtBoundary Γ σ (.decl d)) :
-    Source.ClosedStmtSoundness σ (.decl d) := by
-  cases boundary with
-  | mk static effect safety entry =>
-      cases entry with
-      | decl payload =>
-          exact Or.inl ⟨.normal, payload.post,
-            Semantics.BigStepStmt.decl payload.step⟩
+    Source.ClosedStmtSoundness σ (.decl d) :=
+  Boundary.EntryClassification.stmtDecl boundary
 
-/-- Jumps are classified directly from their runtime entry boundary. -/
+/-- Jumps are classified by the lower primitive boundary-entry theorem. -/
 theorem jump
     {Γ : TypeEnv} {σ : State} {j : CppJump}
     (boundary : Boundary.StmtBoundary Γ σ (.jump j)) :
-    Source.ClosedStmtSoundness σ (.jump j) := by
-  cases boundary with
-  | mk static effect safety entry =>
-      cases entry with
-      | jump payload =>
-          exact Or.inl ⟨payload.result, payload.post,
-            Semantics.BigStepStmt.jump payload.step⟩
+    Source.ClosedStmtSoundness σ (.jump j) :=
+  Boundary.EntryClassification.stmtJump boundary
 
-/-- Empty blocks are classified by the primitive block semantic rule. -/
+/-- Empty blocks are classified by the lower primitive boundary-entry theorem. -/
 theorem blockNil
     {Γ : TypeEnv} {σ : State}
-    (_boundary : Boundary.BlockBoundary Γ σ .nil) :
-    Source.ClosedBlockSoundness σ .nil := by
-  exact Or.inl ⟨.normal, σ, Semantics.BigStepBlock.nil⟩
+    (boundary : Boundary.BlockBoundary Γ σ .nil) :
+    Source.ClosedBlockSoundness σ .nil :=
+  Boundary.EntryClassification.blockNil boundary
 
 /-- Sequence classification from a boundary-level recursive classifier and the
 local-control theorem that exposes the normal tail boundary. -/
@@ -192,37 +168,20 @@ theorem seq
   | mk static effect safety entry =>
       cases entry with
       | seqHead headBoundary =>
-          let seqBoundary : Boundary.StmtBoundary Γ σ (.seq head tail) :=
-            Boundary.StmtBoundary.mk static effect safety
-              (Boundary.StmtEntryEvidence.seqHead headBoundary)
-          cases stmt.classify headBoundary with
-          | inl headFinite =>
-              rcases headFinite with ⟨r, σ₁, headStep⟩
-              cases r with
-              | normal =>
-                  let route : Semantics.SeqNormalRoute σ σ₁ head tail :=
-                    { headNormal := headStep }
-                  rcases localControl.seq.source seqBoundary route with ⟨Θ, tailControl⟩
-                  let stability := Source.SeqTailControlSource.toStability tailControl
-                  let tailBoundary := (Stability.SeqTailStability.tailBoundary stability).tail
-                  cases stmt.classify tailBoundary with
-                  | inl tailFinite =>
-                      rcases tailFinite with ⟨r₂, σ₂, tailStep⟩
-                      exact Or.inl ⟨r₂, σ₂,
-                        Semantics.BigStepStmt.seqNormal headStep tailStep⟩
-                  | inr tailDiv =>
-                      exact Or.inr (Semantics.StmtDiv.seqTail headStep tailDiv)
-              | breakResult =>
-                  exact Or.inl ⟨.breakResult, σ₁,
-                    Semantics.BigStepStmt.seqBreak headStep⟩
-              | continueResult =>
-                  exact Or.inl ⟨.continueResult, σ₁,
-                    Semantics.BigStepStmt.seqContinue headStep⟩
-              | returnResult ov =>
-                  exact Or.inl ⟨.returnResult ov, σ₁,
-                    Semantics.BigStepStmt.seqReturn headStep⟩
-          | inr headDiv =>
-              exact Or.inr (Semantics.StmtDiv.seqHead headDiv)
+          exact
+            Semantics.stmtClassified_seq
+              (stmt.classify headBoundary)
+              (by
+                intro σ₁ headStep
+                let seqBoundary : Boundary.StmtBoundary Γ σ (.seq head tail) :=
+                  Boundary.StmtBoundary.mk static effect safety
+                    (Boundary.StmtEntryEvidence.seqHead headBoundary)
+                let route : Semantics.SeqNormalRoute σ σ₁ head tail :=
+                  { headNormal := headStep }
+                rcases localControl.seq.source seqBoundary route with ⟨Θ, tailControl⟩
+                let stability := Source.SeqTailControlSource.toStability tailControl
+                let tailBoundary := (Stability.SeqTailStability.tailBoundary stability).tail
+                exact stmt.classify tailBoundary)
 
 /-- If-statement classification from a boundary-level recursive classifier and
 selected-branch local control. -/
@@ -241,13 +200,8 @@ theorem ite
       | thenBoundary route condition preserved branchBoundary =>
           cases route with
           | thenRoute condStep =>
-              cases stmt.classify branchBoundary with
-              | inl branchFinite =>
-                  rcases branchFinite with ⟨r, σ₁, branchStep⟩
-                  exact Or.inl ⟨r, σ₁,
-                    Semantics.BigStepStmt.iteThen condStep branchStep⟩
-              | inr branchDiv =>
-                  exact Or.inr (Semantics.StmtDiv.iteThen condStep branchDiv)
+              exact Semantics.stmtClassified_iteThen condStep
+                (stmt.classify branchBoundary)
   | elseSelected source =>
       let stability := Source.SelectedBranchControlSource.toStability source
       let selected := Stability.SelectedBranchStability.branchBoundary stability
@@ -255,13 +209,8 @@ theorem ite
       | elseBoundary route condition preserved branchBoundary =>
           cases route with
           | elseRoute condStep =>
-              cases stmt.classify branchBoundary with
-              | inl branchFinite =>
-                  rcases branchFinite with ⟨r, σ₁, branchStep⟩
-                  exact Or.inl ⟨r, σ₁,
-                    Semantics.BigStepStmt.iteElse condStep branchStep⟩
-              | inr branchDiv =>
-                  exact Or.inr (Semantics.StmtDiv.iteElse condStep branchDiv)
+              exact Semantics.stmtClassified_iteElse condStep
+                (stmt.classify branchBoundary)
 
 /-- Block statement classification from an opened block boundary, a boundary-level
 block classifier, and scope-close evidence. -/
@@ -280,15 +229,14 @@ theorem blockStmt
           let blockBoundary : Boundary.StmtBoundary Γ σ (.block body) :=
             Boundary.StmtBoundary.mk static effect safety
               (Boundary.StmtEntryEvidence.blockOpened openedStatic openedEffect route bodyBoundary)
-          cases block.classify bodyBoundary with
-          | inl bodyFinite =>
-              rcases bodyFinite with ⟨r, σbody, bodyStep⟩
-              rcases scopeExit.blockClose.close blockBoundary bodyBoundary route bodyStep with
-                ⟨Θ, Δ, σclosed, closeSource⟩
-              exact Or.inl ⟨r, σclosed,
-                Semantics.BigStepStmt.block bodyStep closeSource.closeStep⟩
-          | inr bodyDiv =>
-              exact Or.inr (Semantics.StmtDiv.block bodyDiv)
+          exact
+            Semantics.stmtClassified_block
+              (block.classify bodyBoundary)
+              (by
+                intro r σbody bodyStep
+                rcases scopeExit.blockClose.close blockBoundary bodyBoundary route bodyStep with
+                  ⟨Θ, Δ, σclosed, closeSource⟩
+                exact ⟨σclosed, closeSource.closeStep⟩)
 
 /-- Nonempty block classification from boundary-level recursive classifiers and
 the local-control theorem that exposes the normal block tail boundary. -/
@@ -303,37 +251,20 @@ theorem blockCons
   | mk static effect safety entry =>
       cases entry with
       | consHead headBoundary =>
-          let consBoundary : Boundary.BlockBoundary Γ σ (.cons head tail) :=
-            Boundary.BlockBoundary.mk static effect safety
-              (Boundary.BlockEntryEvidence.consHead headBoundary)
-          cases stmt.classify headBoundary with
-          | inl headFinite =>
-              rcases headFinite with ⟨r, σ₁, headStep⟩
-              cases r with
-              | normal =>
-                  let route : Semantics.BlockConsNormalRoute σ σ₁ head tail :=
-                    { headNormal := headStep }
-                  rcases localControl.blockTail.source consBoundary route with ⟨Θ, tailControl⟩
-                  let stability := Source.BlockTailControlSource.toStability tailControl
-                  let tailBoundary := (Stability.BlockTailStability.tailBoundary stability).tail
-                  cases block.classify tailBoundary with
-                  | inl tailFinite =>
-                      rcases tailFinite with ⟨r₂, σ₂, tailStep⟩
-                      exact Or.inl ⟨r₂, σ₂,
-                        Semantics.BigStepBlock.consNormal headStep tailStep⟩
-                  | inr tailDiv =>
-                      exact Or.inr (Semantics.BlockDiv.consTail headStep tailDiv)
-              | breakResult =>
-                  exact Or.inl ⟨.breakResult, σ₁,
-                    Semantics.BigStepBlock.consBreak headStep⟩
-              | continueResult =>
-                  exact Or.inl ⟨.continueResult, σ₁,
-                    Semantics.BigStepBlock.consContinue headStep⟩
-              | returnResult ov =>
-                  exact Or.inl ⟨.returnResult ov, σ₁,
-                    Semantics.BigStepBlock.consReturn headStep⟩
-          | inr headDiv =>
-              exact Or.inr (Semantics.BlockDiv.consHead headDiv)
+          exact
+            Semantics.blockClassified_cons
+              (stmt.classify headBoundary)
+              (by
+                intro σ₁ headStep
+                let consBoundary : Boundary.BlockBoundary Γ σ (.cons head tail) :=
+                  Boundary.BlockBoundary.mk static effect safety
+                    (Boundary.BlockEntryEvidence.consHead headBoundary)
+                let route : Semantics.BlockConsNormalRoute σ σ₁ head tail :=
+                  { headNormal := headStep }
+                rcases localControl.blockTail.source consBoundary route with ⟨Θ, tailControl⟩
+                let stability := Source.BlockTailControlSource.toStability tailControl
+                let tailBoundary := (Stability.BlockTailStability.tailBoundary stability).tail
+                exact block.classify tailBoundary)
 
 end BoundaryClassification
 

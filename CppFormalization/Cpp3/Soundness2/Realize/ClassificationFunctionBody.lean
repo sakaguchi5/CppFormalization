@@ -6,11 +6,9 @@ import CppFormalization.Cpp3.Static.ControlAdequacy
 
 Function-body classification from the boundary-level statement classifier.
 
-C++ function bodies do not accept uncaught top-level `break`/`continue`.  That
-fact is not proved ad hoc here: it is obtained from the static function-body
-control surface plus the lower `Static.ControlAdequacy` theorem saying that any
-finite runtime control result of a well-formed statement must be statically
-visible.
+C++ function bodies do not accept uncaught top-level `break`/`continue`.  The
+semantic lift itself is now lower-level (`Semantics.functionBodyClassified_of_stmtClassified`);
+this file only supplies the function-body static-control impossibility premises.
 -/
 
 namespace Cpp3
@@ -28,38 +26,31 @@ namespace BoundaryFunctionBodyClassification
 
 /-- Lift boundary-level statement classification to function-body classification.
 
-The finite `normal` and `return` channels become function-body successes.
-Finite top-level `break` and `continue` are impossible by the static function-body
-control surface and static/runtime control adequacy.  Divergence is preserved. -/
+The lower semantic lift handles normal/return/divergence.  The only Soundness2
+specific work here is supplying the static-control facts that rule out escaping
+finite `break` and `continue`. -/
 theorem classify
     (stmt : BoundaryStmtClassifierRealization)
     {Γ : TypeEnv} {σ : State} {body : CppStmt}
     (boundary : Boundary.FunctionBodyBoundary Γ σ body) :
     Source.ClosedFunctionBodySoundness σ body := by
-  cases stmt.classify boundary.entry with
-  | inl finite =>
-      rcases finite with ⟨r, σ₁, step⟩
-      cases r with
-      | normal =>
-          exact Or.inl ⟨.normal, σ₁,
-            Semantics.BigStepFunctionBody.normal step⟩
-      | breakResult =>
-          exact False.elim
-            (Static.no_breakResult_of_functionBodyControl
-              boundary.static.control
-              boundary.static.entry.formed
-              step)
-      | continueResult =>
-          exact False.elim
-            (Static.no_continueResult_of_functionBodyControl
-              boundary.static.control
-              boundary.static.entry.formed
-              step)
-      | returnResult ov =>
-          exact Or.inl ⟨.returned ov, σ₁,
-            Semantics.BigStepFunctionBody.returned step⟩
-  | inr div =>
-      exact Or.inr div
+  exact
+    Semantics.functionBodyClassified_of_stmtClassified
+      (stmt.classify boundary.entry)
+      (by
+        intro σ₁ step
+        exact
+          Static.no_breakResult_of_functionBodyControl
+            boundary.static.control
+            boundary.static.entry.formed
+            step)
+      (by
+        intro σ₁ step
+        exact
+          Static.no_continueResult_of_functionBodyControl
+            boundary.static.control
+            boundary.static.entry.formed
+            step)
 
 end BoundaryFunctionBodyClassification
 

@@ -1,4 +1,5 @@
 import CppFormalization.Cpp3.Soundness2.Source.ClosedInternal
+import CppFormalization.Cpp3.Semantics.Kernel.ClassificationLemmas
 
 /-!
 # CppFormalization.Cpp3.Soundness2.Derive.ClosedInternal
@@ -39,27 +40,27 @@ theorem noStmtUnclassifiedStuck
     (P : Source.ClosedInternalProviderSources)
     {Γ : TypeEnv} {σ : State} {st : CppStmt}
     (source : Source.ClosedInternalStmtSource Γ σ st) :
-    ¬ Semantics.StmtUnclassifiedStuck σ st := by
-  intro hstuck
-  exact hstuck (closedStmtSoundness P source)
+    ¬ Semantics.StmtUnclassifiedStuck σ st :=
+  Semantics.not_stmtUnclassifiedStuck_of_classified
+    (closedStmtSoundness P source)
 
 /-- No unclassified block stuckness from block soundness. -/
 theorem noBlockUnclassifiedStuck
     (P : Source.ClosedInternalProviderSources)
     {Γ : TypeEnv} {σ : State} {body : StmtBlock}
     (source : Source.ClosedInternalBlockSource Γ σ body) :
-    ¬ Semantics.BlockUnclassifiedStuck σ body := by
-  intro hstuck
-  exact hstuck (closedBlockSoundness P source)
+    ¬ Semantics.BlockUnclassifiedStuck σ body :=
+  Semantics.not_blockUnclassifiedStuck_of_classified
+    (closedBlockSoundness P source)
 
 /-- No unclassified function-body stuckness from function-body soundness. -/
 theorem noFunctionBodyUnclassifiedStuck
     (P : Source.ClosedInternalProviderSources)
     {Γ : TypeEnv} {σ : State} {body : CppStmt}
     (source : Source.ClosedInternalFunctionBodySource Γ σ body) :
-    ¬ Semantics.FunctionBodyUnclassifiedStuck σ body := by
-  intro hstuck
-  exact hstuck (closedFunctionBodySoundness P source)
+    ¬ Semantics.FunctionBodyUnclassifiedStuck σ body :=
+  Semantics.not_functionBodyUnclassifiedStuck_of_classified
+    (closedFunctionBodySoundness P source)
 
 end Derive
 end Soundness2
