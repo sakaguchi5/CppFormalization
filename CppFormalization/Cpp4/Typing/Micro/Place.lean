@@ -6,10 +6,11 @@ import CppFormalization.Cpp4.Resource.Demand.Expr
 
 Micro typing certificates for place expressions.
 
-A place certificate carries the C++ place type and the resource demand needed to
-form/use that place.  Dereference precision is intentionally staged: early
-Judgment layers may supply a demand computed elsewhere, while later semantics can
-replace that by value-sensitive dereference demand.
+A place certificate carries the C++ place type, the resource demand needed to
+form/use that place, and evidence that its formation side condition holds.
+Dereference precision is intentionally staged: early Judgment layers may supply a
+demand computed elsewhere, while later semantics can replace that by
+value-sensitive dereference demand.
 -/
 
 namespace Cpp4
@@ -21,29 +22,36 @@ inductive PlaceUse where
   | address
   deriving DecidableEq, Repr
 
-/-- A typed place-expression certificate. -/
+/-- A typed place-expression certificate.
+
+`formation` is the human-readable side condition; `evidence` is the actual proof
+that the side condition holds.  Keeping both lets later Judgment/Soundness layers
+recover the C++ typing facts instead of merely remembering their names. -/
 structure PlaceTyping (Γ : TypeEnv) (p : PlaceExpr) : Type where
   ty : CppType
   demand : PlaceDemand
   formation : Prop
+  evidence : formation
 
 namespace PlaceTyping
 
 /-- A variable bound to an object is a place of that object type. -/
 def varObject {Γ : TypeEnv} {x : Ident} {τ : CppType}
-    (_bound : TypeEnv.Bound Γ x (.object τ)) :
+    (bound : TypeEnv.Bound Γ x (.object τ)) :
     PlaceTyping Γ (.var x) where
   ty := τ
   demand := PlaceDemand.var x
   formation := TypeEnv.Bound Γ x (.object τ)
+  evidence := bound
 
 /-- A variable bound to a reference is a place of the referenced type. -/
 def varRef {Γ : TypeEnv} {x : Ident} {τ : CppType}
-    (_bound : TypeEnv.Bound Γ x (.ref τ)) :
+    (bound : TypeEnv.Bound Γ x (.ref τ)) :
     PlaceTyping Γ (.var x) where
   ty := τ
   demand := PlaceDemand.var x
   formation := TypeEnv.Bound Γ x (.ref τ)
+  evidence := bound
 
 /-- A dereference place from an already-computed pointer-expression demand.  The
 initial Cpp4 micro layer keeps this value-insensitive; later layers can refine the
@@ -53,6 +61,7 @@ def derefFromExprDemand {Γ : TypeEnv} {e : ValExpr} (τ : CppType)
   ty := τ
   demand := PlaceDemand.ofDemandSet ptrDemand.demands
   formation := True
+  evidence := trivial
 
 /-- Demand for reading this place.  The current structural layer reuses the
 place-formation demand; later runtime-sensitive typing can refine it. -/

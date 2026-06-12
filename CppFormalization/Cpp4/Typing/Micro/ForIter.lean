@@ -15,6 +15,7 @@ namespace Cpp4
 structure ForIterTyping (Γ : TypeEnv) (iter : CppForIter) : Type where
   demand : AtomDemand
   formation : Prop
+  evidence : formation
 
 namespace ForIterTyping
 
@@ -22,18 +23,21 @@ namespace ForIterTyping
 def none (Γ : TypeEnv) : ForIterTyping Γ .none where
   demand := AtomDemand.skip
   formation := True
+  evidence := trivial
 
 /-- Expression iteration step. -/
 def expr {Γ : TypeEnv} {s : CppExprStmt}
     (h : ExprStmtTyping Γ s) : ForIterTyping Γ (.expr s) where
   demand := h.demand
-  formation := True
+  formation := h.formation
+  evidence := h.evidence
 
 /-- Assignment iteration step. -/
 def assign {Γ : TypeEnv} {a : CppAssign}
     (h : AssignTyping Γ a) : ForIterTyping Γ (.assign a) where
   demand := h.demand
-  formation := True
+  formation := h.formation
+  evidence := h.evidence
 
 end ForIterTyping
 

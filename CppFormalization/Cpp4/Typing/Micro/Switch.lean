@@ -48,8 +48,8 @@ inductive SwitchLabelTyping : SwitchLabel → Type where
 namespace SwitchLabelTyping
 
 /-- A switch label does not itself require runtime resources. -/
-def demand {l : SwitchLabel} (_h : SwitchLabelTyping l) : SwitchArmDemand where
-  demands := []
+def demand {l : SwitchLabel} (h : SwitchLabelTyping l) : SwitchArmDemand := by
+  cases h <;> exact { demands := [] }
 
 end SwitchLabelTyping
 

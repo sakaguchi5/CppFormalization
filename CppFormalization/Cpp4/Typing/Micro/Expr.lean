@@ -5,18 +5,22 @@ import CppFormalization.Cpp4.Typing.Micro.Place
 
 Micro typing certificates for value expressions.
 
-This layer records the expression type and generated `ExprDemand`.  Call-specific
-construction is added in `Typing.Micro.CallArgs`, so expression typing can remain
-below callable-argument typing without an import cycle.
+This layer records the expression type, generated `ExprDemand`, and evidence for
+its formation side condition.  Call-specific construction is added in
+`Typing.Micro.CallArgs`, so expression typing can remain below callable-argument
+typing without an import cycle.
 -/
 
 namespace Cpp4
 
-/-- A typed value-expression certificate. -/
+/-- A typed value-expression certificate.
+
+`formation` states the C++ typing side condition; `evidence` proves it. -/
 structure ExprTyping (Γ : TypeEnv) (e : ValExpr) : Type where
   ty : CppType
   demand : ExprDemand
   formation : Prop
+  evidence : formation
 
 namespace ExprTyping
 
@@ -25,18 +29,21 @@ def litBool {Γ : TypeEnv} (b : Bool) : ExprTyping Γ (.litBool b) where
   ty := .base .bool
   demand := ExprDemand.literal
   formation := True
+  evidence := trivial
 
 /-- Integer literal typing. -/
 def litInt {Γ : TypeEnv} (n : Int) : ExprTyping Γ (.litInt n) where
   ty := .base .int
   demand := ExprDemand.literal
   formation := True
+  evidence := trivial
 
 /-- Null pointer literal.  The pointee type is supplied by contextual typing. -/
 def nullPtrAs {Γ : TypeEnv} (τ : CppType) : ExprTyping Γ .nullPtr where
   ty := .ptr τ
   demand := ExprDemand.literal
   formation := True
+  evidence := trivial
 
 /-- Load from a typed place. -/
 def load {Γ : TypeEnv} {p : PlaceExpr}
@@ -44,6 +51,7 @@ def load {Γ : TypeEnv} {p : PlaceExpr}
   ty := hp.ty
   demand := ExprDemand.load hp.readDemand
   formation := hp.formation
+  evidence := hp.evidence
 
 /-- Address-of a typed place. -/
 def addrOf {Γ : TypeEnv} {p : PlaceExpr}
@@ -51,58 +59,65 @@ def addrOf {Γ : TypeEnv} {p : PlaceExpr}
   ty := .ptr hp.ty
   demand := ExprDemand.addrOf hp.addressDemand
   formation := hp.formation
+  evidence := hp.evidence
 
 /-- Integer addition. -/
 def addInt {Γ : TypeEnv} {lhs rhs : ValExpr}
     (hl : ExprTyping Γ lhs) (hr : ExprTyping Γ rhs)
-    (_hlTy : hl.ty = .base .int) (_hrTy : hr.ty = .base .int) :
+    (hlTy : hl.ty = .base .int) (hrTy : hr.ty = .base .int) :
     ExprTyping Γ (.add lhs rhs) where
   ty := .base .int
   demand := ExprDemand.binary hl.demand hr.demand
   formation := hl.formation ∧ hr.formation ∧ hl.ty = .base .int ∧ hr.ty = .base .int
+  evidence := And.intro hl.evidence (And.intro hr.evidence (And.intro hlTy hrTy))
 
 /-- Integer subtraction. -/
 def subInt {Γ : TypeEnv} {lhs rhs : ValExpr}
     (hl : ExprTyping Γ lhs) (hr : ExprTyping Γ rhs)
-    (_hlTy : hl.ty = .base .int) (_hrTy : hr.ty = .base .int) :
+    (hlTy : hl.ty = .base .int) (hrTy : hr.ty = .base .int) :
     ExprTyping Γ (.sub lhs rhs) where
   ty := .base .int
   demand := ExprDemand.binary hl.demand hr.demand
   formation := hl.formation ∧ hr.formation ∧ hl.ty = .base .int ∧ hr.ty = .base .int
+  evidence := And.intro hl.evidence (And.intro hr.evidence (And.intro hlTy hrTy))
 
 /-- Integer multiplication. -/
 def mulInt {Γ : TypeEnv} {lhs rhs : ValExpr}
     (hl : ExprTyping Γ lhs) (hr : ExprTyping Γ rhs)
-    (_hlTy : hl.ty = .base .int) (_hrTy : hr.ty = .base .int) :
+    (hlTy : hl.ty = .base .int) (hrTy : hr.ty = .base .int) :
     ExprTyping Γ (.mul lhs rhs) where
   ty := .base .int
   demand := ExprDemand.binary hl.demand hr.demand
   formation := hl.formation ∧ hr.formation ∧ hl.ty = .base .int ∧ hr.ty = .base .int
+  evidence := And.intro hl.evidence (And.intro hr.evidence (And.intro hlTy hrTy))
 
 /-- Equality comparison between two expressions of the same type. -/
 def eqSame {Γ : TypeEnv} {lhs rhs : ValExpr}
     (hl : ExprTyping Γ lhs) (hr : ExprTyping Γ rhs)
-    (_sameTy : hl.ty = hr.ty) : ExprTyping Γ (.eq lhs rhs) where
+    (sameTy : hl.ty = hr.ty) : ExprTyping Γ (.eq lhs rhs) where
   ty := .base .bool
   demand := ExprDemand.binary hl.demand hr.demand
   formation := hl.formation ∧ hr.formation ∧ hl.ty = hr.ty
+  evidence := And.intro hl.evidence (And.intro hr.evidence sameTy)
 
 /-- Integer less-than comparison. -/
 def ltInt {Γ : TypeEnv} {lhs rhs : ValExpr}
     (hl : ExprTyping Γ lhs) (hr : ExprTyping Γ rhs)
-    (_hlTy : hl.ty = .base .int) (_hrTy : hr.ty = .base .int) :
+    (hlTy : hl.ty = .base .int) (hrTy : hr.ty = .base .int) :
     ExprTyping Γ (.lt lhs rhs) where
   ty := .base .bool
   demand := ExprDemand.binary hl.demand hr.demand
   formation := hl.formation ∧ hr.formation ∧ hl.ty = .base .int ∧ hr.ty = .base .int
+  evidence := And.intro hl.evidence (And.intro hr.evidence (And.intro hlTy hrTy))
 
 /-- Boolean negation. -/
 def notBool {Γ : TypeEnv} {e : ValExpr}
-    (h : ExprTyping Γ e) (_hTy : h.ty = .base .bool) :
+    (h : ExprTyping Γ e) (hTy : h.ty = .base .bool) :
     ExprTyping Γ (.not e) where
   ty := .base .bool
   demand := ExprDemand.unary h.demand
   formation := h.formation ∧ h.ty = .base .bool
+  evidence := And.intro h.evidence hTy
 
 end ExprTyping
 

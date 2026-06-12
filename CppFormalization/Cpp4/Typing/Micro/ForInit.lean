@@ -15,6 +15,7 @@ structure ForInitTyping (Γ : TypeEnv) (init : CppForInit) : Type where
   envEffect : TypeEnvEffect Γ target
   demand : AtomDemand
   formation : Prop
+  evidence : formation
 
 namespace ForInitTyping
 
@@ -24,6 +25,7 @@ def none (Γ : TypeEnv) : ForInitTyping Γ .none where
   envEffect := TypeEnvEffect.id Γ
   demand := AtomDemand.skip
   formation := True
+  evidence := trivial
 
 /-- Expression-statement for-initializer. -/
 def expr {Γ : TypeEnv} {s : CppExprStmt}
@@ -31,7 +33,8 @@ def expr {Γ : TypeEnv} {s : CppExprStmt}
   target := Γ
   envEffect := TypeEnvEffect.id Γ
   demand := h.demand
-  formation := True
+  formation := h.formation
+  evidence := h.evidence
 
 /-- Declaration for-initializer. -/
 def decl {Γ : TypeEnv} {d : CppDecl}
@@ -40,6 +43,7 @@ def decl {Γ : TypeEnv} {d : CppDecl}
   envEffect := h.envEffect
   demand := h.demand
   formation := h.formation
+  evidence := h.evidence
 
 end ForInitTyping
 

@@ -71,6 +71,7 @@ def call {Γ : TypeEnv} {Φ : FunctionEnv} {f : FunctionName} {args : CallArgs}
   ty := h.retTy
   demand := ExprDemand.ofDemandSet h.demand.demands
   formation := True
+  evidence := trivial
 
 end ExprTyping
 
