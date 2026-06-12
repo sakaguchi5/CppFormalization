@@ -3,7 +3,7 @@ import CppFormalization.Cpp4.Core.Ident
 /-!
 # CppFormalization.Cpp4.Core.Type
 
-Small C++ type vocabulary.  Function types are deliberately not object types;
+Small C++ type vocabulary. Function types are deliberately not object types;
 function declarations live in `Core.Function`.
 -/
 

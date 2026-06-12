@@ -3,7 +3,7 @@ import CppFormalization.Cpp4.Core.Address
 /-!
 # CppFormalization.Cpp4.Core.Value
 
-Runtime values.  Null pointer is included from the beginning because pointer
+Runtime values. Null pointer is included from the beginning because pointer
 resource demands must distinguish null from live dereferenceable addresses.
 -/
 
@@ -22,7 +22,7 @@ inductive Value where
   | ptr : PtrValue → Value
   deriving DecidableEq, Repr
 
-/-- Value/type compatibility.  `nullptr` is compatible with every pointer type,
+/-- Value/type compatibility. `nullptr` is compatible with every pointer type,
 but it is not dereferenceable; dereferenceability is a resource capability. -/
 inductive ValueCompat : Value → CppType → Prop where
   | unit : ValueCompat .unit (.base .void)

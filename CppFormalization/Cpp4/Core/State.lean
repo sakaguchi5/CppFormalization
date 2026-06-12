@@ -17,7 +17,7 @@ structure Cell where
 
 /-- Runtime state.
 
-`nextObject` and `nextScope` are allocation cursors.  They are policies, not
+`nextObject` and `nextScope` are allocation cursors. They are policies, not
 semantic proof objects; freshness/ownership facts are stated in Resource layers.
 -/
 structure State where

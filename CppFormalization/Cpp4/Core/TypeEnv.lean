@@ -3,9 +3,9 @@ import CppFormalization.Cpp4.Core.Type
 /-!
 # CppFormalization.Cpp4.Core.TypeEnv
 
-Static type environments for Cpp4.  This layer records only name-to-declaration
-information; control permissions and callable lookup stay in `ControlContext` and
-`FunctionEnv`.
+Static type environments for Cpp4. This layer records only name-to-declaration
+information. Control permissions and callable lookup stay in `ControlContext`
+and `FunctionEnv`.
 -/
 
 namespace Cpp4
@@ -28,7 +28,7 @@ def Fresh (Γ : TypeEnv) (x : Ident) : Prop :=
 def Bound (Γ : TypeEnv) (x : Ident) (info : DeclInfo) : Prop :=
   Γ.lookup x = some info
 
-/-- Bind or shadow a name.  Scope discipline later decides when shadowing is allowed. -/
+/-- Bind or shadow a name. Scope discipline later decides when shadowing is allowed. -/
 def bind (Γ : TypeEnv) (x : Ident) (info : DeclInfo) : TypeEnv where
   lookup := fun y => if y = x then some info else Γ.lookup y
 

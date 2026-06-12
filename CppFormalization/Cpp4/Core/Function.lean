@@ -5,9 +5,9 @@ import CppFormalization.Cpp4.Core.Type
 
 Callable vocabulary that is intentionally independent from statement syntax.
 
-The Resource layer only needs names, signatures, and callable declarations.  A
+The Resource layer only needs names, signatures, and callable declarations. A
 function body is a higher-level semantic object and must not be pulled into
-resource capabilities, otherwise `Resource.Capability` depends on all of
+resource capabilities; otherwise `Resource.Capability` depends on all of
 `Core.Syntax`.
 -/
 
@@ -29,7 +29,7 @@ structure FunctionSig where
   ret : CppType
 
 /-- Whether a callable is implemented inside the Cpp fragment or supplied by an
-external contract.  The actual internal body is deliberately not stored here. -/
+external contract. The actual internal body is deliberately not stored here. -/
 inductive CallableKind where
   | internal
   | external

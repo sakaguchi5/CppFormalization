@@ -5,7 +5,7 @@ import CppFormalization.Cpp4.Core.TypeEnv
 /-!
 # CppFormalization.Cpp4.Core.Program
 
-Program-level vocabulary.  `Core.Function` deliberately stops at callable
+Program-level vocabulary. `Core.Function` deliberately stops at callable
 signatures/declarations; this file is the first Core layer that may mention
 function bodies.
 -/

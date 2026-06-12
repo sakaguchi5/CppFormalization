@@ -3,7 +3,7 @@ import CppFormalization.Cpp4.Core.Type
 /-!
 # CppFormalization.Cpp4.Core.Address
 
-Object identity and addresses.  Cpp4 keeps addresses first-class instead of
+Object identity and addresses. Cpp4 keeps addresses first-class instead of
 exposing raw `Nat` everywhere, so pointer/lifetime/resource transport can speak
 about object identity directly.
 -/

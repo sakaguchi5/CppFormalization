@@ -4,6 +4,10 @@ import CppFormalization.Cpp4.Core.Keyword
 # CppFormalization.Cpp4.Core.Ident
 
 Identifier surfaces for user names and function names.
+
+The Core AST uses raw `Ident` values.  A later Source/Static layer may require
+`UserIdent` when it wants to state the lexical fact that a spelling is not a
+reserved keyword.
 -/
 
 namespace Cpp4
@@ -12,7 +16,7 @@ namespace Cpp4
 abbrev Ident := String
 
 /-- Raw user identifier with a proof that it is lexically valid.
-This is useful for formation layers, but raw syntax should usually use `Ident`. -/
+This is useful for formation layers, but Core syntax usually stays proof-free. -/
 structure UserIdent where
   name : Ident
   valid : ValidUserIdent name

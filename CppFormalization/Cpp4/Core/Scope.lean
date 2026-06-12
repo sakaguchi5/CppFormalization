@@ -3,7 +3,7 @@ import CppFormalization.Cpp4.Core.Value
 /-!
 # CppFormalization.Cpp4.Core.Scope
 
-Scope identity and runtime bindings.  `ScopeId` is first-class so block-open and
+Scope identity and runtime bindings. `ScopeId` is first-class so block-open and
 block-close transport can talk about the scope being preserved/closed instead of
 only reasoning about list indices.
 -/
@@ -29,7 +29,7 @@ def bindingAddress : Binding → Address
   | .object _ a => a
   | .ref _ a => a
 
-/-- Runtime scope frame.  `locals` records object ownership for scope close. -/
+/-- Runtime scope frame. `locals` records object ownership for scope close. -/
 structure ScopeFrame where
   id : ScopeId
   binds : Ident → Option Binding

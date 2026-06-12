@@ -3,8 +3,9 @@ import CppFormalization.Cpp4.Core.Value
 /-!
 # CppFormalization.Cpp4.Core.Control
 
-Control results and control contexts.  Reserved words such as `break` and
-`continue` are lexical facts; whether they are usable is tracked here.
+Control results and control contexts. Reserved words such as `break`,
+`continue`, and `return` are lexical facts; whether they are usable is tracked
+here.
 -/
 
 namespace Cpp4
@@ -17,6 +18,15 @@ inductive CtrlResult where
   | returnVoid
   | returnValue : Value → CtrlResult
   deriving DecidableEq, Repr
+
+namespace CtrlResult
+
+/-- Abrupt control results are the non-normal channels. -/
+def Abrupt : CtrlResult → Prop
+  | .normal => False
+  | _ => True
+
+end CtrlResult
 
 /-- Static/control context used by formation and typing. -/
 structure ControlContext where
@@ -37,6 +47,12 @@ def top : ControlContext where
 def enterLoop (κ : ControlContext) : ControlContext where
   loopDepth := κ.loopDepth + 1
   switchDepth := κ.switchDepth
+  returnType := κ.returnType
+
+/-- Enter a switch body: `break` is enabled, but `continue` is not introduced. -/
+def enterSwitch (κ : ControlContext) : ControlContext where
+  loopDepth := κ.loopDepth
+  switchDepth := κ.switchDepth + 1
   returnType := κ.returnType
 
 /-- Enter a function body with the given return type. -/
