@@ -39,10 +39,16 @@ inductive SwitchSuffixClassification
 
 namespace PlanClassification
 
-/-- Extract the fact that a classification is finite or divergent as a proposition. -/
-def SoundnessShape {χ : KernelContext} {σ : State} {p : ControlPlan}
-    (_h : PlanClassification χ σ p) : Prop :=
+/-- Proposition saying that a plan execution is classified as finite or divergent. -/
+def SoundnessShape (χ : KernelContext) (σ : State) (p : ControlPlan) : Prop :=
   (∃ r σ', BigStepPlan χ σ p r σ') ∨ DivergesPlan χ σ p
+
+/-- A classification provides evidence for its finite-or-divergent soundness shape. -/
+def soundnessShapeEvidence {χ : KernelContext} {σ : State} {p : ControlPlan}
+    (h : PlanClassification χ σ p) : SoundnessShape χ σ p :=
+  match h with
+  | .finite step => Or.inl ⟨_, _, step⟩
+  | .diverges div => Or.inr div
 
 /-- A finite step gives a classification. -/
 def ofFinite {χ : KernelContext} {σ σ' : State} {p : ControlPlan} {r : CtrlResult}
