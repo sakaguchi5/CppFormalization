@@ -42,17 +42,6 @@ def ofPreservesDemandSet
     NoninterferenceCertificate χ χ' σ σ' eff D D' where
   preserves := h
 
-/-- Repackage an existing raw provider as a noninterference certificate.
-
-This is mainly for migration: new code should normally build the certificate from
-primitive noninterference facts instead. -/
-def ofEffectPreservesDemand
-    {χ χ' : DemandContext} {σ σ' : State}
-    {eff : ResourceEffect} {D D' : DemandSet}
-    (h : EffectPreservesDemand χ χ' σ σ' eff D D') :
-    NoninterferenceCertificate χ χ' σ σ' eff D D' where
-  preserves := PreservesDemandSet.ofEffectPreservesDemand h
-
 /-- Empty demand-set noninterference. -/
 def nil
     {χ χ' : DemandContext} {σ σ' : State} {eff : ResourceEffect} :

@@ -1,6 +1,7 @@
 import CppFormalization.Cpp4.Resource.Certification.Demand
 import CppFormalization.Cpp4.Resource.Certification.Effect
 import CppFormalization.Cpp4.Resource.Certification.Noninterference
+import CppFormalization.Cpp4.Resource.Certification.ExternalCall
 import CppFormalization.Cpp4.Resource.Certification.Provider
 import CppFormalization.Cpp4.Resource.Certification.Transport
 import CppFormalization.Cpp4.Resource.Certification.Boundary
